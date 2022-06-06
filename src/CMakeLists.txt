@@ -8,7 +8,9 @@ if(NOT TARGET uo::uo_cb)
 endif()
 
 add_executable(uochess
-    uochess.c)
+    uochess.c
+    uo_bitboard.c
+    uo_position.c)
 
 target_include_directories(uochess
     PRIVATE
