@@ -3,6 +3,57 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+const uo_bitboard uo_bitboard__a_file = (uo_bitboard)0x0101010101010101;
+const uo_bitboard uo_bitboard__h_file = (uo_bitboard)0x8080808080808080;
+const uo_bitboard uo_bitboard__1st_rank = (uo_bitboard)0x00000000000000FF;
+const uo_bitboard uo_bitboard__8th_rank = (uo_bitboard)0xFF00000000000000;
+const uo_bitboard uo_bitboard__a1_h8_diagonal = (uo_bitboard)0x8040201008040201;
+const uo_bitboard uo_bitboard__h1_a8_antidiagonal = (uo_bitboard)0x0102040810204080;
+const uo_bitboard uo_bitboard__light_squares = (uo_bitboard)0x55AA55AA55AA55AA;
+const uo_bitboard uo_bitboard__dark_squares = (uo_bitboard)0xAA55AA55AA55AA55;
+
+uo_bitboard uo_bitboard_file[8];          //  |
+uo_bitboard uo_bitboard_rank[8];          //  -
+uo_bitboard uo_bitboard_diagonal[15];     //  /
+uo_bitboard uo_bitboard_antidiagonal[15]; //  \
+
+static bool init;
+
+void uo_bitboard_init()
+{
+  if (init)
+    return;
+  init = true;
+
+  for (int i = 0; i < 8; ++i)
+  {
+    uo_bitboard_file[i] = uo_bitboard__a_file << i;
+    uo_bitboard_rank[i] = uo_bitboard__1st_rank << (i << 3);
+  }
+
+  {
+    uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
+    uo_bitboard_diagonal[8] = uo_bitboard__a1_h8_diagonal << 1;
+    uo_bitboard mask_rank = 0;
+
+    for (int i = 2; i < 8; ++i)
+    {
+      uo_bitboard diagonal = uo_bitboard__a1_h8_diagonal << i;
+      mask_rank |= uo_bitboard_rank[9 - i];
+
+      uo_bitboard_diagonal[7 + i] = diagonal & ~mask_rank;
+      uo_bitboard_diagonal[i - 2] = diagonal & mask_rank;
+    }
+
+    for (int i = 0; i < 15; ++i)
+    {
+      printf("%d\n", i);
+      uo_bitboard_print(uo_bitboard_diagonal[i]);
+      printf("\n");
+    }
+  }
+}
+
 int uo_bitboard_print(uo_bitboard bitboard)
 {
   // a8 b8 c8 d8 e8 f8 g8 h8
@@ -17,10 +68,10 @@ int uo_bitboard_print(uo_bitboard bitboard)
 
   for (int i = 0; i < 64; ++i)
   {
-    uo_bitboard mask = (uo_bitboard)1 << i;
+    uo_bitboard mask = uo_square_bitboard(i);
     bool isset = mask & bitboard;
-    int rank = uo_bitboard_rank(i);
-    int file = uo_bitboard_file(i);
+    int rank = uo_square_rank(i);
+    int file = uo_square_file(i);
     int row = 7 - rank;
     int index = (row << 3) + file + row;
     diagram[index] = isset ? 'X' : '.';

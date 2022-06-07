@@ -1,7 +1,7 @@
-#include "uo_err.h"
-#include "uo_cb.h"
+#include "uo_macro.h"
 #include "uo_bitboard.h"
 #include "uo_position.h"
+#include "uo_moves.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -72,10 +72,32 @@ void (*process_cmd[])() = {
     process_cmd__options,
     process_cmd__ready};
 
+#define uo_run_test(test_name)                                  \
+if (argc == 2 || strcmp(argv[1], uo_nameof(test_name)) == 0)    \
+{                                                               \
+  if (!uo_cat(uo_test_, test_name)())                           \
+  {                                                             \
+    printf("test `%s` failed.\n", uo_nameof(test_name));        \
+    return 1;                                                   \
+  }                                                             \
+}
+
 int main(
     int argc,
     char **argv)
 {
+  uo_bitboard_init();
+  uo_moves_init();
+
+  // Use command line argument `test` to perform tests
+  if (argc > 1 && strcmp(argv[1], "test") == 0)
+  {
+    uo_run_test(moves);
+
+    printf("Tests passed.\n");
+    return 0;
+  }
+
   while (fgets(buf, sizeof buf, stdin))
   {
     if (strcmp(buf, "quit\n") == 0)

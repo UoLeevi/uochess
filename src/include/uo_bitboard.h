@@ -2,17 +2,28 @@
 #define UO_BITBOARD_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
+
+#include "uo_square.h"
 
 #include <inttypes.h>
 
-typedef uint64_t uo_bitboard;
+  // Little endian rank-file (LERF) mapping
 
-#define uo_bitboard_file(i) ((uo_bitboard)(i) & (uo_bitboard)7)
-#define uo_bitboard_rank(i) ((uo_bitboard)(i) >> 3)
+  typedef uint64_t uo_bitboard;
 
-int uo_bitboard_print(uo_bitboard bitboard);
+  extern uo_bitboard uo_bitboard_file[8];          //  |
+  extern uo_bitboard uo_bitboard_rank[8];          //  -
+  extern uo_bitboard uo_bitboard_diagonal[15];     //  /
+  extern uo_bitboard uo_bitboard_antidiagonal[15]; //  \
+
+#define uo_bitboard_file(square)
+
+  int uo_bitboard_print(uo_bitboard bitboard);
+
+  void uo_bitboard_init();
 
 #ifdef __cplusplus
 }

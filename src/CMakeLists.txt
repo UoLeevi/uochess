@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.12)
 
-if(NOT TARGET uo::uo_err)
-    find_package(uo_err CONFIG REQUIRED)
-endif()
-if(NOT TARGET uo::uo_cb)
-    find_package(uo_cb CONFIG REQUIRED)
+if(NOT TARGET uo::uo_macro)
+    find_package(uo_macro CONFIG REQUIRED)
 endif()
 
 add_executable(uochess
     uochess.c
     uo_bitboard.c
-    uo_position.c)
+    uo_position.c
+    uo_moves.c
+    uo_magic.c)
 
 target_include_directories(uochess
     PRIVATE
@@ -18,8 +17,7 @@ target_include_directories(uochess
 
 target_link_libraries(uochess
     PRIVATE
-        uo::uo_err
-        uo::uo_cb)
+        uo::uo_macro)
 
 target_compile_features(uochess
     PUBLIC

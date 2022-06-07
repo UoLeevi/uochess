@@ -207,7 +207,7 @@ char *uo_position_to_diagram(uo_position *pos, char diagram[72])
 {
   for (int i = 0; i < 64; ++i)
   {
-    uo_bitboard mask = (uo_bitboard)1 << i;
+    uo_bitboard mask = uo_square_bitboard(i);
 
     char piece;
 
@@ -245,8 +245,8 @@ char *uo_position_to_diagram(uo_position *pos, char diagram[72])
       piece += 0x20;
     }
 
-    int rank = uo_bitboard_rank(i);
-    int file = uo_bitboard_file(i);
+    int rank = uo_square_rank(i);
+    int file = uo_square_file(i);
     int row = 7 - rank;
     int index = (row << 3) + file + row;
     diagram[index] = piece;
