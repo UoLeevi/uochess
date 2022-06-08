@@ -25,33 +25,34 @@ void uo_bitboard_init()
     return;
   init = true;
 
+  // files and ranks
+
   for (int i = 0; i < 8; ++i)
   {
     uo_bitboard_file[i] = uo_bitboard__a_file << i;
     uo_bitboard_rank[i] = uo_bitboard__1st_rank << (i << 3);
   }
 
+  // diagonals and antidiagonals
+
+  uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
+  uo_bitboard_antidiagonal[7] = uo_bitboard__h1_a8_antidiagonal;
+
+  for (int i = 1; i < 8; ++i)
   {
-    uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
-    uo_bitboard_diagonal[8] = uo_bitboard__a1_h8_diagonal << 1;
-    uo_bitboard mask_rank = 0;
-
-    for (int i = 2; i < 8; ++i)
-    {
-      uo_bitboard diagonal = uo_bitboard__a1_h8_diagonal << i;
-      mask_rank |= uo_bitboard_rank[9 - i];
-
-      uo_bitboard_diagonal[7 + i] = diagonal & ~mask_rank;
-      uo_bitboard_diagonal[i - 2] = diagonal & mask_rank;
-    }
-
-    for (int i = 0; i < 15; ++i)
-    {
-      printf("%d\n", i);
-      uo_bitboard_print(uo_bitboard_diagonal[i]);
-      printf("\n");
-    }
+    uo_bitboard_diagonal[7 - i] = uo_bitboard__a1_h8_diagonal << (i << 3);
+    uo_bitboard_diagonal[7 + i] = uo_bitboard__a1_h8_diagonal >> (i << 3);
+    uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
+    uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
   }
+
+  // for (int i = 0; i < 15; ++i)
+  // {
+  //   printf("%d\n", i);
+  //   uo_bitboard_print(uo_bitboard_diagonal[i]);
+  //   printf("\n");
+  //   uo_bitboard_print(uo_bitboard_antidiagonal[i]);
+  // }
 }
 
 int uo_bitboard_print(uo_bitboard bitboard)
