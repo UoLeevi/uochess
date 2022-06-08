@@ -48,7 +48,7 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
         j += c - '0' - 1;
         continue;
       }
-      
+
       uo_piece piece = uo_piece_from_char[c];
 
       if (!piece)
@@ -56,7 +56,7 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
         return NULL;
       }
 
-      uo_bitboard *bitboard = (uo_bitboard *)pos + uo_position__piece_bitboard_offset[piece];
+      uo_bitboard *bitboard = uo_position__piece_bitboard(pos, piece);
       uo_square square = (i << 3) + j;
       uo_bitboard mask = uo_square_bitboard(square);
 
