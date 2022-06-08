@@ -48,70 +48,22 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
         j += c - '0' - 1;
         continue;
       }
+      
+      uo_piece piece = uo_piece_from_char[c];
 
-      uo_bitboard *bitboard;
-      bool black_piece;
-
-      switch (c)
+      if (!piece)
       {
-      case 'P':
-        bitboard = &pos->p;
-        black_piece = false;
-        break;
-      case 'p':
-        bitboard = &pos->p;
-        black_piece = true;
-        break;
-      case 'N':
-        bitboard = &pos->n;
-        black_piece = false;
-        break;
-      case 'n':
-        bitboard = &pos->n;
-        black_piece = true;
-        break;
-      case 'B':
-        bitboard = &pos->b;
-        black_piece = false;
-        break;
-      case 'b':
-        bitboard = &pos->b;
-        black_piece = true;
-        break;
-      case 'R':
-        bitboard = &pos->r;
-        black_piece = false;
-        break;
-      case 'r':
-        bitboard = &pos->r;
-        black_piece = true;
-        break;
-      case 'Q':
-        bitboard = &pos->q;
-        black_piece = false;
-        break;
-      case 'q':
-        bitboard = &pos->q;
-        black_piece = true;
-        break;
-      case 'K':
-        bitboard = &pos->k;
-        black_piece = false;
-        break;
-      case 'k':
-        bitboard = &pos->k;
-        black_piece = true;
-        break;
-
-      default:
         return NULL;
       }
 
-      uo_bitboard mask = (uo_bitboard)1 << (i * 8 + j);
+      uo_bitboard *bitboard = (uo_bitboard *)pos + uo_position__piece_bitboard_offset[piece];
+      uo_square square = (i << 3) + j;
+      uo_bitboard mask = uo_square_bitboard(square);
 
+      pos->board[square] = piece;
       *bitboard |= mask;
 
-      if (black_piece)
+      if (piece >> 7)
       {
         pos->black_piece |= mask;
       }
@@ -207,49 +159,13 @@ char *uo_position_to_diagram(uo_position *pos, char diagram[72])
 {
   for (int i = 0; i < 64; ++i)
   {
-    uo_bitboard mask = uo_square_bitboard(i);
-
-    char piece;
-
-    if (pos->p & mask)
-    {
-      piece = 'P';
-    }
-    else if (pos->n & mask)
-    {
-      piece = 'N';
-    }
-    else if (pos->b & mask)
-    {
-      piece = 'B';
-    }
-    else if (pos->r & mask)
-    {
-      piece = 'R';
-    }
-    else if (pos->q & mask)
-    {
-      piece = 'Q';
-    }
-    else if (pos->k & mask)
-    {
-      piece = 'K';
-    }
-    else
-    {
-      piece = '.';
-    }
-
-    if (piece != '.' && (pos->black_piece & mask))
-    {
-      piece += 0x20;
-    }
-
+    uo_piece piece = pos->board[i];
     int rank = uo_square_rank(i);
     int file = uo_square_file(i);
     int row = 7 - rank;
     int index = (row << 3) + file + row;
-    diagram[index] = piece;
+    char c = uo_piece_to_char[piece];
+    diagram[index] = c ? c : '.';
   }
 
   for (int i = 8; i < 72; i += 9)

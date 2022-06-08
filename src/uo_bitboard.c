@@ -46,12 +46,11 @@ void uo_bitboard_init()
     uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
   }
 
-  // for (int i = 0; i < 15; ++i)
+  // for (int i = 0; i < 64; ++i)
   // {
-  //   printf("%d\n", i);
-  //   uo_bitboard_print(uo_bitboard_diagonal[i]);
+  //   printf("%c%d - %d\n", 'a' + uo_square_file(i), 1 + uo_square_rank(i), i);
+  //   uo_bitboard_print(uo_bitboard_antidiagonal[uo_square_antidiagonal[i]]);
   //   printf("\n");
-  //   uo_bitboard_print(uo_bitboard_antidiagonal[i]);
   // }
 }
 

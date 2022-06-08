@@ -172,6 +172,25 @@ void uo_moves_N_init()
 
 void uo_blocker_mask_B_init()
 {
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    int rank = uo_square_rank(i);
+    int file = uo_square_file(i);
+    uo_bitboard mask_edge_rank = (uo_bitboard_rank[0] | uo_bitboard_rank[7]) & ~uo_bitboard_rank[rank];
+    uo_bitboard mask_edge_file = (uo_bitboard_file[0] | uo_bitboard_file[7]) & ~uo_bitboard_file[file];
+    uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
+    int diagonal = uo_square_diagonal[i];
+    int antidiagonal = uo_square_antidiagonal[i];
+    uo_bitboard mask = uo_bitboard_diagonal[diagonal] | uo_bitboard_antidiagonal[antidiagonal];
+    mask &= ~mask_edge;
+    mask ^= uo_square_bitboard(i);
+
+    uo_blocker_mask_B[i] = mask;
+
+    // printf("%c%d - %d\n", 'a' + uo_square_file(i), 1 + uo_square_rank(i), i);
+    // uo_bitboard_print(mask);
+    // printf("\n");
+  }
 }
 
 void uo_blocker_mask_R_init()
@@ -189,7 +208,7 @@ void uo_blocker_mask_R_init()
 
     uo_blocker_mask_R[i] = mask;
 
-    // printf("%d\n", i);
+    // printf("%c%d - %d\n", 'a' + uo_square_file(i), 1 + uo_square_rank(i), i);
     // uo_bitboard_print(mask);
     // printf("\n");
   }

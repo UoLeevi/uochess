@@ -8,6 +8,8 @@ add_executable(uochess
     uochess.c
     uo_bitboard.c
     uo_position.c
+    uo_piece.c
+    uo_square.c
     uo_moves.c
     uo_magic.c)
 
