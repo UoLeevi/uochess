@@ -1,6 +1,7 @@
 #include "uo_moves.h"
-#include "uo_magic.h"
+#include "uo_util.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -9,8 +10,20 @@ static bool init;
 uo_bitboard uo_moves_K[64];
 uo_bitboard uo_moves_N[64];
 
-uo_bitboard uo_blocker_mask_B[64];
-uo_bitboard uo_blocker_mask_R[64];
+typedef struct uo_magic
+{
+  uint32_t number;
+  uint32_t shift;
+  uo_bitboard mask;
+  union
+  {
+    uo_bitboard *_blockers;
+    uo_bitboard *moves;
+  } board;
+} uo_magic;
+
+uo_magic uo_magics_B[64];
+uo_magic uo_magics_R[64];
 
 void uo_moves_K_init()
 {
@@ -170,8 +183,12 @@ void uo_moves_N_init()
   // }
 }
 
-void uo_blocker_mask_B_init()
+void uo_magics_B_init()
 {
+  // 1. Generate blocker masks
+
+  int blocker_board_count = 0;
+
   for (uo_square i = 0; i < 64; ++i)
   {
     int rank = uo_square_rank(i);
@@ -185,16 +202,31 @@ void uo_blocker_mask_B_init()
     mask &= ~mask_edge;
     mask ^= uo_square_bitboard(i);
 
-    uo_blocker_mask_B[i] = mask;
+    uo_magics_B[i].mask = mask;
+    uo_magics_B[i].shift = uo_popcount_64(mask);
+    blocker_board_count += 1 << uo_magics_B[i].shift;
 
     // printf("%c%d - %d\n", 'a' + uo_square_file(i), 1 + uo_square_rank(i), i);
     // uo_bitboard_print(mask);
     // printf("\n");
   }
+
+  // 2. Allocate memory for blocker and move boards
+  uo_bitboard *blockers = malloc(blocker_board_count * sizeof blockers);
+
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    uo_magics_B[i].board._blockers = blockers;
+    blockers += 1 << uo_magics_B[i].shift;
+  }
 }
 
-void uo_blocker_mask_R_init()
+void uo_magics_R_init()
 {
+  // 1. Generate blocker masks
+
+  int blocker_board_count = 0;
+
   for (uo_square i = 0; i < 64; ++i)
   {
     int rank = uo_square_rank(i);
@@ -206,11 +238,30 @@ void uo_blocker_mask_R_init()
     mask &= ~mask_edge;
     mask ^= uo_square_bitboard(i);
 
-    uo_blocker_mask_R[i] = mask;
+    uo_magics_R[i].mask = mask;
+    uo_magics_R[i].shift = uo_popcount_64(mask);
+    blocker_board_count += 1 << uo_magics_R[i].shift;
 
     // printf("%c%d - %d\n", 'a' + uo_square_file(i), 1 + uo_square_rank(i), i);
     // uo_bitboard_print(mask);
     // printf("\n");
+  }
+
+  // 2. Allocate memory for blocker and move boards
+  uo_bitboard *blockers = malloc(blocker_board_count * sizeof blockers);
+
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    uo_magics_R[i].board._blockers = blockers;
+    blockers += 1 << uo_magics_R[i].shift;
+  }
+
+  // 3. Generate blocker boards and move boards
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    uo_magic magic = uo_magics_R[i];
+    
+
   }
 }
 
@@ -221,8 +272,8 @@ void uo_moves_init()
   init = true;
   uo_moves_K_init();
   uo_moves_N_init();
-  uo_blocker_mask_B_init();
-  uo_blocker_mask_R_init();
+  uo_magics_B_init();
+  uo_magics_R_init();
 }
 
 bool uo_test_moves()

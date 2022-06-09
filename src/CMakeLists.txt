@@ -11,7 +11,7 @@ add_executable(uochess
     uo_piece.c
     uo_square.c
     uo_moves.c
-    uo_magic.c)
+    uo_util.c)
 
 target_include_directories(uochess
     PRIVATE
