@@ -6,6 +6,9 @@ extern "C"
 {
 #endif
 
+#include <inttypes.h>
+
+// uo_popcount_64
 #ifdef __has_builtin
 #if __has_builtin(__builtin_popcountll)
 
@@ -14,11 +17,12 @@ extern "C"
 #endif
 #else
 
-#include <inttypes.h>
-
 int uo_popcount_64(uint64_t u64);
 
 #endif
+// END - uo_popcount_64
+
+uint16_t *uo_bit_permutations(uint16_t *array, int index, int bits, uint16_t number);
 
 #ifdef __cplusplus
 }

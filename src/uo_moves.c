@@ -213,12 +213,6 @@ void uo_magics_B_init()
 
   // 2. Allocate memory for blocker and move boards
   uo_bitboard *blockers = malloc(blocker_board_count * sizeof blockers);
-
-  for (uo_square i = 0; i < 64; ++i)
-  {
-    uo_magics_B[i].board._blockers = blockers;
-    blockers += 1 << uo_magics_B[i].shift;
-  }
 }
 
 void uo_magics_R_init()
@@ -250,17 +244,13 @@ void uo_magics_R_init()
   // 2. Allocate memory for blocker and move boards
   uo_bitboard *blockers = malloc(blocker_board_count * sizeof blockers);
 
-  for (uo_square i = 0; i < 64; ++i)
-  {
-    uo_magics_R[i].board._blockers = blockers;
-    blockers += 1 << uo_magics_R[i].shift;
-  }
 
   // 3. Generate blocker boards and move boards
   for (uo_square i = 0; i < 64; ++i)
   {
     uo_magic magic = uo_magics_R[i];
-    
+    uo_bitboard mask = magic.mask;
+    int bits
 
   }
 }
