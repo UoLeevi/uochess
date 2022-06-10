@@ -14,8 +14,3 @@ int uo_popcount_64(uint64_t u64)
 }
 
 #endif
-
-uint16_t *uo_bit_permutations(uint16_t *array, int index, int bits, uint16_t number)
-{
-  // TODO
-}
