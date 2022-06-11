@@ -63,7 +63,7 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
       pos->board[square] = piece;
       *bitboard |= mask;
 
-      if (piece >> 7)
+      if ((piece >> 7) == 0)
       {
         pos->black_piece |= mask;
       }

@@ -2,6 +2,7 @@
 #include "uo_bitboard.h"
 #include "uo_position.h"
 #include "uo_moves.h"
+#include "uo_util.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,10 +21,13 @@ enum state
 {
   INIT,
   OPTIONS,
-  READY
+  READY,
+  POSITION
 } state = INIT;
 
-void process_cmd__init()
+uo_position pos;
+
+static void process_cmd__init(void)
 {
   char *ptr = buf;
 
@@ -36,7 +40,7 @@ void process_cmd__init()
   }
 }
 
-void process_cmd__options()
+static void process_cmd__options(void)
 {
   char *ptr = buf;
   if (strcmp(ptr, "isready\n") == 0)
@@ -46,7 +50,7 @@ void process_cmd__options()
   }
 }
 
-void process_cmd__ready()
+static void process_cmd__ready(void)
 {
   char *ptr = buf;
 
@@ -54,23 +58,82 @@ void process_cmd__ready()
   {
     ptr += sizeof "position " - 1;
 
+    if (strncmp(ptr, "startpos", sizeof "startpos" - 1) == 0)
+    {
+      ptr += sizeof "startpos" - 1;
+
+      uo_position *ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      state = POSITION;
+      //printf("pos: %p\n", ret);
+      //uo_position_to_diagram(&pos, buf);
+      //printf("diagram:\n%s", buf);
+    }
+
     if (strncmp(ptr, "fen ", sizeof "fen " - 1) == 0)
     {
       ptr += sizeof "fen " - 1;
 
-      uo_position pos;
       uo_position *ret = uo_position_from_fen(&pos, ptr);
-      printf("pos: %p\n", ret);
-      uo_position_to_diagram(&pos, buf);
-      printf("diagram:\n%s", buf);
+      state = POSITION;
+      //printf("pos: %p\n", ret);
+      //uo_position_to_diagram(&pos, buf);
+      //printf("diagram:\n%s", buf);
     }
   }
 }
 
-void (*process_cmd[])() = {
+static void process_cmd__position(void)
+{
+  char *ptr = buf;
+
+  if (strncmp(ptr, "go ", sizeof "go " - 1) == 0)
+  {
+    ptr += sizeof "go " - 1;
+
+    if (strncmp(ptr, "perft ", sizeof "perft " - 1) == 0)
+    {
+      ptr += sizeof "perft " - 1;
+
+      int depth;
+      if (sscanf(ptr, "%d", &depth) == 1) 
+      {
+        uo_position buffer[27] = {0}; 
+        
+        for (uo_square square = 0; square < 64; ++square)
+        {
+          uo_bitboard moves = uo_position_moves(&pos, square, buffer);
+          uint16_t move_count = uo_popcount(moves);
+
+          uo_square move = 0;
+
+          for (uint16_t i = 0, j = 0; i < move_count; ++i)
+          {
+            while (moves & ~uo_square_bitboard(move))
+            {
+              ++move;
+            }
+
+            printf("%c%d%c%d: 1\n", 
+                'a' + uo_square_file(square), 1 + uo_square_rank(square),
+                'a' + uo_square_file(move), 1 + uo_square_rank(move)); 
+
+            ++move;
+          }         
+        }
+
+        int nodes = 0;
+        printf("\nNodes searched: %d\n", nodes);      
+      }
+    }
+  }
+}
+
+static void (*process_cmd[])() = {
     process_cmd__init,
     process_cmd__options,
-    process_cmd__ready};
+    process_cmd__ready,
+    process_cmd__position,
+};
 
 #define uo_run_test(test_name)                                  \
 if (argc == 2 || strcmp(argv[1], uo_nameof(test_name)) == 0)    \
