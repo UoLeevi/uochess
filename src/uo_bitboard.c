@@ -1,4 +1,5 @@
 #include "uo_bitboard.h"
+#include "uo_util.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -85,4 +86,16 @@ int uo_bitboard_print(uo_bitboard bitboard)
   diagram[71] = '\0';
 
   return printf("%s\n", diagram);
+}
+
+
+bool uo_bitboard_next_square(uo_bitboard bitboard, uo_square* square /* -1 for first */)
+{
+  uo_square s = *square;
+  if (s == 63) return false;
+  bitboard >>= s + 1;
+  uint8_t next = uo_ffs(bitboard);
+  if (next == 0) return false;
+  *square = s + next;
+  return true;
 }

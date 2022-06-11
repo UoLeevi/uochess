@@ -42,7 +42,7 @@ static struct xoshiro256p_state state;
 // https://en.wikipedia.org/wiki/Xorshift#xoshiro256+
 static inline uint64_t xoshiro256p(struct xoshiro256p_state *state)
 {
-	uint64_t *s = &state->s;
+	uint64_t *s = state->s;
 	uint64_t const result = s[0] + s[3];
 	uint64_t const t = s[1] << 17;
 

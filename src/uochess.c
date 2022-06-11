@@ -16,6 +16,7 @@ position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 */
 
 char buf[1028];
+char *ptr;
 
 enum state
 {
@@ -27,11 +28,15 @@ enum state
 
 uo_position pos;
 
+static void engine_init(void)
+{
+  uo_bitboard_init();
+  uo_moves_init();
+}
+
 static void process_cmd__init(void)
 {
-  char *ptr = buf;
-
-  if (strcmp(ptr, "uci\n") == 0)
+  if (ptr && strcmp(ptr, "uci") == 0)
   {
     printf("id name uochess\n");
     printf("id author Leevi Uotinen\n");
@@ -42,8 +47,8 @@ static void process_cmd__init(void)
 
 static void process_cmd__options(void)
 {
-  char *ptr = buf;
-  if (strcmp(ptr, "isready\n") == 0)
+  char* ptr = buf;
+  if (ptr && strcmp(ptr, "isready") == 0)
   {
     printf("readyok\n");
     state = READY;
@@ -52,87 +57,90 @@ static void process_cmd__options(void)
 
 static void process_cmd__ready(void)
 {
-  char *ptr = buf;
+  char* ptr = buf;
 
-  if (strncmp(ptr, "position ", sizeof "position " - 1) == 0)
+  if (ptr && strcmp(ptr, "position") == 0)
   {
-    ptr += sizeof "position " - 1;
+    ptr = strtok(NULL, "\n ");
 
-    if (strncmp(ptr, "startpos", sizeof "startpos" - 1) == 0)
+    if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      ptr += sizeof "startpos" - 1;
-
-      uo_position *ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position* ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
       //printf("pos: %p\n", ret);
       //uo_position_to_diagram(&pos, buf);
       //printf("diagram:\n%s", buf);
     }
-
-    if (strncmp(ptr, "fen ", sizeof "fen " - 1) == 0)
+    else if (ptr && strcmp(ptr, "fen") == 0)
     {
-      ptr += sizeof "fen " - 1;
+      ptr = strtok(NULL, "\n");
 
-      uo_position *ret = uo_position_from_fen(&pos, ptr);
+      uo_position* ret = uo_position_from_fen(&pos, ptr);
       state = POSITION;
       //printf("pos: %p\n", ret);
       //uo_position_to_diagram(&pos, buf);
       //printf("diagram:\n%s", buf);
+    }
+    else
+    {
+      // unexpected command
+      return;
+    }
+
+    ptr = strtok(NULL, "\n ");
+
+    if (ptr && strcmp(ptr, "moves") == 0)
+    {
+      ptr = strtok(NULL, "\n");
     }
   }
 }
 
 static void process_cmd__position(void)
 {
-  char *ptr = buf;
+  char* ptr = buf;
 
-  if (strncmp(ptr, "go ", sizeof "go " - 1) == 0)
+  if (ptr && strcmp(ptr, "go") == 0)
   {
-    ptr += sizeof "go " - 1;
+    ptr = strtok(NULL, "\n ");
 
-    if (strncmp(ptr, "perft ", sizeof "perft " - 1) == 0)
+    if (ptr && strcmp(ptr, "perft") == 0)
     {
-      ptr += sizeof "perft " - 1;
+      ptr = strtok(NULL, "\n ");
 
       int depth;
-      if (sscanf(ptr, "%d", &depth) == 1) 
+      if (sscanf(ptr, "%d", &depth) == 1)
       {
-        uo_position buffer[27] = {0}; 
-        
-        for (uo_square square = 0; square < 64; ++square)
+        int nodes_count = 0;
+        uo_position nodes[27] = { 0 };
+        uo_square square = -1;
+
+        while (uo_bitboard_next_square(uo_bitboard_all, &square))
         {
-          uo_bitboard moves = uo_position_moves(&pos, square, buffer);
-          uint16_t move_count = uo_popcount(moves);
+          uo_bitboard moves = uo_position_moves(&pos, square, nodes);
+          uo_square i = -1;
 
-          uo_square move = 0;
-
-          for (uint16_t i = 0, j = 0; i < move_count; ++i)
+          while (uo_bitboard_next_square(moves, &i))
           {
-            while (moves & ~uo_square_bitboard(move))
-            {
-              ++move;
-            }
+            printf("%c%d%c%d: 1\n",
+              'a' + uo_square_file(square), 1 + uo_square_rank(square),
+              'a' + uo_square_file(i), 1 + uo_square_rank(i));
 
-            printf("%c%d%c%d: 1\n", 
-                'a' + uo_square_file(square), 1 + uo_square_rank(square),
-                'a' + uo_square_file(move), 1 + uo_square_rank(move)); 
-
-            ++move;
-          }         
+            ++nodes_count;
+          }
         }
 
-        int nodes = 0;
-        printf("\nNodes searched: %d\n", nodes);      
+        printf("\nNodes searched: %d\n\n", nodes_count);
       }
     }
   }
 }
 
 static void (*process_cmd[])() = {
-    process_cmd__init,
-    process_cmd__options,
-    process_cmd__ready,
-    process_cmd__position,
+  process_cmd__init,
+  process_cmd__options,
+  process_cmd__ready,
+  process_cmd__position,
 };
 
 #define uo_run_test(test_name)                                  \
@@ -146,11 +154,11 @@ if (argc == 2 || strcmp(argv[1], uo_nameof(test_name)) == 0)    \
 }
 
 int main(
-    int argc,
-    char **argv)
+  int argc,
+  char** argv)
 {
-  uo_bitboard_init();
-  uo_moves_init();
+  printf("Uochess 0.1 by Leevi Uotinen\n");
+  engine_init();
 
   // Use command line argument `test` to perform tests
   if (argc > 1 && strcmp(argv[1], "test") == 0)
@@ -163,7 +171,9 @@ int main(
 
   while (fgets(buf, sizeof buf, stdin))
   {
-    if (strcmp(buf, "quit\n") == 0)
+    ptr = strtok(buf, "\n ");
+
+    if (strcmp(ptr, "quit") == 0)
     {
       return 0;
     }
