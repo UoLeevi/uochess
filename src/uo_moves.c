@@ -1148,7 +1148,7 @@ uo_bitboard uo_position_moves(uo_position *pos, uo_square square, uo_position no
 
       *nodes = *pos;
       nodes->p &= ~mask;
-      nodes->p &= ~enpassant;
+      nodes->p &= ~((enpassant << 8) | (enpassant >> 8));
       nodes->p |= move;
       nodes->n &= ~move;
       nodes->b &= ~move;
@@ -1164,19 +1164,19 @@ uo_bitboard uo_position_moves(uo_position *pos, uo_square square, uo_position no
         nodes->piece_color &= ~move;
       }
 
-      // en passant
+      // en passant - white
       if (move == (mask << 16))
       {
-        uo_bitboard adjecent_enemy_pawn = ((move << 1) | (move >> 1)) & uo_bitboard_rank[3] & ~pos->piece_color & pos->p;
+        uo_bitboard adjecent_enemy_pawn = ((move << 1) | (move >> 1)) & uo_bitboard_rank[3] & pos->piece_color & pos->p;
         if (adjecent_enemy_pawn) {
           nodes->enpassant = square + 8;
         }
       }
 
-      // en passant
+      // en passant - black
       if (move == (mask >> 16))
       {
-        uo_bitboard adjecent_enemy_pawn = ((move << 1) | (move >> 1)) & uo_bitboard_rank[4] & pos->piece_color & pos->p;
+        uo_bitboard adjecent_enemy_pawn = ((move << 1) | (move >> 1)) & uo_bitboard_rank[4] & ~pos->piece_color & pos->p;
         if (adjecent_enemy_pawn) {
           nodes->enpassant = square - 8;
         }
