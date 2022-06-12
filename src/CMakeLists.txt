@@ -6,6 +6,7 @@ add_executable(uochess
     uo_position.c
     uo_piece.c
     uo_square.c
+    uo_move.c
     uo_moves.c
     uo_util.c)
 

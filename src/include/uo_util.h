@@ -14,7 +14,16 @@ extern "C"
 #if __has_builtin(__builtin_popcountll)
 #define uo_popcount __builtin_popcountll
 #else
-  int uo_popcount(uint64_t u64);
+#include <limits.h>
+
+  static inline int uo_popcount(uint64_t u64)
+  {
+    uint64_t v = u64;
+    v = v - ((v >> 1) & (uint64_t)~(uint64_t)0 / 3);                                            // temp
+    v = (v & (uint64_t)~(uint64_t)0 / 15 * 3) + ((v >> 2) & (uint64_t)~(uint64_t)0 / 15 * 3);   // temp
+    v = (v + (v >> 4)) & (uint64_t)~(uint64_t)0 / 255 * 15;                                     // temp
+    return (uint64_t)(v * ((uint64_t)~(uint64_t)0 / 255)) >> (sizeof(uint64_t) - 1) * CHAR_BIT; // count
+  }
 #endif
   // END - uo_popcount
 
@@ -24,7 +33,14 @@ extern "C"
 #elif __has_builtin(__builtin_clzll)
 #define uo_ffs(u64) ((u64) ? (64 - __builtin_clzll((uint64_t)(u64))) : 0)
 #else
-  int uo_ffs(uint64_t u64);
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward64)
+
+  static inline int uo_ffs(uint64_t u64)
+  {
+    int ffs = 0;
+    return _BitScanForward64(&ffs, u64) ? (ffs + 1) : 0;
+  }
 #endif
   // END - uo_ffs
 
