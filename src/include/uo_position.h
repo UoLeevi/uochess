@@ -17,7 +17,7 @@ extern "C"
   {
     uo_piece board[64];
 
-    uo_bitboard black_piece;
+    uo_bitboard piece_color;
 
     uo_bitboard p;
     uo_bitboard n;
@@ -26,7 +26,7 @@ extern "C"
     uo_bitboard q;
     uo_bitboard k;
 
-    bool white_to_move;
+    uo_piece color_to_move;
 
     // K Q k q
     // 1 2 4 8
@@ -40,7 +40,7 @@ extern "C"
 
   extern const size_t uo_position__piece_bitboard_offset[0x100];
 
-  #define uo_position__piece_bitboard(position, piece) (uo_bitboard *)((uint8_t *)(position) + uo_position__piece_bitboard_offset[piece])
+#define uo_position__piece_bitboard(position, piece) (uo_bitboard *)((uint8_t *)(position) + uo_position__piece_bitboard_offset[piece])
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1

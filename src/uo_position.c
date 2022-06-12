@@ -16,9 +16,9 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
   int fullmove;
 
   int count = sscanf(fen, "%71s %c %4s %2s %d %d",
-                     piece_placement, &active_color,
-                     castling, enpassant,
-                     &halfmoves, &fullmove);
+    piece_placement, &active_color,
+    castling, enpassant,
+    &halfmoves, &fullmove);
 
   if (count != 6)
   {
@@ -26,7 +26,7 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
   }
 
   // clear position
-  memset(pos, 0, sizeof *pos);
+  memset(pos, 0, sizeof * pos);
 
   char c;
 
@@ -63,9 +63,9 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
       pos->board[square] = piece;
       *bitboard |= mask;
 
-      if ((piece >> 7) == 0)
+      if (piece & uo_piece__black)
       {
-        pos->black_piece |= mask;
+        pos->piece_color |= mask;
       }
     }
 
@@ -79,11 +79,11 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
 
   // 2. Active color
 
-  if (active_color == 'w')
+  if (active_color == 'b')
   {
-    pos->white_to_move = true;
+    pos->color_to_move = uo_piece__black;
   }
-  else if (active_color != 'b')
+  else if (active_color != 'w')
   {
     return NULL;
   }
@@ -144,7 +144,7 @@ uo_position *uo_position_from_fen(uo_position *pos, char *fen)
       return NULL;
     }
 
-    pos->enpassant = (uo_bitboard)1 << (rank * 8 + file);
+    pos->enpassant = (rank << 3) + file;
   }
 
   // 5. Halfmove clock

@@ -11,11 +11,11 @@ extern "C" {
 #include <inttypes.h>
 #include <stdbool.h>
 
-void uo_moves_init();
+  void uo_moves_init();
 
-uo_bitboard uo_position_moves(uo_position *pos, uo_square square, uo_position nodes[64]);
+  uo_bitboard uo_position_moves(uo_position* pos, uo_square square, uo_position nodes[27]);
 
-bool uo_test_moves();
+  bool uo_test_moves();
 
 #ifdef __cplusplus
 }

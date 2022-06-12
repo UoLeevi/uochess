@@ -47,7 +47,7 @@ static void process_cmd__init(void)
 
 static void process_cmd__options(void)
 {
-  char* ptr = buf;
+  char *ptr = buf;
   if (ptr && strcmp(ptr, "isready") == 0)
   {
     printf("readyok\n");
@@ -57,7 +57,7 @@ static void process_cmd__options(void)
 
 static void process_cmd__ready(void)
 {
-  char* ptr = buf;
+  char *ptr = buf;
 
   if (ptr && strcmp(ptr, "position") == 0)
   {
@@ -65,17 +65,34 @@ static void process_cmd__ready(void)
 
     if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      uo_position* ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position *ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
       //printf("pos: %p\n", ret);
       //uo_position_to_diagram(&pos, buf);
       //printf("diagram:\n%s", buf);
+
+      ptr = strtok(NULL, "\n ");
     }
     else if (ptr && strcmp(ptr, "fen") == 0)
     {
       ptr = strtok(NULL, "\n");
 
-      uo_position* ret = uo_position_from_fen(&pos, ptr);
+      char *fen = strtok(ptr, "m"); /* moves */
+
+      if (fen)
+      {
+        ptr = strtok(NULL, "\n ");
+        --ptr;
+        *ptr = 'm';
+      }
+      else
+      {
+        fen = strtok(ptr, "\n");
+        ptr = strtok(NULL, "\n ");
+      }
+
+
+      uo_position *ret = uo_position_from_fen(&pos, fen);
       state = POSITION;
       //printf("pos: %p\n", ret);
       //uo_position_to_diagram(&pos, buf);
@@ -87,18 +104,57 @@ static void process_cmd__ready(void)
       return;
     }
 
-    ptr = strtok(NULL, "\n ");
-
     if (ptr && strcmp(ptr, "moves") == 0)
     {
-      ptr = strtok(NULL, "\n");
+      while (ptr = strtok(NULL, " \n"))
+      {
+        if (strlen(ptr) != 4) return;
+
+        int file_from = ptr[0] - 'a';
+        if (file_from < 0 || file_from > 7) return;
+        int rank_from = ptr[1] - '1';
+        if (rank_from < 0 || rank_from > 7) return;
+        uo_square square_from = (rank_from << 3) + file_from;
+
+        int file_to = ptr[2] - 'a';
+        if (file_to < 0 || file_to > 7) return;
+        int rank_to = ptr[3] - '1';
+        if (rank_to < 0 || rank_to > 7) return;
+        uo_square square_to = (rank_to << 3) + file_to;
+
+        uo_position nodes[27] = { 0 };
+        uo_position *node = nodes;
+
+        uo_bitboard moves = uo_position_moves(&pos, square_from, nodes);
+
+        if (!(moves & uo_square_bitboard(square_to)))
+        {
+          // not a legal move
+          return;
+        }
+
+        uo_square i = -1;
+
+        while (uo_bitboard_next_square(moves, &i) && i != square_to)
+        {
+          ++node;
+        }
+
+        pos = *node;
+      }
     }
   }
 }
 
 static void process_cmd__position(void)
 {
-  char* ptr = buf;
+  char *ptr = buf;
+
+  if (ptr && strcmp(ptr, "ucinewgame") == 0)
+  {
+    state = READY;
+    return;
+  }
 
   if (ptr && strcmp(ptr, "go") == 0)
   {
@@ -155,7 +211,7 @@ if (argc == 2 || strcmp(argv[1], uo_nameof(test_name)) == 0)    \
 
 int main(
   int argc,
-  char** argv)
+  char **argv)
 {
   printf("Uochess 0.1 by Leevi Uotinen\n");
   engine_init();

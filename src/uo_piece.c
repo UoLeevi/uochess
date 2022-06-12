@@ -4,32 +4,35 @@
 #include <stddef.h>
 
 //                                      0b00000000
-//                                        b PNBRQK
-const uo_piece uo_piece___P = 0xa0; // P 0b10100000
-const uo_piece uo_piece__N = 0x90; // N 0b10010000
-const uo_piece uo_piece__B = 0x88; // B 0b10001000
-const uo_piece uo_piece__R = 0x84; // R 0b10000100
-const uo_piece uo_piece__Q = 0x82; // Q 0b10000010
-const uo_piece uo_piece__K = 0x81; // K 0b10000001
-const uo_piece uo_piece__p = 0x20; // p 0b00100000
-const uo_piece uo_piece__n = 0x10; // n 0b00010000
-const uo_piece uo_piece__b = 0x08; // b 0b00001000
-const uo_piece uo_piece__r = 0x04; // r 0b00000100
-const uo_piece uo_piece__q = 0x02; // q 0b00000010
-const uo_piece uo_piece__k = 0x01; // k 0b00000001
+//                                         PNBRQK
+const uo_piece uo_piece__P = 0x40; // P 0b01000000
+const uo_piece uo_piece__N = 0x20; // N 0b00100000
+const uo_piece uo_piece__B = 0x10; // B 0b00010000
+const uo_piece uo_piece__R = 0x08; // R 0b00001000
+const uo_piece uo_piece__Q = 0x04; // Q 0b00000100
+const uo_piece uo_piece__K = 0x02; // K 0b00000010
+const uo_piece uo_piece__p = 0x41; // p 0b01000001
+const uo_piece uo_piece__n = 0x21; // n 0b00100001
+const uo_piece uo_piece__b = 0x11; // b 0b00010001
+const uo_piece uo_piece__r = 0x09; // r 0b00001001
+const uo_piece uo_piece__q = 0x05; // q 0b00000101
+const uo_piece uo_piece__k = 0x03; // k 0b00000011
 
-#define uo_piece___P 0xa0 // P 0b10100000
-#define uo_piece___N 0x90 // N 0b10010000
-#define uo_piece___B 0x88 // B 0b10001000
-#define uo_piece___R 0x84 // R 0b10000100
-#define uo_piece___Q 0x82 // Q 0b10000010
-#define uo_piece___K 0x81 // K 0b10000001
-#define uo_piece___p 0x20 // p 0b00100000
-#define uo_piece___n 0x10 // n 0b00010000
-#define uo_piece___b 0x08 // b 0b00001000
-#define uo_piece___r 0x04 // r 0b00000100
-#define uo_piece___q 0x02 // q 0b00000010
-#define uo_piece___k 0x01 // k 0b00000001
+const uo_piece uo_piece__white = 0x00;
+const uo_piece uo_piece__black = 0x01;
+
+#define uo_piece___P 0x40 // P 0b01000000
+#define uo_piece___N 0x20 // N 0b00100000
+#define uo_piece___B 0x10 // B 0b00010000
+#define uo_piece___R 0x08 // R 0b00001000
+#define uo_piece___Q 0x04 // Q 0b00000100
+#define uo_piece___K 0x02 // K 0b00000010
+#define uo_piece___p 0x41 // p 0b01000001
+#define uo_piece___n 0x21 // n 0b00100001
+#define uo_piece___b 0x11 // b 0b00010001
+#define uo_piece___r 0x09 // r 0b00001001
+#define uo_piece___q 0x05 // q 0b00000101
+#define uo_piece___k 0x03 // k 0b00000011
 
 const char uo_piece_to_char[0x100] = {
     [uo_piece___P] = 'P',
