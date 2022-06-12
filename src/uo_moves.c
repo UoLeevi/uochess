@@ -1089,7 +1089,7 @@ bool uo_position_is_check(uo_position *pos, uo_piece color)
   while (uo_bitboard_next_square(p_enemy, &i))
   {
     uo_bitboard p = uo_square_bitboard(i);
-    uo_bitboard moves = color ? ((p >> 7) | (p >> 9)) : ((p << 7) | (p << 9));
+    uo_bitboard moves = color ? ((p << 7) | (p << 9)) : ((p >> 7) | (p >> 9));
 
     if (k & moves)
     {

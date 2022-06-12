@@ -1,9 +1,9 @@
-#include "uo_macro.h"
 #include "uo_bitboard.h"
 #include "uo_position.h"
 #include "uo_moves.h"
 #include "uo_util.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -18,6 +18,18 @@ position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 char buf[1028];
 char *ptr;
 
+#define UO_SEARCHTREE_INITIAL_CAPACITY 0x10000;
+
+
+typedef struct uo_searchtree
+{
+  uo_position *root;
+  uo_position *head;
+  size_t capacity;
+} uo_searchtree;
+
+uo_searchtree searchtree;
+
 enum state
 {
   INIT,
@@ -30,6 +42,10 @@ uo_position pos;
 
 static void engine_init(void)
 {
+  searchtree.capacity = UO_SEARCHTREE_INITIAL_CAPACITY;
+  searchtree.root = malloc(searchtree.capacity * sizeof(*searchtree.root));
+  searchtree.head = searchtree.root;
+
   uo_bitboard_init();
   uo_moves_init();
 }
@@ -78,19 +94,13 @@ static void process_cmd__ready(void)
       ptr = strtok(NULL, "\n");
 
       char *fen = strtok(ptr, "m"); /* moves */
+      char *ptr = strtok(NULL, "\n ");
 
-      if (fen)
+      if (ptr)
       {
-        ptr = strtok(NULL, "\n ");
         --ptr;
         *ptr = 'm';
       }
-      else
-      {
-        fen = strtok(ptr, "\n");
-        ptr = strtok(NULL, "\n ");
-      }
-
 
       uo_position *ret = uo_position_from_fen(&pos, fen);
       state = POSITION;
@@ -122,10 +132,9 @@ static void process_cmd__ready(void)
         if (rank_to < 0 || rank_to > 7) return;
         uo_square square_to = (rank_to << 3) + file_to;
 
-        uo_position nodes[27] = { 0 };
-        uo_position *node = nodes;
+        uo_position *node = searchtree.head;
 
-        uo_bitboard moves = uo_position_moves(&pos, square_from, nodes);
+        uo_bitboard moves = uo_position_moves(&pos, square_from, node);
 
         if (!(moves & uo_square_bitboard(square_to)))
         {
@@ -168,12 +177,11 @@ static void process_cmd__position(void)
       if (sscanf(ptr, "%d", &depth) == 1)
       {
         int nodes_count = 0;
-        uo_position nodes[27] = { 0 };
         uo_square square = -1;
 
         while (uo_bitboard_next_square(uo_bitboard_all, &square))
         {
-          uo_bitboard moves = uo_position_moves(&pos, square, nodes);
+          uo_bitboard moves = uo_position_moves(&pos, square, searchtree.head);
           uo_square i = -1;
 
           while (uo_bitboard_next_square(moves, &i))
@@ -199,31 +207,12 @@ static void (*process_cmd[])() = {
   process_cmd__position,
 };
 
-#define uo_run_test(test_name)                                  \
-if (argc == 2 || strcmp(argv[1], uo_nameof(test_name)) == 0)    \
-{                                                               \
-  if (!uo_cat(uo_test_, test_name)())                           \
-  {                                                             \
-    printf("test `%s` failed.\n", uo_nameof(test_name));        \
-    return 1;                                                   \
-  }                                                             \
-}
-
 int main(
   int argc,
   char **argv)
 {
   printf("Uochess 0.1 by Leevi Uotinen\n");
   engine_init();
-
-  // Use command line argument `test` to perform tests
-  if (argc > 1 && strcmp(argv[1], "test") == 0)
-  {
-    uo_run_test(moves);
-
-    printf("Tests passed.\n");
-    return 0;
-  }
 
   while (fgets(buf, sizeof buf, stdin))
   {
