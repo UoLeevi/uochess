@@ -53,16 +53,22 @@ extern "C"
   }
 
   // see: https://www.chessprogramming.org/Encoding_Moves#Extended_Move_Structure
-  typedef uint32_t uo_move_ex;
+  typedef uint64_t uo_move_ex;
 
-  static inline uo_move_ex uo_move_ex_encode(uo_move move, uo_piece captured)
+                                     // bits:        16                      16              8
+  static inline uo_move_ex uo_move_ex_encode(uo_move move, uo_position_flags flags, uo_piece captured)
   {
-    return move | (captured << 16);
+    return move | (flags << 16) | (captured << 32);
+  }
+
+  static inline uo_position_flags uo_move_ex_flags(uo_move move)
+  {
+    return (move >> 16) && 0xFFFF;
   }
 
   static inline uo_piece uo_move_ex_piece_captured(uo_move_ex move)
   {
-    return (move >> 16) && 0xFF;
+    return (move >> 32) && 0xFF;
   }
 
 #ifdef __cplusplus
