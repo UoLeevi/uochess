@@ -1,6 +1,5 @@
 #include "uo_bitboard.h"
 #include "uo_position.h"
-#include "uo_moves.h"
 #include "uo_util.h"
 
 #include <stdlib.h>
@@ -38,7 +37,7 @@ enum state
   POSITION
 } state = INIT;
 
-uo_position pos;
+uo_position position;
 
 static void engine_init(void)
 {
@@ -47,7 +46,6 @@ static void engine_init(void)
   searchtree.head = searchtree.root;
 
   uo_bitboard_init();
-  uo_moves_init();
 }
 
 static void process_cmd__init(void)
@@ -81,10 +79,10 @@ static void process_cmd__ready(void)
 
     if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      uo_position *ret = uo_position_from_fen(&pos, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position *ret = uo_position_from_fen(&position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
-      //printf("pos: %p\n", ret);
-      //uo_position_to_diagram(&pos, buf);
+      //printf("position: %p\n", ret);
+      //uo_position_to_diagram(&position, buf);
       //printf("diagram:\n%s", buf);
 
       ptr = strtok(NULL, "\n ");
@@ -102,10 +100,10 @@ static void process_cmd__ready(void)
         *ptr = 'm';
       }
 
-      uo_position *ret = uo_position_from_fen(&pos, fen);
+      uo_position *ret = uo_position_from_fen(&position, fen);
       state = POSITION;
-      //printf("pos: %p\n", ret);
-      //uo_position_to_diagram(&pos, buf);
+      //printf("position: %p\n", ret);
+      //uo_position_to_diagram(&position, buf);
       //printf("diagram:\n%s", buf);
     }
     else
@@ -134,7 +132,7 @@ static void process_cmd__ready(void)
 
         uo_position *node = searchtree.head;
 
-        uo_bitboard moves = uo_position_moves(&pos, square_from, node);
+        uo_bitboard moves = uo_position_moves(&position, square_from, node);
 
         if (!(moves & uo_square_bitboard(square_to)))
         {
@@ -149,7 +147,7 @@ static void process_cmd__ready(void)
           ++node;
         }
 
-        pos = *node;
+        position = *node;
       }
     }
   }
@@ -181,7 +179,7 @@ static void process_cmd__position(void)
 
         while (uo_bitboard_next_square(uo_bitboard_all, &square))
         {
-          uo_bitboard moves = uo_position_moves(&pos, square, searchtree.head);
+          uo_bitboard moves = uo_position_moves(&position, square, searchtree.head);
           uo_square i = -1;
 
           while (uo_bitboard_next_square(moves, &i))

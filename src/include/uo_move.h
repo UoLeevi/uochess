@@ -8,6 +8,7 @@ extern "C"
 
 #include "uo_square.h"
 #include "uo_piece.h"
+#include "uo_position.h"
 
 #include <inttypes.h>
 
