@@ -535,5 +535,71 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
         ++count;
       }
     }
+
+    // All possible captures considered. Next let's consider blocking moves
+
+    uint8_t file_enemy_checker = uo_square_file(square_enemy_checker);
+    uint8_t rank_enemy_checker = uo_square_rank(square_enemy_checker);
+
+    if (file_own_K == file_enemy_checker)
+    {
+      if (rank_own_K < rank_enemy_checker)
+      {
+      }
+      else
+      {
+      }
+    }
+    else if (file_own_K < file_enemy_checker)
+    {
+      if (rank_own_K == rank_enemy_checker)
+      {
+      }
+      else if (rank_own_K < rank_enemy_checker)
+      {
+      }
+      else
+      {
+      }
+    }
+    else
+    {
+      if (rank_own_K == rank_enemy_checker)
+      {
+      }
+      else if (rank_own_K < rank_enemy_checker)
+      {
+      }
+      else
+      {
+      }
+    }
+
+
+    // Finally, let's consider king moves
+
+    square = -1;
+    while (uo_bitboard_next_square(moves_K, &square))
+    {
+      uo_bitboard enemy_checks_diagonals = uo_bitboard_moves(square, uo_piece__B, occupied);
+      uo_bitboard enemy_checks_lines = uo_bitboard_moves(square, uo_piece__R, occupied);
+      uo_bitboard enemy_checks_B = enemy_B & enemy_checks_diagonals;
+      uo_bitboard enemy_checks_R = enemy_R & enemy_checks_lines;
+      uo_bitboard enemy_checks_Q = enemy_Q & (enemy_checks_diagonals | enemy_checks_diagonals);
+      uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_moves(square, uo_piece__N, 0);
+      uo_bitboard enemy_checks_P = (enemy_P & ~uo_bitboard_file[uo_square_file(square)]) & uo_bitboard_moves(square, piece_enemy_P, occupied);
+      uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_B | enemy_checks_R | enemy_checks_Q | enemy_checks_P;
+
+      if (enemy_checks) continue;
+
+      uo_move_type move_type = (uo_square_bitboard(square) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = uo_move_encode(square_own_K, square, move_type);
+      ++count;
+    }
+
+    return count;
   }
+
+  // King is not in check
+  // TODO
 }
