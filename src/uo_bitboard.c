@@ -322,42 +322,7 @@ static uo_magic uo_magics_R[64];
 static bool init;
 static int rand_seed;
 
-void uo_bitboard_init()
-{
-  if (init)
-    return;
-  init = true;
 
-  // files and ranks
-
-  for (int i = 0; i < 8; ++i)
-  {
-    uo_bitboard_file[i] = uo_bitboard__a_file << i;
-    uo_bitboard_rank[i] = uo_bitboard__1st_rank << (i << 3);
-  }
-
-  // diagonals and antidiagonals
-
-  uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
-  uo_bitboard_antidiagonal[7] = uo_bitboard__h1_a8_antidiagonal;
-
-  for (int i = 1; i < 8; ++i)
-  {
-    uo_bitboard_diagonal[7 - i] = uo_bitboard__a1_h8_diagonal << (i << 3);
-    uo_bitboard_diagonal[7 + i] = uo_bitboard__a1_h8_diagonal >> (i << 3);
-    uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
-    uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
-  }
-
-  rand_seed = time(NULL);
-  uo_rand_init(rand_seed);
-
-  uo_moves_K_init();
-  uo_moves_N_init();
-  uo_magics_B_init();
-  uo_magics_R_init();
-  uo_magics_P_init();
-}
 
 int uo_bitboard_print(uo_bitboard bitboard)
 {
@@ -1092,6 +1057,43 @@ void uo_magics_R_init(void)
   }
 }
 
+void uo_bitboard_init()
+{
+  if (init)
+    return;
+  init = true;
+
+  // files and ranks
+
+  for (int i = 0; i < 8; ++i)
+  {
+    uo_bitboard_file[i] = uo_bitboard__a_file << i;
+    uo_bitboard_rank[i] = uo_bitboard__1st_rank << (i << 3);
+  }
+
+  // diagonals and antidiagonals
+
+  uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
+  uo_bitboard_antidiagonal[7] = uo_bitboard__h1_a8_antidiagonal;
+
+  for (int i = 1; i < 8; ++i)
+  {
+    uo_bitboard_diagonal[7 - i] = uo_bitboard__a1_h8_diagonal << (i << 3);
+    uo_bitboard_diagonal[7 + i] = uo_bitboard__a1_h8_diagonal >> (i << 3);
+    uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
+    uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
+  }
+
+  rand_seed = time(NULL);
+  uo_rand_init(rand_seed);
+
+  uo_moves_K_init();
+  uo_moves_N_init();
+  uo_magics_B_init();
+  uo_magics_R_init();
+  uo_magics_P_init();
+}
+
 uo_bitboard uo_bitboard_moves(uo_square square, uo_piece piece, uo_bitboard blockers)
 {
   uo_bitboard moves = 0;
@@ -1337,7 +1339,7 @@ break__rank_pin_right:
   }
 
 
-// file pins below
+  // file pins below
 
   for (int i = square - 8; i > file; --i)
   {

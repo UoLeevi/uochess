@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include "uo_square.h"
+#include "uo_piece.h"
 
 #include <stdbool.h>
 #include <inttypes.h>

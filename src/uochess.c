@@ -17,17 +17,15 @@ position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 char buf[1028];
 char *ptr;
 
-#define UO_SEARCHTREE_INITIAL_CAPACITY 0x10000;
+#define UO_MAX_PLY 128
+#define UO_BRANCING_FACTOR 35
 
-
-typedef struct uo_searchtree
+struct
 {
-  uo_position *root;
-  uo_position *head;
-  size_t capacity;
-} uo_searchtree;
-
-uo_searchtree searchtree;
+  uo_position position;
+  uo_move_ex movestack[UO_MAX_PLY * UO_BRANCING_FACTOR];
+  uo_move candidates[0x100];
+} search;
 
 enum state
 {
@@ -37,14 +35,8 @@ enum state
   POSITION
 } state = INIT;
 
-uo_position position;
-
 static void engine_init(void)
 {
-  searchtree.capacity = UO_SEARCHTREE_INITIAL_CAPACITY;
-  searchtree.root = malloc(searchtree.capacity * sizeof(*searchtree.root));
-  searchtree.head = searchtree.root;
-
   uo_bitboard_init();
 }
 
@@ -79,10 +71,10 @@ static void process_cmd__ready(void)
 
     if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      uo_position *ret = uo_position_from_fen(&position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position *ret = uo_position_from_fen(&search.position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&position, buf);
+      //uo_position_to_diagram(&search.position, buf);
       //printf("diagram:\n%s", buf);
 
       ptr = strtok(NULL, "\n ");
@@ -100,10 +92,10 @@ static void process_cmd__ready(void)
         *ptr = 'm';
       }
 
-      uo_position *ret = uo_position_from_fen(&position, fen);
+      uo_position *ret = uo_position_from_fen(&search.position, fen);
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&position, buf);
+      //uo_position_to_diagram(&search.position, buf);
       //printf("diagram:\n%s", buf);
     }
     else
@@ -130,24 +122,26 @@ static void process_cmd__ready(void)
         if (rank_to < 0 || rank_to > 7) return;
         uo_square square_to = (rank_to << 3) + file_to;
 
-        uo_position *node = searchtree.head;
 
-        uo_bitboard moves = uo_position_moves(&position, square_from, node);
+        // TODO
+        //uo_position *node = searchtree.head;
 
-        if (!(moves & uo_square_bitboard(square_to)))
-        {
-          // not a legal move
-          return;
-        }
+        //uo_bitboard moves = uo_position_moves(&position, square_from, node);
 
-        uo_square i = -1;
+        //if (!(moves & uo_square_bitboard(square_to)))
+        //{
+        //  // not a legal move
+        //  return;
+        //}
 
-        while (uo_bitboard_next_square(moves, &i) && i != square_to)
-        {
-          ++node;
-        }
+        //uo_square i = -1;
 
-        position = *node;
+        //while (uo_bitboard_next_square(moves, &i) && i != square_to)
+        //{
+        //  ++node;
+        //}
+
+        //position = *node;
       }
     }
   }
@@ -174,22 +168,17 @@ static void process_cmd__position(void)
       int depth;
       if (sscanf(ptr, "%d", &depth) == 1)
       {
-        int nodes_count = 0;
-        uo_square square = -1;
+        int nodes_count = uo_position_get_moves(&search.position, search.candidates);
 
-        while (uo_bitboard_next_square(uo_bitboard_all, &square))
+        for (int i = 0; i < nodes_count; ++i)
         {
-          uo_bitboard moves = uo_position_moves(&position, square, searchtree.head);
-          uo_square i = -1;
+          uo_move move = search.candidates[i];
+          uo_square square_from = uo_move_square_from(move);
+          uo_square square_to = uo_move_square_to(move);
 
-          while (uo_bitboard_next_square(moves, &i))
-          {
             printf("%c%d%c%d: 1\n",
-              'a' + uo_square_file(square), 1 + uo_square_rank(square),
-              'a' + uo_square_file(i), 1 + uo_square_rank(i));
-
-            ++nodes_count;
-          }
+              'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
+              'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to));
         }
 
         printf("\nNodes searched: %d\n\n", nodes_count);

@@ -28,6 +28,8 @@ extern "C"
     uo_square__a8, uo_square__b8, uo_square__c8, uo_square__d8, uo_square__e8, uo_square__f8, uo_square__g8, uo_square__h8
   };
 
+  size_t uo_squares_between(uo_square from, uo_square to, uo_square between[6]);
+
 #ifdef __cplusplus
 }
 #endif

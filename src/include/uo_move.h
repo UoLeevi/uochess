@@ -8,14 +8,33 @@ extern "C"
 
 #include "uo_square.h"
 #include "uo_piece.h"
-#include "uo_position.h"
 
 #include <inttypes.h>
 
   // see: https://www.chessprogramming.org/Encoding_Moves#From-To_Based
   typedef uint16_t uo_move;
 
+  // see: https://www.chessprogramming.org/Encoding_Moves#Extended_Move_Structure
+  typedef uint64_t uo_move_ex;
+
   typedef int8_t uo_move_type;
+
+  typedef uint16_t uo_position_flags;
+  /*
+    color_to_move : 1
+      0 w
+      1 b
+    halfmoves: 7
+      1-100
+    enpassant_file : 4
+      1-8
+    castling: 4
+      1 K
+      2 Q
+      4 k
+      8 q
+  */
+
 #define uo_move_type__illegal ((uo_move_type)-1)
 #define uo_move_type__quiet ((uo_move_type)0)
 #define uo_move_type__P_double_push ((uo_move_type)1)
@@ -50,19 +69,16 @@ extern "C"
 
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)
   {
-    return from | (to << 6) | (type << 12);
+    return (uo_move)from | ((uo_move)to << 6) | ((uo_move)type << 12);
   }
 
-  // see: https://www.chessprogramming.org/Encoding_Moves#Extended_Move_Structure
-  typedef uint64_t uo_move_ex;
-
-                                     // bits:        16                      16              8
+  // bits:                                           16                      16              8
   static inline uo_move_ex uo_move_ex_encode(uo_move move, uo_position_flags flags, uo_piece captured)
   {
-    return move | (flags << 16) | (captured << 32);
+    return (uo_move_ex)move | ((uo_move_ex)flags << 16) | ((uo_move_ex)captured << 32);
   }
 
-  static inline uo_position_flags uo_move_ex_flags(uo_move move)
+  static inline uo_position_flags uo_move_ex_flags(uo_move_ex move)
   {
     return (move >> 16) && 0xFFFF;
   }

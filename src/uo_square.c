@@ -21,3 +21,69 @@ const int uo_square_antidiagonal[64] = {
      9,  8,  7,  6,  5,  4,  3,  2,
      8,  7,  6,  5,  4,  3,  2,  1,
      7,  6,  5,  4,  3,  2,  1,  0 };
+
+size_t uo_squares_between(uo_square from, uo_square to, uo_square between[6])
+{
+  size_t count = 0;
+
+  uint8_t file_from = uo_square_file(from);
+  uint8_t file_to = uo_square_file(to);
+
+  uo_square increment;
+
+  if (file_from == file_to)
+  {
+    increment = 8;
+    goto return_squares_between;
+  }
+
+  uint8_t rank_from = uo_square_rank(from);
+  uint8_t rank_to = uo_square_rank(to);
+
+  if (rank_from == rank_to)
+  {
+    increment = 1;
+    goto return_squares_between;
+  }
+
+  uint8_t diagonal_from = uo_square_diagonal[from];
+  uint8_t diagonal_to = uo_square_diagonal[to];
+
+  if (diagonal_from == diagonal_to)
+  {
+    increment = 9;
+    goto return_squares_between;
+  }
+
+  uint8_t antidiagonal_from = uo_square_antidiagonal[from];
+  uint8_t antidiagonal_to = uo_square_antidiagonal[to];
+
+  if (antidiagonal_from == antidiagonal_to)
+  {
+    increment = 7;
+    goto return_squares_between;
+  }
+
+  return count;
+
+return_squares_between:
+
+  if (from < to)
+  {
+    for (uo_square i = from + increment; i < to; i += increment)
+    {
+      *between++ = i;
+      ++count;
+    }
+  }
+  else
+  {
+    for (uo_square i = from - increment; i > to; i -= increment)
+    {
+      *between++ = i;
+      ++count;
+    }
+  }
+
+  return count;
+}
