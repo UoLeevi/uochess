@@ -153,7 +153,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
 
   // 5. Halfmove clock
   // 6. Fullmove number
-  flags = uo_position_flags_update_halfmoves(halfmoves, true);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves);
   position->fullmove = fullmove;
 
   position->flags = flags;
@@ -199,7 +199,6 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
   uint8_t halfmoves = uo_position_flags_halfmoves(flags_prev);
   uint8_t castling = uo_position_flags_castling(flags_prev);
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags_prev);
-
 
   *bitboard &= ~bitboard_from;
   flags_new = uo_position_flags_update_enpassant_file(flags_new, 0);
@@ -444,7 +443,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     temp = mask_own;
     mask_own = mask_enemy;
     mask_enemy = temp;
-    piece_enemy_P |= uo_piece__black;
+    piece_own_P |= uo_piece__black;
     bitboard_first_rank = uo_bitboard_rank[7];
     bitboard_second_rank = uo_bitboard_rank[6];
     bitboard_fourth_rank = uo_bitboard_rank[4];
@@ -738,7 +737,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard non_pinned_P = own_P & ~pins_to_own_K;
   while (uo_bitboard_next_square(non_pinned_P, &square_from))
   {
-    uo_bitboard moves_P = uo_bitboard_moves(square_from, uo_piece__P, occupied) & ~mask_own;
+    uo_bitboard moves_P = uo_bitboard_moves(square_from, piece_own_P, occupied) & ~mask_own;
 
     square_to = -1;
 
@@ -887,7 +886,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard pinned_P = own_P & pins_to_own_K;
   while (uo_bitboard_next_square(pinned_P, &square_from))
   {
-    uo_bitboard moves_P = uo_bitboard_moves(square_from, uo_piece__P, occupied) & ~mask_own;
+    uo_bitboard moves_P = uo_bitboard_moves(square_from, piece_own_P, occupied) & ~mask_own;
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard occupied_after_move = occupied & ~uo_square_bitboard(bitboard_from);
 

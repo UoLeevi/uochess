@@ -64,7 +64,7 @@ extern "C"
 
   static inline uo_move_type uo_move_get_type(uo_move move)
   {
-    return uo_move_square_from(move >> 6);
+    return move >> 12;
   }
 
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)

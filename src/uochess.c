@@ -23,8 +23,9 @@ char *ptr;
 struct
 {
   uo_position position;
-  uo_move_ex movestack[UO_MAX_PLY * UO_BRANCING_FACTOR];
   uo_move candidates[0x100];
+  uo_move_ex movestack[UO_MAX_PLY * UO_BRANCING_FACTOR];
+  uo_move_ex *head;
 } search;
 
 enum state
@@ -38,6 +39,7 @@ enum state
 static void engine_init(void)
 {
   uo_bitboard_init();
+  search.head = &search.movestack;
 }
 
 static void process_cmd__init(void)
@@ -122,26 +124,23 @@ static void process_cmd__ready(void)
         if (rank_to < 0 || rank_to > 7) return;
         uo_square square_to = (rank_to << 3) + file_to;
 
+        int nodes_count = uo_position_get_moves(&search.position, search.candidates);
 
-        // TODO
-        //uo_position *node = searchtree.head;
+        for (int i = 0; i < nodes_count; ++i)
+        {
+          uo_move move = search.candidates[i];
+          if (square_from == uo_move_square_from(move)
+            && square_to == uo_move_square_to(move))
+          {
+            *search.head++ = uo_position_make_move(&search.position, move);
+            goto next_move;
+          }
+        }
 
-        //uo_bitboard moves = uo_position_moves(&position, square_from, node);
+        // Not a legal move
+        return;
 
-        //if (!(moves & uo_square_bitboard(square_to)))
-        //{
-        //  // not a legal move
-        //  return;
-        //}
-
-        //uo_square i = -1;
-
-        //while (uo_bitboard_next_square(moves, &i) && i != square_to)
-        //{
-        //  ++node;
-        //}
-
-        //position = *node;
+        next_move:;
       }
     }
   }
@@ -176,9 +175,9 @@ static void process_cmd__position(void)
           uo_square square_from = uo_move_square_from(move);
           uo_square square_to = uo_move_square_to(move);
 
-            printf("%c%d%c%d: 1\n",
-              'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
-              'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to));
+          printf("%c%d%c%d: 1\n",
+            'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
+            'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to));
         }
 
         printf("\nNodes searched: %d\n\n", nodes_count);
