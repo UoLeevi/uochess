@@ -156,6 +156,15 @@ static void process_cmd__position(void)
     return;
   }
 
+  if (ptr && strcmp(ptr, "d") == 0)
+  {
+    uo_position_print_diagram(&search.position, buf);
+    printf("\n%s", buf);
+    uo_position_print_fen(&search.position, buf);
+    printf("\nFen: %s\n", buf);
+    return;
+  }
+
   if (ptr && strcmp(ptr, "go") == 0)
   {
     ptr = strtok(NULL, "\n ");

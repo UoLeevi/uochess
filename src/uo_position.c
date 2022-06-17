@@ -161,27 +161,113 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   return position;
 }
 
-char *uo_position_to_diagram(uo_position *position, char diagram[72])
+size_t uo_position_print_fen(uo_position *position, char fen[90])
 {
-  for (int i = 0; i < 64; ++i)
+  char *ptr = fen;
+
+  for (int rank = 7; rank >= 0; --rank)
   {
-    uo_piece piece = uo_position_square_piece(position, i);
-    int rank = uo_square_rank(i);
-    int file = uo_square_file(i);
-    int row = 7 - rank;
-    int index = (row << 3) + file + row;
-    char c = uo_piece_to_char[piece];
-    diagram[index] = c ? c : '.';
+    int empty_count = 0;
+    for (int file = 0; file < 8; ++file)
+    {
+      uo_square sq = (rank << 3) + file;
+      uo_piece piece = uo_position_square_piece(position, sq);
+
+      if (piece)
+      {
+        if (empty_count)
+        {
+          ptr += sprintf(ptr, "%d", empty_count);
+          empty_count = 0;
+        }
+
+        ptr += sprintf(ptr, "%c", uo_piece_to_char[piece]);
+      }
+      else
+      {
+        ++empty_count;
+      }
+
+
+    }
+
+    if (empty_count)
+    {
+      ptr += sprintf(ptr, "%d", empty_count);
+    }
+
+    if (rank > 0)
+    {
+      ptr += sprintf(ptr, "/");
+    }
   }
 
-  for (int i = 8; i < 72; i += 9)
+  uo_position_flags flags = position->flags;
+
+  uint8_t color_to_move = uo_position_flags_color_to_move(flags);
+  ptr += sprintf(ptr, " %c ", color_to_move ? 'b' : 'w');
+
+  uint8_t castling = uo_position_flags_castling(flags);
+
+  if (castling)
   {
-    diagram[i] = '\n';
+    uint8_t castling_K = uo_position_flags_castling_K(flags);
+    if (castling_K) ptr += sprintf(ptr, "%c", 'K');
+
+    uint8_t castling_Q = uo_position_flags_castling_Q(flags);
+    if (castling_Q) ptr += sprintf(ptr, "%c", 'Q');
+
+    uint8_t castling_k = uo_position_flags_castling_k(flags);
+    if (castling_k) ptr += sprintf(ptr, "%c", 'k');
+
+    uint8_t castling_q = uo_position_flags_castling_q(flags);
+    if (castling_q) ptr += sprintf(ptr, "%c", 'q');
+
+    ptr += sprintf(ptr, " ");
+  }
+  else
+  {
+    ptr += sprintf(ptr, "- ");
   }
 
-  diagram[71] = '\0';
+  uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
+  if (enpassant_file)
+  {
+    ptr += sprintf(ptr, "%c%d ", 'a' + enpassant_file - 1, color_to_move ? 6 : 3);
+  }
+  else
+  {
+    ptr += sprintf(ptr, "- ");
+  }
 
-  return diagram;
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  uint16_t fullmoves = position->fullmove;
+
+  ptr += sprintf(ptr, "%d %d", halfmoves, fullmoves);
+
+  return ptr - fen;
+}
+
+size_t uo_position_print_diagram(uo_position *position, char diagram[663])
+{
+  char *ptr = diagram;
+
+  for (int rank = 7; rank >= 0; --rank)
+  {
+    ptr += sprintf(ptr, " +---+---+---+---+---+---+---+---+\n |");
+    for (int file = 0; file < 8; ++file)
+    {
+      uo_square sq = (rank << 3) + file;
+      uo_piece piece = uo_position_square_piece(position, sq);
+      ptr += sprintf(ptr, " %c |", piece ? uo_piece_to_char[piece] : ' ');
+    }
+    ptr += sprintf(ptr, " %d\n", rank + 1);
+  }
+
+  ptr += sprintf(ptr, " +---+---+---+---+---+---+---+---+\n");
+  ptr += sprintf(ptr, "   a   b   c   d   e   f   g   h\n");
+
+  return ptr - diagram;
 }
 
 uo_move_ex uo_position_make_move(uo_position *position, uo_move move)

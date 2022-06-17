@@ -142,7 +142,9 @@ extern "C"
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   uo_position *uo_position_from_fen(uo_position *position, char *fen);
 
-  char *uo_position_to_diagram(uo_position *position, char diagram[72]);
+  size_t uo_position_print_fen(uo_position *position, char fen[90]);
+
+  size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
 
   uo_move_ex uo_position_make_move(uo_position *position, uo_move move);
 
