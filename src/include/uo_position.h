@@ -152,6 +152,8 @@ extern "C"
 
   size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
 
+  double uo_position_evaluate(uo_position *position);
+
   static inline uo_piece uo_position_square_piece(uo_position *position, uo_square square)
   {
     uo_bitboard mask = uo_square_bitboard(square);

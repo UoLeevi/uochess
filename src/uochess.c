@@ -1,6 +1,9 @@
 #include "uo_bitboard.h"
 #include "uo_position.h"
 #include "uo_util.h"
+#include "uo_move.h"
+#include "uo_square.h"
+#include "uo_search.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,16 +20,12 @@ position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 char buf[1028];
 char *ptr;
 
-#define UO_MAX_PLY 128
-#define UO_BRANCING_FACTOR 35
-
 struct
 {
-  uo_position position;
-  uo_move candidates[0x100];
-  uo_move_ex movestack[UO_MAX_PLY * UO_BRANCING_FACTOR];
-  uo_move_ex *head;
-} search;
+  uint16_t multipv;
+} options;
+
+uo_search search;
 
 enum state
 {
@@ -39,7 +38,8 @@ enum state
 static void engine_init(void)
 {
   uo_bitboard_init();
-  search.head = &search.movestack;
+  search.head = &search.moves;
+  options.multipv = 1;
 }
 
 static void process_cmd__init(void)
@@ -47,7 +47,8 @@ static void process_cmd__init(void)
   if (ptr && strcmp(ptr, "uci") == 0)
   {
     printf("id name uochess\n");
-    printf("id author Leevi Uotinen\n");
+    printf("id author Leevi Uotinen\n\n");
+    printf("option name MultiPV type spin default 1 min 1 max 500\n");
     printf("uciok\n");
     state = OPTIONS;
   }
@@ -56,9 +57,25 @@ static void process_cmd__init(void)
 static void process_cmd__options(void)
 {
   char *ptr = buf;
-  if (ptr && strcmp(ptr, "isready") == 0)
+
+  if (ptr && strcmp(ptr, "setoption name") == 0)
+  {
+    ptr = strtok(NULL, " ");
+    ptr = strtok(NULL, " ");
+
+    int spin;
+
+    if (ptr && sscanf(ptr, "MultiPV value %d", &spin) == 1 && spin >= 1 && spin <= 500)
+    {
+      options.multipv = spin;
+    }
+  }
+  else if (ptr && strcmp(ptr, "isready") == 0)
   {
     printf("readyok\n");
+
+    search.pv = malloc(options.multipv * sizeof * search.pv);
+
     state = READY;
   }
 }
@@ -124,11 +141,12 @@ static void process_cmd__ready(void)
         if (rank_to < 0 || rank_to > 7) return;
         uo_square square_to = (rank_to << 3) + file_to;
 
-        int nodes_count = uo_position_get_moves(&search.position, search.candidates);
+        int nodes_count = uo_position_get_moves(&search.position, search.head);
+        search.head += nodes_count;
 
         for (int i = 0; i < nodes_count; ++i)
         {
-          uo_move move = search.candidates[i];
+          uo_move move = search.head[i];
           if (square_from == uo_move_square_from(move)
             && square_to == uo_move_square_to(move))
           {
@@ -137,11 +155,46 @@ static void process_cmd__ready(void)
           }
         }
 
+        search.head -= nodes_count;
+
         // Not a legal move
         return;
 
-        next_move:;
+      next_move:;
       }
+    }
+  }
+}
+
+static void report_search_info(uo_search_info info)
+{
+  for (int i = 0; i < info.multipv; ++i)
+  {
+    printf("info depth %d seldepth %d multipv %d score cp %d nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
+      info.depth, info.seldepth, info.multipv, info.pv[i].score.cp, info.nodes, info.nps, info.tbhits, info.time);
+
+    uo_move *moves = info.pv[i].moves;
+
+    while (*moves)
+    {
+      uo_move move = *moves++;
+      uo_square square_from = uo_move_square_from(move);
+      uo_square square_to = uo_move_square_to(move);
+      printf(" %c%d%c%d",
+        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to),
+        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to));
+    }
+
+    printf("\n");
+
+    if (info.completed && info.multipv == 1)
+    {
+      uo_move bestmove = *info.pv[i].moves;
+      uo_square square_from = uo_move_square_from(bestmove);
+      uo_square square_to = uo_move_square_to(bestmove);
+      printf("bestmove %c%d%c%d\n",
+        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to),
+        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to));
     }
   }
 }
@@ -165,7 +218,7 @@ static void process_cmd__position(void)
     return;
   }
 
-  if (ptr && strcmp(ptr, "go") == 0)
+  else if (ptr && strcmp(ptr, "go") == 0)
   {
     ptr = strtok(NULL, "\n ");
 
@@ -176,11 +229,12 @@ static void process_cmd__position(void)
       int depth;
       if (sscanf(ptr, "%d", &depth) == 1)
       {
-        int nodes_count = uo_position_get_moves(&search.position, search.candidates);
+        int nodes_count = uo_position_get_moves(&search.position, search.head);
+        search.head += nodes_count;
 
         for (int i = 0; i < nodes_count; ++i)
         {
-          uo_move move = search.candidates[i];
+          uo_move move = search.head[i];
           uo_square square_from = uo_move_square_from(move);
           uo_square square_to = uo_move_square_to(move);
 
@@ -189,7 +243,26 @@ static void process_cmd__position(void)
             'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to));
         }
 
+        search.head -= nodes_count;
+
         printf("\nNodes searched: %d\n\n", nodes_count);
+      }
+    }
+
+    else if (ptr && strcmp(ptr, "depth") == 0)
+    {
+      ptr = strtok(NULL, "\n ");
+
+      int depth;
+      if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
+      {
+        uo_search_params search_params = {
+          .depth = depth,
+          .multipv = options.multipv,
+          .report = report_search_info
+        };
+
+        uo_search_start(&search, search_params);
       }
     }
   }

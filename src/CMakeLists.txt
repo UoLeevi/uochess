@@ -6,6 +6,7 @@ add_executable(uochess
     uo_position.c
     uo_piece.c
     uo_square.c
+    uo_search.c
     uo_util.c)
 
 target_include_directories(uochess

@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
@@ -301,7 +302,7 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
         flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
       }
     }
-    else if (move_type & uo_move_type__enpassant)
+    else if (move_type == uo_move_type__enpassant)
     {
       // en passant capture
       uo_bitboard enpassant = uo_square_bitboard(31 + enpassant_file);
@@ -332,7 +333,7 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
         flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
       }
     }
-    else if (move_type & uo_move_type__enpassant)
+    else if (move_type == uo_move_type__enpassant)
     {
       // en passant capture
       uo_bitboard enpassant = uo_square_bitboard(23 + enpassant_file);
@@ -437,10 +438,23 @@ void uo_position_unmake_move(uo_position *position, uo_move_ex move)
     }
 
     piece = uo_piece__P;
+    position->P |= bitboard_from;
   }
   else
   {
     piece = uo_position_square_piece(position, square_to);
+    uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
+    *bitboard &= ~bitboard_to;
+    *bitboard |= bitboard_from;
+  }
+
+  if (uo_piece_color(piece) == uo_piece__black)
+  {
+    position->piece_color |= bitboard_from;
+  }
+  else
+  {
+    position->piece_color &= ~bitboard_from;
   }
 
   // capture
@@ -452,24 +466,10 @@ void uo_position_unmake_move(uo_position *position, uo_move_ex move)
 
     if (color_to_move == uo_piece__black)
     {
-      if (move_type & uo_move_type__enpassant)
+      if (move_type == uo_move_type__enpassant)
       {
         // en passant capture
         uo_bitboard enpassant = bitboard_to >> 8;
-        position->P |= enpassant;
-        position->piece_color &= ~enpassant;
-      }
-      else
-      {
-        position->piece_color &= ~bitboard_to;
-      }
-    }
-    else
-    {
-      if (move_type & uo_move_type__enpassant)
-      {
-        // en passant capture
-        uo_bitboard enpassant = bitboard_to << 8;
         position->P |= enpassant;
         position->piece_color |= enpassant;
       }
@@ -478,10 +478,21 @@ void uo_position_unmake_move(uo_position *position, uo_move_ex move)
         position->piece_color |= bitboard_to;
       }
     }
+    else
+    {
+      if (move_type == uo_move_type__enpassant)
+      {
+        // en passant capture
+        uo_bitboard enpassant = bitboard_to << 8;
+        position->P |= enpassant;
+        position->piece_color &= ~enpassant;
+      }
+      else
+      {
+        position->piece_color &= ~bitboard_to;
+      }
+    }
   }
-
-  uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-  *bitboard |= bitboard_from;
 
   position->flags = flags_prev;
 }
@@ -627,7 +638,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     uo_bitboard attack_checker_N = own_N & uo_bitboard_moves(square_enemy_checker, uo_piece__N, 0);
     uo_bitboard attack_checker_P = (own_P & ~uo_bitboard_file[uo_square_file(square_enemy_checker)]) & uo_bitboard_moves(square_enemy_checker, piece_own_P, occupied);
     uo_bitboard attack_checker = attack_checker_N | attack_checker_B | attack_checker_R | attack_checker_Q | attack_checker_P;
-    attack_checker &= pins_to_own_K;
+    attack_checker &= ~pins_to_own_K;
 
     square_from = -1;
     while (uo_bitboard_next_square(attack_checker, &square_from))
@@ -687,7 +698,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       uo_bitboard block_N = own_N & uo_bitboard_moves(square_between, uo_piece__N, 0);
       uo_bitboard block_P = own_P & uo_bitboard_file[uo_square_file(square_between)] & uo_bitboard_moves(square_between, piece_own_P, occupied);
       uo_bitboard block = block_N | block_B | block_R | block_Q | block_P;
-      block &= pins_to_own_K;
+      block &= ~pins_to_own_K;
 
       square_from = -1;
       while (uo_bitboard_next_square(block, &square_from))
@@ -1096,4 +1107,69 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   }
 
   return count;
+}
+
+#pragma region evaluation_features
+
+static double uo_position_evaluation_feature_material_P(uo_position *position, uint8_t color)
+{
+  return uo_popcount(position->P & (color ? position->piece_color : ~position->piece_color));
+}
+static double uo_position_evaluation_feature_material_N(uo_position *position, uint8_t color)
+{
+  return uo_popcount(position->N & (color ? position->piece_color : ~position->piece_color));
+}
+static double uo_position_evaluation_feature_material_B(uo_position *position, uint8_t color)
+{
+  return uo_popcount(position->B & (color ? position->piece_color : ~position->piece_color));
+}
+static double uo_position_evaluation_feature_material_R(uo_position *position, uint8_t color)
+{
+  return uo_popcount(position->R & (color ? position->piece_color : ~position->piece_color));
+}
+static double uo_position_evaluation_feature_material_Q(uo_position *position, uint8_t color)
+{
+  return uo_popcount(position->Q & (color ? position->piece_color : ~position->piece_color));
+}
+
+#pragma endregion
+
+static const double (*eval_features[])(uo_position *position, uint8_t color) = {
+  uo_position_evaluation_feature_material_P,
+  uo_position_evaluation_feature_material_N,
+  uo_position_evaluation_feature_material_B,
+  uo_position_evaluation_feature_material_R,
+  uo_position_evaluation_feature_material_Q
+};
+
+#define UO_EVAL_FEATURE_COUNT (sizeof eval_features / sizeof *eval_features)
+
+double weights[UO_EVAL_FEATURE_COUNT << 1] =
+{
+   1.0,
+  -1.0,
+   3.0,
+  -3.0,
+   3.0,
+  -3.0,
+   5.0,
+  -5.0,
+   9.0,
+  -9.0
+};
+
+double uo_position_evaluate(uo_position *position)
+{
+  double inputs[UO_EVAL_FEATURE_COUNT << 1] = { 0 };
+  double evaluation = 0;
+
+  for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)
+  {
+    inputs[i << 1] = eval_features[i](position, uo_piece__white);
+    inputs[(i << 1) + 1] = eval_features[i](position, uo_piece__black);
+    evaluation += inputs[i << 1] * weights[i << 1];
+    evaluation += inputs[(i << 1) + 1] * weights[(i << 1) + 1];
+  }
+
+  return evaluation;
 }

@@ -1142,13 +1142,13 @@ uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard
 
   // diagonal pin below
 
-  for (int i = square - 9; i >= 9; i -= 9)
+  for (int i = square - 9; i >= 9 && uo_square_file(i) < file; i -= 9)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i - 9; j >= 0; j -= 9)
+      for (int j = i - 9; j >= 0 && uo_square_file(j) < file; j -= 9)
       {
         if (uo_square_bitboard(j) & diagonal_attackers)
         {
@@ -1175,13 +1175,13 @@ break__diagonal_pin_below:
 
   // diagonal pin above
 
-  for (int i = square + 9; i < 55; i += 9)
+  for (int i = square + 9; i < 55 && uo_square_file(i) > file; i += 9)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i + 9; j < 64; j += 9)
+      for (int j = i + 9; j < 64 && uo_square_file(j) > file; j += 9)
       {
         if (uo_square_bitboard(j) & diagonal_attackers)
         {
@@ -1208,13 +1208,13 @@ break__diagonal_pin_above:
 
   // antidiagonal pin below
 
-  for (int i = square - 7; i >= 9; i -= 7)
+  for (int i = square - 7; i >= 9 && uo_square_file(i) > file; i -= 7)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i - 7; j >= 0; j -= 7)
+      for (int j = i - 7; j >= 0 && uo_square_file(j) > file; j -= 7)
       {
         if (uo_square_bitboard(j) & diagonal_attackers)
         {
@@ -1241,13 +1241,13 @@ break__antidiagonal_pin_below:
 
   // antidiagonal pin above
 
-  for (int i = square + 7; i < 55; i += 7)
+  for (int i = square + 7; i < 55 && uo_square_file(i) < file; i += 7)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i + 7; j < 64; j += 7)
+      for (int j = i + 7; j < 64 && uo_square_file(j) < file; j += 7)
       {
         if (uo_square_bitboard(j) & diagonal_attackers)
         {

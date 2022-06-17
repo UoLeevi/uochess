@@ -80,12 +80,12 @@ extern "C"
 
   static inline uo_position_flags uo_move_ex_flags(uo_move_ex move)
   {
-    return (move >> 16) && 0xFFFF;
+    return (move >> 16) & 0xFFFF;
   }
 
   static inline uo_piece uo_move_ex_piece_captured(uo_move_ex move)
   {
-    return (move >> 32) && 0xFF;
+    return (move >> 32) & 0xFF;
   }
 
 #ifdef __cplusplus
