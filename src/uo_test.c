@@ -14,6 +14,8 @@ bool uo_test_move_generation(char *test_data_dir)
 
   bool passed = true;
 
+  size_t test_count = 0;
+
   char *filepath = buf;
 
   strcpy(filepath, test_data_dir);
@@ -121,9 +123,15 @@ bool uo_test_move_generation(char *test_data_dir)
       }
     }
 
+    ++test_count;
   }
 
   fclose(fp);
+
+  if (passed)
+  {
+    printf("TEST 'move_generation' PASSED: total of %zd positions tested.", test_count);
+  }
 
   return passed;
 }
