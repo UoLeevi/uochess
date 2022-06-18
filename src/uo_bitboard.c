@@ -314,6 +314,7 @@ typedef struct uo_magic
 
 static uo_bitboard uo_moves_K[64];
 static uo_bitboard uo_moves_N[64];
+static uo_bitboard uo_attacks_P[2][64];
 
 static uo_magic uo_magics_P[2][64];
 static uo_magic uo_magics_B[64];
@@ -321,8 +322,6 @@ static uo_magic uo_magics_R[64];
 
 static bool init;
 static int rand_seed;
-
-
 
 int uo_bitboard_print(uo_bitboard bitboard)
 {
@@ -524,6 +523,30 @@ void uo_moves_N_init(void)
   //   uo_bitboard_print(moves);
   //   printf("\n");
   // }
+}
+
+void uo_attacks_P_init(void)
+{
+  for (uint8_t rank = 0; rank < 8; ++rank)
+  {
+    for (uint8_t file = 0; file < 7; ++file)
+    {
+      uo_square square = (rank << 3) + file;
+      uo_bitboard mask = uo_square_bitboard(square);
+
+      uo_attacks_P[uo_piece__white][square] |= mask << 9;
+      uo_attacks_P[uo_piece__black][square] |= mask >> 7;
+    }
+
+    for (uint8_t file = 1; file < 8; ++file)
+    {
+      uo_square square = (rank << 3) + file;
+      uo_bitboard mask = uo_square_bitboard(square);
+
+      uo_attacks_P[uo_piece__white][square] |= mask << 7;
+      uo_attacks_P[uo_piece__black][square] |= mask >> 9;
+    }
+  }
 }
 
 static inline uo_bitboard uo_bitboard_permutation(uo_bitboard mask, uint8_t bits, uint16_t permutation)
@@ -1089,6 +1112,7 @@ void uo_bitboard_init()
 
   uo_moves_K_init();
   uo_moves_N_init();
+  uo_attacks_P_init();
   uo_magics_B_init();
   uo_magics_R_init();
   uo_magics_P_init();
@@ -1132,10 +1156,19 @@ uo_bitboard uo_bitboard_moves(uo_square square, uo_piece piece, uo_bitboard bloc
   return moves;
 }
 
+uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color)
+{
+  return uo_attacks_P[color][square];
+}
+
 uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers, uo_bitboard line_attackers)
 {
   const uint8_t file = uo_square_file(square);
   const uint8_t rank = uo_square_rank(square);
+  line_attackers &= uo_bitboard_file[file] | uo_bitboard_rank[rank];
+  const uint8_t diagonal = uo_square_diagonal[square];
+  const uint8_t antidiagonal = uo_square_antidiagonal[square];
+  diagonal_attackers &= uo_bitboard_diagonal[diagonal] | uo_bitboard_antidiagonal[antidiagonal];
 
   uo_bitboard pins = 0;
   uo_square pin = 0;
@@ -1282,7 +1315,7 @@ break__antidiagonal_pin_above:
 
       for (int j = i - 1; j >= square - file; --j)
       {
-        if (uo_square_bitboard(j) & diagonal_attackers)
+        if (uo_square_bitboard(j) & line_attackers)
         {
           goto break__rank_pin_left;
         }
@@ -1315,7 +1348,7 @@ break__rank_pin_left:
 
       for (int j = i + 1; j < square - file + 8; ++j)
       {
-        if (uo_square_bitboard(j) & diagonal_attackers)
+        if (uo_square_bitboard(j) & line_attackers)
         {
           goto break__rank_pin_right;
         }
@@ -1341,15 +1374,15 @@ break__rank_pin_right:
 
   // file pins below
 
-  for (int i = square - 8; i > file; --i)
+  for (int i = square - 8; i > file; i -= 8)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i - 8; j >= file; --j)
+      for (int j = i - 8; j >= file; j -= 8)
       {
-        if (uo_square_bitboard(j) & diagonal_attackers)
+        if (uo_square_bitboard(j) & line_attackers)
         {
           goto break__file_pin_below;
         }
@@ -1374,15 +1407,15 @@ break__file_pin_below:
 
   // file pins above
 
-  for (int i = square + 8; i < 56; ++i)
+  for (int i = square + 8; i < 56; i += 8)
   {
     if (uo_square_bitboard(i) & blockers)
     {
       pin = i;
 
-      for (int j = i + 8; j < 64; ++j)
+      for (int j = i + 8; j < 64; j += 8)
       {
-        if (uo_square_bitboard(j) & diagonal_attackers)
+        if (uo_square_bitboard(j) & line_attackers)
         {
           goto break__file_pin_above;
         }

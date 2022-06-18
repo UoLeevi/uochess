@@ -30,6 +30,8 @@ extern "C"
 
   uo_bitboard uo_bitboard_moves(uo_square square, uo_piece piece, uo_bitboard blockers);
 
+  uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color);
+
   // pins and discoveries
   uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers, uo_bitboard line_attackers);
 

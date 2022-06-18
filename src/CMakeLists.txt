@@ -6,8 +6,10 @@ add_executable(uochess
     uo_position.c
     uo_piece.c
     uo_square.c
+    uo_move.c
     uo_search.c
-    uo_util.c)
+    uo_util.c
+    uo_test.c)
 
 target_include_directories(uochess
     PRIVATE
@@ -18,6 +20,9 @@ target_link_libraries(uochess)
 target_compile_features(uochess
     PUBLIC
         c_std_11)
+
+add_test(NAME uochess_test
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
 
 install(DIRECTORY conf/
     DESTINATION bin)

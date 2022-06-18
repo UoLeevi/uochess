@@ -48,7 +48,7 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
 
 int uo_search_start(uo_search *search, const uo_search_params params)
 {
-  double color = uo_position_flags_color_to_move(&search->position.flags) ? -1.0 : 1.0;
+  double color = uo_position_flags_color_to_move(search->position.flags) ? -1.0 : 1.0;
 
   uo_search_info info = {
     .pv = search->pv,

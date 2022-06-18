@@ -1,15 +1,21 @@
+#include "uo_global.h"
 #include "uo_bitboard.h"
 #include "uo_position.h"
 #include "uo_util.h"
 #include "uo_move.h"
 #include "uo_square.h"
 #include "uo_search.h"
+#include "uo_test.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <inttypes.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /*
 uci
@@ -17,7 +23,9 @@ isready
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 */
 
-char buf[1028];
+// global buffer
+char buf[0x1000];
+
 char *ptr;
 
 struct
@@ -38,7 +46,7 @@ enum state
 static void engine_init(void)
 {
   uo_bitboard_init();
-  search.head = &search.moves;
+  search.head = search.moves;
   options.multipv = 1;
 }
 
@@ -127,26 +135,20 @@ static void process_cmd__ready(void)
     {
       while (ptr = strtok(NULL, " \n"))
       {
-        if (strlen(ptr) != 4) return;
+        if (strlen(ptr) < 4) return;
 
-        int file_from = ptr[0] - 'a';
-        if (file_from < 0 || file_from > 7) return;
-        int rank_from = ptr[1] - '1';
-        if (rank_from < 0 || rank_from > 7) return;
-        uo_square square_from = (rank_from << 3) + file_from;
+        uo_move move = uo_move_parse(ptr);
+        if (!move) return;
 
-        int file_to = ptr[2] - 'a';
-        if (file_to < 0 || file_to > 7) return;
-        int rank_to = ptr[3] - '1';
-        if (rank_to < 0 || rank_to > 7) return;
-        uo_square square_to = (rank_to << 3) + file_to;
+        uo_square square_from = uo_move_square_from(move);
+        uo_square square_to = uo_move_square_to(move);
 
         int nodes_count = uo_position_get_moves(&search.position, search.head);
         search.head += nodes_count;
 
         for (int i = 0; i < nodes_count; ++i)
         {
-          uo_move move = search.head[i];
+          uo_move move = search.head[i - nodes_count];
           if (square_from == uo_move_square_from(move)
             && square_to == uo_move_square_to(move))
           {
@@ -178,11 +180,8 @@ static void report_search_info(uo_search_info info)
     while (*moves)
     {
       uo_move move = *moves++;
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      printf(" %c%d%c%d",
-        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to),
-        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to));
+      uo_move_print(move, buf);
+      printf(" %s", buf);
     }
 
     printf("\n");
@@ -190,11 +189,8 @@ static void report_search_info(uo_search_info info)
     if (info.completed && info.multipv == 1)
     {
       uo_move bestmove = *info.pv[i].moves;
-      uo_square square_from = uo_move_square_from(bestmove);
-      uo_square square_to = uo_move_square_to(bestmove);
-      printf("bestmove %c%d%c%d\n",
-        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to),
-        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_to));
+      uo_move_print(bestmove, buf);
+      printf("bestmove %s\n", buf);
     }
   }
 }
@@ -234,13 +230,9 @@ static void process_cmd__position(void)
 
         for (int i = 0; i < nodes_count; ++i)
         {
-          uo_move move = search.head[i];
-          uo_square square_from = uo_move_square_from(move);
-          uo_square square_to = uo_move_square_to(move);
-
-          printf("%c%d%c%d: 1\n",
-            'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
-            'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to));
+          uo_move move = search.head[i - nodes_count];
+          uo_move_print(move, buf);
+          printf("%s: 1\n", buf);
         }
 
         search.head -= nodes_count;
@@ -268,6 +260,15 @@ static void process_cmd__position(void)
   }
 }
 
+static int run_tests(char *test_data_dir)
+{
+  bool passed = true;
+
+  passed &= uo_test_move_generation(test_data_dir);
+
+  return passed ? 0 : 1;
+}
+
 static void (*process_cmd[])() = {
   process_cmd__init,
   process_cmd__options,
@@ -279,6 +280,39 @@ int main(
   int argc,
   char **argv)
 {
+  if (argc > 1 && strcmp(argv[1], "--test") == 0)
+  {
+    char *test_data_dir = NULL;
+
+    for (int i = 2; i < argc - 1; ++i)
+    {
+      if (strcmp(argv[i], "--datadir") == 0)
+      {
+        test_data_dir = argv[i + 1];
+        struct stat info;
+
+        if (stat(test_data_dir, &info) != 0)
+        {
+          printf("cannot access '%s'\n", test_data_dir);
+          return 1;
+        }
+        else if (info.st_mode & S_IFDIR)
+        {
+          // directory exists
+          break;
+        }
+        else
+        {
+          printf("'%s' is no directory\n", test_data_dir);
+          return 1;
+        }
+      }
+    }
+
+    engine_init();
+    return run_tests(test_data_dir);
+  }
+
   printf("Uochess 0.1 by Leevi Uotinen\n");
   engine_init();
 

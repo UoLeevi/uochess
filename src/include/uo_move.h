@@ -88,6 +88,9 @@ extern "C"
     return (move >> 32) & 0xFF;
   }
 
+  uo_move uo_move_parse(char str[5]);
+  size_t uo_move_print(uo_move move, char str[6]);
+
 #ifdef __cplusplus
 }
 #endif
