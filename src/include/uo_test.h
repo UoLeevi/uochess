@@ -6,10 +6,11 @@ extern "C"
 {
 #endif
 
+#include "uo_search.h"
 
 #include <stdbool.h>
 
-  bool uo_test_move_generation(char *test_data_dir);
+  bool uo_test_move_generation(uo_search *search, char *test_data_dir);
 
 
 #ifdef __cplusplus

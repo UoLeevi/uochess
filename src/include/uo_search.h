@@ -9,6 +9,7 @@ extern "C"
 #include "uo_position.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <inttypes.h>
 
 #define UO_MAX_PLY 128
@@ -53,8 +54,10 @@ extern "C"
     void (*report)(uo_search_info);
   } uo_search_params;
 
+  size_t uo_search_perft(uo_search *search, size_t depth);
 
   int uo_search_start(uo_search *search, uo_search_params params);
+
   void uo_search_end(int search_id);
 
 #ifdef __cplusplus

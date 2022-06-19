@@ -28,9 +28,43 @@ extern "C"
 
   bool uo_bitboard_next_square(uo_bitboard bitboard, uo_square *square);
 
-  uo_bitboard uo_bitboard_moves(uo_square square, uo_piece piece, uo_bitboard blockers);
-
   uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color);
+  uo_bitboard uo_bitboard_attacks_N(uo_square square);
+  uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers);
+  uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers);
+  uo_bitboard uo_bitboard_attacks_K(uo_square square);
+
+  static inline uo_bitboard uo_bitboard_attacks_Q(uo_square square, uo_bitboard blockers)
+  {
+    return uo_bitboard_attacks_B(square, blockers) | uo_bitboard_attacks_R(square, blockers);
+  }
+
+  uo_bitboard uo_bitboard_moves_P(uo_square square, uint8_t color, uo_bitboard own, uo_bitboard enemy);
+
+  static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_N(square) & ~own;
+  }
+
+  static inline uo_bitboard uo_bitboard_moves_B(uo_square square, uo_bitboard own, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_B(square, own | enemy) & ~own;
+  }
+
+  static inline uo_bitboard uo_bitboard_moves_R(uo_square square, uo_bitboard own, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_R(square, own | enemy) & ~own;
+  }
+
+  static inline uo_bitboard uo_bitboard_moves_Q(uo_square square, uo_bitboard own, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_Q(square, own | enemy) & ~own;
+  }
+
+  static inline uo_bitboard uo_bitboard_moves_K(uo_square square, uo_bitboard own, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_K(square) & ~own;
+  }
 
   // pins and discoveries
   uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers, uo_bitboard line_attackers);

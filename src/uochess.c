@@ -137,18 +137,18 @@ static void process_cmd__ready(void)
       {
         if (strlen(ptr) < 4) return;
 
-        uo_move move = uo_move_parse(ptr);
+        uo_move move = uo_position_parse_move(&search.position, ptr);
         if (!move) return;
 
         uo_square square_from = uo_move_square_from(move);
         uo_square square_to = uo_move_square_to(move);
 
-        int nodes_count = uo_position_get_moves(&search.position, search.head);
-        search.head += nodes_count;
+        int move_count = uo_position_get_moves(&search.position, search.head);
+        search.head += move_count;
 
-        for (int i = 0; i < nodes_count; ++i)
+        for (int i = 0; i < move_count; ++i)
         {
-          uo_move move = search.head[i - nodes_count];
+          uo_move move = search.head[i - move_count];
           if (square_from == uo_move_square_from(move)
             && square_to == uo_move_square_to(move))
           {
@@ -157,7 +157,7 @@ static void process_cmd__ready(void)
           }
         }
 
-        search.head -= nodes_count;
+        search.head -= move_count;
 
         // Not a legal move
         return;
@@ -223,21 +223,26 @@ static void process_cmd__position(void)
       ptr = strtok(NULL, "\n ");
 
       int depth;
-      if (sscanf(ptr, "%d", &depth) == 1)
+      if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
       {
-        int nodes_count = uo_position_get_moves(&search.position, search.head);
-        search.head += nodes_count;
+        size_t total_node_count = 0;
+        size_t move_count = uo_position_get_moves(&search.position, search.head);
+        search.head += move_count;
 
-        for (int i = 0; i < nodes_count; ++i)
+        for (int64_t i = 0; i < move_count; ++i)
         {
-          uo_move move = search.head[i - nodes_count];
+          uo_move move = search.head[i - move_count];
           uo_move_print(move, buf);
-          printf("%s: 1\n", buf);
+          uo_move_ex move_ex = uo_position_make_move(&search.position, move);
+          size_t node_count = depth == 1 ? 1 : uo_search_perft(&search, depth - 1);
+          uo_position_unmake_move(&search.position, move_ex);
+          total_node_count += node_count;
+          printf("%s: %zu\n", buf, node_count);
         }
 
-        search.head -= nodes_count;
+        search.head -= move_count;
 
-        printf("\nNodes searched: %d\n\n", nodes_count);
+        printf("\nNodes searched: %zu\n\n", total_node_count);
       }
     }
 
@@ -264,7 +269,7 @@ static int run_tests(char *test_data_dir)
 {
   bool passed = true;
 
-  passed &= uo_test_move_generation(test_data_dir);
+  passed &= uo_test_move_generation(&search, test_data_dir);
 
   return passed ? 0 : 1;
 }

@@ -1,9 +1,13 @@
 ﻿#include "uo_search.h"
 #include "uo_position.h"
+#include "uo_global.h"
 
 #include <math.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
 
 int search_id;
 
@@ -18,10 +22,10 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
 
   double value = -INFINITY;
 
-  int nodes_count = uo_position_get_moves(&search->position, search->head);
+  size_t nodes_count = uo_position_get_moves(&search->position, search->head);
   search->head += nodes_count;
 
-  for (int i = 0; i < nodes_count; ++i)
+  for (int64_t i = 0; i < nodes_count; ++i)
   {
     uo_move move = search->head[i - nodes_count];
     uo_move_ex move_ex = uo_position_make_move(&search->position, move);
@@ -44,6 +48,63 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
 
   search->head -= nodes_count;
   return value;
+}
+
+size_t uo_search_perft(uo_search *search, size_t depth)
+{
+  size_t move_count = uo_position_get_moves(&search->position, search->head);
+
+  if (depth == 1)
+  {
+    return move_count;
+  }
+
+  search->head += move_count;
+
+  size_t node_count = 0;
+
+  //char fen_before_make[90];
+  //char fen_after_unmake[90];
+
+  //uo_position_print_fen(&search->position, fen_before_make);
+
+  for (int64_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = search->head[i - move_count];
+    uo_move_ex move_ex = uo_position_make_move(&search->position, move);
+    //uo_move_print(move, buf);
+    //printf("move: %s\n", buf);
+    //uo_position_print_fen(&search->position, buf);
+    //printf("%s\n", buf);
+    //uo_position_print_diagram(&search->position, buf);
+    //printf("%s\n", buf);
+    node_count += uo_search_perft(search, depth - 1);
+    uo_position_unmake_move(&search->position, move_ex);
+
+    //uo_position_print_fen(&search->position, fen_after_unmake);
+
+    //if (strcmp(fen_before_make, fen_after_unmake) != 0)
+    //{
+    //  uo_position position;
+    //  uo_position_from_fen(&position, fen_before_make);
+
+    //  uo_move_print(move, buf);
+    //  printf("error when unmaking move: %s\n", buf);
+    //  printf("\nbefore make move\n");
+    //  uo_position_print_diagram(&position, buf);
+    //  printf("\n%s", buf);
+    //  printf("\nFen: %s\n", fen_before_make);
+    //  printf("\nafter unmake move\n");
+    //  uo_position_print_diagram(&search->position, buf);
+    //  printf("\n%s", buf);
+    //  printf("\nFen: %s\n", fen_after_unmake);
+    //  printf("\n");
+    //}
+  }
+
+  search->head -= move_count;
+
+  return node_count;
 }
 
 int uo_search_start(uo_search *search, const uo_search_params params)

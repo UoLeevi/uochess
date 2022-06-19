@@ -89,47 +89,47 @@ extern "C"
 
   static inline uo_position_flags uo_position_flags_update_halfmoves(uo_position_flags flags, uint8_t halfmoves)
   {
-    return (flags & 0xFF01) | (uo_position_flags)(halfmoves << 1);
+    return (flags & 0xFF01) | ((uo_position_flags)halfmoves << 1);
   }
 
   static inline uo_position_flags uo_position_flags_update_enpassant_file(uo_position_flags flags, uint8_t enpassant_file)
   {
-    return (flags & 0xF0FF) | (uo_position_flags)(enpassant_file << 8);
+    return (flags & 0xF0FF) | ((uo_position_flags)enpassant_file << 8);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling(uo_position_flags flags, uint8_t castling)
   {
-    return (flags & 0x0FFF) | (uo_position_flags)(castling << 12);
+    return (flags & 0x0FFF) | ((uo_position_flags)castling << 12);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_white(uo_position_flags flags, uint8_t castling_white)
   {
-    return (flags & 0xCFFF) | (uo_position_flags)(castling_white << 12);
+    return (flags & 0xCFFF) | ((uo_position_flags)castling_white << 12);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_black(uo_position_flags flags, uint8_t castling_black)
   {
-    return (flags & 0x3FFF) | (uo_position_flags)(castling_black << 14);
+    return (flags & 0x3FFF) | ((uo_position_flags)castling_black << 14);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_K(uo_position_flags flags, bool castling_K)
   {
-    return (flags & 0xEFFF) | (uo_position_flags)(castling_K << 12);
+    return (flags & 0xEFFF) | ((uo_position_flags)castling_K << 12);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_Q(uo_position_flags flags, bool castling_Q)
   {
-    return (flags & 0xDFFF) | (uo_position_flags)(castling_Q << 13);
+    return (flags & 0xDFFF) | ((uo_position_flags)castling_Q << 13);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_k(uo_position_flags flags, bool castling_k)
   {
-    return (flags & 0xBFFF) | (uo_position_flags)(castling_k << 14);
+    return (flags & 0xBFFF) | ((uo_position_flags)castling_k << 14);
   }
 
   static inline uo_position_flags uo_position_flags_update_castling_q(uo_position_flags flags, bool castling_q)
   {
-    return (flags & 0x7FFF) | (uo_position_flags)(castling_q << 15);
+    return (flags & 0x7FFF) | ((uo_position_flags)castling_q << 15);
   }
 
 #pragma endregion
@@ -170,6 +170,8 @@ extern "C"
     piece |= (mask & position->piece_color) ? uo_piece__black : uo_piece__white;
     return piece;
   }
+
+  uo_move uo_position_parse_move(uo_position *position, char str[5]);
 
 #ifdef __cplusplus
 }
