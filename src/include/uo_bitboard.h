@@ -41,6 +41,19 @@ extern "C"
 
   uo_bitboard uo_bitboard_moves_P(uo_square square, uint8_t color, uo_bitboard own, uo_bitboard enemy);
 
+  // see: https://www.chessprogramming.org/Pawn_Pushes_(Bitboards)#Generalized_Push
+  static inline uo_bitboard uo_bitboard_single_push_P(uo_bitboard pawns, uint8_t color, uo_bitboard empty)
+  {
+    return ((pawns << 8) >> (color << 4)) & empty;
+  }
+
+  static inline uo_bitboard uo_bitboard_double_push_P(uo_bitboard pawns, uint8_t color, uo_bitboard empty)
+  {
+    uo_bitboard bitboard_second_rank = (uo_bitboard)0x000000000000FF00 << (color * 28);
+    uo_bitboard single_push = uo_bitboard_single_push_P(pawns & bitboard_second_rank, color, empty);
+    return uo_bitboard_single_push_P(single_push, color, empty);
+  }
+
   static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
     return uo_bitboard_attacks_N(square) & ~own;

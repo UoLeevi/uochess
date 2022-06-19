@@ -41,7 +41,7 @@ void uo_rand_init(uint64_t seed)
 }
 
 
-#ifndef uo_popcount
+#if !defined(uo_popcount)
 #include <limits.h>
 
 int uo_popcount(uint64_t u64)
@@ -53,17 +53,3 @@ int uo_popcount(uint64_t u64)
   return (uint64_t)(v * ((uint64_t)~(uint64_t)0 / 255)) >> (sizeof(uint64_t) - 1) * CHAR_BIT; // count
 }
 #endif
-// END - uo_popcount
-
-// uo_ffs
-#ifndef uo_ffs
-#include <intrin.h>
-#pragma intrinsic(_BitScanForward64)
-
-int uo_ffs(uint64_t u64)
-{
-  int ffs = 0;
-  return _BitScanForward64(&ffs, u64) ? (ffs + 1) : 0;
-}
-#endif
-// END - uo_ffs
