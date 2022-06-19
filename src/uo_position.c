@@ -764,7 +764,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   {
     uo_square square_enemy_checker = uo_ffs(enemy_checks) - 1;
 
-    if (uo_ffs(enemy_checks >> (square_enemy_checker + 1)))
+    if (uo_popcount(enemy_checks) == 2)
     {
       // Double check, king must move
 
