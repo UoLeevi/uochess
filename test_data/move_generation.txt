@@ -95,6 +95,90 @@ g1f3: 9748
 g1h3: 8881
 
 ucinewgame
+position fen r1b1k1nr/1pq2ppp/p1n1p3/3pP3/1b1N4/P1N5/1PP1BPPP/R1BQK2R w KQkq - 0 10
+go perft 2
+b2b3: 41
+f2f3: 41
+g2g3: 41
+h2h3: 41
+a3a4: 41
+f2f4: 41
+g2g4: 41
+h2h4: 41
+a3b4: 35
+e1g1: 41
+e1d2: 41
+e1f1: 41
+d1d3: 41
+d1d2: 41
+h1g1: 41
+d4b3: 42
+d4f3: 42
+d4b5: 42
+d4f5: 41
+d4c6: 35
+d4e6: 42
+c1d2: 41
+c1e3: 41
+c1f4: 41
+c1g5: 38
+c1h6: 40
+e2f1: 41
+e2d3: 41
+e2f3: 41
+e2c4: 42
+e2g4: 41
+e2b5: 34
+e2h5: 38
+e2a6: 42
+a1b1: 41
+a1a2: 41
+h1f1: 41
+
+ucinewgame
+position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/P1N5/1PP1BPPP/R1BQK2R b KQkq - 0 9
+go perft 3
+a6a5: 1617
+b7b6: 1661
+f7f6: 1718
+g7g6: 1708
+h7h6: 1623
+b7b5: 1707
+f7f5: 1716
+g7g5: 1667
+h7h5: 1709
+c6b4: 1563
+c6d4: 1555
+c6a5: 1522
+c6e5: 1732
+c6a7: 1521
+c6e7: 1275
+c6b8: 1481
+c6d8: 1440
+g8f6: 1750
+g8h6: 1619
+g8e7: 1371
+c8d7: 1711
+f8a3: 1775
+f8b4: 1497
+f8c5: 1845
+f8d6: 1695
+f8e7: 1710
+a8a7: 1578
+a8b8: 1534
+c7a5: 1389
+c7e5: 1531
+c7b6: 1665
+c7d6: 1563
+c7d7: 1413
+c7e7: 1410
+c7b8: 1405
+c7d8: 1623
+e8d7: 1536
+e8e7: 1232
+e8d8: 1500
+
+ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/2N5/PPP1BPPP/R1BQK2R w KQkq d6 0 8
 go perft 4
 a2a3: 61567

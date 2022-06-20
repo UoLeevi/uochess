@@ -11,11 +11,12 @@ extern "C"
 #if defined(_MSC_VER)
 
 # include <intrin.h>
-# pragma intrinsic(_BitScanForward64)
+# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
 
-  static unsigned long ffs;
+  static unsigned long temp;
 
-# define uo_ffs(u64) (_BitScanForward64(&ffs, u64) ? ffs + 1 : 0)
+# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
+# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
 
 # define uo_popcount __popcnt64
 
@@ -29,19 +30,19 @@ extern "C"
 # endif
   // END - uo_popcount
 
-  // uo_ffs
-# if __has_builtin(__builtin_ffsll)
-#   define uo_ffs __builtin_ffsll
-# elif __has_builtin(__builtin_clzll)
-#   define uo_ffs(u64) ((u64) ? (64 - __builtin_clzll((uint64_t)(u64))) : 0)
+  // uo_lsb && uo_lsb
+# if __has_builtin(__builtin_ffsll) && __has_builtin(__builtin_clzll)
+#   define uo_lsb(u64) ((int8_t)((int8_t)__builtin_ffsll(u64) - 1))
+#   define uo_msb(u64) ((int8_t)((u64) ? (63 - __builtin_clzll((uint64_t)(u64))) : -1))
 # else
 
 # endif
 
 #else
 
-  //int uo_popcount(uint64_t u64);
-  //int uo_ffs(uint64_t u64);
+  //uint8_t uo_popcount(uint64_t u64);
+  //int8_t uo_lsb(uint64_t u64);
+  //int8_t uo_msb(uint64_t u64);
 
 #endif
 

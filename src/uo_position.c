@@ -311,7 +311,7 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
       uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[4] & ~position->piece_color & position->P;
       if (adjecent_enemy_pawn)
       {
-        uo_square square_enemy_K = uo_ffs(position->K & ~position->piece_color) - 1;
+        uo_square square_enemy_K = uo_lsb(position->K & ~position->piece_color);
         uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
         uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
 
@@ -409,7 +409,7 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
       uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[3] & position->piece_color & position->P;
       if (adjecent_enemy_pawn)
       {
-        uo_square square_enemy_K = uo_ffs(position->K & position->piece_color) - 1;
+        uo_square square_enemy_K = uo_lsb(position->K & position->piece_color);
         uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
         uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
 
@@ -744,7 +744,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
   // 1. Check for checks and pieces pinned to the king
 
-  uo_square square_own_K = uo_ffs(own_K) - 1;
+  uo_square square_own_K = uo_lsb(own_K);
   uint8_t file_own_K = uo_square_file(square_own_K);
   uint8_t rank_own_K = uo_square_rank(square_own_K);
   uo_bitboard moves_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);
@@ -758,11 +758,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(square_own_K, color_to_move);
   uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_B | enemy_checks_R | enemy_checks_Q | enemy_checks_P;
 
-  uo_bitboard pins_to_own_K = uo_bitboard_pins(square_own_K, occupied, enemy_B | enemy_Q, enemy_R | enemy_Q);
+  uo_bitboard pins_to_own_K_by_B = uo_bitboard_pins_B(square_own_K, occupied, enemy_B | enemy_Q);
+  uo_bitboard pins_to_own_K_by_R = uo_bitboard_pins_R(square_own_K, occupied, enemy_R | enemy_Q);
+  uo_bitboard pins_to_own_K = pins_to_own_K_by_B | pins_to_own_K_by_R;
 
   if (enemy_checks)
   {
-    uo_square square_enemy_checker = uo_ffs(enemy_checks) - 1;
+    uo_square square_enemy_checker = uo_lsb(enemy_checks);
 
     if (uo_popcount(enemy_checks) == 2)
     {
@@ -1085,7 +1087,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   if (enpassant_file)
   {
     uo_bitboard enpassant = bitboard_enpassant_file & bitboard_fifth_rank;
-    square_to = uo_ffs(enpassant) - 1 + direction_forwards;
+    square_to = uo_lsb(enpassant) + direction_forwards;
 
     if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
     {
@@ -1325,7 +1327,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard occupied_after_move = occupied & ~bitboard_from;
     uo_bitboard enpassant = bitboard_enpassant_file & bitboard_fifth_rank;
-    square_to = uo_ffs(enpassant) - 1 + direction_forwards;
+    square_to = uo_lsb(enpassant) + direction_forwards;
 
     if (enpassant_file > 1 && (pinned_P & (enpassant >> 1)))
     {

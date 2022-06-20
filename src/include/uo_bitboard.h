@@ -29,9 +29,9 @@ extern "C"
 
   static inline uo_square uo_bitboard_next_square(uo_bitboard *bitboard)
   {
-    uo_square lsb = uo_ffs(*bitboard);
+    uo_square lsb = uo_lsb(*bitboard);
     *bitboard &= *bitboard - 1;
-    return lsb - 1;
+    return lsb;
   }
 
   uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color);
@@ -97,6 +97,8 @@ extern "C"
 
   // pins and discoveries
   uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers, uo_bitboard line_attackers);
+  uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers);
+  uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboard line_attackers);
 
   void uo_bitboard_init();
 
