@@ -1005,43 +1005,94 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   }
 
   // Moves for non pinned pawns
-  square_from = -1;
   uo_bitboard non_pinned_P = own_P & ~pins_to_own_K;
-  while (uo_bitboard_next_square(non_pinned_P, &square_from))
+
+  // Single pawn push
+  uo_bitboard non_pinned_single_push_P = uo_bitboard_single_push_P(non_pinned_P, color_to_move, ~occupied);
+
+  square_to = -1;
+  while (uo_bitboard_next_square(non_pinned_single_push_P, &square_to))
   {
-    uo_bitboard moves_P = uo_bitboard_moves_P(square_from, color_to_move, mask_own, mask_enemy);
+    square_from = square_to + direction_backwards;
 
-    square_to = -1;
-
-    if (uo_square_bitboard(square_from) & bitboard_seventh_rank)
+    if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      while (uo_bitboard_next_square(moves_P, &square_to))
-      {
-        uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-
-        *movelist++ = uo_move_encode(square_from, square_to, move_type | uo_move_type__promo_Q);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_to, move_type | uo_move_type__promo_N);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_to, move_type | uo_move_type__promo_B);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_to, move_type | uo_move_type__promo_R);
-        ++count;
-      }
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
+      ++count;
     }
     else
     {
-      while (uo_bitboard_next_square(moves_P, &square_to))
-      {
-        uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy)
-          ? uo_move_type__x
-          : (square_to == square_from + direction_forwards * 2)
-          ? uo_move_type__P_double_push
-          : uo_move_type__quiet;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      ++count;
+    }
+  }
 
-        *movelist++ = uo_move_encode(square_from, square_to, move_type);
-        ++count;
-      }
+  // Double pawn push
+  uo_bitboard non_pinned_double_push_P = uo_bitboard_double_push_P(non_pinned_P, color_to_move, ~occupied);
+
+  square_to = -1;
+  while (uo_bitboard_next_square(non_pinned_double_push_P, &square_to))
+  {
+    square_from = square_to + direction_backwards * 2;
+    *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
+    ++count;
+  }
+
+  // Captures to right
+  uo_bitboard non_pinned_captures_right_P = uo_bitboard_captures_right_P(non_pinned_P, color_to_move, mask_enemy);
+
+  square_to = -1;
+  while (uo_bitboard_next_square(non_pinned_captures_right_P, &square_to))
+  {
+    square_from = square_to + direction_backwards - 1;
+
+    if (uo_square_bitboard(square_to) & bitboard_last_rank)
+    {
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      ++count;
+    }
+    else
+    {
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      ++count;
+    }
+  }
+
+  // Captures to left
+  uo_bitboard non_pinned_captures_left_P = uo_bitboard_captures_left_P(non_pinned_P, color_to_move, mask_enemy);
+
+  square_to = -1;
+  while (uo_bitboard_next_square(non_pinned_captures_left_P, &square_to))
+  {
+    square_from = square_to + direction_backwards + 1;
+
+    if (uo_square_bitboard(square_to) & bitboard_last_rank)
+    {
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      ++count;
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      ++count;
+    }
+    else
+    {
+      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      ++count;
     }
   }
 

@@ -8,7 +8,7 @@ extern "C"
 
 #include <inttypes.h>
 
-  typedef uint8_t uo_square;
+  typedef int8_t uo_square;
   typedef uint64_t uo_bitboard;
 
 #define uo_square_bitboard(square) ((uo_bitboard)1 << (square))

@@ -356,17 +356,6 @@ int uo_bitboard_print(uo_bitboard bitboard)
   return printf("%s\n", diagram);
 }
 
-bool uo_bitboard_next_square(uo_bitboard bitboard, uo_square *square /* -1 for first */)
-{
-  uo_square s = *square;
-  if (s == 63) return false;
-  bitboard >>= s + 1;
-  uint8_t next = uo_ffs(bitboard);
-  if (next == 0) return false;
-  *square = s + next;
-  return true;
-}
-
 void uo_moves_K_init(void)
 {
   for (uo_square i = 0; i < 64; ++i)
