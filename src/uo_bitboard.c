@@ -1378,7 +1378,6 @@ break__file_pin_above:
 
 uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers)
 {
-  uo_square shift_below = 63 - square;
   uint8_t diagonal = uo_square_diagonal[square];
   uint8_t antidiagonal = uo_square_antidiagonal[square];
 
@@ -1394,23 +1393,23 @@ uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboa
   {
     uo_bitboard antidiagonal_blockers = blockers & uo_bitboard_antidiagonal[antidiagonal];
 
-    uo_bitboard antidiagonal_attackers_below = (antidiagonal_attackers << shift_below) >> shift_below;
+    uo_bitboard antidiagonal_attackers_below = uo_bzhi(antidiagonal_attackers, square + 1);
     uo_square square_antidiagonal_attacker_below = uo_msb(antidiagonal_attackers_below);
 
     if (square_antidiagonal_attacker_below != -1)
     {
-      uo_bitboard antidiagonal_blockers_below = (antidiagonal_blockers << shift_below) >> shift_below;
+      uo_bitboard antidiagonal_blockers_below = uo_bzhi(antidiagonal_blockers, square + 1);
       antidiagonal_blockers_below = (antidiagonal_blockers_below >> square_antidiagonal_attacker_below) << square_antidiagonal_attacker_below;
       if (uo_popcount(antidiagonal_blockers_below) == 2) pins |= antidiagonal_blockers_below & ~uo_square_bitboard(square_antidiagonal_attacker_below);
     }
 
-    uo_bitboard antidiagonal_attackers_above = (antidiagonal_attackers >> square) << square;
+    uo_bitboard antidiagonal_attackers_above = uo_bzlo(antidiagonal_attackers, square);
     uo_square square_antidiagonal_attacker_above = uo_lsb(antidiagonal_attackers_above);
 
     if (square_antidiagonal_attacker_above != -1)
     {
-      uo_bitboard antidiagonal_blockers_above = (antidiagonal_blockers >> square) << square;
-      antidiagonal_blockers_above = (antidiagonal_blockers_above << (63 - square_antidiagonal_attacker_above)) >> (63 - square_antidiagonal_attacker_above);
+      uo_bitboard antidiagonal_blockers_above = uo_bzlo(antidiagonal_blockers, square);
+      antidiagonal_blockers_above = uo_bzhi(antidiagonal_blockers_above, square_antidiagonal_attacker_above + 1);
       if (uo_popcount(antidiagonal_blockers_above) == 2) pins |= antidiagonal_blockers_above & ~uo_square_bitboard(square_antidiagonal_attacker_above);
     }
   }
@@ -1420,23 +1419,23 @@ uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboa
   if (diagonal_attackers)
   {
     uo_bitboard diagonal_blockers = blockers & uo_bitboard_diagonal[diagonal];
-    uo_bitboard diagonal_attackers_below = (diagonal_attackers << shift_below) >> shift_below;
+    uo_bitboard diagonal_attackers_below = uo_bzhi(diagonal_attackers, square + 1);
     uo_square square_diagonal_attacker_below = uo_msb(diagonal_attackers_below);
 
     if (square_diagonal_attacker_below != -1)
     {
-      uo_bitboard diagonal_blockers_below = (diagonal_blockers << shift_below) >> shift_below;
+      uo_bitboard diagonal_blockers_below = uo_bzhi(diagonal_blockers, square + 1);
       diagonal_blockers_below = (diagonal_blockers_below >> square_diagonal_attacker_below) << square_diagonal_attacker_below;
       if (uo_popcount(diagonal_blockers_below) == 2) pins |= diagonal_blockers_below & ~uo_square_bitboard(square_diagonal_attacker_below);
     }
 
-    uo_bitboard diagonal_attackers_above = (diagonal_attackers >> square) << square;
+    uo_bitboard diagonal_attackers_above = uo_bzlo(diagonal_attackers, square);
     uo_square square_diagonal_attacker_above = uo_lsb(diagonal_attackers_above);
 
     if (square_diagonal_attacker_above != -1)
     {
-      uo_bitboard diagonal_blockers_above = (diagonal_blockers >> square) << square;
-      diagonal_blockers_above = (diagonal_blockers_above << (63 - square_diagonal_attacker_above)) >> (63 - square_diagonal_attacker_above);
+      uo_bitboard diagonal_blockers_above = uo_bzlo(diagonal_blockers, square);
+      diagonal_blockers_above = uo_bzhi(diagonal_blockers_above, square_diagonal_attacker_above + 1);
       if (uo_popcount(diagonal_blockers_above) == 2) pins |= diagonal_blockers_above & ~uo_square_bitboard(square_diagonal_attacker_above);
     }
   }
@@ -1446,7 +1445,6 @@ uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboa
 
 uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboard line_attackers)
 {
-  uo_square shift_below = 63 - square;
   uint8_t file = uo_square_file(square);
   uint8_t rank = uo_square_rank(square);
 
@@ -1461,23 +1459,23 @@ uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboa
   if (rank_attackers)
   {
     uo_bitboard rank_blockers = blockers & uo_bitboard_rank[rank];
-    uo_bitboard rank_attackers_left = (rank_attackers << shift_below) >> shift_below;
+    uo_bitboard rank_attackers_left = uo_bzhi(rank_attackers, square + 1);
     uo_square square_rank_attacker_left = uo_msb(rank_attackers_left);
 
     if (square_rank_attacker_left != -1)
     {
-      uo_bitboard rank_blockers_left = (rank_blockers << shift_below) >> shift_below;
+      uo_bitboard rank_blockers_left = uo_bzhi(rank_blockers, square + 1);
       rank_blockers_left = (rank_blockers_left >> square_rank_attacker_left) << square_rank_attacker_left;
       if (uo_popcount(rank_blockers_left) == 2) pins |= rank_blockers_left & ~uo_square_bitboard(square_rank_attacker_left);
     }
 
-    uo_bitboard rank_attackers_right = (rank_attackers >> square) << square;
+    uo_bitboard rank_attackers_right = uo_bzlo(rank_attackers, square);
     uo_square square_rank_attacker_right = uo_lsb(rank_attackers_right);
 
     if (square_rank_attacker_right != -1)
     {
-      uo_bitboard rank_blockers_right = (rank_blockers >> square) << square;
-      rank_blockers_right = (rank_blockers_right << (63 - square_rank_attacker_right)) >> (63 - square_rank_attacker_right);
+      uo_bitboard rank_blockers_right = uo_bzlo(rank_blockers, square);
+      rank_blockers_right = uo_bzhi(rank_blockers_right, square_rank_attacker_right + 1);
       if (uo_popcount(rank_blockers_right) == 2) pins |= rank_blockers_right & ~uo_square_bitboard(square_rank_attacker_right);
     }
   }
@@ -1487,23 +1485,23 @@ uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboa
   if (file_attackers)
   {
     uo_bitboard file_blockers = blockers & uo_bitboard_file[file];
-    uo_bitboard file_attackers_below = (file_attackers << shift_below) >> shift_below;
+    uo_bitboard file_attackers_below = uo_bzhi(file_attackers, square + 1);
     uo_square square_file_attacker_below = uo_msb(file_attackers_below);
 
     if (square_file_attacker_below != -1)
     {
-      uo_bitboard file_blockers_below = (file_blockers << shift_below) >> shift_below;
+      uo_bitboard file_blockers_below = uo_bzhi(file_blockers, square + 1);
       file_blockers_below = (file_blockers_below >> square_file_attacker_below) << square_file_attacker_below;
       if (uo_popcount(file_blockers_below) == 2) pins |= file_blockers_below & ~uo_square_bitboard(square_file_attacker_below);
     }
 
-    uo_bitboard file_attackers_above = (file_attackers >> square) << square;
+    uo_bitboard file_attackers_above = uo_bzlo(file_attackers, square);
     uo_square square_file_attacker_above = uo_lsb(file_attackers_above);
 
     if (square_file_attacker_above != -1)
     {
-      uo_bitboard file_blockers_above = (file_blockers >> square) << square;
-      file_blockers_above = (file_blockers_above << (63 - square_file_attacker_above)) >> (63 - square_file_attacker_above);
+      uo_bitboard file_blockers_above = uo_bzlo(file_blockers, square);
+      file_blockers_above = uo_bzhi(file_blockers_above, square_file_attacker_above + 1);
       if (uo_popcount(file_blockers_above) == 2) pins |= file_blockers_above & ~uo_square_bitboard(square_file_attacker_above);
     }
   }

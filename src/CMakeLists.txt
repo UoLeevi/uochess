@@ -21,6 +21,11 @@ target_compile_features(uochess
     PUBLIC
         c_std_11)
 
+if(MSVC)
+    target_compile_options(uochess
+        PRIVATE /arch:AVX2)
+endif()
+
 add_test(NAME uochess_test
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
 

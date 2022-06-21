@@ -46,6 +46,28 @@ extern "C"
 
 #endif
 
+
+#if defined(__AVX__)
+
+#include <immintrin.h>
+
+# define uo_bzhi _bzhi_u64
+
+#endif
+
+
+#if !defined(uo_bzhi) && !defined(__uo_bzhi__defined)
+
+# define uo_bzhi(u64, n) (((u64) << (n)) >> (n))
+
+#endif
+
+#if !defined(uo_bzlo) && !defined(__uo_bzlo__defined)
+
+# define uo_bzlo(u64, n) (((u64) >> (n)) << (n))
+
+#endif
+
   uint64_t uo_rand();
   void uo_rand_init(uint64_t seed);
 
