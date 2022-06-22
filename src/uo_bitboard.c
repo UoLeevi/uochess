@@ -1382,8 +1382,8 @@ uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboa
   uint8_t antidiagonal = uo_square_antidiagonal[square];
 
   uo_bitboard mask = uo_square_bitboard(square);
-  diagonal_attackers &= ~mask;
-  blockers &= ~mask;
+  diagonal_attackers = uo_andn(mask, diagonal_attackers);
+  blockers = uo_andn(mask, blockers);
 
   uo_bitboard pins = 0;
 
@@ -1449,8 +1449,8 @@ uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboa
   uint8_t rank = uo_square_rank(square);
 
   uo_bitboard mask = uo_square_bitboard(square);
-  line_attackers &= ~mask;
-  blockers &= ~mask;
+  line_attackers = uo_andn(mask, line_attackers);
+  blockers = uo_andn(mask, blockers);
 
   uo_bitboard pins = 0;
 

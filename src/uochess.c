@@ -13,15 +13,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
-/*
-uci
-isready
-position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-*/
 
 // global buffer
 char buf[0x1000];
@@ -225,6 +220,7 @@ static void process_cmd__position(void)
       int depth;
       if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
       {
+        clock_t clock_start = clock();
         size_t total_node_count = 0;
         size_t move_count = uo_position_get_moves(&search.position, search.head);
         search.head += move_count;
@@ -242,7 +238,10 @@ static void process_cmd__position(void)
 
         search.head -= move_count;
 
-        printf("\nNodes searched: %zu\n\n", total_node_count);
+        clock_t clock_end = clock();
+        int duration_ms = (clock_end - clock_start) * 1000 / CLOCKS_PER_SEC;
+
+        printf("\nNodes searched: %zu, time: %d.%03d s (%zu kN/s)\n\n", total_node_count, duration_ms / 1000, duration_ms % 1000, total_node_count / duration_ms);
       }
     }
 

@@ -53,6 +53,13 @@ extern "C"
 
 # define uo_bzhi _bzhi_u64
 
+// ~a & b)
+# define uo_andn _andn_u64
+
+// (a - 1) & a
+# define uo_blsr _blsr_u64
+
+
 #endif
 
 
