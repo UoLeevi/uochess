@@ -15,20 +15,20 @@ extern "C"
 
   static unsigned long temp;
 
-# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
-# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
+  //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
+  //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
 
-# define uo_popcount __popcnt64
+# define uo_popcnt __popcnt64
 
 #elif defined(__has_builtin)
 
-  // uo_popcount
+  // uo_popcnt
 # if __has_builtin(__builtin_popcountll)
-#   define uo_popcount __builtin_popcountll
+#   define uo_popcnt __builtin_popcountll
 # else
-  int uo_popcount(uint64_t u64);
+  int uo_popcnt(uint64_t u64);
 # endif
-  // END - uo_popcount
+  // END - uo_popcnt
 
   // uo_lsb && uo_lsb
 # if __has_builtin(__builtin_ffsll) && __has_builtin(__builtin_clzll)
@@ -40,7 +40,7 @@ extern "C"
 
 #else
 
-  //uint8_t uo_popcount(uint64_t u64);
+  //uint8_t uo_popcnt(uint64_t u64);
   //int8_t uo_lsb(uint64_t u64);
   //int8_t uo_msb(uint64_t u64);
 
@@ -59,6 +59,16 @@ extern "C"
 // (a - 1) & a
 # define uo_blsr _blsr_u64
 
+// a & -a
+# define uo_blsi _blsi_u64
+
+# define uo_tzcnt _tzcnt_u64
+
+# define uo_lzcnt _lzcnt_u64
+
+# define uo_lsb(u64) ((int8_t)(u64 ? (int8_t)uo_tzcnt(u64) : -1))
+
+# define uo_msb(u64) ((int8_t)(63 - (int8_t)uo_lzcnt(u64)))
 
 #endif
 

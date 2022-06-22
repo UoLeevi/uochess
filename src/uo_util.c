@@ -41,10 +41,10 @@ void uo_rand_init(uint64_t seed)
 }
 
 
-#if !defined(uo_popcount)
+#if !defined(uo_popcnt)
 #include <limits.h>
 
-uint8_t uo_popcount(uint64_t u64)
+uint8_t uo_popcnt(uint64_t u64)
 {
   uint64_t v = u64;
   v = v - ((v >> 1) & (uint64_t)~(uint64_t)0 / 3);                                            // temp

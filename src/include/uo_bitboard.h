@@ -45,8 +45,6 @@ extern "C"
     return uo_bitboard_attacks_B(square, blockers) | uo_bitboard_attacks_R(square, blockers);
   }
 
-  uo_bitboard uo_bitboard_moves_P(uo_square square, uint8_t color, uo_bitboard own, uo_bitboard enemy);
-
   // see: https://www.chessprogramming.org/Pawn_Pushes_(Bitboards)#Generalized_Push
   static inline uo_bitboard uo_bitboard_single_push_P(uo_bitboard pawns, uint8_t color, uo_bitboard empty)
   {
@@ -72,27 +70,27 @@ extern "C"
 
   static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
-    return uo_bitboard_attacks_N(square) & ~own;
+    return uo_andn(own, uo_bitboard_attacks_N(square));
   }
 
   static inline uo_bitboard uo_bitboard_moves_B(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
-    return uo_bitboard_attacks_B(square, own | enemy) & ~own;
+    return uo_andn(own, uo_bitboard_attacks_B(square, own | enemy));
   }
 
   static inline uo_bitboard uo_bitboard_moves_R(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
-    return uo_bitboard_attacks_R(square, own | enemy) & ~own;
+    return uo_andn(own, uo_bitboard_attacks_R(square, own | enemy));
   }
 
   static inline uo_bitboard uo_bitboard_moves_Q(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
-    return uo_bitboard_attacks_Q(square, own | enemy) & ~own;
+    return uo_andn(own, uo_bitboard_attacks_Q(square, own | enemy));
   }
 
   static inline uo_bitboard uo_bitboard_moves_K(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
-    return uo_bitboard_attacks_K(square) & ~own;
+    return uo_andn(own, uo_bitboard_attacks_K(square));
   }
 
   // pins and discoveries
