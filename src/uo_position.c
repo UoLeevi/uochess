@@ -23,9 +23,9 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   int fullmove;
 
   int count = sscanf(fen, "%71s %c %4s %2s %d %d",
-                     piece_placement, &active_color,
-                     castling, enpassant,
-                     &halfmoves, &fullmove);
+    piece_placement, &active_color,
+    castling, enpassant,
+    &halfmoves, &fullmove);
 
   if (count != 6)
   {
@@ -33,7 +33,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   }
 
   // clear position
-  memset(position, 0, sizeof *position);
+  memset(position, 0, sizeof * position);
 
   char c;
 
@@ -287,40 +287,126 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
   uo_position_flags flags_new = flags_prev;
   uint8_t color_to_move = uo_position_flags_color_to_move(flags_prev);
   uint8_t halfmoves = uo_position_flags_halfmoves(flags_prev);
-  uint8_t castling = uo_position_flags_castling(flags_prev);
-  uint8_t enpassant_file = uo_position_flags_enpassant_file(flags_prev);
 
   uo_piece piece_captured = 0;
 
   *bitboard = uo_andn(bitboard_from, *bitboard);
-  flags_new = uo_position_flags_update_enpassant_file(flags_new, 0);
 
-  if (color_to_move == uo_piece__black)
+  if (color_to_move == uo_piece__white)
+  {
+    position->piece_color = uo_andn(bitboard_to, position->piece_color);
+  }
+  else
   {
     position->piece_color |= bitboard_to;
+  }
 
-    // en passant capture
-    if (move_type == uo_move_type__enpassant)
+  flags_new = uo_position_flags_update_enpassant_file(flags_new, 0);
+  flags_new = uo_position_flags_update_color_to_move(flags_new, !color_to_move);
+  flags_new = uo_position_flags_update_halfmoves(flags_new, halfmoves + 1);
+  position->fullmove += color_to_move;
+
+  // capture
+  if (move_type & uo_move_type__x)
+  {
+    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
+
+    if (move_type != uo_move_type__enpassant)
     {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-      uo_bitboard enpassant = uo_square_bitboard(23 + enpassant_file);
-      *bitboard = uo_andn(enpassant, *bitboard);
+      piece_captured = uo_position_square_piece(position, square_to);
+      uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
+      *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+
+      if (piece_captured & uo_piece__R)
+      {
+        switch (square_to)
+        {
+          case uo_square__a1:
+            flags_new = uo_position_flags_update_castling_Q(flags_new, false);
+            break;
+
+          case uo_square__h1:
+            flags_new = uo_position_flags_update_castling_K(flags_new, false);
+            break;
+
+          case uo_square__a8:
+            flags_new = uo_position_flags_update_castling_q(flags_new, false);
+            break;
+
+          case uo_square__h8:
+            flags_new = uo_position_flags_update_castling_k(flags_new, false);
+            break;
+
+          default:
+            break;
+        }
+      }
     }
-    else if (move_type == uo_move_type__P_double_push)
+    else
     {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
+      uo_square square_piece_captured = square_to - 8 + (color_to_move << 4);
+      *bitboard = uo_andn(uo_square_bitboard(square_piece_captured), *bitboard);
+      piece_captured = uo_piece__P | !color_to_move;
+    }
+  }
+
+  // promotion
+  if (move_type & uo_move_type__promo)
+  {
+    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
+
+    switch (move_type | uo_move_type__x)
+    {
+      case uo_move_type__promo_Qx:
+        position->Q |= bitboard_to;
+        break;
+
+      case uo_move_type__promo_Rx:
+        position->R |= bitboard_to;
+        break;
+
+      case uo_move_type__promo_Bx:
+        position->B |= bitboard_to;
+        break;
+
+      case uo_move_type__promo_Nx:
+        position->N |= bitboard_to;
+        break;
+
+      default: /* uo_move_type__promo_N */
+        position->N |= bitboard_to;
+        break;
+    }
+
+    position->flags = flags_new;
+    return uo_move_ex_encode(move, flags_prev, piece_captured);
+  }
+
+  *bitboard |= bitboard_to;
+
+  // pawn move
+  if (piece & uo_piece__P)
+  {
+    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
+
+    if (move_type == uo_move_type__P_double_push)
+    {
       // en passant
-      uo_bitboard adjecent_enemy_pawn = uo_andn(position->piece_color, ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[4] & position->P);
+      uint8_t rank_fourth = 3 + color_to_move;
+      uo_bitboard mask_enemy = -color_to_move ^ position->piece_color;
+      uo_bitboard mask_own = ~mask_enemy;
+
+      uo_bitboard adjecent_enemy_pawn = mask_enemy & ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[rank_fourth] & position->P;
       if (adjecent_enemy_pawn)
       {
-        uo_square square_enemy_K = uo_lsb(uo_andn(position->piece_color, position->K));
+        uo_square square_enemy_K = uo_lsb(mask_enemy & position->K);
         uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
-        uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
 
-        if (rank_enemy_K == 4 && uo_popcnt(adjecent_enemy_pawn) == 1)
+        if (rank_enemy_K == rank_fourth && uo_popcnt(adjecent_enemy_pawn) == 1)
         {
+          uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
           uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->P | position->N | position->B | position->R | position->Q | position->K);
-          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins(square_enemy_K, occupied, 0, (position->R | position->Q) & position->piece_color) & bitboard_rank_enemy_K;
+          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, (position->R | position->Q) & mask_own) & bitboard_rank_enemy_K;
 
           if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
           {
@@ -333,41 +419,35 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
         }
       }
     }
-    // capture
-    else if (move_type & uo_move_type__x)
+
+    position->flags = flags_new;
+    return uo_move_ex_encode(move, flags_prev, piece_captured);
+  }
+
+  // king move
+  if (piece & uo_piece__K)
+  {
+    if (color_to_move == uo_piece__white)
     {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
+      flags_new = uo_position_flags_update_castling_white(flags_new, 0);
 
-      piece_captured = uo_position_square_piece(position, square_to);
-      uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-      *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
-
-      if (piece_captured & uo_piece__R)
+      // castling
+      if (move_type == uo_move_type__OO)
       {
-        switch (square_to)
-        {
-        case uo_square__a1:
-          flags_new = uo_position_flags_update_castling_Q(flags_new, false);
-          break;
-
-        case uo_square__h1:
-          flags_new = uo_position_flags_update_castling_K(flags_new, false);
-          break;
-
-        default:
-          break;
-        }
+        position->R = uo_andn(uo_square_bitboard(uo_square__h1), position->R);
+        position->R |= uo_square_bitboard(uo_square__f1);
+        position->piece_color &= ~uo_square_bitboard(uo_square__f1);
+      }
+      else if (move_type == uo_move_type__OOO)
+      {
+        position->R = uo_andn(uo_square_bitboard(uo_square__a1), position->R);
+        position->R |= uo_square_bitboard(uo_square__d1);
+        position->piece_color &= ~uo_square_bitboard(uo_square__d1);
       }
     }
-    // pawn move
-    else if (piece & uo_piece__P)
+    else
     {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-    }
-
-    if (piece & uo_piece__K)
-    {
-      flags_new = uo_position_flags_update_castling_black(flags_new, false);
+      flags_new = uo_position_flags_update_castling_black(flags_new, 0);
 
       // castling
       if (move_type == uo_move_type__OO)
@@ -383,6 +463,22 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
         position->piece_color |= uo_square_bitboard(uo_square__d8);
       }
     }
+
+    position->flags = flags_new;
+    return uo_move_ex_encode(move, flags_prev, piece_captured);
+  }
+
+  // rook move
+  if (piece == (uo_piece__R | color_to_move))
+  {
+    if (square_from == uo_square__a1)
+    {
+      flags_new = uo_position_flags_update_castling_Q(flags_new, false);
+    }
+    else if (square_from == uo_square__h1)
+    {
+      flags_new = uo_position_flags_update_castling_K(flags_new, false);
+    }
     else if (square_from == uo_square__a8)
     {
       flags_new = uo_position_flags_update_castling_q(flags_new, false);
@@ -391,142 +487,12 @@ uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
     {
       flags_new = uo_position_flags_update_castling_k(flags_new, false);
     }
+
+    position->flags = flags_new;
+    return uo_move_ex_encode(move, flags_prev, piece_captured);
   }
-  else // white
-  {
-    position->piece_color = uo_andn(bitboard_to, position->piece_color);
-
-    // en passant capture
-    if (move_type == uo_move_type__enpassant)
-    {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-      uo_bitboard enpassant = uo_square_bitboard(31 + enpassant_file);
-      *bitboard = uo_andn(enpassant, *bitboard);
-    }
-    else if (move_type == uo_move_type__P_double_push)
-    {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-      // en passant
-      uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[3] & position->piece_color & position->P;
-      if (adjecent_enemy_pawn)
-      {
-        uo_square square_enemy_K = uo_lsb(position->K & position->piece_color);
-        uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
-        uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
-
-        if (rank_enemy_K == 3 && uo_popcnt(adjecent_enemy_pawn) == 1)
-        {
-          uo_bitboard occupied = position->P | position->N | position->B | position->R | position->Q | position->K;
-          occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], occupied);
-          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins(square_enemy_K, occupied, 0, uo_andn(position->piece_color, position->R | position->Q)) & bitboard_rank_enemy_K;
-
-          if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
-          {
-            flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
-          }
-        }
-        else
-        {
-          flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
-        }
-      }
-    }
-    // capture
-    else if (move_type & uo_move_type__x)
-    {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-
-      piece_captured = uo_position_square_piece(position, square_to);
-      uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-      *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
-
-      if (piece_captured & uo_piece__R)
-      {
-        switch (square_to)
-        {
-        case uo_square__a8:
-          flags_new = uo_position_flags_update_castling_q(flags_new, false);
-          break;
-
-        case uo_square__h8:
-          flags_new = uo_position_flags_update_castling_k(flags_new, false);
-          break;
-
-        default:
-          break;
-        }
-      }
-    }
-    // pawn move
-    else if (piece & uo_piece__P)
-    {
-      flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-    }
-
-    if (piece & uo_piece__K)
-    {
-      flags_new = uo_position_flags_update_castling_white(flags_new, false);
-
-      // castling
-      if (move_type == uo_move_type__OO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__h1), position->R);
-        position->R |= uo_square_bitboard(uo_square__f1);
-        position->piece_color = uo_andn(uo_square_bitboard(uo_square__f1), position->piece_color);
-      }
-      else if (move_type == uo_move_type__OOO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__a1), position->R);
-        position->R |= uo_square_bitboard(uo_square__d1);
-        position->piece_color = uo_andn(uo_square_bitboard(uo_square__d1), position->piece_color);
-      }
-    }
-    else if (square_from == uo_square__a1)
-    {
-      flags_new = uo_position_flags_update_castling_Q(flags_new, false);
-    }
-    else if (square_from == uo_square__h1)
-    {
-      flags_new = uo_position_flags_update_castling_K(flags_new, false);
-    }
-  }
-
-  // promotion
-  if (move_type & uo_move_type__promo)
-  {
-    switch (uo_andn(uo_move_type__x, move_type))
-    {
-    case uo_move_type__promo_Q:
-      position->Q |= bitboard_to;
-      break;
-
-    case uo_move_type__promo_R:
-      position->R |= bitboard_to;
-      break;
-
-    case uo_move_type__promo_B:
-      position->B |= bitboard_to;
-      break;
-
-    case uo_move_type__promo_N:
-      position->N |= bitboard_to;
-      break;
-
-    default: /* uo_move_type__promo_N */
-      position->N |= bitboard_to;
-      break;
-    }
-  }
-  else
-  {
-    *bitboard |= bitboard_to;
-  }
-
-  flags_new = uo_position_flags_update_color_to_move(flags_new, !color_to_move);
-  ++position->fullmove;
 
   position->flags = flags_new;
-
   return uo_move_ex_encode(move, flags_prev, piece_captured);
 }
 
@@ -540,7 +506,7 @@ void uo_position_unmake_move(uo_position *position, uo_move_ex move)
   uo_position_flags flags_prev = uo_move_ex_flags(move);
   uo_piece piece = uo_position_square_piece(position, square_to);
 
-  --position->fullmove;
+  position->fullmove -= uo_position_flags_color_to_move(flags_prev);
 
   // promotion
   if (move_type & uo_move_type__promo)
@@ -549,25 +515,25 @@ void uo_position_unmake_move(uo_position *position, uo_move_ex move)
 
     switch (uo_andn(uo_move_type__x, move_type))
     {
-    case uo_move_type__promo_Q:
-      position->Q = uo_andn(bitboard_to, position->Q);
-      break;
+      case uo_move_type__promo_Q:
+        position->Q = uo_andn(bitboard_to, position->Q);
+        break;
 
-    case uo_move_type__promo_R:
-      position->R = uo_andn(bitboard_to, position->R);
-      break;
+      case uo_move_type__promo_R:
+        position->R = uo_andn(bitboard_to, position->R);
+        break;
 
-    case uo_move_type__promo_B:
-      position->B = uo_andn(bitboard_to, position->B);
-      break;
+      case uo_move_type__promo_B:
+        position->B = uo_andn(bitboard_to, position->B);
+        break;
 
-    case uo_move_type__promo_N:
-      position->N = uo_andn(bitboard_to, position->N);
-      break;
+      case uo_move_type__promo_N:
+        position->N = uo_andn(bitboard_to, position->N);
+        break;
 
-    default: /* uo_move_type__promo_N */
-      position->N = uo_andn(bitboard_to, position->N);
-      break;
+      default: /* uo_move_type__promo_N */
+        position->N = uo_andn(bitboard_to, position->N);
+        break;
     }
 
     position->P |= bitboard_from;
@@ -1612,20 +1578,20 @@ uo_move uo_position_parse_move(uo_position *position, char str[5])
   char promotion = ptr[4];
   switch (promotion)
   {
-  case 'q':
-    move_type |= uo_move_type__promo_Q;
-    break;
-  case 'r':
-    move_type |= uo_move_type__promo_R;
-    break;
-  case 'b':
-    move_type |= uo_move_type__promo_B;
-    break;
-  case 'n':
-    move_type |= uo_move_type__promo_N;
-    break;
-  default:
-    break;
+    case 'q':
+      move_type |= uo_move_type__promo_Q;
+      break;
+    case 'r':
+      move_type |= uo_move_type__promo_R;
+      break;
+    case 'b':
+      move_type |= uo_move_type__promo_B;
+      break;
+    case 'n':
+      move_type |= uo_move_type__promo_N;
+      break;
+    default:
+      break;
   }
 
   return uo_move_encode(square_from, square_to, move_type);
@@ -1661,26 +1627,26 @@ static const double (*eval_features[])(uo_position *position, uint8_t color) = {
     uo_position_evaluation_feature_material_N,
     uo_position_evaluation_feature_material_B,
     uo_position_evaluation_feature_material_R,
-    uo_position_evaluation_feature_material_Q};
+    uo_position_evaluation_feature_material_Q };
 
 #define UO_EVAL_FEATURE_COUNT (sizeof eval_features / sizeof *eval_features)
 
 double weights[UO_EVAL_FEATURE_COUNT << 1] =
-    {
-        1.0,
-        -1.0,
-        3.0,
-        -3.0,
-        3.0,
-        -3.0,
-        5.0,
-        -5.0,
-        9.0,
-        -9.0};
+{
+    1.0,
+    -1.0,
+    3.0,
+    -3.0,
+    3.0,
+    -3.0,
+    5.0,
+    -5.0,
+    9.0,
+    -9.0 };
 
 double uo_position_evaluate(uo_position *position)
 {
-  double inputs[UO_EVAL_FEATURE_COUNT << 1] = {0};
+  double inputs[UO_EVAL_FEATURE_COUNT << 1] = { 0 };
   double evaluation = 0;
 
   for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)

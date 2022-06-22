@@ -136,6 +136,102 @@ a1a2: 41
 h1f1: 41
 
 ucinewgame
+position fen r1b1kbnr/1pq3pp/p1n1pP2/3p1p2/3N4/P1N5/1PP1BPPP/R1BQK2R b KQkq - 0 11
+go perft 1
+f5f4: 1
+a6a5: 1
+e6e5: 1
+b7b6: 1
+g7g6: 1
+h7h6: 1
+b7b5: 1
+g7g5: 1
+h7h5: 1
+g7f6: 1
+c6b4: 1
+c6d4: 1
+c6a5: 1
+c6e5: 1
+c6a7: 1
+c6e7: 1
+c6b8: 1
+c6d8: 1
+g8f6: 1
+g8h6: 1
+g8e7: 1
+c8d7: 1
+f8a3: 1
+f8b4: 1
+f8c5: 1
+f8d6: 1
+f8e7: 1
+a8a7: 1
+a8b8: 1
+c7h2: 1
+c7g3: 1
+c7f4: 1
+c7a5: 1
+c7e5: 1
+c7b6: 1
+c7d6: 1
+c7d7: 1
+c7e7: 1
+c7f7: 1
+c7b8: 1
+c7d8: 1
+e8d7: 1
+e8d8: 1
+e8f7: 1
+
+ucinewgame
+position fen r1b1kbnr/1pq3pp/p1n1p3/3pPp2/3N4/P1N5/1PP1BPPP/R1BQK2R w KQkq f6 0 10
+go perft 2
+b2b3: 40
+f2f3: 40
+g2g3: 40
+h2h3: 40
+a3a4: 40
+b2b4: 39
+f2f4: 39
+g2g4: 41
+h2h4: 40
+e5f6: 43
+c3b1: 40
+c3a2: 40
+c3a4: 40
+c3e4: 42
+c3b5: 40
+c3d5: 40
+d4b3: 41
+d4f3: 41
+d4b5: 41
+d4f5: 40
+d4c6: 33
+d4e6: 41
+c1d2: 40
+c1e3: 40
+c1f4: 39
+c1g5: 37
+c1h6: 39
+e2f1: 40
+e2d3: 40
+e2f3: 40
+e2c4: 41
+e2g4: 41
+e2b5: 32
+e2h5: 5
+e2a6: 41
+a1b1: 40
+a1a2: 40
+h1f1: 40
+h1g1: 40
+d1d2: 40
+d1d3: 40
+e1f1: 40
+e1d2: 40
+e1g1: 40
+
+ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/P1N5/1PP1BPPP/R1BQK2R b KQkq - 0 9
 go perft 3
 a6a5: 1617
