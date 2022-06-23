@@ -98,6 +98,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
     }
 
     move_count = uo_position_get_moves(&search->position, search->head);
+    uo_position_flags flags = search->position.flags;
     search->head += move_count;
 
     while (fgets(ptr, ptr - buf, fp))
@@ -106,17 +107,17 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       if (!move_str || strlen(move_str) == 0) break;
 
-      uo_move move = uo_position_parse_move(&search->position, move_str);
-      if (!move)
+      uo_move_ex move = uo_position_parse_move(&search->position, move_str);
+      if (!move.piece)
       {
         printf("Error while parsing move '%s'", move_str);
         fclose(fp);
         return false;
       }
 
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
+      uo_square square_from = uo_move_square_from(move.move);
+      uo_square square_to = uo_move_square_to(move.move);
+      uo_move_type move_type_promo = uo_move_get_type(move.piece) & uo_move_type__promo_Q;
 
       size_t node_count_expected;
 
@@ -131,17 +132,17 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       for (int64_t i = 0; i < move_count; ++i)
       {
-        uo_move move = search->head[i - move_count];
-        if (uo_move_square_from(move) == square_from && uo_move_square_to(move) == square_to)
+        uo_move_ex move = search->head[i - move_count];
+        if (uo_move_square_from(move.move) == square_from && uo_move_square_to(move.move) == square_to)
         {
-          if (move_type_promo & uo_move_type__promo && (move_type_promo != (uo_move_get_type(move) & uo_move_type__promo_Q)))
+          if (move_type_promo & uo_move_type__promo && (move_type_promo != (uo_move_get_type(move.move) & uo_move_type__promo_Q)))
           {
             continue;
           }
 
           // move found
 
-          uo_move_ex move_ex = uo_position_make_move(&search->position, move);
+          uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
           size_t node_count = depth == 1 ? 1 : uo_search_perft(search, depth - 1);
 
           if (node_count != node_count_expected)
@@ -156,9 +157,9 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
             return false;
           }
 
-          uo_position_unmake_move(&search->position, move_ex);
+          unmake_move(&search->position, move, flags);
 
-          search->head[i - move_count] = 0;
+          search->head[i - move_count] = (uo_move_ex){ 0 };
           goto next_move;
         }
       }
@@ -172,11 +173,11 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
     for (int64_t i = 0; i < move_count; ++i)
     {
-      uo_move move = search->head[i - move_count];
-      if (move)
+      uo_move_ex move = search->head[i - move_count];
+      if (move.piece)
       {
-        uo_square square_from = uo_move_square_from(move);
-        uo_square square_to = uo_move_square_to(move);
+        uo_square square_from = uo_move_square_from(move.move);
+        uo_square square_to = uo_move_square_to(move.move);
         printf("TEST 'move_generation' FAILED: move '%c%d%c%d' is not a legal move for fen '%s'",
           'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
           'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to),

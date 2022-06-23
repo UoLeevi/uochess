@@ -17,7 +17,7 @@ extern "C"
 
   typedef struct uo_search_pv
   {
-    uo_move *moves;
+    uo_move_ex *moves;
     uint8_t depth;
     struct {
       uint16_t cp;
@@ -28,8 +28,8 @@ extern "C"
   typedef struct uo_search
   {
     uo_position position;
-    uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
-    uo_move *head;
+    uo_move_ex moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
+    uo_move_ex *head;
     uo_search_pv *pv;
   } uo_search;
 

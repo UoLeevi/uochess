@@ -15,25 +15,14 @@ extern "C"
   typedef uint16_t uo_move;
 
   // see: https://www.chessprogramming.org/Encoding_Moves#Extended_Move_Structure
-  typedef uint64_t uo_move_ex;
+  typedef struct uo_move_ex
+  {
+    uo_move move;
+    uo_piece piece;
+    uo_piece piece_captured;
+  } uo_move_ex;
 
   typedef int8_t uo_move_type;
-
-  typedef uint16_t uo_position_flags;
-  /*
-    color_to_move : 1
-      0 w
-      1 b
-    halfmoves: 7
-      1-100
-    enpassant_file : 4
-      1-8
-    castling: 4
-      1 K
-      2 Q
-      4 k
-      8 q
-  */
 
 #define uo_move_type__illegal ((uo_move_type)-1)
 #define uo_move_type__quiet ((uo_move_type)0)
@@ -70,22 +59,6 @@ extern "C"
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)
   {
     return (uo_move)from | ((uo_move)to << 6) | ((uo_move)type << 12);
-  }
-
-  // bits:                                           16                      16              8
-  static inline uo_move_ex uo_move_ex_encode(uo_move move, uo_position_flags flags, uo_piece captured)
-  {
-    return (uo_move_ex)move | ((uo_move_ex)flags << 16) | ((uo_move_ex)captured << 32);
-  }
-
-  static inline uo_position_flags uo_move_ex_flags(uo_move_ex move)
-  {
-    return (move >> 16) & 0xFFFF;
-  }
-
-  static inline uo_piece uo_move_ex_piece_captured(uo_move_ex move)
-  {
-    return (move >> 32) & 0xFF;
   }
 
   size_t uo_move_print(uo_move move, char str[6]);

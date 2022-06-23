@@ -71,6 +71,80 @@ g1f3: 440
 g1h3: 400
 
 ucinewgame
+position fen rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1
+go perft 3
+a7a6: 529
+b7b6: 585
+c7c6: 586
+d7d6: 752
+e7e6: 835
+f7f6: 530
+g7g6: 584
+h7h6: 533
+a7a5: 585
+b7b5: 586
+c7c5: 661
+d7d5: 728
+e7e5: 891
+f7f5: 557
+g7g5: 567
+h7h5: 587
+b8a6: 557
+b8c6: 613
+g8f6: 613
+g8h6: 556
+
+ucinewgame
+position fen rnbqkbnr/1ppppppp/8/p7/1P6/8/P1PPPPPP/RNBQKBNR w KQkq - 0 2
+go perft 2
+a2a3: 22
+c2c3: 22
+d2d3: 22
+e2e3: 22
+f2f3: 22
+g2g3: 22
+h2h3: 22
+b4b5: 20
+a2a4: 21
+c2c4: 22
+d2d4: 22
+e2e4: 22
+f2f4: 22
+g2g4: 22
+h2h4: 22
+b4a5: 21
+b1a3: 22
+b1c3: 22
+g1f3: 22
+g1h3: 22
+c1b2: 22
+c1a3: 22
+
+ucinewgame
+position fen rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1
+go perft 3
+a7a6: 399
+b7b6: 440
+c7c6: 441
+d7d6: 565
+e7e6: 609
+f7f6: 398
+g7g6: 440
+h7h6: 398
+a7a5: 480
+b7b5: 402
+c7c5: 502
+d7d5: 587
+e7e5: 610
+f7f5: 420
+g7g5: 441
+h7h5: 440
+b8a6: 419
+b8c6: 461
+g8f6: 461
+g8h6: 419
+
+ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 go perft 4
 a2a3: 8457
@@ -93,6 +167,49 @@ b1a3: 8885
 b1c3: 9755
 g1f3: 9748
 g1h3: 8881
+
+ucinewgame
+position fen r1b1kbnr/1pq2ppp/p1n1p3/3NP3/3N4/8/PPP1BPPP/R1BQK2R b KQkq - 0 8
+go perft 3
+a6a5: 1689
+b7b6: 1734
+f7f6: 1790
+g7g6: 1779
+h7h6: 1691
+b7b5: 1782
+f7f5: 1787
+g7g5: 1739
+h7h5: 1781
+e6d5: 1695
+c6b4: 1666
+c6d4: 1663
+c6a5: 1618
+c6e5: 1837
+c6a7: 1616
+c6e7: 1439
+c6b8: 1574
+c6d8: 1529
+g8f6: 1865
+g8h6: 1686
+g8e7: 1508
+c8d7: 1781
+f8a3: 1775
+f8b4: 244
+f8c5: 1927
+f8d6: 1772
+f8e7: 1817
+a8a7: 1644
+a8b8: 1598
+c7a5: 282
+c7e5: 1674
+c7b6: 1729
+c7d6: 1684
+c7d7: 1523
+c7e7: 1502
+c7b8: 1465
+c7d8: 1738
+e8d7: 1598
+e8d8: 1623
 
 ucinewgame
 position fen r1b1k1nr/1pq2ppp/p1n1p3/3pP3/1b1N4/P1N5/1PP1BPPP/R1BQK2R w KQkq - 0 10

@@ -13,7 +13,7 @@ int search_id;
 
 char buf[0x1000];
 
-static double uo_search_negamax(uo_search *search, size_t depth, double color, uo_move *moves)
+static double uo_search_negamax(uo_search *search, size_t depth, double color, uo_move_ex *moves)
 {
   if (depth == 0 /* or node is a terminal node */)
   {
@@ -23,12 +23,13 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
   double value = -INFINITY;
 
   size_t nodes_count = uo_position_get_moves(&search->position, search->head);
+  uo_position_flags flags = search->position.flags;
   search->head += nodes_count;
 
   for (int64_t i = 0; i < nodes_count; ++i)
   {
-    uo_move move = search->head[i - nodes_count];
-    uo_move_ex move_ex = uo_position_make_move(&search->position, move);
+    uo_move_ex move = search->head[i - nodes_count];
+    uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
 
     //uo_position_print_diagram(&search->position, buf);
     //printf("\n%s", buf);
@@ -43,7 +44,7 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
       *moves = move;
     }
 
-    uo_position_unmake_move(&search->position, move_ex);
+    unmake_move(&search->position, move, flags);
   }
 
   search->head -= nodes_count;
@@ -59,6 +60,7 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     return move_count;
   }
 
+  uo_position_flags flags = search->position.flags;
   search->head += move_count;
 
   size_t node_count = 0;
@@ -70,8 +72,8 @@ size_t uo_search_perft(uo_search *search, size_t depth)
 
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move move = search->head[i - move_count];
-    uo_move_ex move_ex = uo_position_make_move(&search->position, move);
+    uo_move_ex move = search->head[i - move_count];
+    uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
     //uo_move_print(move, buf);
     //printf("move: %s\n", buf);
     //uo_position_print_fen(&search->position, buf);
@@ -79,7 +81,7 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     //uo_position_print_diagram(&search->position, buf);
     //printf("%s\n", buf);
     node_count += uo_search_perft(search, depth - 1);
-    uo_position_unmake_move(&search->position, move_ex);
+    unmake_move(&search->position, move, flags);
 
     //uo_position_print_fen(&search->position, fen_after_unmake);
 

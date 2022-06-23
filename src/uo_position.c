@@ -274,362 +274,1524 @@ size_t uo_position_print_diagram(uo_position *position, char diagram[663])
   return ptr - diagram;
 }
 
-uo_move_ex uo_position_make_move(uo_position *position, uo_move move)
+#pragma region uo_position_unmake_move
+
+void uo_position_unmake_move_default__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
 {
-  uo_square square_from = uo_move_square_from(move);
+  uo_square square_from = uo_move_square_from(move.move);
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
-  uo_square square_to = uo_move_square_to(move);
+  uo_square square_to = uo_move_square_to(move.move);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
-  uo_move_type move_type = uo_move_get_type(move);
-  uo_piece piece = uo_position_square_piece(position, square_from);
-  uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-  uo_position_flags flags_prev = position->flags;
-  uo_position_flags flags_new = flags_prev;
-  uint8_t color_to_move = uo_position_flags_color_to_move(flags_prev);
-  uint8_t halfmoves = uo_position_flags_halfmoves(flags_prev);
-
-  uo_piece piece_captured = 0;
-
-  *bitboard = uo_andn(bitboard_from, *bitboard);
-
-  if (color_to_move == uo_piece__white)
-  {
-    position->piece_color = uo_andn(bitboard_to, position->piece_color);
-  }
-  else
-  {
-    position->piece_color |= bitboard_to;
-  }
-
-  flags_new = uo_position_flags_update_enpassant_file(flags_new, 0);
-  flags_new = uo_position_flags_update_color_to_move(flags_new, !color_to_move);
-  flags_new = uo_position_flags_update_halfmoves(flags_new, halfmoves + 1);
-  position->fullmove += color_to_move;
-
-  // capture
-  if (move_type & uo_move_type__x)
-  {
-    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-
-    if (move_type != uo_move_type__enpassant)
-    {
-      piece_captured = uo_position_square_piece(position, square_to);
-      uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-      *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
-
-      if (piece_captured & uo_piece__R)
-      {
-        switch (square_to)
-        {
-          case uo_square__a1:
-            flags_new = uo_position_flags_update_castling_Q(flags_new, false);
-            break;
-
-          case uo_square__h1:
-            flags_new = uo_position_flags_update_castling_K(flags_new, false);
-            break;
-
-          case uo_square__a8:
-            flags_new = uo_position_flags_update_castling_q(flags_new, false);
-            break;
-
-          case uo_square__h8:
-            flags_new = uo_position_flags_update_castling_k(flags_new, false);
-            break;
-
-          default:
-            break;
-        }
-      }
-    }
-    else
-    {
-      uo_square square_piece_captured = square_to - 8 + (color_to_move << 4);
-      *bitboard = uo_andn(uo_square_bitboard(square_piece_captured), *bitboard);
-      piece_captured = uo_piece__P | !color_to_move;
-    }
-  }
-
-  // promotion
-  if (move_type & uo_move_type__promo)
-  {
-    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-
-    switch (move_type | uo_move_type__x)
-    {
-      case uo_move_type__promo_Qx:
-        position->Q |= bitboard_to;
-        break;
-
-      case uo_move_type__promo_Rx:
-        position->R |= bitboard_to;
-        break;
-
-      case uo_move_type__promo_Bx:
-        position->B |= bitboard_to;
-        break;
-
-      case uo_move_type__promo_Nx:
-        position->N |= bitboard_to;
-        break;
-
-      default: /* uo_move_type__promo_N */
-        position->N |= bitboard_to;
-        break;
-    }
-
-    position->flags = flags_new;
-    return uo_move_ex_encode(move, flags_prev, piece_captured);
-  }
-
-  *bitboard |= bitboard_to;
-
-  // pawn move
-  if (piece & uo_piece__P)
-  {
-    flags_new = uo_position_flags_update_halfmoves(flags_new, 0);
-
-    if (move_type == uo_move_type__P_double_push)
-    {
-      // en passant
-      uint8_t rank_fourth = 3 + color_to_move;
-      uo_bitboard mask_enemy = -color_to_move ^ position->piece_color;
-      uo_bitboard mask_own = ~mask_enemy;
-
-      uo_bitboard adjecent_enemy_pawn = mask_enemy & ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[rank_fourth] & position->P;
-      if (adjecent_enemy_pawn)
-      {
-        uo_square square_enemy_K = uo_lsb(mask_enemy & position->K);
-        uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
-
-        if (rank_enemy_K == rank_fourth && uo_popcnt(adjecent_enemy_pawn) == 1)
-        {
-          uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
-          uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->P | position->N | position->B | position->R | position->Q | position->K);
-          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, (position->R | position->Q) & mask_own) & bitboard_rank_enemy_K;
-
-          if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
-          {
-            flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
-          }
-        }
-        else
-        {
-          flags_new = uo_position_flags_update_enpassant_file(flags_new, uo_square_file(square_to) + 1);
-        }
-      }
-    }
-
-    position->flags = flags_new;
-    return uo_move_ex_encode(move, flags_prev, piece_captured);
-  }
-
-  // king move
-  if (piece & uo_piece__K)
-  {
-    if (color_to_move == uo_piece__white)
-    {
-      flags_new = uo_position_flags_update_castling_white(flags_new, 0);
-
-      // castling
-      if (move_type == uo_move_type__OO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__h1), position->R);
-        position->R |= uo_square_bitboard(uo_square__f1);
-        position->piece_color &= ~uo_square_bitboard(uo_square__f1);
-      }
-      else if (move_type == uo_move_type__OOO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__a1), position->R);
-        position->R |= uo_square_bitboard(uo_square__d1);
-        position->piece_color &= ~uo_square_bitboard(uo_square__d1);
-      }
-    }
-    else
-    {
-      flags_new = uo_position_flags_update_castling_black(flags_new, 0);
-
-      // castling
-      if (move_type == uo_move_type__OO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__h8), position->R);
-        position->R |= uo_square_bitboard(uo_square__f8);
-        position->piece_color |= uo_square_bitboard(uo_square__f8);
-      }
-      else if (move_type == uo_move_type__OOO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__a8), position->R);
-        position->R |= uo_square_bitboard(uo_square__d8);
-        position->piece_color |= uo_square_bitboard(uo_square__d8);
-      }
-    }
-
-    position->flags = flags_new;
-    return uo_move_ex_encode(move, flags_prev, piece_captured);
-  }
-
-  // rook move
-  if (piece == (uo_piece__R | color_to_move))
-  {
-    if (square_from == uo_square__a1)
-    {
-      flags_new = uo_position_flags_update_castling_Q(flags_new, false);
-    }
-    else if (square_from == uo_square__h1)
-    {
-      flags_new = uo_position_flags_update_castling_K(flags_new, false);
-    }
-    else if (square_from == uo_square__a8)
-    {
-      flags_new = uo_position_flags_update_castling_q(flags_new, false);
-    }
-    else if (square_from == uo_square__h8)
-    {
-      flags_new = uo_position_flags_update_castling_k(flags_new, false);
-    }
-
-    position->flags = flags_new;
-    return uo_move_ex_encode(move, flags_prev, piece_captured);
-  }
-
-  position->flags = flags_new;
-  return uo_move_ex_encode(move, flags_prev, piece_captured);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->flags = flags_prev;
 }
 
-void uo_position_unmake_move(uo_position *position, uo_move_ex move)
+void uo_position_unmake_move_default__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
 {
-  uo_square square_from = uo_move_square_from(move);
+  uo_square square_from = uo_move_square_from(move.move);
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
-  uo_square square_to = uo_move_square_to(move);
+  uo_square square_to = uo_move_square_to(move.move);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
-  uo_move_type move_type = uo_move_get_type(move);
-  uo_position_flags flags_prev = uo_move_ex_flags(move);
-  uo_piece piece = uo_position_square_piece(position, square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  --position->fullmove;
+  position->flags = flags_prev;
+}
 
-  position->fullmove -= uo_position_flags_color_to_move(flags_prev);
+void uo_position_unmake_move_OO__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
 
-  // promotion
-  if (move_type & uo_move_type__promo)
-  {
-    piece &= uo_piece__p;
-
-    switch (uo_andn(uo_move_type__x, move_type))
-    {
-      case uo_move_type__promo_Q:
-        position->Q = uo_andn(bitboard_to, position->Q);
-        break;
-
-      case uo_move_type__promo_R:
-        position->R = uo_andn(bitboard_to, position->R);
-        break;
-
-      case uo_move_type__promo_B:
-        position->B = uo_andn(bitboard_to, position->B);
-        break;
-
-      case uo_move_type__promo_N:
-        position->N = uo_andn(bitboard_to, position->N);
-        break;
-
-      default: /* uo_move_type__promo_N */
-        position->N = uo_andn(bitboard_to, position->N);
-        break;
-    }
-
-    position->P |= bitboard_from;
-  }
-  else
-  {
-    uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-    *bitboard = uo_andn(bitboard_to, *bitboard);
-    *bitboard |= bitboard_from;
-  }
-
-  if (uo_piece_color(piece) == uo_piece__black)
-  {
-    position->piece_color |= bitboard_from;
-
-    if (piece & uo_piece__K)
-    {
-      // castling
-      if (move_type == uo_move_type__OO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__f8), position->R);
-        position->R |= uo_square_bitboard(uo_square__h8);
-        position->piece_color |= uo_square_bitboard(uo_square__h8);
-      }
-      else if (move_type == uo_move_type__OOO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__d8), position->R);
-        position->R |= uo_square_bitboard(uo_square__a8);
-        position->piece_color |= uo_square_bitboard(uo_square__a8);
-      }
-    }
-
-    // capture
-    if (move_type & uo_move_type__x)
-    {
-      if (move_type == uo_move_type__enpassant)
-      {
-        // en passant capture
-        uo_bitboard enpassant = bitboard_to << 8;
-        position->P |= enpassant;
-        position->piece_color = uo_andn(enpassant, position->piece_color);
-      }
-      else
-      {
-        uo_piece piece_captured = uo_move_ex_piece_captured(move);
-        uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-        *bitboard_captured |= bitboard_to;
-        position->piece_color = uo_andn(bitboard_to, position->piece_color);
-      }
-    }
-  }
-  else // white
-  {
-    position->piece_color = uo_andn(bitboard_from, position->piece_color);
-
-    if (piece & uo_piece__K)
-    {
-      // castling
-      if (move_type == uo_move_type__OO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__f1), position->R);
-        position->R |= uo_square_bitboard(uo_square__h1);
-        position->piece_color = uo_andn(uo_square_bitboard(uo_square__h1), position->piece_color);
-      }
-      else if (move_type == uo_move_type__OOO)
-      {
-        position->R = uo_andn(uo_square_bitboard(uo_square__d1), position->R);
-        position->R |= uo_square_bitboard(uo_square__a1);
-        position->piece_color = uo_andn(uo_square_bitboard(uo_square__a1), position->piece_color);
-      }
-    }
-
-    // capture
-    if (move_type & uo_move_type__x)
-    {
-      if (move_type == uo_move_type__enpassant)
-      {
-        // en passant capture
-        uo_bitboard enpassant = bitboard_to >> 8;
-        position->P |= enpassant;
-        position->piece_color |= enpassant;
-      }
-      else
-      {
-        uo_piece piece_captured = uo_move_ex_piece_captured(move);
-        uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-        *bitboard_captured |= bitboard_to;
-        position->piece_color |= bitboard_to;
-      }
-    }
-  }
+  position->R = uo_andn(uo_square_bitboard(uo_square__f1), position->R);
+  position->R |= uo_square_bitboard(uo_square__h1);
+  position->piece_color = uo_andn(uo_square_bitboard(uo_square__h1), position->piece_color);
 
   position->flags = flags_prev;
 }
 
-size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
+void uo_position_unmake_move_OO__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__f8), position->R);
+  position->R |= uo_square_bitboard(uo_square__h8);
+  position->piece_color |= uo_square_bitboard(uo_square__h8);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_OOO__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__d1), position->R);
+  position->R |= uo_square_bitboard(uo_square__a1);
+  position->piece_color = uo_andn(uo_square_bitboard(uo_square__a1), position->piece_color);
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_OOO__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__d8), position->R);
+  position->R |= uo_square_bitboard(uo_square__a8);
+  position->piece_color |= uo_square_bitboard(uo_square__a8);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_x__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_x__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_enpassant__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+
+  uo_bitboard enpassant = bitboard_to >> 8;
+  position->P |= enpassant;
+  position->piece_color |= enpassant;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_enpassant__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+
+  uo_bitboard enpassant = bitboard_to << 8;
+  position->P |= enpassant;
+  position->piece_color = uo_andn(enpassant, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_N__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->N = uo_andn(bitboard_to, position->N);
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_N__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->N = uo_andn(bitboard_to, position->N);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_B__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->B = uo_andn(bitboard_to, position->B);
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_B__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->B = uo_andn(bitboard_to, position->B);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_R__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->R = uo_andn(bitboard_to, position->R);
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_R__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->R = uo_andn(bitboard_to, position->R);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_Q__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->Q = uo_andn(bitboard_to, position->Q);
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_Q__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->Q = uo_andn(bitboard_to, position->Q);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_Nx__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->N = uo_andn(bitboard_to, position->N);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_Nx__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->N = uo_andn(bitboard_to, position->N);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_Bx__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->B = uo_andn(bitboard_to, position->B);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_Bx__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->B = uo_andn(bitboard_to, position->B);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_Rx__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->R = uo_andn(bitboard_to, position->R);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_Rx__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->R = uo_andn(bitboard_to, position->R);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+void uo_position_unmake_move_promo_Qx__white(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color = uo_andn(bitboard_from, position->piece_color);
+  position->Q = uo_andn(bitboard_to, position->Q);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  position->flags = flags_prev;
+}
+
+void uo_position_unmake_move_promo_Qx__black(uo_position *position, uo_move_ex move, uo_position_flags flags_prev)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  *bitboard = uo_andn(bitboard_to, *bitboard);
+  *bitboard |= bitboard_from;
+  position->piece_color |= bitboard_from;
+  position->Q = uo_andn(bitboard_to, position->Q);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  --position->fullmove;
+  position->flags = flags_prev;
+}
+
+
+
+#pragma endregion
+
+#pragma region uo_position_make_move
+
+typedef uo_position_unmake_move *uo_make_move(uo_position *position, uo_move_ex move__white);
+
+uo_position_unmake_move *uo_position_make_move_quiet__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  flags = uo_position_flags_update_halfmoves(flags, (move.piece & uo_piece__P) ? 0 : (uo_position_flags_halfmoves(flags) + 1));
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  if (move.piece & uo_piece__K)
+  {
+    flags = uo_position_flags_update_castling_white(flags, 0);
+  }
+  else if (move.piece == uo_piece__R)
+  {
+    if (square_from == uo_square__a1)
+    {
+      flags = uo_position_flags_update_castling_Q(flags, false);
+    }
+    else if (square_from == uo_square__h1)
+    {
+      flags = uo_position_flags_update_castling_K(flags, false);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_default__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_quiet__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  flags = uo_position_flags_update_halfmoves(flags, (move.piece & uo_piece__P) ? 0 : (uo_position_flags_halfmoves(flags) + 1));
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  if (move.piece & uo_piece__K)
+  {
+    flags = uo_position_flags_update_castling_black(flags, 0);
+  }
+  else if (move.piece == uo_piece__r)
+  {
+    if (square_from == uo_square__a8)
+    {
+      flags = uo_position_flags_update_castling_q(flags, false);
+    }
+    else if (square_from == uo_square__h8)
+    {
+      flags = uo_position_flags_update_castling_k(flags, false);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_default__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_P_double_push__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  // en passant
+  uint8_t rank_fourth = 3;
+  uo_bitboard mask_enemy = position->piece_color;
+  uo_bitboard mask_own = ~mask_enemy;
+
+  uo_bitboard adjecent_enemy_pawn = mask_enemy & ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[rank_fourth] & position->P;
+  if (adjecent_enemy_pawn)
+  {
+    uo_square square_enemy_K = uo_lsb(mask_enemy & position->K);
+    uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
+
+    if (rank_enemy_K == rank_fourth && uo_popcnt(adjecent_enemy_pawn) == 1)
+    {
+      uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
+      uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->P | position->N | position->B | position->R | position->Q | position->K);
+      uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, (position->R | position->Q) & mask_own) & bitboard_rank_enemy_K;
+
+      if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
+      {
+        flags = uo_position_flags_update_enpassant_file(flags, uo_square_file(square_to) + 1);
+      }
+    }
+    else
+    {
+      flags = uo_position_flags_update_enpassant_file(flags, uo_square_file(square_to) + 1);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_default__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_P_double_push__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  // en passant
+  uint8_t rank_fourth = 4;
+  uo_bitboard mask_own = position->piece_color;
+  uo_bitboard mask_enemy = ~mask_own;
+
+  uo_bitboard adjecent_enemy_pawn = mask_enemy & ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank[rank_fourth] & position->P;
+  if (adjecent_enemy_pawn)
+  {
+    uo_square square_enemy_K = uo_lsb(mask_enemy & position->K);
+    uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
+
+    if (rank_enemy_K == rank_fourth && uo_popcnt(adjecent_enemy_pawn) == 1)
+    {
+      uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
+      uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->P | position->N | position->B | position->R | position->Q | position->K);
+      uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, (position->R | position->Q) & mask_own) & bitboard_rank_enemy_K;
+
+      if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
+      {
+        flags = uo_position_flags_update_enpassant_file(flags, uo_square_file(square_to) + 1);
+      }
+    }
+    else
+    {
+      flags = uo_position_flags_update_enpassant_file(flags, uo_square_file(square_to) + 1);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_default__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_OO__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  flags = uo_position_flags_update_castling_white(flags, 0);
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__h1), position->R);
+  position->R |= uo_square_bitboard(uo_square__f1);
+  position->piece_color = uo_andn(uo_square_bitboard(uo_square__f1), position->piece_color);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_OO__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_OO__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  flags = uo_position_flags_update_castling_black(flags, 0);
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__h8), position->R);
+  position->R |= uo_square_bitboard(uo_square__f8);
+  position->piece_color |= uo_square_bitboard(uo_square__f8);
+
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_OO__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_OOO__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  flags = uo_position_flags_update_castling_white(flags, 0);
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__a1), position->R);
+  position->R |= uo_square_bitboard(uo_square__d1);
+  position->piece_color = uo_andn(uo_square_bitboard(uo_square__d1), position->piece_color);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_OOO__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_OOO__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  flags = uo_position_flags_update_castling_black(flags, 0);
+
+  position->R = uo_andn(uo_square_bitboard(uo_square__a8), position->R);
+  position->R |= uo_square_bitboard(uo_square__d8);
+  position->piece_color |= uo_square_bitboard(uo_square__d8);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_OOO__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_x__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a8:
+        flags = uo_position_flags_update_castling_q(flags, false);
+        break;
+
+      case uo_square__h8:
+        flags = uo_position_flags_update_castling_k(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if (move.piece & uo_piece__K)
+  {
+    flags = uo_position_flags_update_castling_white(flags, 0);
+  }
+  else if (move.piece == uo_piece__R)
+  {
+    if (square_from == uo_square__a1)
+    {
+      flags = uo_position_flags_update_castling_Q(flags, false);
+    }
+    else if (square_from == uo_square__h1)
+    {
+      flags = uo_position_flags_update_castling_K(flags, false);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_x__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_x__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a1:
+        flags = uo_position_flags_update_castling_Q(flags, false);
+        break;
+
+      case uo_square__h1:
+        flags = uo_position_flags_update_castling_K(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if (move.piece & uo_piece__K)
+  {
+    flags = uo_position_flags_update_castling_black(flags, 0);
+  }
+  else if (move.piece == uo_piece__r)
+  {
+    if (square_from == uo_square__a8)
+    {
+      flags = uo_position_flags_update_castling_q(flags, false);
+    }
+    else if (square_from == uo_square__h8)
+    {
+      flags = uo_position_flags_update_castling_k(flags, false);
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_x__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_enpassant__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_square square_piece_captured = square_to - 8;
+  *bitboard = uo_andn(uo_square_bitboard(square_piece_captured), *bitboard);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_enpassant__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_enpassant__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  *bitboard |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_square square_piece_captured = square_to + 8;
+  *bitboard = uo_andn(uo_square_bitboard(square_piece_captured), *bitboard);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_enpassant__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_N__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->N |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_N__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_N__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->N |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_N__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_B__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->B |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_B__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_B__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->B |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_B__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_R__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->R |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_R__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_R__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->R |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_R__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_Q__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->Q |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Q__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_Q__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->Q |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  uint8_t halfmoves = uo_position_flags_halfmoves(flags);
+  flags = uo_position_flags_update_halfmoves(flags, halfmoves + 1);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Q__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_Nx__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->N |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a8:
+        flags = uo_position_flags_update_castling_q(flags, false);
+        break;
+
+      case uo_square__h8:
+        flags = uo_position_flags_update_castling_k(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Nx__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_Nx__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->N |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a1:
+        flags = uo_position_flags_update_castling_Q(flags, false);
+        break;
+
+      case uo_square__h1:
+        flags = uo_position_flags_update_castling_K(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Nx__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_Bx__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->B |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a8:
+        flags = uo_position_flags_update_castling_q(flags, false);
+        break;
+
+      case uo_square__h8:
+        flags = uo_position_flags_update_castling_k(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Bx__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_Bx__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->B |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a1:
+        flags = uo_position_flags_update_castling_Q(flags, false);
+        break;
+
+      case uo_square__h1:
+        flags = uo_position_flags_update_castling_K(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Bx__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_Rx__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->R |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a8:
+        flags = uo_position_flags_update_castling_q(flags, false);
+        break;
+
+      case uo_square__h8:
+        flags = uo_position_flags_update_castling_k(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Rx__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_Rx__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->R |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a1:
+        flags = uo_position_flags_update_castling_Q(flags, false);
+        break;
+
+      case uo_square__h1:
+        flags = uo_position_flags_update_castling_K(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Rx__black;
+}
+
+
+uo_position_unmake_move *uo_position_make_move_promo_Qx__white(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__black);
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->Q |= bitboard_to;
+  position->piece_color = uo_andn(bitboard_to, position->piece_color);
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a8:
+        flags = uo_position_flags_update_castling_q(flags, false);
+        break;
+
+      case uo_square__h8:
+        flags = uo_position_flags_update_castling_k(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Qx__white;
+}
+
+uo_position_unmake_move *uo_position_make_move_promo_Qx__black(uo_position *position, uo_move_ex move)
+{
+  uo_square square_from = uo_move_square_from(move.move);
+  uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+  uo_square square_to = uo_move_square_to(move.move);
+  uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+  uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
+  uo_position_flags flags = position->flags;
+
+  flags = uo_position_flags_update_halfmoves(flags, 0);
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+  flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
+  ++position->fullmove;
+
+  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
+  *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->Q |= bitboard_to;
+  position->piece_color |= bitboard_to;
+
+  if (move.piece_captured & uo_piece__R)
+  {
+    switch (square_to)
+    {
+      case uo_square__a1:
+        flags = uo_position_flags_update_castling_Q(flags, false);
+        break;
+
+      case uo_square__h1:
+        flags = uo_position_flags_update_castling_K(flags, false);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  position->flags = flags;
+
+  return uo_position_unmake_move_promo_Qx__black;
+}
+
+
+// alternating for each color
+uo_make_move *uo_position_make_move_for_type[] = {
+  [uo_move_type__quiet << 1] = uo_position_make_move_quiet__white,
+  [(uo_move_type__quiet << 1) + 1] = uo_position_make_move_quiet__black,
+  [uo_move_type__P_double_push << 1] = uo_position_make_move_P_double_push__white,
+  [(uo_move_type__P_double_push << 1) + 1] = uo_position_make_move_P_double_push__black,
+  [uo_move_type__OO << 1] = uo_position_make_move_OO__white,
+  [(uo_move_type__OO << 1) + 1] = uo_position_make_move_OO__black,
+  [uo_move_type__OOO << 1] = uo_position_make_move_OOO__white,
+  [(uo_move_type__OOO << 1) + 1] = uo_position_make_move_OOO__black,
+  [uo_move_type__x << 1] = uo_position_make_move_x__white,
+  [(uo_move_type__x << 1) + 1] = uo_position_make_move_x__black,
+  [uo_move_type__enpassant << 1] = uo_position_make_move_enpassant__white,
+  [(uo_move_type__enpassant << 1) + 1] = uo_position_make_move_enpassant__black,
+  [uo_move_type__promo_N << 1] = uo_position_make_move_promo_N__white,
+  [(uo_move_type__promo_N << 1) + 1] = uo_position_make_move_promo_N__black,
+  [uo_move_type__promo_B << 1] = uo_position_make_move_promo_B__white,
+  [(uo_move_type__promo_B << 1) + 1] = uo_position_make_move_promo_B__black,
+  [uo_move_type__promo_R << 1] = uo_position_make_move_promo_R__white,
+  [(uo_move_type__promo_R << 1) + 1] = uo_position_make_move_promo_R__black,
+  [uo_move_type__promo_Q << 1] = uo_position_make_move_promo_Q__white,
+  [(uo_move_type__promo_Q << 1) + 1] = uo_position_make_move_promo_Q__black,
+  [uo_move_type__promo_Nx << 1] = uo_position_make_move_promo_Nx__white,
+  [(uo_move_type__promo_Nx << 1) + 1] = uo_position_make_move_promo_Nx__black,
+  [uo_move_type__promo_Bx << 1] = uo_position_make_move_promo_Bx__white,
+  [(uo_move_type__promo_Bx << 1) + 1] = uo_position_make_move_promo_Bx__black,
+  [uo_move_type__promo_Rx << 1] = uo_position_make_move_promo_Rx__white,
+  [(uo_move_type__promo_Rx << 1) + 1] = uo_position_make_move_promo_Rx__black,
+  [uo_move_type__promo_Qx << 1] = uo_position_make_move_promo_Qx__white,
+  [(uo_move_type__promo_Qx << 1) + 1] = uo_position_make_move_promo_Qx__black
+};
+
+uo_position_unmake_move *uo_position_make_move(uo_position *position, uo_move_ex move)
+{
+  uo_position_flags flags = position->flags;
+  uint8_t color_to_move = uo_position_flags_color_to_move(flags);
+  uo_move_type move_type = uo_move_get_type(move.move);
+  return uo_position_make_move_for_type[(move_type << 1) + color_to_move](position, move);
+}
+
+#pragma endregion
+
+size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
 {
   size_t count = 0;
   uo_square square_from;
@@ -733,6 +1895,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   if (enemy_checks)
   {
     uo_square square_enemy_checker = uo_lsb(enemy_checks);
+    uo_piece piece_enemy_checker = uo_position_square_piece(position, square_enemy_checker);
 
     if (uo_popcnt(enemy_checks) == 2)
     {
@@ -754,8 +1917,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
         if (enemy_checks)
           continue;
 
-        uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-        *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
+        uo_piece piece_captured = uo_position_square_piece(position, square_to);
+        uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_own_K, square_to, move_type),
+          .piece = uo_piece__K | color_to_move,
+          .piece_captured = piece_captured
+        };
         ++count;
       }
 
@@ -782,18 +1951,38 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (own_P & bitboard & bitboard_seventh_rank)
       {
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_checker
+        };
         ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_checker
+        };
         ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_checker
+        };
         ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_checker
+        };
         ++count;
       }
       else
       {
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_checker
+        };
         ++count;
       }
     }
@@ -803,13 +1992,21 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     {
       if (enpassant_file > 1 && (own_P & (enemy_checks_P >> 1)))
       {
-        *movelist++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_P
+        };
         ++count;
       }
 
       if (enpassant_file < 8 && (own_P & (enemy_checks_P << 1)))
       {
-        *movelist++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_P
+        };
         ++count;
       }
     }
@@ -851,29 +2048,50 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
         {
           if (bitboard & bitboard_seventh_rank)
           {
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_Q);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__promo_Q),
+              .piece = piece_own_P
+            };
             ++count;
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_N);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__promo_N),
+              .piece = piece_own_P
+            };
             ++count;
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_B);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__promo_B),
+              .piece = piece_own_P
+            };
             ++count;
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_R);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__promo_R),
+              .piece = piece_own_P
+            };
             ++count;
           }
           else if ((bitboard & bitboard_second_rank) && (bitboard_square_between & bitboard_fourth_rank))
           {
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__P_double_push);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__P_double_push),
+              .piece = piece_own_P
+            };
             ++count;
           }
           else
           {
-            *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+            *movelist++ = (uo_move_ex){
+              .move = uo_move_encode(square_from, square_between, uo_move_type__quiet),
+              .piece = uo_position_square_piece(position, square_from)
+            };
             ++count;
           }
         }
         else
         {
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+          *movelist++ = (uo_move_ex){
+            .move = uo_move_encode(square_from, square_between, uo_move_type__quiet),
+            .piece = uo_position_square_piece(position, square_from)
+          };
           ++count;
         }
       }
@@ -897,8 +2115,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       if (enemy_checks)
         continue;
 
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_own_K, square_to, move_type),
+        .piece = uo_piece__K | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
 
@@ -917,8 +2141,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     while ((square_to = uo_bitboard_next_square(&moves_N)) != -1)
     {
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__N | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -931,8 +2160,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     while ((square_to = uo_bitboard_next_square(&moves_B)) != -1)
     {
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__B | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -945,8 +2179,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     while ((square_to = uo_bitboard_next_square(&moves_R)) != -1)
     {
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__R | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -959,8 +2198,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     while ((square_to = uo_bitboard_next_square(&moves_Q)) != -1)
     {
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__Q | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -977,18 +2221,33 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Q),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_N),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_B),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_R),
+        .piece = piece_own_P
+      };
       ++count;
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__quiet),
+        .piece = piece_own_P
+      };
       ++count;
     }
   }
@@ -999,7 +2258,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while ((square_to = uo_bitboard_next_square(&non_pinned_double_push_P)) != -1)
   {
     square_from = square_to + direction_backwards * 2;
-    *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
+    *movelist++ = (uo_move_ex){
+      .move = uo_move_encode(square_from, square_to, uo_move_type__P_double_push),
+      .piece = piece_own_P
+    };
     ++count;
   }
 
@@ -1009,21 +2271,43 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while ((square_to = uo_bitboard_next_square(&non_pinned_captures_right_P)) != -1)
   {
     square_from = square_to + direction_backwards - 1;
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+    uo_piece piece_captured = uo_position_bitboard_piece(position, bitboard_to);
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__x),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1034,21 +2318,43 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while ((square_to = uo_bitboard_next_square(&non_pinned_captures_left_P)) != -1)
   {
     square_from = square_to + direction_backwards + 1;
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+    uo_piece piece_captured = uo_position_bitboard_piece(position, bitboard_to);
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__x),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1061,13 +2367,21 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
     {
-      *movelist++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant),
+        .piece = piece_own_P,
+        .piece_captured = piece_enemy_P
+      };
       ++count;
     }
 
     if (enpassant_file < 8 && (non_pinned_P & (enpassant << 1)))
     {
-      *movelist++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant),
+        .piece = piece_own_P,
+        .piece_captured = piece_enemy_P
+      };
       ++count;
     }
   }
@@ -1095,8 +2409,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       if (enemy_checks)
         continue;
 
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__B | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1122,8 +2441,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       if (enemy_checks)
         continue;
 
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__R | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1149,8 +2473,13 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       if (enemy_checks)
         continue;
 
-      uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
+      uo_piece piece_captured = uo_position_square_piece(position, square_to);
+      uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, move_type),
+        .piece = uo_piece__Q | color_to_move,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1180,19 +2509,34 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Q),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_N),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_B),
+        .piece = piece_own_P
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_R),
+        .piece = piece_own_P
+      };
       ++count;
     }
     else
     {
 
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__quiet),
+        .piece = piece_own_P
+      };
       ++count;
     }
   }
@@ -1217,7 +2561,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     if (enemy_checks)
       continue;
 
-    *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
+    *movelist++ = (uo_move_ex){
+      .move = uo_move_encode(square_from, square_to, uo_move_type__P_double_push),
+      .piece = piece_own_P
+    };
     ++count;
   }
 
@@ -1229,6 +2576,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     square_from = square_to + direction_backwards - 1;
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+    uo_piece piece_captured = uo_position_bitboard_piece(position, bitboard_to);
     uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied);
 
     uo_bitboard enemy_checks_diagonals = uo_andn(bitboard_to, uo_bitboard_attacks_B(square_own_K, occupied_after_move | bitboard_to));
@@ -1243,18 +2591,38 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__x),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1267,6 +2635,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     square_from = square_to + direction_backwards + 1;
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+    uo_piece piece_captured = uo_position_bitboard_piece(position, bitboard_to);
     uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied);
 
     uo_bitboard enemy_checks_diagonals = uo_andn(bitboard_to, uo_bitboard_attacks_B(square_own_K, occupied_after_move | bitboard_to));
@@ -1281,18 +2650,38 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      *movelist++ = (uo_move_ex){
+        .move = uo_move_encode(square_from, square_to, uo_move_type__x),
+        .piece = piece_own_P,
+        .piece_captured = piece_captured
+      };
       ++count;
     }
   }
@@ -1318,7 +2707,11 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (!enemy_checks)
       {
-        *movelist++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_P
+        };
         ++count;
       }
     }
@@ -1336,7 +2729,11 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (!enemy_checks)
       {
-        *movelist++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
+        *movelist++ = (uo_move_ex){
+          .move = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant),
+          .piece = piece_own_P,
+          .piece_captured = piece_enemy_P
+        };
         ++count;
       }
     }
@@ -1374,7 +2771,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO);
+          *movelist++ = (uo_move_ex){
+            .move = uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO),
+            .piece = uo_piece__K | color_to_move
+          };
           ++count;
         }
       }
@@ -1406,7 +2806,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO);
+          *movelist++ = (uo_move_ex){
+            .move = uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO),
+            .piece = uo_piece__K | color_to_move
+          };
           ++count;
         }
       }
@@ -1440,7 +2843,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__g8, uo_move_type__OO);
+          *movelist++ = (uo_move_ex){
+            .move = uo_move_encode(square_own_K, uo_square__g8, uo_move_type__OO),
+            .piece = uo_piece__K | color_to_move
+          };
           ++count;
         }
       }
@@ -1472,7 +2878,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__c8, uo_move_type__OOO);
+          *movelist++ = (uo_move_ex){
+            .move = uo_move_encode(square_own_K, uo_square__c8, uo_move_type__OOO),
+            .piece = uo_piece__K | color_to_move
+          };
           ++count;
         }
       }
@@ -1497,35 +2906,40 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     if (enemy_checks)
       continue;
 
-    uo_move_type move_type = (uo_square_bitboard(square_to) & mask_enemy) ? uo_move_type__x : uo_move_type__quiet;
-    *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
+    uo_piece piece_captured = uo_position_square_piece(position, square_to);
+    uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
+    *movelist++ = (uo_move_ex){
+      .move = uo_move_encode(square_own_K, square_to, move_type),
+      .piece = uo_piece__K | color_to_move,
+      .piece_captured = piece_captured
+    };
     ++count;
   }
 
   return count;
 }
 
-uo_move uo_position_parse_move(uo_position *position, char str[5])
+uo_move_ex uo_position_parse_move(uo_position *position, char str[5])
 {
   if (!str)
-    return 0;
+    return (uo_move_ex) { 0 };
 
   char *ptr = str;
 
   int file_from = ptr[0] - 'a';
   if (file_from < 0 || file_from > 7)
-    return 0;
+    return (uo_move_ex) { 0 };
   int rank_from = ptr[1] - '1';
   if (rank_from < 0 || rank_from > 7)
-    return 0;
+    return (uo_move_ex) { 0 };
   uo_square square_from = (rank_from << 3) + file_from;
 
   int file_to = ptr[2] - 'a';
   if (file_to < 0 || file_to > 7)
-    return 0;
+    return (uo_move_ex) { 0 };
   int rank_to = ptr[3] - '1';
   if (rank_to < 0 || rank_to > 7)
-    return 0;
+    return (uo_move_ex) { 0 };
   uo_square square_to = (rank_to << 3) + file_to;
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
@@ -1555,6 +2969,7 @@ uo_move uo_position_parse_move(uo_position *position, char str[5])
     if (uo_square_file(square_from) != uo_square_file(square_to))
     {
       move_type = uo_move_type__enpassant;
+      piece_captured = uo_piece__P | !uo_piece_color(piece);
     }
     else
     {
@@ -1594,7 +3009,13 @@ uo_move uo_position_parse_move(uo_position *position, char str[5])
       break;
   }
 
-  return uo_move_encode(square_from, square_to, move_type);
+  uo_move_ex move = {
+    .move = uo_move_encode(square_from, square_to, move_type),
+    .piece = piece,
+    .piece_captured = piece_captured
+  };
+
+  return move;
 }
 
 #pragma region evaluation_features

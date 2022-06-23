@@ -14,6 +14,22 @@ extern "C"
 #include <stdbool.h>
 #include <stddef.h>
 
+  typedef uint16_t uo_position_flags;
+  /*
+    color_to_move : 1
+      0 w
+      1 b
+    halfmoves: 7
+      1-100
+    enpassant_file : 4
+      1-8
+    castling: 4
+      1 K
+      2 Q
+      4 k
+      8 q
+  */
+
   typedef struct uo_position
   {
     uo_bitboard piece_color;
@@ -146,17 +162,16 @@ extern "C"
 
   size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
 
-  uo_move_ex uo_position_make_move(uo_position *position, uo_move move);
+  typedef void uo_position_unmake_move(uo_position *position, uo_move_ex move, uo_position_flags flags_prev);
 
-  void uo_position_unmake_move(uo_position *position, uo_move_ex move);
+  uo_position_unmake_move *uo_position_make_move(uo_position *position, uo_move_ex move);
 
-  size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
+  size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist);
 
   double uo_position_evaluate(uo_position *position);
 
-  static inline uo_piece uo_position_square_piece(uo_position *position, uo_square square)
+  static inline uo_piece uo_position_bitboard_piece(uo_position *position, uo_bitboard mask)
   {
-    uo_bitboard mask = uo_square_bitboard(square);
     uo_piece piece;
 
     if (mask & position->P) piece = uo_piece__P;
@@ -171,7 +186,13 @@ extern "C"
     return piece;
   }
 
-  uo_move uo_position_parse_move(uo_position *position, char str[5]);
+  static inline uo_piece uo_position_square_piece(uo_position *position, uo_square square)
+  {
+    uo_bitboard mask = uo_square_bitboard(square);
+    return uo_position_bitboard_piece(position, mask);
+  }
+
+  uo_move_ex uo_position_parse_move(uo_position *position, char str[5]);
 
 #ifdef __cplusplus
 }
