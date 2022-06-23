@@ -1630,10 +1630,6 @@ uo_position_unmake_move *uo_position_make_move_promo_Rx__black(uo_position *posi
   uo_bitboard *bitboard = uo_position_piece_bitboard(position, move.piece);
   uo_position_flags flags = position->flags;
 
-  *bitboard = uo_andn(bitboard_from, *bitboard);
-  position->R |= bitboard_to;
-  position->piece_color |= bitboard_to;
-
   flags = uo_position_flags_update_halfmoves(flags, 0);
   flags = uo_position_flags_update_enpassant_file(flags, 0);
   flags = uo_position_flags_update_color_to_move(flags, uo_piece__white);
@@ -1641,6 +1637,9 @@ uo_position_unmake_move *uo_position_make_move_promo_Rx__black(uo_position *posi
 
   uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, move.piece_captured);
   *bitboard_captured = uo_andn(bitboard_to, *bitboard_captured);
+  *bitboard = uo_andn(bitboard_from, *bitboard);
+  position->R |= bitboard_to;
+  position->piece_color |= bitboard_to;
 
   if (move.piece_captured & uo_piece__R)
   {
@@ -1947,9 +1946,9 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
 
     while ((square_from = uo_bitboard_next_square(&attack_checker)) != -1)
     {
-      uo_bitboard bitboard = uo_square_bitboard(square_from);
+      uo_bitboard bitboard_from = uo_square_bitboard(square_from);
 
-      if (own_P & bitboard & bitboard_seventh_rank)
+      if (own_P & bitboard_from & bitboard_seventh_rank)
       {
         *movelist++ = (uo_move_ex){
           .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx),
@@ -1980,7 +1979,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
       {
         *movelist++ = (uo_move_ex){
           .move = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x),
-          .piece = piece_own_P,
+          .piece = uo_position_bitboard_piece(position, bitboard_from),
           .piece_captured = piece_enemy_checker
         };
         ++count;
@@ -2042,11 +2041,11 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
 
       while ((square_from = uo_bitboard_next_square(&block)) != -1)
       {
-        uo_bitboard bitboard = uo_square_bitboard(square_from);
+        uo_bitboard bitboard_from = uo_square_bitboard(square_from);
 
-        if (own_P & bitboard)
+        if (own_P & bitboard_from)
         {
-          if (bitboard & bitboard_seventh_rank)
+          if (bitboard_from & bitboard_seventh_rank)
           {
             *movelist++ = (uo_move_ex){
               .move = uo_move_encode(square_from, square_between, uo_move_type__promo_Q),
@@ -2069,7 +2068,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
             };
             ++count;
           }
-          else if ((bitboard & bitboard_second_rank) && (bitboard_square_between & bitboard_fourth_rank))
+          else if ((bitboard_from & bitboard_second_rank) && (bitboard_square_between & bitboard_fourth_rank))
           {
             *movelist++ = (uo_move_ex){
               .move = uo_move_encode(square_from, square_between, uo_move_type__P_double_push),
@@ -2081,7 +2080,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
           {
             *movelist++ = (uo_move_ex){
               .move = uo_move_encode(square_from, square_between, uo_move_type__quiet),
-              .piece = uo_position_square_piece(position, square_from)
+              .piece = piece_own_P
             };
             ++count;
           }
@@ -2090,7 +2089,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist)
         {
           *movelist++ = (uo_move_ex){
             .move = uo_move_encode(square_from, square_between, uo_move_type__quiet),
-            .piece = uo_position_square_piece(position, square_from)
+            .piece = uo_position_bitboard_piece(position, bitboard_from)
           };
           ++count;
         }

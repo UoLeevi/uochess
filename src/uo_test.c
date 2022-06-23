@@ -117,7 +117,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       uo_square square_from = uo_move_square_from(move.move);
       uo_square square_to = uo_move_square_to(move.move);
-      uo_move_type move_type_promo = uo_move_get_type(move.piece) & uo_move_type__promo_Q;
+      uo_move_type move_type_promo = uo_move_get_type(move.move) & uo_move_type__promo_Q;
 
       size_t node_count_expected;
 
@@ -135,7 +135,9 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
         uo_move_ex move = search->head[i - move_count];
         if (uo_move_square_from(move.move) == square_from && uo_move_square_to(move.move) == square_to)
         {
-          if (move_type_promo & uo_move_type__promo && (move_type_promo != (uo_move_get_type(move.move) & uo_move_type__promo_Q)))
+          uo_move_type move_type = uo_move_get_type(move.move);
+
+          if ((move_type & uo_move_type__promo) && move_type_promo != (move_type & uo_move_type__promo_Q))
           {
             continue;
           }

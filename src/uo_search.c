@@ -74,7 +74,7 @@ size_t uo_search_perft(uo_search *search, size_t depth)
   {
     uo_move_ex move = search->head[i - move_count];
     uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
-    //uo_move_print(move, buf);
+    //uo_move_print(move.move, buf);
     //printf("move: %s\n", buf);
     //uo_position_print_fen(&search->position, buf);
     //printf("%s\n", buf);
@@ -90,7 +90,7 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     //  uo_position position;
     //  uo_position_from_fen(&position, fen_before_make);
 
-    //  uo_move_print(move, buf);
+    //  uo_move_print(move.move, buf);
     //  printf("error when unmaking move: %s\n", buf);
     //  printf("\nbefore make move\n");
     //  uo_position_print_diagram(&position, buf);

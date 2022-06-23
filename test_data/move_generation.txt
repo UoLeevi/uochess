@@ -682,6 +682,50 @@ c1b1: 99583
 
 ucinewgame
 position fen 8/1Pk2P2/3b4/P1p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 w - - 0 1
+go perft 2
+a5a6: 32
+g5g6: 32
+b7b8q: 3
+b7b8r: 30
+b7b8b: 6
+b7b8n: 31
+f7f8q: 30
+f7f8r: 30
+f7f8b: 32
+f7f8n: 31
+g3f1: 38
+g3h1: 38
+g3e2: 34
+g3e4: 34
+g3f5: 34
+g3h5: 34
+e3c1: 32
+e3g1: 28
+e3d2: 30
+e3f2: 31
+e3d4: 33
+e3f4: 29
+e3c5: 32
+a1a2: 32
+a1a3: 32
+b1c1: 32
+b1d1: 32
+b1b2: 25
+e1c1: 32
+e1d1: 32
+e1f1: 36
+e1g1: 28
+e1h1: 36
+e1d2: 30
+e1e2: 32
+e1f2: 31
+e1c3: 32
+e1b4: 27
+a4a3: 32
+a4b5: 31
+
+ucinewgame
+position fen 8/1Pk2P2/3b4/P1p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 w - - 0 1
 go perft 4
 a5a6: 39312
 g5g6: 41640
