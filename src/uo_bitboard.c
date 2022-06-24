@@ -23,164 +23,17 @@ uo_bitboard uo_bitboard_rank[8];          //  -
 uo_bitboard uo_bitboard_diagonal[15];     //  /
 uo_bitboard uo_bitboard_antidiagonal[15]; //  \
 
-
-#ifndef UO_REGENERATE_MAGICS
-#define UO_REGENERATE_MAGICS 0
-#endif // !UO_REGENERATE_MAGICS
-
-#pragma region known_magics
-
-const uint64_t known_magics_B[64][2] = {
-  // square      number               bits
-  [0 /* a1 */] = { 0x5002021009060088, 6 },
-  [1 /* b1 */] = { 0x2105202104000, 5 },
-  [2 /* c1 */] = { 0x22322092020010a0, 5 },
-  [3 /* d1 */] = { 0xa21424008004a004, 5 },
-  [4 /* e1 */] = { 0x84242042009000, 5 },
-  [5 /* f1 */] = { 0x1041100804010020, 5 },
-  [6 /* g1 */] = { 0x204020104220000, 5 },
-  [7 /* h1 */] = { 0x8100104402084304, 6 },
-  [8 /* a2 */] = { 0x2003401004008488, 5 },
-  [9 /* b2 */] = { 0x6820111002044141, 5 },
-  [10 /* c2 */] = { 0x490610040280a400, 5 },
-  [11 /* d2 */] = { 0x8282240420000, 5 },
-  [12 /* e2 */] = { 0x41420010100, 5 },
-  [13 /* f2 */] = { 0x820806082000, 5 },
-  [14 /* g2 */] = { 0x4000040501086084, 5 },
-  [15 /* h2 */] = { 0x4008810401210808, 5 },
-  [16 /* a3 */] = { 0x4100d00a080104, 5 },
-  [17 /* b3 */] = { 0x220001062120840, 5 },
-  [18 /* c3 */] = { 0x40040002040c0008, 7 },
-  [19 /* d3 */] = { 0x40018064008c0, 7 },
-  [20 /* e3 */] = { 0x24000201a24048, 7 },
-  [21 /* f3 */] = { 0x4902410600562004, 7 },
-  [22 /* g3 */] = { 0x2080518020610, 5 },
-  [23 /* h3 */] = { 0x4022080905009210, 5 },
-  [24 /* a4 */] = { 0x56200010200201, 5 },
-  [25 /* b4 */] = { 0x2020880501000b0, 5 },
-  [26 /* c4 */] = { 0x10085002080020c0, 7 },
-  [27 /* d4 */] = { 0x830140020440008, 9 },
-  [28 /* e4 */] = { 0x41080413014003, 9 },
-  [29 /* f4 */] = { 0x10b050002004901, 7 },
-  [30 /* g4 */] = { 0x4402040122010104, 5 },
-  [31 /* h4 */] = { 0xc012006042110118, 5 },
-  [32 /* a5 */] = { 0x548400008f040, 5 },
-  [33 /* b5 */] = { 0x4422020240503040, 5 },
-  [34 /* c5 */] = { 0x1044c40210500020, 7 },
-  [35 /* d5 */] = { 0x2008020080080082, 9 },
-  [36 /* e5 */] = { 0x4008208040100, 9 },
-  [37 /* f5 */] = { 0x8010008200882208, 7 },
-  [38 /* g5 */] = { 0x320818204081052a, 5 },
-  [39 /* h5 */] = { 0x402020200424140, 5 },
-  [40 /* a6 */] = { 0x9101010020500, 5 },
-  [41 /* b6 */] = { 0x841209010600408, 5 },
-  [42 /* c6 */] = { 0x8018e8040c2800, 7 },
-  [43 /* d6 */] = { 0x102019012800, 7 },
-  [44 /* e6 */] = { 0x10410124004200, 7 },
-  [45 /* f6 */] = { 0x20689000400080, 7 },
-  [46 /* g6 */] = { 0x802101030301a210, 5 },
-  [47 /* h6 */] = { 0x848510102080220, 5 },
-  [48 /* a7 */] = { 0x580848029090000a, 5 },
-  [49 /* b7 */] = { 0x4010404c2080000, 5 },
-  [50 /* c7 */] = { 0x80006004a080908, 5 },
-  [51 /* d7 */] = { 0x8160080a420a0400, 5 },
-  [52 /* e7 */] = { 0x4180352405040100, 5 },
-  [53 /* f7 */] = { 0x2040494080a0020, 5 },
-  [54 /* g7 */] = { 0xc0810040d840820, 5 },
-  [55 /* h7 */] = { 0x9100400404000, 5 },
-  [56 /* a8 */] = { 0x1010a10808010808, 6 },
-  [57 /* b8 */] = { 0x384a084208050880, 5 },
-  [58 /* c8 */] = { 0x2800100120841040, 5 },
-  [59 /* d8 */] = { 0x8a0101420200, 5 },
-  [60 /* e8 */] = { 0x80090240104104, 5 },
-  [61 /* f8 */] = { 0x204010010640, 5 },
-  [62 /* g8 */] = { 0x818860b42c0050, 5 },
-  [63 /* h8 */] = { 0xc20820400408200, 6 }, };
-
-const uint64_t known_magics_R[64][2] = {
-  //square      number               bits
- [0 /* a1 */] = {0x177801395e43fffa, 12},
- [1 /* b1 */] = {0x8400020009007c4,  11},
- [2 /* c1 */] = {0x80100020008008, 11},
- [3 /* d1 */] = {0x1100100028050021, 11},
- [4 /* e1 */] = {0x8180028008000c00, 11},
- [5 /* f1 */] = {0x2300010026040048, 11},
- [6 /* g1 */] = {0x1000c0082001700, 11},
- [7 /* h1 */] = {0x8880008010214300, 12},
- [8 /* a2 */] = {0x8080800040008024, 11},
- [9 /* b2 */] = {0x401008402000, 10},
- [10 /* c2 */] = {0x11002005110040, 10},
- [11 /* d2 */] = {0x80a1002104085000, 10},
- [12 /* e2 */] = {0x80800c00800802, 10},
- [13 /* f2 */] = {0x1001618840100, 10},
- [14 /* g2 */] = {0x2002802008441, 10},
- [15 /* h2 */] = {0x8088000c9000080, 11},
- [16 /* a3 */] = {0x82c0808000400028, 11},
- [17 /* b3 */] = {0x4020008020804000, 10},
- [18 /* c3 */] = {0x20600280100084a0, 10},
- [19 /* d3 */] = {0x2004808010002800, 10},
- [20 /* e3 */] = {0x8008009040080, 10},
- [21 /* f3 */] = {0x2040808014000200, 10},
- [22 /* g3 */] = {0x40008490230, 10},
- [23 /* h3 */] = {0x244020008609401, 11},
- [24 /* a4 */] = {0x800400080008020, 11},
- [25 /* b4 */] = {0x210004040026000, 10},
- [26 /* c4 */] = {0x1000120200408020, 10},
- [27 /* d4 */] = {0x1008100100490020, 10},
- [28 /* e4 */] = {0x25080080040081, 10},
- [29 /* f4 */] = {0x3022000200181005, 10},
- [30 /* g4 */] = {0x8430001000c0200, 10},
- [31 /* h4 */] = {0x1c001020000846c, 11},
- [32 /* a5 */] = {0xc00320c001800080, 11},
- [33 /* b5 */] = {0x802000804001, 10},
- [34 /* c5 */] = {0x200200249001100, 10},
- [35 /* d5 */] = {0x4208100280800800, 10},
- [36 /* e5 */] = {0x4082804800804400, 10},
- [37 /* f5 */] = {0x2006003006000805, 10},
- [38 /* g5 */] = {0x4200220804000110, 10},
- [39 /* h5 */] = {0x2246e402000081, 11},
- [40 /* a6 */] = {0x2040014020808000, 11},
- [41 /* b6 */] = {0x440003008006002, 10},
- [42 /* c6 */] = {0x8088624200820012, 10},
- [43 /* d6 */] = {0x28301a010050008, 10},
- [44 /* e6 */] = {0x8004080091010004, 10},
- [45 /* f6 */] = {0x81200191c820010, 10},
- [46 /* g6 */] = {0x401000200010004, 10},
- [47 /* h6 */] = {0x10400e8820001, 11},
- [48 /* a7 */] = {0x1002c00080012080, 11},
- [49 /* b7 */] = {0x41440822a050200, 10},
- [50 /* c7 */] = {0x20080a1144200, 10},
- [51 /* d7 */] = {0xc10001084180080, 10},
- [52 /* e7 */] = {0x407080181040080, 10},
- [53 /* f7 */] = {0x4190a040042801, 10},
- [54 /* g7 */] = {0x10830022400, 10},
- [55 /* h7 */] = {0x8100004c00830a00, 11},
- [56 /* a8 */] = {0x88800141122101, 12},
- [57 /* b8 */] = {0x329020885100c001, 11},
- [58 /* c8 */] = {0x1002008030203942, 11},
- [59 /* d8 */] = {0x800190144300021, 11},
- [60 /* e8 */] = {0x80e001020840802, 11},
- [61 /* f8 */] = {0x8742001008294402, 11},
- [62 /* g8 */] = {0x4100069c020001, 11},
- [63 /* h8 */] = {0x1032080c406, 12}
-};
-
-#pragma endregion
-
-typedef struct uo_magic
+typedef struct uo_slider_moves
 {
   uo_bitboard *moves;
   uo_bitboard mask;
-  uint64_t number;
-  uint8_t shift;
-} uo_magic;
+} uo_slider_moves;
 
 static uo_bitboard uo_moves_K[64];
 static uo_bitboard uo_moves_N[64];
 static uo_bitboard uo_attacks_P[2][64];
-
-static uo_magic uo_magics_B[64];
-static uo_magic uo_magics_R[64];
+static uo_slider_moves uo_moves_B[64];
+static uo_slider_moves uo_moves_R[64];
 
 static bool init;
 static int rand_seed;
@@ -536,59 +389,7 @@ static inline uo_bitboard uo_bitboard_gen_moves_R(uo_bitboard blockers, uo_squar
   return moves;
 }
 
-static inline void uo_magic_init(uo_magic *magic, uo_bitboard *blockers_moves /* alternating list of blockers and moves*/, uo_square square, const uint64_t known_magic[2])
-{
-  if (known_magic && known_magic[0])
-  {
-    magic->number = known_magic[0];
-    magic->shift = 64 - known_magic[1];
-  }
-
-  uint8_t shift = magic->shift;
-  uint8_t bits = 64 - shift;
-  uint64_t number = magic->number ? magic->number : (uo_rand() & uo_rand() & uo_rand());
-  uint16_t count = 1 << bits;
-
-  while (true)
-  {
-    memset(magic->moves, 0, count * sizeof * magic->moves);
-
-    uo_bitboard *ptr = blockers_moves;
-
-    for (size_t i = 0; i < count; i++)
-    {
-      uo_bitboard blockers = *ptr++;
-      uo_bitboard moves = *ptr++;
-
-      int index = (blockers * number) >> shift;
-
-      if (!magic->moves[index])
-      {
-        magic->moves[index] = moves;
-      }
-      else if (magic->moves[index] != moves)
-      {
-        number = uo_rand() & uo_rand() & uo_rand();
-
-        goto try_next_number;
-      }
-    }
-
-    if (!known_magic || !known_magic[0])
-    {
-      // suitable magic number was found
-      printf("suitable magic number was found\n");
-      printf("square: %d: { 0x%" PRIx64 ", %d },\n", square, number, bits);
-      printf("\n");
-      magic->number = number;
-    }
-
-    return;
-  try_next_number:;
-  }
-}
-
-void uo_magics_B_init(void)
+void uo_moves_B_init(void)
 {
   // 1. Generate blocker masks
 
@@ -598,60 +399,34 @@ void uo_magics_B_init(void)
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_bitboard mask = uo_bitboard_gen_mask_B(square);
-
-    uo_magics_B[square].mask = mask;
+    uo_moves_B[square].mask = mask;
     int bits = uo_popcnt(mask);
-    uo_magics_B[square].shift = 64 - bits;
     int blocker_board_count = 1 << bits;
     blocker_board_count_total += blocker_board_count;
-    blocker_board_count_max = blocker_board_count > blocker_board_count_max ? blocker_board_count : blocker_board_count_max;
-
-    // printf("%c%d - %d\n", 'a' + uo_square_file(square), 1 + uo_square_rank(i), i);
-    // uo_bitboard_print(mask);
-    // printf("\n");
   }
 
-  // 2. Allocate memory for blocker and move boards (and some extra space for temporary needs)
-  uo_bitboard *boards = malloc((blocker_board_count_total + blocker_board_count_max * 2) * sizeof * boards);
+  // 2. Allocate memory for move boards
+  uo_bitboard *boards = malloc(blocker_board_count_total * sizeof * boards);
 
   // 3. Generate blocker boards and move boards
   for (uo_square square = 0; square < 64; ++square)
   {
-    uo_magics_B[square].moves = boards;
-    uo_magic magic = uo_magics_B[square];
-    uo_bitboard mask = magic.mask;
-    uint8_t bits = 64 - magic.shift;
-    uint16_t permutation_count = 1 << bits;
+    uo_moves_B[square].moves = boards;
+    uo_bitboard mask = uo_moves_B[square].mask;
+    int bits = uo_popcnt(mask);
+    int permutation_count = 1 << bits;
     boards += permutation_count;
-    // alternating list of blockers and moves
-    uo_bitboard *blockers_moves = boards;
 
-    // printf("mask\n");
-    // uo_bitboard_print(mask);
-    // printf("\n");
-
-    for (uint16_t permutation = 0; permutation < permutation_count; ++permutation)
+    for (int permutation = 0; permutation < permutation_count; ++permutation)
     {
-      // 3.1. Create blocker board by setting masked bits on based on permutation binary representation
       uo_bitboard blockers = uo_bitboard_permutation(mask, bits, permutation);
       uo_bitboard moves = uo_bitboard_gen_moves_B(blockers, square);
-
-      *blockers_moves++ = blockers;
-      *blockers_moves++ = moves;
-
-      //printf("permutation: %d, \n", permutation);
-      //printf("blockers\n");
-      //uo_bitboard_print(blockers);
-      //printf("moves\n");
-      //uo_bitboard_print(moves);
-      //printf("\n");
+      uo_moves_B[square].moves[uo_pext(blockers, mask)] = moves;
     }
-
-    uo_magic_init(&uo_magics_B[square], boards, square, UO_REGENERATE_MAGICS ? NULL : known_magics_B[square]);
   }
 }
 
-void uo_magics_R_init(void)
+void uo_moves_R_init(void)
 {
   // 1. Generate blocker masks
 
@@ -661,56 +436,30 @@ void uo_magics_R_init(void)
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_bitboard mask = uo_bitboard_gen_mask_R(square);
-
-    uo_magics_R[square].mask = mask;
+    uo_moves_R[square].mask = mask;
     int bits = uo_popcnt(mask);
-    uo_magics_R[square].shift = 64 - bits;
     int blocker_board_count = 1 << bits;
     blocker_board_count_total += blocker_board_count;
-    blocker_board_count_max = blocker_board_count > blocker_board_count_max ? blocker_board_count : blocker_board_count_max;
-
-    // printf("%c%d - %d\n", 'a' + uo_square_file(square), 1 + uo_square_rank(i), i);
-    // uo_bitboard_print(mask);
-    // printf("\n");
   }
 
-  // 2. Allocate memory for blocker and move boards (and some extra space for temporary needs)
-  uo_bitboard *boards = malloc((blocker_board_count_total + blocker_board_count_max * 2) * sizeof * boards);
+  // 2. Allocate memory for move boards
+  uo_bitboard *boards = malloc(blocker_board_count_total * sizeof * boards);
 
   // 3. Generate blocker boards and move boards
   for (uo_square square = 0; square < 64; ++square)
   {
-    uo_magics_R[square].moves = boards;
-    uo_magic magic = uo_magics_R[square];
-    uo_bitboard mask = magic.mask;
-    uint8_t bits = 64 - magic.shift;
-    uint16_t permutation_count = 1 << bits;
+    uo_moves_R[square].moves = boards;
+    uo_bitboard mask = uo_moves_R[square].mask;
+    int bits = uo_popcnt(mask);
+    int permutation_count = 1 << bits;
     boards += permutation_count;
-    // alternating list of blockers and moves
-    uo_bitboard *blockers_moves = boards;
 
-    // printf("mask\n");
-    // uo_bitboard_print(mask);
-    // printf("\n");
-
-    for (uint16_t permutation = 0; permutation < permutation_count; ++permutation)
+    for (int permutation = 0; permutation < permutation_count; ++permutation)
     {
-      // 3.1. Create blocker board by setting masked bits on based on permutation binary representation
       uo_bitboard blockers = uo_bitboard_permutation(mask, bits, permutation);
       uo_bitboard moves = uo_bitboard_gen_moves_R(blockers, square);
-
-      *blockers_moves++ = blockers;
-      *blockers_moves++ = moves;
-
-      // printf("permutation: %d, \n", permutation);
-      // printf("blockers\n");
-      // uo_bitboard_print(blockers);
-      // printf("moves\n");
-      // uo_bitboard_print(moves);
-      // printf("\n");
+      uo_moves_R[square].moves[uo_pext(blockers, mask)] = moves;
     }
-
-    uo_magic_init(&uo_magics_R[square], boards, square, UO_REGENERATE_MAGICS ? NULL : known_magics_R[square]);
   }
 }
 
@@ -747,8 +496,8 @@ void uo_bitboard_init()
   uo_moves_K_init();
   uo_moves_N_init();
   uo_attacks_P_init();
-  uo_magics_B_init();
-  uo_magics_R_init();
+  uo_moves_B_init();
+  uo_moves_R_init();
 }
 
 uo_bitboard uo_bitboard_pins(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers, uo_bitboard line_attackers)
@@ -1171,16 +920,14 @@ uo_bitboard uo_bitboard_attacks_N(uo_square square)
 
 uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers)
 {
-  uo_magic magic = uo_magics_B[square];
-  int index = ((blockers & magic.mask) * magic.number) >> magic.shift;
-  return magic.moves[index];
+  uo_slider_moves slider_moves = uo_moves_B[square];
+  return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
 }
 
 uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers)
 {
-  uo_magic magic = uo_magics_R[square];
-  int index = ((blockers & magic.mask) * magic.number) >> magic.shift;
-  return magic.moves[index];
+  uo_slider_moves slider_moves = uo_moves_R[square];
+  return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
 }
 
 uo_bitboard uo_bitboard_attacks_K(uo_square square)

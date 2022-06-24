@@ -70,6 +70,8 @@ extern "C"
 
 # define uo_msb(u64) ((int8_t)(63 - (int8_t)uo_lzcnt(u64)))
 
+# define uo_pext _pext_u64
+
 #endif
 
 

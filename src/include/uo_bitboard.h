@@ -29,7 +29,7 @@ extern "C"
 
   static inline uo_square uo_bitboard_next_square(uo_bitboard *bitboard)
   {
-    uo_square lsb = uo_lsb(*bitboard);
+    uo_square lsb = uo_tzcnt(*bitboard);
     *bitboard = uo_blsr(*bitboard);
     return lsb;
   }
