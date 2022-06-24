@@ -41,6 +41,8 @@ extern "C"
     uo_bitboard Q;
     uo_bitboard K;
 
+    uo_piece board[64];
+
     uo_position_flags flags;
     uint16_t fullmove;
 
@@ -162,37 +164,15 @@ extern "C"
 
   size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
 
-  typedef void uo_position_unmake_move(uo_position *position, uo_move_ex move, uo_position_flags flags_prev);
+  typedef void uo_position_unmake_move(uo_position *position, uo_move move, uo_position_flags flags_prev, uo_piece piece_captured);
 
-  uo_position_unmake_move *uo_position_make_move(uo_position *position, uo_move_ex move);
+  uo_position_unmake_move *uo_position_make_move(uo_position *position, uo_move move);
 
-  size_t uo_position_get_moves(uo_position *position, uo_move_ex *movelist);
+  size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
 
   double uo_position_evaluate(uo_position *position);
 
-  static inline uo_piece uo_position_bitboard_piece(uo_position *position, uo_bitboard mask)
-  {
-    uo_piece piece;
-
-    if (mask & position->P) piece = uo_piece__P;
-    else if (mask & position->N) piece = uo_piece__N;
-    else if (mask & position->B) piece = uo_piece__B;
-    else if (mask & position->R) piece = uo_piece__R;
-    else if (mask & position->Q) piece = uo_piece__Q;
-    else if (mask & position->K) piece = uo_piece__K;
-    else return 0;
-
-    piece |= (mask & position->piece_color) ? uo_piece__black : uo_piece__white;
-    return piece;
-  }
-
-  static inline uo_piece uo_position_square_piece(uo_position *position, uo_square square)
-  {
-    uo_bitboard mask = uo_square_bitboard(square);
-    return uo_position_bitboard_piece(position, mask);
-  }
-
-  uo_move_ex uo_position_parse_move(uo_position *position, char str[5]);
+  uo_move uo_position_parse_move(uo_position *position, char str[5]);
 
 #ifdef __cplusplus
 }

@@ -14,14 +14,6 @@ extern "C"
   // see: https://www.chessprogramming.org/Encoding_Moves#From-To_Based
   typedef uint16_t uo_move;
 
-  // see: https://www.chessprogramming.org/Encoding_Moves#Extended_Move_Structure
-  typedef struct uo_move_ex
-  {
-    uo_move move;
-    uo_piece piece;
-    uo_piece piece_captured;
-  } uo_move_ex;
-
   typedef int8_t uo_move_type;
 
 #define uo_move_type__illegal ((uo_move_type)-1)

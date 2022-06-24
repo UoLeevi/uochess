@@ -13,7 +13,7 @@ int search_id;
 
 char buf[0x1000];
 
-static double uo_search_negamax(uo_search *search, size_t depth, double color, uo_move_ex *moves)
+static double uo_search_negamax(uo_search *search, size_t depth, double color, uo_move *moves)
 {
   if (depth == 0 /* or node is a terminal node */)
   {
@@ -28,7 +28,8 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
 
   for (int64_t i = 0; i < nodes_count; ++i)
   {
-    uo_move_ex move = search->head[i - nodes_count];
+    uo_move move = search->head[i - nodes_count];
+    uo_piece piece_captured = search->position.board[uo_move_square_to(move)];
     uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
 
     //uo_position_print_diagram(&search->position, buf);
@@ -44,7 +45,7 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
       *moves = move;
     }
 
-    unmake_move(&search->position, move, flags);
+    unmake_move(&search->position, move, flags, piece_captured);
   }
 
   search->head -= nodes_count;
@@ -72,16 +73,17 @@ size_t uo_search_perft(uo_search *search, size_t depth)
 
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move_ex move = search->head[i - move_count];
+    uo_move move = search->head[i - move_count];
+    uo_piece piece_captured = search->position.board[uo_move_square_to(move)];
     uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
-    //uo_move_print(move.move, buf);
+    //uo_move_print(move, buf);
     //printf("move: %s\n", buf);
     //uo_position_print_fen(&search->position, buf);
     //printf("%s\n", buf);
     //uo_position_print_diagram(&search->position, buf);
     //printf("%s\n", buf);
     node_count += uo_search_perft(search, depth - 1);
-    unmake_move(&search->position, move, flags);
+    unmake_move(&search->position, move, flags, piece_captured);
 
     //uo_position_print_fen(&search->position, fen_after_unmake);
 
@@ -90,7 +92,7 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     //  uo_position position;
     //  uo_position_from_fen(&position, fen_before_make);
 
-    //  uo_move_print(move.move, buf);
+    //  uo_move_print(move, buf);
     //  printf("error when unmaking move: %s\n", buf);
     //  printf("\nbefore make move\n");
     //  uo_position_print_diagram(&position, buf);

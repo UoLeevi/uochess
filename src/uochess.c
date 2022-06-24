@@ -132,20 +132,20 @@ static void process_cmd__ready(void)
       {
         if (strlen(ptr) < 4) return;
 
-        uo_move_ex move = uo_position_parse_move(&search.position, ptr);
-        if (!move.piece) return;
+        uo_move move = uo_position_parse_move(&search.position, ptr);
+        if (!move) return;
 
-        uo_square square_from = uo_move_square_from(move.move);
-        uo_square square_to = uo_move_square_to(move.move);
+        uo_square square_from = uo_move_square_from(move);
+        uo_square square_to = uo_move_square_to(move);
 
         int move_count = uo_position_get_moves(&search.position, search.head);
         search.head += move_count;
 
         for (int i = 0; i < move_count; ++i)
         {
-          uo_move_ex move = search.head[i - move_count];
-          if (square_from == uo_move_square_from(move.move)
-            && square_to == uo_move_square_to(move.move))
+          uo_move move = search.head[i - move_count];
+          if (square_from == uo_move_square_from(move)
+            && square_to == uo_move_square_to(move))
           {
             uo_position_make_move(&search.position, move);
             *search.head++ = move;
@@ -171,12 +171,12 @@ static void report_search_info(uo_search_info info)
     printf("info depth %d seldepth %d multipv %d score cp %d nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
       info.depth, info.seldepth, info.multipv, info.pv[i].score.cp, info.nodes, info.nps, info.tbhits, info.time);
 
-    uo_move_ex *moves = info.pv[i].moves;
+    uo_move *moves = info.pv[i].moves;
 
-    while (moves->piece)
+    while (*moves)
     {
-      uo_move_ex move = *moves++;
-      uo_move_print(move.move, buf);
+      uo_move move = *moves++;
+      uo_move_print(move, buf);
       printf(" %s", buf);
     }
 
@@ -184,8 +184,8 @@ static void report_search_info(uo_search_info info)
 
     if (info.completed && info.multipv == 1)
     {
-      uo_move_ex bestmove = *info.pv[i].moves;
-      uo_move_print(bestmove.move, buf);
+      uo_move bestmove = *info.pv[i].moves;
+      uo_move_print(bestmove, buf);
       printf("bestmove %s\n", buf);
     }
   }
@@ -229,11 +229,12 @@ static void process_cmd__position(void)
 
         for (int64_t i = 0; i < move_count; ++i)
         {
-          uo_move_ex move = search.head[i - move_count];
-          uo_move_print(move.move, buf);
+          uo_move move = search.head[i - move_count];
+          uo_piece piece_captured = search.position.board[uo_move_square_to(move)];
+          uo_move_print(move, buf);
           uo_position_unmake_move *unmake_move = uo_position_make_move(&search.position, move);
           size_t node_count = depth == 1 ? 1 : uo_search_perft(&search, depth - 1);
-          unmake_move(&search.position, move, flags);
+          unmake_move(&search.position, move, flags, piece_captured);
           total_node_count += node_count;
           printf("%s: %zu\n", buf, node_count);
         }
