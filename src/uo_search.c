@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
 
 int search_id;
 
@@ -55,6 +56,7 @@ static double uo_search_negamax(uo_search *search, size_t depth, double color, u
 size_t uo_search_perft(uo_search *search, size_t depth)
 {
   size_t move_count = uo_position_get_moves(&search->position, search->head);
+  //uint64_t key = search->position.key;
 
   if (depth == 1)
   {
@@ -84,25 +86,30 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     //printf("%s\n", buf);
     node_count += uo_search_perft(search, depth - 1);
     unmake_move(&search->position, move, flags, piece_captured);
+    //assert(search->position.key == key);
 
     //uo_position_print_fen(&search->position, fen_after_unmake);
 
-    //if (strcmp(fen_before_make, fen_after_unmake) != 0)
+    //if (/*strcmp(fen_before_make, fen_after_unmake) != 0 || */key != search->position.key)
     //{
-    //  uo_position position;
-    //  uo_position_from_fen(&position, fen_before_make);
+    //  //uo_position position;
+    //  //uo_position_from_fen(&position, fen_before_make);
 
-    //  uo_move_print(move, buf);
-    //  printf("error when unmaking move: %s\n", buf);
-    //  printf("\nbefore make move\n");
-    //  uo_position_print_diagram(&position, buf);
-    //  printf("\n%s", buf);
-    //  printf("\nFen: %s\n", fen_before_make);
-    //  printf("\nafter unmake move\n");
-    //  uo_position_print_diagram(&search->position, buf);
-    //  printf("\n%s", buf);
-    //  printf("\nFen: %s\n", fen_after_unmake);
-    //  printf("\n");
+    //  //uo_move_print(move, buf);
+    //  //printf("error when unmaking move: %s\n", buf);
+    //  //printf("\nbefore make move\n");
+    //  //uo_position_print_diagram(&position, buf);
+    //  //printf("\n%s", buf);
+    //  //printf("\n");
+    //  //printf("Fen: %s\n", fen_before_make);
+    //  //printf("Key: %" PRIu64 "\n", key);
+    //  //printf("\nafter unmake move\n");
+    //  //uo_position_print_diagram(&search->position, buf);
+    //  //printf("\n%s", buf);
+    //  //printf("\n");
+    //  //printf("Fen: %s\n", fen_after_unmake);
+    //  //printf("Key: %" PRIu64 "\n", search->position.key);
+    //  //printf("\n");
     //}
   }
 

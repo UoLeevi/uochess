@@ -38,6 +38,8 @@ void uo_rand_init(uint64_t seed)
 {
   state.s[0] = seed;
   xoshiro256p(&state);
+  xoshiro256p(&state);
+  xoshiro256p(&state);
 }
 
 

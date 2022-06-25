@@ -4,11 +4,11 @@ add_executable(uochess
     uochess.c
     uo_bitboard.c
     uo_position.c
-    uo_piece.c
     uo_square.c
     uo_move.c
     uo_search.c
     uo_util.c
+    uo_zobrist.c
     uo_test.c)
 
 target_include_directories(uochess

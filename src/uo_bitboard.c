@@ -36,7 +36,6 @@ static uo_slider_moves uo_moves_B[64];
 static uo_slider_moves uo_moves_R[64];
 
 static bool init;
-static int rand_seed;
 
 int uo_bitboard_print(uo_bitboard bitboard)
 {
@@ -489,9 +488,6 @@ void uo_bitboard_init()
     uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
     uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
   }
-
-  rand_seed = time(NULL);
-  uo_rand_init(rand_seed);
 
   uo_moves_K_init();
   uo_moves_N_init();

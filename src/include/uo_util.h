@@ -53,7 +53,7 @@ extern "C"
 
 # define uo_bzhi _bzhi_u64
 
-// ~a & b)
+// ~a & b
 # define uo_andn _andn_u64
 
 // (a - 1) & a

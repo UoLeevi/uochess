@@ -10,31 +10,64 @@ extern "C"
 
   typedef uint8_t uo_piece;
 
-  //                                               0b00000000
-  //                                                    QQ
-  //                                                   KRBNP
-  extern const uo_piece uo_piece__P;   // = 0x02 - 0b00000010
-  extern const uo_piece uo_piece__N;   // = 0x04 - 0b00000100
-  extern const uo_piece uo_piece__B;   // = 0x08 - 0b00001000
-  extern const uo_piece uo_piece__R;   // = 0x10 - 0b00010000
-  extern const uo_piece uo_piece__Q;   // = 0x18 - 0b00011000
-  extern const uo_piece uo_piece__K;   // = 0x20 - 0b00100000
-  extern const uo_piece uo_piece__p;   // = 0x03 - 0b00000011
-  extern const uo_piece uo_piece__n;   // = 0x05 - 0b00000101
-  extern const uo_piece uo_piece__b;   // = 0x09 - 0b00001001
-  extern const uo_piece uo_piece__r;   // = 0x11 - 0b00010001
-  extern const uo_piece uo_piece__q;   // = 0x19 - 0b00011001
-  extern const uo_piece uo_piece__k;   // = 0x21 - 0b00100001
+#define uo_piece__P ((uo_piece)0x2) // P 0b0010
+#define uo_piece__N ((uo_piece)0x4) // N 0b0100
+#define uo_piece__B ((uo_piece)0x6) // B 0b0110
+#define uo_piece__R ((uo_piece)0x8) // R 0b1000
+#define uo_piece__Q ((uo_piece)0xA) // Q 0b1010
+#define uo_piece__K ((uo_piece)0xC) // K 0b1100
+#define uo_piece__p ((uo_piece)0x3) // p 0b0011
+#define uo_piece__n ((uo_piece)0x5) // n 0b0101
+#define uo_piece__b ((uo_piece)0x7) // b 0b0111
+#define uo_piece__r ((uo_piece)0x9) // r 0b1001
+#define uo_piece__q ((uo_piece)0xB) // q 0b1011
+#define uo_piece__k ((uo_piece)0xD) // k 0b1101
 
-  extern const uo_piece uo_piece__any; // = 0x3E - 0b00111110
-
-  extern const uo_piece uo_piece__white; // = 0x00;
-  extern const uo_piece uo_piece__black; // = 0x01;
-
-  extern const char uo_piece_to_char[0x100];
-  extern const uo_piece uo_piece_from_char[0x100];
+#define uo_piece__white ((uo_piece)0x0)
+#define uo_piece__black ((uo_piece)0x1)
 
 #define uo_piece_color(piece) ((piece) & (uo_piece)0x1)
+#define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
+
+  static inline char uo_piece_to_char(uo_piece piece)
+  {
+    switch (piece)
+    {
+      case uo_piece__P: return 'P';
+      case uo_piece__N: return 'N';
+      case uo_piece__B: return 'B';
+      case uo_piece__R: return 'R';
+      case uo_piece__Q: return 'Q';
+      case uo_piece__K: return 'K';
+      case uo_piece__p: return 'p';
+      case uo_piece__n: return 'n';
+      case uo_piece__b: return 'b';
+      case uo_piece__r: return 'r';
+      case uo_piece__q: return 'q';
+      case uo_piece__k: return 'k';
+      default: return 0;
+    }
+  };
+
+  static inline uo_piece uo_piece_from_char(char chr)
+  {
+    switch (chr)
+    {
+      case 'P': return uo_piece__P;
+      case 'N': return uo_piece__N;
+      case 'B': return uo_piece__B;
+      case 'R': return uo_piece__R;
+      case 'Q': return uo_piece__Q;
+      case 'K': return uo_piece__K;
+      case 'p': return uo_piece__p;
+      case 'n': return uo_piece__n;
+      case 'b': return uo_piece__b;
+      case 'r': return uo_piece__r;
+      case 'q': return uo_piece__q;
+      case 'k': return uo_piece__k;
+      default: return 0;
+    }
+  };
 
 #ifdef __cplusplus
 }

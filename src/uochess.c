@@ -4,6 +4,7 @@
 #include "uo_util.h"
 #include "uo_move.h"
 #include "uo_square.h"
+#include "uo_zobrist.h"
 #include "uo_search.h"
 #include "uo_test.h"
 
@@ -40,6 +41,7 @@ enum state
 
 static void engine_init(void)
 {
+  uo_zobrist_init();
   uo_bitboard_init();
   search.head = search.moves;
   options.multipv = 1;
@@ -206,7 +208,9 @@ static void process_cmd__position(void)
     uo_position_print_diagram(&search.position, buf);
     printf("\n%s", buf);
     uo_position_print_fen(&search.position, buf);
-    printf("\nFen: %s\n", buf);
+    printf("\n");
+    printf("Fen: %s\n", buf);
+    printf("Key: %" PRIu64 "\n", search.position.key);
     return;
   }
 

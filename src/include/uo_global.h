@@ -1,5 +1,5 @@
-#ifndef UO_COMMON_H
-#define UO_COMMON_H
+#ifndef UO_GLOBAL_H
+#define UO_GLOBAL_H
 
 #ifdef __cplusplus
 extern "C"

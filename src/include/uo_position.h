@@ -43,9 +43,11 @@ extern "C"
 
     uo_piece board[64];
 
+    uo_piece piece_captured;
     uo_position_flags flags;
     uint16_t fullmove;
 
+    uint64_t key;
   } uo_position;
 
 #pragma region uo_position_flags__functions
@@ -151,10 +153,6 @@ extern "C"
   }
 
 #pragma endregion
-
-  extern const size_t uo_position__piece_bitboard_offset[0x22];
-
-#define uo_position_piece_bitboard(position, piece) (uo_bitboard *)((uint8_t *)(position) + uo_position__piece_bitboard_offset[piece])
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
