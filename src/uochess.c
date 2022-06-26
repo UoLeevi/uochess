@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <time.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,8 +28,10 @@ char *ptr;
 struct
 {
   uint16_t multipv;
+  size_t hash_size;
 } options;
 
+// global (for now)
 uo_search search;
 
 enum state
@@ -45,6 +48,10 @@ static void engine_init(void)
   uo_bitboard_init();
   search.head = search.moves;
   options.multipv = 1;
+
+  size_t capacity = (size_t)16000000 / sizeof * search.ttable.entries;
+  capacity = (size_t)1 << uo_msb(capacity);
+  options.hash_size = capacity * sizeof * search.ttable.entries;
 }
 
 static void process_cmd__init(void)
@@ -53,6 +60,7 @@ static void process_cmd__init(void)
   {
     printf("id name uochess\n");
     printf("id author Leevi Uotinen\n\n");
+    printf("option name Hash type spin default 16 min 1 max 33554432\n");
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
     printf("uciok\n");
     state = OPTIONS;
@@ -68,17 +76,25 @@ static void process_cmd__options(void)
     ptr = strtok(NULL, " ");
     ptr = strtok(NULL, " ");
 
-    int spin;
+    int64_t spin;
 
-    if (ptr && sscanf(ptr, "MultiPV value %d", &spin) == 1 && spin >= 1 && spin <= 500)
+    if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
     {
       options.multipv = spin;
+    }
+
+    if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
+    {
+      size_t capacity = spin * (size_t)1000000 / sizeof * search.ttable.entries;
+      options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * search.ttable.entries;
     }
   }
   else if (ptr && strcmp(ptr, "isready") == 0)
   {
     printf("readyok\n");
 
+    size_t capacity = options.hash_size / sizeof * search.ttable.entries;
+    uo_ttable_init(&search.ttable, uo_msb(capacity) + 1);
     search.pv = malloc(options.multipv * sizeof * search.pv);
 
     state = READY;
@@ -171,23 +187,35 @@ static void report_search_info(uo_search_info info)
   for (int i = 0; i < info.multipv; ++i)
   {
     printf("info depth %d seldepth %d multipv %d score cp %d nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
-      info.depth, info.seldepth, info.multipv, info.pv[i].score.cp, info.nodes, info.nps, info.tbhits, info.time);
+      info.depth, info.seldepth, info.multipv, info.search->pv[i].score, info.nodes, info.nps, info.tbhits, info.time);
 
-    uo_move *moves = info.pv[i].moves;
+    size_t pv_len = 1;
+    uo_tentry pv_entry = *info.search->pv;
 
-    while (*moves)
+    for (size_t i = 0; i < info.depth; ++i)
     {
-      uo_move move = *moves++;
-      uo_move_print(move, buf);
+      uo_move_print(pv_entry.bestmove, buf);
       printf(" %s", buf);
+
+      uo_position_make_move(&info.search->position, pv_entry.bestmove);
+      pv_entry = *uo_ttable_get(&info.search->ttable, info.search->position.key);
+
+      if (!pv_entry.bestmove)
+      {
+        while (i--)
+        {
+          uo_position_unmake_move(&info.search->position);
+        }
+
+        break;
+      }
     }
 
     printf("\n");
 
     if (info.completed && info.multipv == 1)
     {
-      uo_move bestmove = *info.pv[i].moves;
-      uo_move_print(bestmove, buf);
+      uo_move_print(info.search->pv->bestmove, buf);
       printf("bestmove %s\n", buf);
     }
   }
@@ -228,17 +256,15 @@ static void process_cmd__position(void)
         clock_t clock_start = clock();
         size_t total_node_count = 0;
         size_t move_count = uo_position_get_moves(&search.position, search.head);
-        uo_position_flags flags = search.position.flags;
         search.head += move_count;
 
         for (int64_t i = 0; i < move_count; ++i)
         {
           uo_move move = search.head[i - move_count];
-          uo_piece piece_captured = search.position.board[uo_move_square_to(move)];
           uo_move_print(move, buf);
-          uo_position_unmake_move *unmake_move = uo_position_make_move(&search.position, move);
+          uo_position_make_move(&search.position, move);
           size_t node_count = depth == 1 ? 1 : uo_search_perft(&search, depth - 1);
-          unmake_move(&search.position, move, flags, piece_captured);
+          uo_position_unmake_move(&search.position);
           total_node_count += node_count;
           printf("%s: %zu\n", buf, node_count);
         }
@@ -331,7 +357,7 @@ int main(
   {
     ptr = strtok(buf, "\n ");
 
-    if (strcmp(ptr, "quit") == 0)
+    if (ptr && strcmp(ptr, "quit") == 0)
     {
       return 0;
     }

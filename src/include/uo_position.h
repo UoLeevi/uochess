@@ -9,6 +9,7 @@ extern "C"
 #include "uo_bitboard.h"
 #include "uo_piece.h"
 #include "uo_move.h"
+#include "uo_def.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -30,6 +31,13 @@ extern "C"
       8 q
   */
 
+  typedef struct uo_position_state
+  {
+    uo_position_flags flags;
+    uo_move move;
+    uo_piece piece_captured;
+  } uo_position_state;
+
   typedef struct uo_position
   {
     uo_bitboard piece_color;
@@ -43,11 +51,13 @@ extern "C"
 
     uo_piece board[64];
 
-    uo_piece piece_captured;
     uo_position_flags flags;
     uint16_t fullmove;
 
     uint64_t key;
+
+    uo_position_state state[UO_MAX_PLY];
+    uo_position_state *stack;
   } uo_position;
 
 #pragma region uo_position_flags__functions
@@ -162,13 +172,15 @@ extern "C"
 
   size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
 
-  typedef void uo_position_unmake_move(uo_position *position, uo_move move, uo_position_flags flags_prev, uo_piece piece_captured);
+  void uo_position_make_move(uo_position *position, uo_move move);
 
-  uo_position_unmake_move *uo_position_make_move(uo_position *position, uo_move move);
+  void uo_position_unmake_move(uo_position *position);
 
   size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
 
   double uo_position_evaluate(uo_position *position);
+
+  bool uo_position_is_check(uo_position *position);
 
   uo_move uo_position_parse_move(uo_position *position, char str[5]);
 

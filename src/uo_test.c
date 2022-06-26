@@ -98,7 +98,6 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
     }
 
     move_count = uo_position_get_moves(&search->position, search->head);
-    uo_position_flags flags = search->position.flags;
     search->head += move_count;
 
     while (fgets(ptr, ptr - buf, fp))
@@ -117,7 +116,6 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       uo_square square_from = uo_move_square_from(move);
       uo_square square_to = uo_move_square_to(move);
-      uo_piece piece_captured = search->position.board[square_to];
       uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
 
       size_t node_count_expected;
@@ -145,7 +143,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
           // move found
 
-          uo_position_unmake_move *unmake_move = uo_position_make_move(&search->position, move);
+          uo_position_make_move(&search->position, move);
           size_t node_count = depth == 1 ? 1 : uo_search_perft(search, depth - 1);
 
           if (node_count != node_count_expected)
@@ -160,7 +158,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
             return false;
           }
 
-          unmake_move(&search->position, move, flags, piece_captured);
+          uo_position_unmake_move(&search->position);
 
           search->head[i - move_count] = (uo_move){ 0 };
           goto next_move;
