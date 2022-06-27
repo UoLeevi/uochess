@@ -178,9 +178,9 @@ extern "C"
 
   size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
 
-  double uo_position_evaluate(uo_position *position);
-
   bool uo_position_is_check(uo_position *position);
+
+  bool uo_position_is_legal_move(uo_position *position, uo_move move);
 
   uo_move uo_position_parse_move(uo_position *position, char str[5]);
 

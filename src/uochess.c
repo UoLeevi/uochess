@@ -192,23 +192,22 @@ static void report_search_info(uo_search_info info)
     size_t pv_len = 1;
     uo_tentry pv_entry = *info.search->pv;
 
-    for (size_t i = 0; i < info.depth; ++i)
+    size_t i = 0;
+
+    for (; i < info.depth && pv_entry.bestmove; ++i)
     {
       uo_move_print(pv_entry.bestmove, buf);
       printf(" %s", buf);
 
+      assert(uo_position_is_legal_move(&info.search->position, pv_entry.bestmove));
+
       uo_position_make_move(&info.search->position, pv_entry.bestmove);
       pv_entry = *uo_ttable_get(&info.search->ttable, info.search->position.key);
+    }
 
-      if (!pv_entry.bestmove)
-      {
-        while (i--)
-        {
-          uo_position_unmake_move(&info.search->position);
-        }
-
-        break;
-      }
+    while (i--)
+    {
+      uo_position_unmake_move(&info.search->position);
     }
 
     printf("\n");

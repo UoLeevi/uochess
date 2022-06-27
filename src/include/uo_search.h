@@ -17,10 +17,10 @@ extern "C"
   typedef struct uo_search
   {
     uo_position position;
-    uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
-    uo_move *head;
     uo_ttable ttable;
     uo_tentry *pv;
+    uo_move *head;
+    uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
   } uo_search;
 
   typedef struct uo_search_info

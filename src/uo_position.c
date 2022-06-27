@@ -1061,7 +1061,6 @@ void uo_position_make_move_quiet__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_default__white;
 }
 
 void uo_position_make_move_quiet__black(uo_position *position, uo_move move)
@@ -1095,7 +1094,6 @@ void uo_position_make_move_quiet__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_default__black;
 }
 
 
@@ -1141,7 +1139,6 @@ void uo_position_make_move_P_double_push__white(uo_position *position, uo_move m
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_default__white;
 }
 
 void uo_position_make_move_P_double_push__black(uo_position *position, uo_move move)
@@ -1186,7 +1183,6 @@ void uo_position_make_move_P_double_push__black(uo_position *position, uo_move m
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_default__black;
 }
 
 
@@ -1205,7 +1201,6 @@ void uo_position_make_move_OO__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_castling_white(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_OO__white;
 }
 
 void uo_position_make_move_OO__black(uo_position *position, uo_move move)
@@ -1223,7 +1218,6 @@ void uo_position_make_move_OO__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_castling_black(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_OO__black;
 }
 
 
@@ -1242,7 +1236,6 @@ void uo_position_make_move_OOO__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_castling_white(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_OOO__white;
 }
 
 void uo_position_make_move_OOO__black(uo_position *position, uo_move move)
@@ -1260,7 +1253,6 @@ void uo_position_make_move_OOO__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_castling_black(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_OOO__black;
 }
 
 
@@ -1313,7 +1305,6 @@ void uo_position_make_move_x__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_x__white;
 }
 
 void uo_position_make_move_x__black(uo_position *position, uo_move move)
@@ -1365,7 +1356,6 @@ void uo_position_make_move_x__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_x__black;
 }
 
 
@@ -1381,7 +1371,6 @@ void uo_position_make_move_enpassant__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_enpassant__white;
 }
 
 void uo_position_make_move_enpassant__black(uo_position *position, uo_move move)
@@ -1396,7 +1385,6 @@ void uo_position_make_move_enpassant__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_enpassant__black;
 }
 
 
@@ -1412,7 +1400,6 @@ void uo_position_make_move_promo_N__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo__white;
 }
 
 void uo_position_make_move_promo_N__black(uo_position *position, uo_move move)
@@ -1427,7 +1414,6 @@ void uo_position_make_move_promo_N__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo__black;
 }
 
 
@@ -1443,7 +1429,6 @@ void uo_position_make_move_promo_B__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo__white;
 }
 
 void uo_position_make_move_promo_B__black(uo_position *position, uo_move move)
@@ -1458,7 +1443,6 @@ void uo_position_make_move_promo_B__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo__black;
 }
 
 
@@ -1474,7 +1458,6 @@ void uo_position_make_move_promo_R__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo__white;
 }
 
 void uo_position_make_move_promo_R__black(uo_position *position, uo_move move)
@@ -1489,7 +1472,6 @@ void uo_position_make_move_promo_R__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo__black;
 }
 
 
@@ -1505,7 +1487,6 @@ void uo_position_make_move_promo_Q__white(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo__white;
 }
 
 void uo_position_make_move_promo_Q__black(uo_position *position, uo_move move)
@@ -1520,7 +1501,6 @@ void uo_position_make_move_promo_Q__black(uo_position *position, uo_move move)
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo__black;
 }
 
 
@@ -1555,7 +1535,6 @@ void uo_position_make_move_promo_Nx__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo_x__white;
 }
 
 void uo_position_make_move_promo_Nx__black(uo_position *position, uo_move move)
@@ -1589,7 +1568,6 @@ void uo_position_make_move_promo_Nx__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo_x__black;
 }
 
 
@@ -1624,7 +1602,6 @@ void uo_position_make_move_promo_Bx__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo_x__white;
 }
 
 void uo_position_make_move_promo_Bx__black(uo_position *position, uo_move move)
@@ -1658,7 +1635,6 @@ void uo_position_make_move_promo_Bx__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo_x__black;
 }
 
 
@@ -1693,7 +1669,6 @@ void uo_position_make_move_promo_Rx__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo_x__white;
 }
 
 void uo_position_make_move_promo_Rx__black(uo_position *position, uo_move move)
@@ -1727,7 +1702,6 @@ void uo_position_make_move_promo_Rx__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo_x__black;
 }
 
 
@@ -1762,7 +1736,6 @@ void uo_position_make_move_promo_Qx__white(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__white(position, flags);
-  return uo_position_unmake_move_promo_x__white;
 }
 
 void uo_position_make_move_promo_Qx__black(uo_position *position, uo_move move)
@@ -1796,7 +1769,6 @@ void uo_position_make_move_promo_Qx__black(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn__black(position, flags);
-  return uo_position_unmake_move_promo_x__black;
 }
 
 typedef void uo_make_move(uo_position *position, uo_move move);
@@ -1833,7 +1805,7 @@ uo_make_move *uo_position_make_move_for_type[] = {
   [(uo_move_type__promo_Qx << 1) + 1] = uo_position_make_move_promo_Qx__black
 };
 
-typedef void uo_unmake_move(uo_position *position);
+typedef void uo_unmake_move(uo_position *position, uo_move move);
 
 // alternating for each color
 uo_unmake_move *uo_position_unmake_move_for_type[] = {
@@ -1874,13 +1846,13 @@ void uo_position_make_move(uo_position *position, uo_move move)
   uint8_t color_to_move = uo_position_flags_color_to_move(flags);
   uo_move_type move_type = uo_move_get_type(move);
 
-  *position->stack++ = (uo_position_state) {
+  *position->stack++ = (uo_position_state){
     .flags = flags,
     .move = move,
     .piece_captured = piece_captured
   };
 
-  return uo_position_make_move_for_type[(move_type << 1) + color_to_move](position, move);
+  uo_position_make_move_for_type[(move_type << 1) + color_to_move](position, move);
 }
 
 void uo_position_unmake_move(uo_position *position)
@@ -1890,10 +1862,39 @@ void uo_position_unmake_move(uo_position *position)
   uint8_t color_to_move = uo_position_flags_color_to_move(flags);
   uo_move_type move_type = uo_move_get_type(move);
 
-  return uo_position_unmake_move_for_type[(move_type << 1) + !color_to_move](position, move);
+  uo_position_unmake_move_for_type[(move_type << 1) + !color_to_move](position, move);
 }
 
 #pragma endregion
+
+bool uo_position_is_legal_move(uo_position *position, uo_move move)
+{
+  uo_piece *board = position->board;
+  uo_square square_from = uo_move_square_from(move);
+  uo_piece piece = board[square_from];
+  if (!piece) return false;
+
+  uint8_t color_to_move = uo_position_flags_color_to_move(position->flags);
+  if (uo_piece_color(piece) != color_to_move) return false;
+
+  //uo_move_type move_type = uo_move_get_type(move);
+  //uo_square square_to = uo_move_square_to(move);
+  //uo_piece piece_captured = board[square_to];
+
+  uo_position_make_move(position, move);
+
+  position->flags ^= 1;
+
+  if (uo_position_is_check(position))
+  {
+    position->flags ^= 1;
+    return false;
+  }
+
+  position->flags ^= 1;
+  uo_position_unmake_move(position);
+  return true;
+}
 
 size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 {
@@ -2985,67 +2986,4 @@ uo_move uo_position_parse_move(uo_position *position, char str[5])
   }
 
   return uo_move_encode(square_from, square_to, move_type);
-}
-
-#pragma region evaluation_features
-
-static double uo_position_evaluation_feature_material_P(uo_position *position, uint8_t color)
-{
-  return uo_popcnt(position->P & (color ? position->piece_color : ~position->piece_color));
-}
-static double uo_position_evaluation_feature_material_N(uo_position *position, uint8_t color)
-{
-  return uo_popcnt(position->N & (color ? position->piece_color : ~position->piece_color));
-}
-static double uo_position_evaluation_feature_material_B(uo_position *position, uint8_t color)
-{
-  return uo_popcnt(position->B & (color ? position->piece_color : ~position->piece_color));
-}
-static double uo_position_evaluation_feature_material_R(uo_position *position, uint8_t color)
-{
-  return uo_popcnt(position->R & (color ? position->piece_color : ~position->piece_color));
-}
-static double uo_position_evaluation_feature_material_Q(uo_position *position, uint8_t color)
-{
-  return uo_popcnt(position->Q & (color ? position->piece_color : ~position->piece_color));
-}
-
-#pragma endregion
-
-static const double (*eval_features[])(uo_position *position, uint8_t color) = {
-    uo_position_evaluation_feature_material_P,
-    uo_position_evaluation_feature_material_N,
-    uo_position_evaluation_feature_material_B,
-    uo_position_evaluation_feature_material_R,
-    uo_position_evaluation_feature_material_Q };
-
-#define UO_EVAL_FEATURE_COUNT (sizeof eval_features / sizeof *eval_features)
-
-double weights[UO_EVAL_FEATURE_COUNT << 1] =
-{
-    1.0,
-    -1.0,
-    3.0,
-    -3.0,
-    3.0,
-    -3.0,
-    5.0,
-    -5.0,
-    9.0,
-    -9.0 };
-
-double uo_position_evaluate(uo_position *position)
-{
-  double inputs[UO_EVAL_FEATURE_COUNT << 1] = { 0 };
-  double evaluation = 0;
-
-  for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)
-  {
-    inputs[i << 1] = eval_features[i](position, uo_piece__white);
-    inputs[(i << 1) + 1] = eval_features[i](position, uo_piece__black);
-    evaluation += inputs[i << 1] * weights[i << 1];
-    evaluation += inputs[(i << 1) + 1] * weights[(i << 1) + 1];
-  }
-
-  return evaluation;
 }

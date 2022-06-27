@@ -25,12 +25,15 @@ extern "C"
       3 = mate
     */
     uint8_t type;
+    uint8_t priority;
     bool keep;
   } uo_tentry;
 
-#define uo_tentry_type__exact ((uint8_t)1) 
-#define uo_tentry_type__lower_bound ((uint8_t)2) 
-#define uo_tentry_type__upper_bound ((uint8_t)4) 
+#define uo_tentry_type__exact ((uint8_t)1)
+#define uo_tentry_type__lower_bound ((uint8_t)2)
+#define uo_tentry_type__upper_bound ((uint8_t)4)
+
+#define uo_tentry_initial_priority ((uint8_t)2)
 
   typedef struct uo_ttable
   {
@@ -52,31 +55,54 @@ extern "C"
 
   static inline uo_tentry *uo_ttable_get(uo_ttable *ttable, uint64_t key)
   {
-    uint64_t hash = key & ttable->hash_mask;
-    uo_tentry *entry = ttable->entries + hash;
+    uint64_t mask = ttable->hash_mask;
+    uint64_t hash = key & mask;
+    uint64_t i = hash;
+    uo_tentry *entry = ttable->entries + i;
 
-    while (true)
+    // 1. Look for matching key and stop on first empty key
+
+    while (entry->key && entry->key != key)
     {
-      if (!entry->key)
-      {
-        entry->key = key;
-        return entry;
-      }
-      else if (entry->key == key)
-      {
-        return entry;
-      }
-      else if (!entry->keep)
-      {
-        memset(entry - 1, 0, sizeof * entry);
-        entry->key = key;
-        return entry;
-      }
-
-      ++hash;
-      hash = (hash + 1) & ttable->hash_mask;
-      entry = ttable->entries + hash;
+      i = (i + 1) & mask;
+      entry = ttable->entries + i;
     }
+
+    // 2. If exact match was found, increment priority and return
+
+    if (entry->key)
+    {
+      ++entry->priority;
+      return entry;
+    }
+
+    // 3. No exact match was found, replace first item with priority 0
+
+    i = hash;
+    entry = ttable->entries + i;
+
+    while (entry->key && (entry->keep || --entry->priority))
+    {
+      i = (i + 1) & mask;
+      entry = ttable->entries + i;
+    }
+
+    if (entry->key)
+    {
+      memset(entry, 0, sizeof * entry);
+    }
+
+    entry->key = key;
+    entry->priority = uo_tentry_initial_priority;
+
+    return entry;
+  }
+
+  // If used, must be called before `uo_ttable_get` is called for the next time
+  static inline void uo_tentry_release(uo_tentry *entry)
+  {
+    entry->key = 0;
+    entry->priority = 0;
   }
 
 #ifdef __cplusplus

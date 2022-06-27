@@ -15,9 +15,10 @@ int search_id;
 
 char buf[0x1000];
 
-const int16_t pvs_null_window = 1;
 const int16_t checkmate = 0x7FFF;
-const int16_t checkmate_threshold = 0x7FFF - UO_MAX_PLY;
+const int16_t mate_in_threshold = 0x7FFF - UO_MAX_PLY;
+
+int16_t uo_search_static_evaluate(uo_search *search);
 
 static int uo_move_comp(const uo_move *lhs, const uo_move *rhs)
 {
@@ -87,12 +88,22 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
 
   if (move_count == 0)
   {
+    if (!entry->type)
+    {
+      uo_tentry_release(entry);
+    }
+
     return uo_position_is_check(&search->position) ? -checkmate : 0;
   }
 
   if (depth == 0)
   {
-    return color * uo_position_evaluate(&search->position);
+    if (!entry->type)
+    {
+      uo_tentry_release(entry);
+    }
+
+    return color * uo_search_static_evaluate(search);
   }
 
   qsort(search->head, move_count, sizeof * search->head, uo_move_comp);
@@ -109,11 +120,11 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
     int16_t node_value = -uo_search_negamax(search, depth - 1, -b, -a, -color);
     uo_position_unmake_move(&search->position);
 
-    if (node_value > checkmate_threshold)
+    if (node_value > mate_in_threshold)
     {
       --node_value;
     }
-    else if (node_value < -checkmate_threshold)
+    else if (node_value < -mate_in_threshold)
     {
       ++node_value;
     }
@@ -255,4 +266,68 @@ int uo_search_start(uo_search *search, const uo_search_params params)
 void uo_search_end(int search_id)
 {
   // TODO
+}
+
+
+#pragma region eval_features
+
+static double uo_eval_feature_material_P(uo_search *search, uint8_t color)
+{
+  return uo_popcnt(search->position.P & (color ? search->position.piece_color : ~search->position.piece_color));
+}
+static double uo_eval_feature_material_N(uo_search *search, uint8_t color)
+{
+  return uo_popcnt(search->position.N & (color ? search->position.piece_color : ~search->position.piece_color));
+}
+static double uo_eval_feature_material_B(uo_search *search, uint8_t color)
+{
+  return uo_popcnt(search->position.B & (color ? search->position.piece_color : ~search->position.piece_color));
+}
+static double uo_eval_feature_material_R(uo_search *search, uint8_t color)
+{
+  return uo_popcnt(search->position.R & (color ? search->position.piece_color : ~search->position.piece_color));
+}
+static double uo_eval_feature_material_Q(uo_search *search, uint8_t color)
+{
+  return uo_popcnt(search->position.Q & (color ? search->position.piece_color : ~search->position.piece_color));
+}
+
+#pragma endregion
+
+static const double (*eval_features[])(uo_search *search, uint8_t color) = {
+    uo_eval_feature_material_P,
+    uo_eval_feature_material_N,
+    uo_eval_feature_material_B,
+    uo_eval_feature_material_R,
+    uo_eval_feature_material_Q };
+
+#define UO_EVAL_FEATURE_COUNT (sizeof eval_features / sizeof *eval_features)
+
+double weights[UO_EVAL_FEATURE_COUNT << 1] =
+{
+    1.0,
+    -1.0,
+    3.0,
+    -3.0,
+    3.0,
+    -3.0,
+    5.0,
+    -5.0,
+    9.0,
+    -9.0 };
+
+int16_t uo_search_static_evaluate(uo_search *search)
+{
+  double inputs[UO_EVAL_FEATURE_COUNT << 1] = { 0 };
+  double evaluation = 0;
+
+  for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)
+  {
+    inputs[i << 1] = eval_features[i](search, uo_piece__white);
+    inputs[(i << 1) + 1] = eval_features[i](search, uo_piece__black);
+    evaluation += inputs[i << 1] * weights[i << 1];
+    evaluation += inputs[(i << 1) + 1] * weights[(i << 1) + 1];
+  }
+
+  return evaluation * 100;
 }
