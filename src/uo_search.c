@@ -20,6 +20,11 @@ const int16_t mate_in_threshold = 0x7FFF - UO_MAX_PLY;
 
 int16_t uo_search_static_evaluate(uo_search *search);
 
+void uo_search_sort_moves(uo_search *search)
+{
+  uo_move move;
+}
+
 static int uo_move_comp(const uo_move *lhs, const uo_move *rhs)
 {
   uo_move move_lhs = *lhs;

@@ -55,3 +55,46 @@ uint8_t uo_popcnt(uint64_t u64)
   return (uint64_t)(v * ((uint64_t)~(uint64_t)0 / 255)) >> (sizeof(uint64_t) - 1) * CHAR_BIT; // count
 }
 #endif
+
+
+typedef int (uo_cmp)(void *, const uint64_t, const uint64_t);
+
+// see: https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme
+void uo_quicksort(uint64_t *arr, int lo, int hi, uo_cmp cmp, void *context)
+{
+  if (lo >= hi || lo < 0)
+  {
+    return;
+  }
+
+  int p = uo_partition(arr, lo, hi, cmp, context);
+
+  uo_quicksort(arr, lo, p - 1, cmp, context);
+  uo_quicksort(arr, p + 1, hi, cmp, context);
+}
+
+int uo_partition(uint64_t *arr, int lo, int hi, uo_cmp cmp, void *context)
+{
+  uint64_t pivot = arr[hi];
+  uint64_t temp;
+
+  int i = lo - 1;
+
+  for (int j = lo; i < hi - 1; ++j)
+  {
+    if (cmp(arr + j, pivot, cmp, context) < 1)
+    {
+      ++i;
+
+      temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+
+  i = i + 1;
+  temp = arr[i];
+  arr[i] = arr[hi];
+  arr[hi] = temp;
+  return i;
+}
