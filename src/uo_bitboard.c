@@ -2,6 +2,7 @@
 #include "uo_util.h"
 #include "uo_piece.h"
 #include "uo_util.h"
+#include "uo_def.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -237,8 +238,8 @@ void uo_attacks_P_init(void)
       uo_square square = (rank << 3) + file;
       uo_bitboard mask = uo_square_bitboard(square);
 
-      uo_attacks_P[uo_piece__white][square] |= mask << 9;
-      uo_attacks_P[uo_piece__black][square] |= mask >> 7;
+      uo_attacks_P[uo_white][square] |= mask << 9;
+      uo_attacks_P[uo_black][square] |= mask >> 7;
     }
 
     for (uint8_t file = 1; file < 8; ++file)
@@ -246,8 +247,8 @@ void uo_attacks_P_init(void)
       uo_square square = (rank << 3) + file;
       uo_bitboard mask = uo_square_bitboard(square);
 
-      uo_attacks_P[uo_piece__white][square] |= mask << 7;
-      uo_attacks_P[uo_piece__black][square] |= mask >> 9;
+      uo_attacks_P[uo_white][square] |= mask << 7;
+      uo_attacks_P[uo_black][square] |= mask >> 9;
     }
   }
 }

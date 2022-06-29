@@ -915,6 +915,54 @@ a4b5: 31837
 
 ucinewgame
 position fen 4rB2/R3qP1Q/5PP1/4P3/2P1p1RP/1p1Bp3/5Np1/1K2k3 w - - 0 1
+go perft 3
+c4c5: 1213
+h4h5: 1247
+e5e6: 1186
+g6g7: 1374
+f7e8q: 1492
+f7e8r: 1365
+f7e8b: 1347
+f7e8n: 1299
+f6e7: 652
+f2d1: 1205
+f2h1: 1317
+f2h3: 1209
+f2e4: 1152
+d3f1: 1416
+d3c2: 1327
+d3e2: 1228
+d3e4: 1417
+f8h6: 1407
+f8e7: 838
+f8g7: 1341
+g4g2: 1050
+g4g3: 1302
+g4e4: 1109
+g4f4: 1204
+g4g5: 1274
+a7a1: 1118
+a7a2: 1180
+a7a3: 1162
+a7a4: 1176
+a7a5: 1234
+a7a6: 1263
+a7b7: 1151
+a7c7: 1056
+a7d7: 1038
+a7e7: 553
+a7a8: 1239
+h7h5: 1218
+h7h6: 1283
+h7g7: 1138
+h7g8: 1191
+h7h8: 1249
+b1a1: 1062
+b1c1: 1126
+b1b2: 1204
+
+ucinewgame
+position fen 4rB2/R3qP1Q/5PP1/4P3/2P1p1RP/1p1Bp3/5Np1/1K2k3 w - - 0 1
 go perft 4
 c4c5: 35204
 h4h5: 37394

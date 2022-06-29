@@ -14,13 +14,14 @@ extern "C"
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <assert.h>
 
   typedef uint16_t uo_position_flags;
   /*
     color_to_move : 1
       0 w
       1 b
-    halfmoves: 7
+    rule50: 7
       1-100
     enpassant_file : 4
       1-8
@@ -40,19 +41,25 @@ extern "C"
 
   typedef struct uo_position
   {
-    uo_bitboard piece_color;
-
+    uo_bitboard white;
+    uo_bitboard black;
     uo_bitboard P;
+    uo_bitboard p;
     uo_bitboard N;
+    uo_bitboard n;
     uo_bitboard B;
+    uo_bitboard b;
     uo_bitboard R;
+    uo_bitboard r;
     uo_bitboard Q;
+    uo_bitboard q;
     uo_bitboard K;
+    uo_bitboard k;
 
     uo_piece board[64];
 
     uo_position_flags flags;
-    uint16_t fullmove;
+    uint16_t ply;
 
     uo_square checkers[2];
 
@@ -62,6 +69,30 @@ extern "C"
     uo_position_state *stack;
   } uo_position;
 
+#pragma region uo_position_piece_bitboard
+
+  static_assert(offsetof(uo_position, white) / sizeof(uo_bitboard) == uo_white, "Unexpected field offset: uo_position.white");
+  static_assert(offsetof(uo_position, black) / sizeof(uo_bitboard) == uo_black, "Unexpected field offset: uo_position.black");
+  static_assert(offsetof(uo_position, P) / sizeof(uo_bitboard) == uo_piece__P, "Unexpected field offset: uo_position.P");
+  static_assert(offsetof(uo_position, p) / sizeof(uo_bitboard) == uo_piece__p, "Unexpected field offset: uo_position.p");
+  static_assert(offsetof(uo_position, N) / sizeof(uo_bitboard) == uo_piece__N, "Unexpected field offset: uo_position.N");
+  static_assert(offsetof(uo_position, n) / sizeof(uo_bitboard) == uo_piece__n, "Unexpected field offset: uo_position.n");
+  static_assert(offsetof(uo_position, B) / sizeof(uo_bitboard) == uo_piece__B, "Unexpected field offset: uo_position.B");
+  static_assert(offsetof(uo_position, b) / sizeof(uo_bitboard) == uo_piece__b, "Unexpected field offset: uo_position.b");
+  static_assert(offsetof(uo_position, R) / sizeof(uo_bitboard) == uo_piece__R, "Unexpected field offset: uo_position.R");
+  static_assert(offsetof(uo_position, r) / sizeof(uo_bitboard) == uo_piece__r, "Unexpected field offset: uo_position.r");
+  static_assert(offsetof(uo_position, Q) / sizeof(uo_bitboard) == uo_piece__Q, "Unexpected field offset: uo_position.Q");
+  static_assert(offsetof(uo_position, q) / sizeof(uo_bitboard) == uo_piece__q, "Unexpected field offset: uo_position.q");
+  static_assert(offsetof(uo_position, K) / sizeof(uo_bitboard) == uo_piece__K, "Unexpected field offset: uo_position.K");
+  static_assert(offsetof(uo_position, k) / sizeof(uo_bitboard) == uo_piece__k, "Unexpected field offset: uo_position.k");
+
+  static inline uo_bitboard *uo_position_piece_bitboard(uo_position *position, uo_piece piece)
+  {
+    return (uo_bitboard *)position + piece;
+  };
+
+#pragma endregion
+
 #pragma region uo_position_flags__functions
 
   static inline uint8_t uo_position_flags_color_to_move(uo_position_flags flags)
@@ -69,7 +100,7 @@ extern "C"
     return flags & 0x0001;
   }
 
-  static inline uint8_t uo_position_flags_halfmoves(uo_position_flags flags)
+  static inline uint8_t uo_position_flags_rule50(uo_position_flags flags)
   {
     return (flags & 0x00FE) >> 1;
   }
@@ -119,9 +150,9 @@ extern "C"
     return (flags & 0xFFFE) | (uo_position_flags)color_to_move;
   }
 
-  static inline uo_position_flags uo_position_flags_update_halfmoves(uo_position_flags flags, uint8_t halfmoves)
+  static inline uo_position_flags uo_position_flags_update_rule50(uo_position_flags flags, uint8_t rule50)
   {
-    return (flags & 0xFF01) | ((uo_position_flags)halfmoves << 1);
+    return (flags & 0xFF01) | ((uo_position_flags)rule50 << 1);
   }
 
   static inline uo_position_flags uo_position_flags_update_enpassant_file(uo_position_flags flags, uint8_t enpassant_file)
@@ -179,6 +210,8 @@ extern "C"
   void uo_position_unmake_move(uo_position *position);
 
   size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
+
+  bool uo_position_is_check_move(uo_position *position, uo_move move);
 
   bool uo_position_is_check(uo_position *position);
 

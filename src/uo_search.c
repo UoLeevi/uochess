@@ -33,6 +33,11 @@ int uo_search_moves_cmp(uo_search *search, uo_move move_lhs, uo_move move_rhs)
     score_lhs = uo_piece_type(piece_captured_lhs) - uo_piece_type(piece_lhs) + uo_piece__B;
   }
 
+  if (uo_position_is_check_move(&search->position, move_lhs))
+  {
+    score_lhs += 2;
+  }
+
   uo_square square_from_rhs = uo_move_square_from(move_rhs);
   uo_square square_to_rhs = uo_move_square_to(move_rhs);
   uo_square move_type_rhs = uo_move_get_type(move_rhs);
@@ -43,6 +48,11 @@ int uo_search_moves_cmp(uo_search *search, uo_move move_lhs, uo_move move_rhs)
     uo_piece piece_rhs = search->position.board[square_from_rhs];
     uo_piece piece_captured_rhs = search->position.board[square_to_rhs];
     score_rhs = uo_piece_type(piece_captured_rhs) - uo_piece_type(piece_rhs) + uo_piece__B;
+  }
+
+  if (uo_position_is_check_move(&search->position, move_rhs))
+  {
+    score_rhs += 2;
   }
 
   return score_lhs == score_rhs
@@ -352,23 +362,23 @@ void uo_search_end(int search_id)
 
 static double uo_eval_feature_material_P(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(search->position.P & (color ? search->position.piece_color : ~search->position.piece_color));
+  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__P & color));
 }
 static double uo_eval_feature_material_N(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(search->position.N & (color ? search->position.piece_color : ~search->position.piece_color));
+  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__N & color));
 }
 static double uo_eval_feature_material_B(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(search->position.B & (color ? search->position.piece_color : ~search->position.piece_color));
+  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__B & color));
 }
 static double uo_eval_feature_material_R(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(search->position.R & (color ? search->position.piece_color : ~search->position.piece_color));
+  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__R & color));
 }
 static double uo_eval_feature_material_Q(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(search->position.Q & (color ? search->position.piece_color : ~search->position.piece_color));
+  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__Q & color));
 }
 
 #pragma endregion
@@ -402,8 +412,8 @@ int16_t uo_search_static_evaluate(uo_search *search)
 
   for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)
   {
-    inputs[i << 1] = eval_features[i](search, uo_piece__white);
-    inputs[(i << 1) + 1] = eval_features[i](search, uo_piece__black);
+    inputs[i << 1] = eval_features[i](search, uo_white);
+    inputs[(i << 1) + 1] = eval_features[i](search, uo_black);
     evaluation += inputs[i << 1] * weights[i << 1];
     evaluation += inputs[(i << 1) + 1] * weights[(i << 1) + 1];
   }
