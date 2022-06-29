@@ -54,6 +54,8 @@ extern "C"
     uo_position_flags flags;
     uint16_t fullmove;
 
+    uo_square checkers[2];
+
     uint64_t key;
 
     uo_position_state state[UO_MAX_PLY];

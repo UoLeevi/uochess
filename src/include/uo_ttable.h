@@ -99,10 +99,13 @@ extern "C"
   }
 
   // If used, must be called before `uo_ttable_get` is called for the next time
-  static inline void uo_tentry_release(uo_tentry *entry)
+  static inline void uo_tentry_release_if_unused(uo_tentry *entry)
   {
-    entry->key = 0;
-    entry->priority = 0;
+    if (!entry->type)
+    {
+      entry->key = 0;
+      entry->priority = 0;
+    }
   }
 
 #ifdef __cplusplus

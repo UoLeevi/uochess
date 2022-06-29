@@ -88,6 +88,7 @@ extern "C"
 #endif
 
   uint64_t uo_rand();
+
   void uo_rand_init(uint64_t seed);
 
 #ifdef __cplusplus

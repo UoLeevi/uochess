@@ -2892,7 +2892,23 @@ bool uo_position_is_check(uo_position *position)
   uo_bitboard enemy_checks_P = (bitboard_P & mask_enemy) & uo_bitboard_attacks_P(square_own_K, color_to_move);
   uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_B | enemy_checks_R | enemy_checks_Q | enemy_checks_P;
 
-  return enemy_checks != 0;
+  if (!enemy_checks)
+  {
+    position->checkers[0] = 0;
+    position->checkers[1] = 0;
+    return false;
+  }
+
+  position->checkers[0] = uo_bitboard_next_square(&enemy_checks);
+
+  if (!enemy_checks)
+  {
+    position->checkers[1] = 0;
+    return true;
+  }
+
+  position->checkers[1] = uo_bitboard_next_square(&enemy_checks);
+  return true;
 }
 
 uo_move uo_position_parse_move(uo_position *position, char str[5])

@@ -31,7 +31,6 @@ struct
   size_t hash_size;
 } options;
 
-// global (for now)
 uo_search search;
 
 enum state
@@ -186,8 +185,25 @@ static void report_search_info(uo_search_info info)
 {
   for (int i = 0; i < info.multipv; ++i)
   {
-    printf("info depth %d seldepth %d multipv %d score cp %d nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
-      info.depth, info.seldepth, info.multipv, info.search->pv[i].score, info.nodes, info.nps, info.tbhits, info.time);
+    printf("info depth %d seldepth %d multipv %d ",
+      info.depth, info.seldepth, info.multipv);
+
+    int16_t score = info.search->pv[i].score;
+    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
+    }
+    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", (UO_SCORE_CHECKMATE + score + 1) >> 1);
+    }
+    else
+    {
+      printf("score cp %d ", score);
+    }
+
+    printf("nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
+      info.nodes, info.nps, info.tbhits, info.time);
 
     size_t pv_len = 1;
     uo_tentry pv_entry = *info.search->pv;

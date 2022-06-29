@@ -9,7 +9,6 @@ extern "C"
 #include "uo_search.h"
 
 extern char buf[0x1000];
-extern uo_search search;
 
 #ifdef __cplusplus
 }

@@ -28,6 +28,7 @@ size_t uo_move_print(uo_move move, char str[6])
   }
   else
   {
+    str[4] = '\0';
     return 4;
   }
 }
