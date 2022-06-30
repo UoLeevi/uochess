@@ -26,10 +26,10 @@ extern "C"
     enpassant_file : 4
       1-8
     castling: 4
-      1 K
-      2 Q
-      4 k
-      8 q
+      1 K - h1
+      2 Q - a1
+      4 k - h8
+      8 q - a8
   */
 
   typedef struct uo_position_state
