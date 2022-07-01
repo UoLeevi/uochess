@@ -993,7 +993,7 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
 
 size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 {
-  size_t count = 0;
+  uo_move *moves = movelist;
   uo_square square_from;
   uo_square square_to;
 
@@ -1117,11 +1117,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
         uo_piece piece_captured = board[square_to];
         uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
 
-        *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
-        ++count;
+        *moves++ = uo_move_encode(square_own_K, square_to, move_type);
       }
 
-      return count;
+      return moves - movelist;
     }
 
     // Only one piece is giving a check
@@ -1135,32 +1134,28 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     while (attack_checker_B)
     {
       square_from = uo_bitboard_next_square(&attack_checker_B);
-      *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
     }
 
     uo_bitboard attack_checker_R = uo_andn(pins_to_own_K, own_R & attack_checker_lines);
     while (attack_checker_R)
     {
       square_from = uo_bitboard_next_square(&attack_checker_R);
-      *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
     }
 
     uo_bitboard attack_checker_Q = uo_andn(pins_to_own_K, own_Q & (attack_checker_diagonals | attack_checker_lines));
     while (attack_checker_Q)
     {
       square_from = uo_bitboard_next_square(&attack_checker_Q);
-      *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
     }
 
     uo_bitboard attack_checker_N = uo_andn(pins_to_own_K, own_N & uo_bitboard_attacks_N(square_enemy_checker));
     while (attack_checker_N)
     {
       square_from = uo_bitboard_next_square(&attack_checker_N);
-      *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
     }
 
     uo_bitboard attack_checker_P = uo_andn(pins_to_own_K, own_P & uo_bitboard_attacks_P(square_enemy_checker, !color_to_move));
@@ -1171,19 +1166,17 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (own_P & bitboard_from & bitboard_seventh_rank)
       {
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx);
-        ++count;
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx);
+
+        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx);
+
+        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx);
+
+        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx);
       }
       else
       {
-        *movelist++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
       }
     }
 
@@ -1192,14 +1185,12 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     {
       if (enpassant_file > 1 && (own_P & (enemy_checks_P >> 1)))
       {
-        *movelist++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
-        ++count;
+        *moves++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
       }
 
       if (enpassant_file < 8 && (own_P & (enemy_checks_P << 1)))
       {
-        *movelist++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
-        ++count;
+        *moves++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
       }
     }
 
@@ -1223,32 +1214,28 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       while (block_B)
       {
         square_from = uo_bitboard_next_square(&block_B);
-        *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
       }
 
       uo_bitboard block_R = uo_andn(pins_to_own_K, own_R & block_lines);
       while (block_R)
       {
         square_from = uo_bitboard_next_square(&block_R);
-        *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
       }
 
       uo_bitboard block_Q = uo_andn(pins_to_own_K, own_Q & (block_diagonals | block_lines));
       while (block_Q)
       {
         square_from = uo_bitboard_next_square(&block_Q);
-        *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
       }
 
       uo_bitboard block_N = uo_andn(pins_to_own_K, own_N & uo_bitboard_moves_N(square_between, mask_enemy, mask_own));
       while (block_N)
       {
         square_from = uo_bitboard_next_square(&block_N);
-        *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
-        ++count;
+        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
       }
 
       uo_bitboard block_P = own_P & uo_square_bitboard(square_between + direction_backwards);
@@ -1266,24 +1253,21 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (bitboard_from & bitboard_seventh_rank)
         {
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_Q);
-          ++count;
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_N);
-          ++count;
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_B);
-          ++count;
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__promo_R);
-          ++count;
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_Q);
+
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_N);
+
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_B);
+
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_R);
         }
         else if ((bitboard_from & bitboard_second_rank) && (bitboard_square_between & bitboard_fourth_rank))
         {
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__P_double_push);
-          ++count;
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__P_double_push);
         }
         else
         {
-          *movelist++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
-          ++count;
+          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
         }
       }
     }
@@ -1310,11 +1294,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
 
-      *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_own_K, square_to, move_type);
     }
 
-    return count;
+    return moves - movelist;
   }
 
   // King is not in check. Let's list moves by piece type
@@ -1333,8 +1316,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       square_to = uo_bitboard_next_square(&moves_N);
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1350,8 +1332,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       square_to = uo_bitboard_next_square(&moves_B);
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1367,8 +1348,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       square_to = uo_bitboard_next_square(&moves_R);
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1384,8 +1364,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       square_to = uo_bitboard_next_square(&moves_Q);
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1402,19 +1381,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
     }
   }
 
@@ -1425,8 +1399,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   {
     square_to = uo_bitboard_next_square(&non_pinned_double_push_P);
     square_from = square_to + direction_backwards * 2;
-    *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
-    ++count;
+    *moves++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
   }
 
   // Captures to right
@@ -1439,19 +1412,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
     }
   }
 
@@ -1465,19 +1433,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (uo_square_bitboard(square_to) & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
     }
   }
 
@@ -1489,14 +1452,12 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
     {
-      *movelist++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
-      ++count;
+      *moves++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
     }
 
     if (enpassant_file < 8 && (non_pinned_P & (enpassant << 1)))
     {
-      *movelist++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
-      ++count;
+      *moves++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
     }
   }
 
@@ -1527,8 +1488,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1557,8 +1517,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1587,8 +1546,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       uo_piece piece_captured = board[square_to];
       uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-      *movelist++ = uo_move_encode(square_from, square_to, move_type);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, move_type);
     }
   }
 
@@ -1618,20 +1576,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
     }
     else
     {
-
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
     }
   }
 
@@ -1656,8 +1608,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     if (enemy_checks)
       continue;
 
-    *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
-    ++count;
+    *moves++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
   }
 
   // Captures to right
@@ -1683,19 +1634,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
     }
   }
 
@@ -1722,19 +1668,14 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     if (bitboard_to & bitboard_last_rank)
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      ++count;
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
     }
     else
     {
-      *movelist++ = uo_move_encode(square_from, square_to, uo_move_type__x);
-      ++count;
+      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
     }
   }
 
@@ -1759,8 +1700,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (!enemy_checks)
       {
-        *movelist++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
-        ++count;
+        *moves++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
       }
     }
 
@@ -1777,8 +1717,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
       if (!enemy_checks)
       {
-        *movelist++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
-        ++count;
+        *moves++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
       }
     }
   }
@@ -1815,8 +1754,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO);
-          ++count;
+          *moves++ = uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO);
         }
       }
     }
@@ -1847,8 +1785,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO);
-          ++count;
+          *moves++ = uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO);
         }
       }
     }
@@ -1881,8 +1818,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__g8, uo_move_type__OO);
-          ++count;
+          *moves++ = uo_move_encode(square_own_K, uo_square__g8, uo_move_type__OO);
         }
       }
     }
@@ -1913,8 +1849,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *movelist++ = uo_move_encode(square_own_K, uo_square__c8, uo_move_type__OOO);
-          ++count;
+          *moves++ = uo_move_encode(square_own_K, uo_square__c8, uo_move_type__OOO);
         }
       }
     }
@@ -1941,11 +1876,10 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
     uo_piece piece_captured = board[square_to];
     uo_move_type move_type = piece_captured ? uo_move_type__x : uo_move_type__quiet;
-    *movelist++ = uo_move_encode(square_own_K, square_to, move_type);
-    ++count;
+    *moves++ = uo_move_encode(square_own_K, square_to, move_type);
   }
 
-  return count;
+  return moves - movelist;
 }
 
 bool uo_position_is_check(uo_position *position)
