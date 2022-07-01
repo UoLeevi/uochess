@@ -120,6 +120,26 @@
 //  return true;
 //}
 
+static const uo_pieces uo_pieces_by_color[2] = {
+  [uo_white] = {
+    .P = uo_piece__P,
+    .N = uo_piece__N,
+    .B = uo_piece__B,
+    .R = uo_piece__R,
+    .Q = uo_piece__Q,
+    .K = uo_piece__K
+  },
+  [uo_black] = {
+    .P = uo_piece__p,
+    .N = uo_piece__n,
+    .B = uo_piece__b,
+    .R = uo_piece__r,
+    .Q = uo_piece__q,
+    .K = uo_piece__k
+  }
+};
+
+
 uint64_t uo_position_calculate_key(uo_position *position)
 {
   uint64_t key = 0;
@@ -508,6 +528,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   if (active_color == 'b')
   {
     flags = uo_position_flags_update_color_to_move(flags, uo_black);
+    ++position->ply;
   }
   else if (active_color != 'w')
   {
@@ -576,7 +597,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   // 5. Halfmove clock
   // 6. Fullmove number
   flags = uo_position_flags_update_rule50(flags, rule50);
-  position->ply = fullmove;
+  position->ply += fullmove << 1;
 
   position->flags = flags;
   position->key = uo_position_calculate_key(position);
@@ -667,7 +688,7 @@ size_t uo_position_print_fen(uo_position *position, char fen[90])
   }
 
   uint8_t rule50 = uo_position_flags_rule50(flags);
-  uint16_t fullmoves = position->ply;
+  uint16_t fullmoves = (position->ply >> 1) + 1;
 
   ptr += sprintf(ptr, "%d %d", rule50, fullmoves);
 
@@ -1004,20 +1025,28 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
   uo_bitboard bitboard_enpassant_file = enpassant_file ? uo_bitboard_file[enpassant_file - 1] : 0;
 
+  uo_pieces pieces_own = uo_pieces_by_color[color_to_move];
+  uo_pieces pieces_enemy = uo_pieces_by_color[!color_to_move];
+
   uo_piece *board = position->board;
-  uo_bitboard bitboard_P = position->P | position->p;
-  uo_bitboard bitboard_N = position->N | position->n;
-  uo_bitboard bitboard_B = position->B | position->b;
-  uo_bitboard bitboard_R = position->R | position->r;
-  uo_bitboard bitboard_Q = position->Q | position->q;
-  uo_bitboard bitboard_K = position->K | position->k;
 
   uo_bitboard occupied = position->white | position->black;
   uo_bitboard empty = ~occupied;
-  uo_bitboard mask_own = *uo_position_piece_bitboard(position, uo_color(flags));
-  uo_bitboard mask_enemy = uo_andn(mask_own, occupied);
-  uo_piece piece_enemy_P = uo_piece__P;
-  uo_piece piece_own_P = uo_piece__P;
+  uo_bitboard mask_own = *uo_position_piece_bitboard(position, color_to_move);
+  uo_bitboard mask_enemy = *uo_position_piece_bitboard(position, !color_to_move);
+
+  uo_bitboard own_P = *uo_position_piece_bitboard(position, pieces_own.P);
+  uo_bitboard own_N = *uo_position_piece_bitboard(position, pieces_own.N);
+  uo_bitboard own_B = *uo_position_piece_bitboard(position, pieces_own.B);
+  uo_bitboard own_R = *uo_position_piece_bitboard(position, pieces_own.R);
+  uo_bitboard own_Q = *uo_position_piece_bitboard(position, pieces_own.Q);
+  uo_bitboard own_K = *uo_position_piece_bitboard(position, pieces_own.K);
+  uo_bitboard enemy_P = *uo_position_piece_bitboard(position, pieces_enemy.P);
+  uo_bitboard enemy_N = *uo_position_piece_bitboard(position, pieces_enemy.N);
+  uo_bitboard enemy_B = *uo_position_piece_bitboard(position, pieces_enemy.B);
+  uo_bitboard enemy_R = *uo_position_piece_bitboard(position, pieces_enemy.R);
+  uo_bitboard enemy_Q = *uo_position_piece_bitboard(position, pieces_enemy.Q);
+  uo_bitboard enemy_K = *uo_position_piece_bitboard(position, pieces_enemy.K);
 
   uo_bitboard bitboard_first_rank;
   uo_bitboard bitboard_second_rank;
@@ -1026,48 +1055,27 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard bitboard_seventh_rank;
   uo_bitboard bitboard_last_rank;
 
-  int8_t direction_forwards;
-  int8_t direction_backwards;
+  int8_t direction_forwards = uo_direction_forward(color_to_move);
+  int8_t direction_backwards = -direction_forwards;
 
   if (color_to_move)
   {
-    piece_own_P |= uo_black;
     bitboard_first_rank = uo_bitboard_rank[7];
     bitboard_second_rank = uo_bitboard_rank[6];
     bitboard_fourth_rank = uo_bitboard_rank[4];
     bitboard_fifth_rank = uo_bitboard_rank[3];
     bitboard_seventh_rank = uo_bitboard_rank[1];
     bitboard_last_rank = uo_bitboard_rank[0];
-
-    direction_forwards = -8;
-    direction_backwards = 8;
   }
   else
   {
-    piece_enemy_P |= uo_black;
     bitboard_first_rank = uo_bitboard_rank[0];
     bitboard_second_rank = uo_bitboard_rank[1];
     bitboard_fourth_rank = uo_bitboard_rank[3];
     bitboard_fifth_rank = uo_bitboard_rank[4];
     bitboard_seventh_rank = uo_bitboard_rank[6];
     bitboard_last_rank = uo_bitboard_rank[7];
-
-    direction_forwards = 8;
-    direction_backwards = -8;
   }
-
-  uo_bitboard own_P = bitboard_P & mask_own;
-  uo_bitboard own_N = bitboard_N & mask_own;
-  uo_bitboard own_B = bitboard_B & mask_own;
-  uo_bitboard own_R = bitboard_R & mask_own;
-  uo_bitboard own_Q = bitboard_Q & mask_own;
-  uo_bitboard own_K = bitboard_K & mask_own;
-  uo_bitboard enemy_P = bitboard_P & mask_enemy;
-  uo_bitboard enemy_N = bitboard_N & mask_enemy;
-  uo_bitboard enemy_B = bitboard_B & mask_enemy;
-  uo_bitboard enemy_R = bitboard_R & mask_enemy;
-  uo_bitboard enemy_Q = bitboard_Q & mask_enemy;
-  uo_bitboard enemy_K = bitboard_K & mask_enemy;
 
   // 1. Check for checks and pieces pinned to the king
 

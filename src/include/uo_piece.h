@@ -23,6 +23,15 @@ extern "C"
 #define uo_piece__q ((uo_piece)0xB) // q 0b1011
 #define uo_piece__k ((uo_piece)0xD) // k 0b1101
 
+  typedef struct uo_pieces {
+    uo_piece P;
+    uo_piece N;
+    uo_piece B;
+    uo_piece R;
+    uo_piece Q;
+    uo_piece K;
+  } uo_pieces;
+
 #define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
 
   static inline char uo_piece_to_char(uo_piece piece)
