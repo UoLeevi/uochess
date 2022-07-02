@@ -10,6 +10,7 @@ extern "C"
 #include "uo_piece.h"
 
 #include <inttypes.h>
+#include <stdbool.h>
 
   // see: https://www.chessprogramming.org/Encoding_Moves#From-To_Based
   typedef uint16_t uo_move;
@@ -46,6 +47,11 @@ extern "C"
   static inline uo_move_type uo_move_get_type(uo_move move)
   {
     return move >> 12;
+  }
+
+  static inline bool uo_move_is_capture(uo_move move)
+  {
+    return move & 0x4000;
   }
 
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)

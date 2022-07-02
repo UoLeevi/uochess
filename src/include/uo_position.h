@@ -32,13 +32,6 @@ extern "C"
       8 q - a8
   */
 
-  typedef struct uo_position_state
-  {
-    uo_position_flags flags;
-    uo_move move;
-    uo_piece piece_captured;
-  } uo_position_state;
-
   typedef struct uo_position
   {
     uo_bitboard white;
@@ -65,8 +58,15 @@ extern "C"
 
     uint64_t key;
 
-    uo_position_state state[UO_MAX_PLY];
-    uo_position_state *stack;
+    struct
+    {
+      uo_piece *piece_captured;
+      uo_move *move;
+      uo_position_flags *flags;
+      uo_piece captures[30];
+      uo_move moves[UO_MAX_PLY];
+      uo_position_flags prev_flags[UO_MAX_PLY];
+    } history;
   } uo_position;
 
 #pragma region uo_position_piece_bitboard
