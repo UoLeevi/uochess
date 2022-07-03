@@ -271,7 +271,7 @@ static inline uo_bitboard uo_bitboard_permutation(uo_bitboard mask, uint8_t bits
   return blockers;
 }
 
-static inline uo_bitboard uo_bitboard_gen_mask_B(uo_square square)
+static inline uo_bitboard uo_bitboard_gen_masks_B(uo_square square, uo_slider_moves *slider_moves)
 {
   int rank = uo_square_rank(square);
   int file = uo_square_file(square);
@@ -281,12 +281,14 @@ static inline uo_bitboard uo_bitboard_gen_mask_B(uo_square square)
   int diagonal = uo_square_diagonal[square];
   int antidiagonal = uo_square_antidiagonal[square];
   uo_bitboard mask = uo_bitboard_diagonal[diagonal] | uo_bitboard_antidiagonal[antidiagonal];
+  mask = uo_andn(uo_square_bitboard(square), mask); 
+  slider_moves->mask_rays = mask;
   mask = uo_andn(mask_edge, mask);
-  mask ^= uo_square_bitboard(square);
+  slider_moves->mask_blockers = mask;
   return mask;
 }
 
-static inline uo_bitboard uo_bitboard_gen_mask_R(uo_square square)
+static inline uo_bitboard uo_bitboard_gen_masks_R(uo_square square, uo_slider_moves *slider_moves)
 {
   int rank = uo_square_rank(square);
   int file = uo_square_file(square);
@@ -294,8 +296,10 @@ static inline uo_bitboard uo_bitboard_gen_mask_R(uo_square square)
   uo_bitboard mask_edge_file = uo_andn(uo_bitboard_file[file], uo_bitboard_file[0] | uo_bitboard_file[7]);
   uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
   uo_bitboard mask = uo_bitboard_file[file] | uo_bitboard_rank[rank];
+  mask = uo_andn(uo_square_bitboard(square), mask); 
+  slider_moves->mask_rays = mask;
   mask = uo_andn(mask_edge, mask);
-  mask ^= uo_square_bitboard(square);
+  slider_moves->mask_blockers = mask;
   return mask;
 }
 
@@ -392,30 +396,30 @@ void uo_moves_B_init(void)
 
   for (uo_square square = 0; square < 64; ++square)
   {
-    uo_bitboard mask = uo_bitboard_gen_mask_B(square);
-    uo_moves_B[square].mask = mask;
+    uo_bitboard mask = uo_bitboard_gen_masks_B(square, uo_moves_B + square);
     int bits = uo_popcnt(mask);
     int blocker_board_count = 1 << bits;
     blocker_board_count_total += blocker_board_count;
   }
 
   // 2. Allocate memory for move boards
-  uo_bitboard *boards = malloc(blocker_board_count_total * sizeof * boards);
+  uint16_t *boards = malloc(blocker_board_count_total * sizeof * boards);
 
   // 3. Generate blocker boards and move boards
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_moves_B[square].moves = boards;
-    uo_bitboard mask = uo_moves_B[square].mask;
-    int bits = uo_popcnt(mask);
+    uo_bitboard mask_blockers = uo_moves_B[square].mask_blockers;
+    uo_bitboard mask_rays = uo_moves_B[square].mask_rays;
+    int bits = uo_popcnt(mask_blockers);
     int permutation_count = 1 << bits;
     boards += permutation_count;
 
     for (int permutation = 0; permutation < permutation_count; ++permutation)
     {
-      uo_bitboard blockers = uo_bitboard_permutation(mask, bits, permutation);
+      uo_bitboard blockers = uo_bitboard_permutation(mask_blockers, bits, permutation);
       uo_bitboard moves = uo_bitboard_gen_moves_B(blockers, square);
-      uo_moves_B[square].moves[uo_pext(blockers, mask)] = moves;
+      uo_moves_B[square].moves[uo_pext(blockers, mask_blockers)] = uo_pext(moves, mask_rays);
     }
   }
 }
@@ -429,30 +433,30 @@ void uo_moves_R_init(void)
 
   for (uo_square square = 0; square < 64; ++square)
   {
-    uo_bitboard mask = uo_bitboard_gen_mask_R(square);
-    uo_moves_R[square].mask = mask;
+    uo_bitboard mask = uo_bitboard_gen_masks_R(square, uo_moves_R + square);
     int bits = uo_popcnt(mask);
     int blocker_board_count = 1 << bits;
     blocker_board_count_total += blocker_board_count;
   }
 
   // 2. Allocate memory for move boards
-  uo_bitboard *boards = malloc(blocker_board_count_total * sizeof * boards);
+  uint16_t *boards = malloc(blocker_board_count_total * sizeof * boards);
 
   // 3. Generate blocker boards and move boards
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_moves_R[square].moves = boards;
-    uo_bitboard mask = uo_moves_R[square].mask;
-    int bits = uo_popcnt(mask);
+    uo_bitboard mask_blockers = uo_moves_R[square].mask_blockers;
+    uo_bitboard mask_rays = uo_moves_R[square].mask_rays;
+    int bits = uo_popcnt(mask_blockers);
     int permutation_count = 1 << bits;
     boards += permutation_count;
 
     for (int permutation = 0; permutation < permutation_count; ++permutation)
     {
-      uo_bitboard blockers = uo_bitboard_permutation(mask, bits, permutation);
+      uo_bitboard blockers = uo_bitboard_permutation(mask_blockers, bits, permutation);
       uo_bitboard moves = uo_bitboard_gen_moves_R(blockers, square);
-      uo_moves_R[square].moves[uo_pext(blockers, mask)] = moves;
+      uo_moves_R[square].moves[uo_pext(blockers, mask_blockers)] = uo_pext(moves, mask_rays);
     }
   }
 }

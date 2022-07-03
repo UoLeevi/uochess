@@ -72,6 +72,8 @@ extern "C"
 
 # define uo_pext _pext_u64
 
+# define uo_pdep _pdep_u64
+
 #endif
 
 

@@ -19,8 +19,9 @@ extern "C"
 
   typedef struct uo_slider_moves
   {
-    uo_bitboard *moves;
-    uo_bitboard mask;
+    uint16_t *moves;
+    uo_bitboard mask_blockers;
+    uo_bitboard mask_rays;
   } uo_slider_moves;
 
 #define uo_bitboard_all ((uo_bitboard)-1ll)
@@ -54,13 +55,13 @@ extern "C"
   static inline uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers)
   {
     uo_slider_moves slider_moves = uo_moves_B[square];
-    return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
+    return uo_pdep(slider_moves.moves[uo_pext(blockers, slider_moves.mask_blockers)], slider_moves.mask_rays);
   }
 
   static inline uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers)
   {
     uo_slider_moves slider_moves = uo_moves_R[square];
-    return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
+    return uo_pdep(slider_moves.moves[uo_pext(blockers, slider_moves.mask_blockers)], slider_moves.mask_rays);
   }
 
   static inline uo_bitboard uo_bitboard_attacks_K(uo_square square)
