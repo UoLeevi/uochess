@@ -17,6 +17,12 @@ extern "C"
 
   typedef uint64_t uo_bitboard;
 
+  typedef struct uo_slider_moves
+  {
+    uo_bitboard *moves;
+    uo_bitboard mask;
+  } uo_slider_moves;
+
 #define uo_bitboard_all ((uo_bitboard)-1ll)
 #define uo_bitboard_edge ((uo_bitboard)0xFF818181818181FFull)
 
@@ -24,6 +30,12 @@ extern "C"
   extern uo_bitboard uo_bitboard_rank[8];          //  -
   extern uo_bitboard uo_bitboard_diagonal[15];     //  /
   extern uo_bitboard uo_bitboard_antidiagonal[15]; //  \
+
+  extern uo_bitboard uo_moves_K[64];
+  extern uo_bitboard uo_moves_N[64];
+  extern uo_bitboard uo_attacks_P[2][64];
+  extern uo_slider_moves uo_moves_B[64];
+  extern uo_slider_moves uo_moves_R[64];
 
   int uo_bitboard_print(uo_bitboard bitboard);
 
@@ -34,11 +46,32 @@ extern "C"
     return lsb;
   }
 
-  uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color);
-  uo_bitboard uo_bitboard_attacks_N(uo_square square);
-  uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers);
-  uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers);
-  uo_bitboard uo_bitboard_attacks_K(uo_square square);
+  static inline uo_bitboard uo_bitboard_attacks_N(uo_square square)
+  {
+    return uo_moves_N[square];
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers)
+  {
+    uo_slider_moves slider_moves = uo_moves_B[square];
+    return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers)
+  {
+    uo_slider_moves slider_moves = uo_moves_R[square];
+    return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_K(uo_square square)
+  {
+    return uo_moves_K[square];
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color)
+  {
+    return uo_attacks_P[color][square];
+  }
 
   static inline uo_bitboard uo_bitboard_attacks_Q(uo_square square, uo_bitboard blockers)
   {

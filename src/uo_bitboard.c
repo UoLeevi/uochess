@@ -24,17 +24,11 @@ uo_bitboard uo_bitboard_rank[8];          //  -
 uo_bitboard uo_bitboard_diagonal[15];     //  /
 uo_bitboard uo_bitboard_antidiagonal[15]; //  \
 
-typedef struct uo_slider_moves
-{
-  uo_bitboard *moves;
-  uo_bitboard mask;
-} uo_slider_moves;
-
-static uo_bitboard uo_moves_K[64];
-static uo_bitboard uo_moves_N[64];
-static uo_bitboard uo_attacks_P[2][64];
-static uo_slider_moves uo_moves_B[64];
-static uo_slider_moves uo_moves_R[64];
+uo_bitboard uo_moves_K[64];
+uo_bitboard uo_moves_N[64];
+uo_bitboard uo_attacks_P[2][64];
+uo_slider_moves uo_moves_B[64];
+uo_slider_moves uo_moves_R[64];
 
 static bool init;
 
@@ -908,31 +902,4 @@ uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboa
   }
 
   return pins;
-}
-
-uo_bitboard uo_bitboard_attacks_N(uo_square square)
-{
-  return uo_moves_N[square];
-}
-
-uo_bitboard uo_bitboard_attacks_B(uo_square square, uo_bitboard blockers)
-{
-  uo_slider_moves slider_moves = uo_moves_B[square];
-  return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
-}
-
-uo_bitboard uo_bitboard_attacks_R(uo_square square, uo_bitboard blockers)
-{
-  uo_slider_moves slider_moves = uo_moves_R[square];
-  return slider_moves.moves[uo_pext(blockers, slider_moves.mask)];
-}
-
-uo_bitboard uo_bitboard_attacks_K(uo_square square)
-{
-  return uo_moves_K[square];
-}
-
-uo_bitboard uo_bitboard_attacks_P(uo_square square, uint8_t color)
-{
-  return uo_attacks_P[color][square];
 }

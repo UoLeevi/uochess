@@ -1905,7 +1905,6 @@ bool uo_position_is_check(uo_position *position)
   return true;
 }
 
-
 // Only direct checks, does not take into account discoveries
 bool uo_position_is_check_move(uo_position *position, uo_move move)
 {
