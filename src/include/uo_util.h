@@ -20,6 +20,8 @@ extern "C"
 
 # define uo_popcnt __popcnt64
 
+# define uo_bswap _byteswap_uint64
+
 #elif defined(__has_builtin)
 
   // uo_popcnt
@@ -71,6 +73,10 @@ extern "C"
 # define uo_msb(u64) ((int8_t)(63 - (int8_t)uo_lzcnt(u64)))
 
 # define uo_pext _pext_u64
+
+# define uo_pdep _pdep_u64
+
+//# define uo_bswap _bswap64
 
 #endif
 

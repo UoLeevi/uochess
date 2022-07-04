@@ -242,6 +242,18 @@ uint64_t uo_position_calculate_key(uo_position *position)
   return key;
 }
 
+static inline void uo_position_flip_board(uo_position *position)
+{
+  uint64_t *board = (uint64_t *)position->board;
+
+  for (int i = 0; i < 4; ++i)
+  {
+    uint64_t *temp = board[i];
+    board[i] = board[7 - i];
+    board[7 - i] = temp;
+  }
+}
+
 static inline void uo_position_set_flags(uo_position *position, uo_position_flags flags)
 {
   uint64_t key = position->key;
