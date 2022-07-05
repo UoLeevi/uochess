@@ -50,6 +50,7 @@ extern "C"
     uo_bitboard k;
 
     uo_piece board[64];
+    uint8_t board_xor;
 
     uo_position_flags flags;
     uint16_t ply;

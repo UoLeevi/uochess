@@ -284,11 +284,13 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   uo_position_set_flags(position, flags);
   position->flags ^= 1;
   position->key ^= uo_zobrist_color_to_move;
+  position->board_xor ^= 56;
   ++position->ply;
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
   position->key ^= uo_zobrist_color_to_move;
+  position->board_xor ^= 56;
   --position->ply;
 
   uo_position_flags flags = *--position->history.flags;
