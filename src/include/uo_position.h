@@ -220,6 +220,8 @@ extern "C"
 
   uo_move uo_position_parse_move(uo_position *position, char str[5]);
 
+  uo_move uo_position_parse_png_move(uo_position *position, char *png);
+
 #ifdef __cplusplus
 }
 #endif
