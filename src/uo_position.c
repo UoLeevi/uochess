@@ -244,6 +244,36 @@ uint64_t uo_position_calculate_key(uo_position *position)
 
 static inline void uo_position_flip_board(uo_position *position)
 {
+  uo_bitboard temp;
+
+  temp = position->white;
+  position->white = uo_bswap(position->black);
+  position->black = uo_bswap(temp);
+
+  temp = position->P;
+  position->P = uo_bswap(position->p);
+  position->p = uo_bswap(temp);
+
+  temp = position->N;
+  position->N = uo_bswap(position->n);
+  position->n = uo_bswap(temp);
+
+  temp = position->B;
+  position->B = uo_bswap(position->b);
+  position->b = uo_bswap(temp);
+
+  temp = position->R;
+  position->R = uo_bswap(position->r);
+  position->r = uo_bswap(temp);
+
+  temp = position->Q;
+  position->Q = uo_bswap(position->q);
+  position->q = uo_bswap(temp);
+
+  temp = position->K;
+  position->K = uo_bswap(position->k);
+  position->k = uo_bswap(temp);
+
   uint64_t *board = (uint64_t *)position->board;
 
   for (int i = 0; i < 4; ++i)
@@ -286,6 +316,9 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   position->key ^= uo_zobrist_color_to_move;
   //position->board_xor ^= 56;
   ++position->ply;
+
+  //uo_position_flip_board(position);
+  //uo_position_flip_board(position);
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
@@ -301,6 +334,9 @@ static inline void uo_position_undo_switch_turn(uo_position *position)
   {
     --position->history.piece_captured;
   }
+
+  //uo_position_flip_board(position);
+  //uo_position_flip_board(position);
 }
 
 static inline void uo_position_do_move(uo_position *position, uo_square square_from, uo_square square_to)
