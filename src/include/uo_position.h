@@ -126,22 +126,22 @@ extern "C"
     return (flags & 0xC000) >> 14;
   }
 
-  static inline bool uo_position_flags_castling_K(uo_position_flags flags)
+  static inline bool uo_position_flags_castling_OO(uo_position_flags flags)
   {
     return (flags & 0x1000) >> 12;
   }
 
-  static inline bool uo_position_flags_castling_Q(uo_position_flags flags)
+  static inline bool uo_position_flags_castling_OOO(uo_position_flags flags)
   {
     return (flags & 0x2000) >> 13;
   }
 
-  static inline bool uo_position_flags_castling_k(uo_position_flags flags)
+  static inline bool uo_position_flags_castling_enemy_OO(uo_position_flags flags)
   {
     return (flags & 0x4000) >> 14;
   }
 
-  static inline bool uo_position_flags_castling_q(uo_position_flags flags)
+  static inline bool uo_position_flags_castling_enemy_OOO(uo_position_flags flags)
   {
     return (flags & 0x8000) >> 15;
   }

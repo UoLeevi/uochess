@@ -26,6 +26,15 @@ extern "C"
 #define uo_bitboard_all ((uo_bitboard)-1ll)
 #define uo_bitboard_edge ((uo_bitboard)0xFF818181818181FFull)
 
+#define uo_bitboard_rank_first   ((uo_bitboard)0x00000000000000FFull)
+#define uo_bitboard_rank_second  ((uo_bitboard)0x000000000000FF00ull)
+#define uo_bitboard_rank_third   ((uo_bitboard)0x0000000000FF0000ull)
+#define uo_bitboard_rank_fourth  ((uo_bitboard)0x00000000FF000000ull)
+#define uo_bitboard_rank_fifth   ((uo_bitboard)0x000000FF00000000ull)
+#define uo_bitboard_rank_sixth   ((uo_bitboard)0x0000FF0000000000ull)
+#define uo_bitboard_rank_seventh ((uo_bitboard)0x00FF000000000000ull)
+#define uo_bitboard_rank_last    ((uo_bitboard)0xFF00000000000000ull)
+
   extern uo_bitboard uo_bitboard_file[8];          //  |
   extern uo_bitboard uo_bitboard_rank[8];          //  -
   extern uo_bitboard uo_bitboard_diagonal[15];     //  /
@@ -100,10 +109,20 @@ extern "C"
     return (pawns & (uo_bitboard)0x007F7F7F7F7F7F00) << 9;
   }
 
-  //static inline uo_bitboard uo_bitboard_attacks_P(uo_bitboard pawns)
-  //{
-  //  return uo_bitboard_attacks_left_P(pawns) | uo_bitboard_attacks_right_P(pawns);
-  //}
+  static inline uo_bitboard uo_bitboard_attacks_left_enemy_P(uo_bitboard pawns)
+  {
+    return (pawns & (uo_bitboard)0x00FEFEFEFEFEFE00) >> 9;
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_right_enemy_P(uo_bitboard pawns)
+  {
+    return (pawns & (uo_bitboard)0x007F7F7F7F7F7F00) >> 7;
+  }
+
+  static inline uo_bitboard uo_bitboard_attacks_enemy_P(uo_bitboard pawns)
+  {
+    return uo_bitboard_attacks_left_enemy_P(pawns) | uo_bitboard_attacks_right_enemy_P(pawns);
+  }
 
   static inline uo_bitboard uo_bitboard_captures_left_P(uo_bitboard pawns, uo_bitboard enemy)
   {

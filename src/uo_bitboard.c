@@ -275,7 +275,7 @@ static inline uo_bitboard uo_bitboard_gen_mask_B(uo_square square)
 {
   int rank = uo_square_rank(square);
   int file = uo_square_file(square);
-  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank[0] | uo_bitboard_rank[7]);
+  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank_first | uo_bitboard_rank_last);
   uo_bitboard mask_edge_file = uo_andn(uo_bitboard_file[file], uo_bitboard_file[0] | uo_bitboard_file[7]);
   uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
   int diagonal = uo_square_diagonal[square];
@@ -290,7 +290,7 @@ static inline uo_bitboard uo_bitboard_gen_mask_R(uo_square square)
 {
   int rank = uo_square_rank(square);
   int file = uo_square_file(square);
-  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank[0] | uo_bitboard_rank[7]);
+  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank_first | uo_bitboard_rank_last);
   uo_bitboard mask_edge_file = uo_andn(uo_bitboard_file[file], uo_bitboard_file[0] | uo_bitboard_file[7]);
   uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
   uo_bitboard mask = uo_bitboard_file[file] | uo_bitboard_rank[rank];
