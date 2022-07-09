@@ -34,8 +34,8 @@ extern "C"
 
   typedef struct uo_position
   {
-    uo_bitboard white;
-    uo_bitboard black;
+    uo_bitboard own;
+    uo_bitboard enemy;
     uo_bitboard P;
     uo_bitboard p;
     uo_bitboard N;
@@ -72,8 +72,8 @@ extern "C"
 
 #pragma region uo_position_piece_bitboard
 
-  static_assert(offsetof(uo_position, white) / sizeof(uo_bitboard) == uo_white, "Unexpected field offset: uo_position.white");
-  static_assert(offsetof(uo_position, black) / sizeof(uo_bitboard) == uo_black, "Unexpected field offset: uo_position.black");
+  //static_assert(offsetof(uo_position, white) / sizeof(uo_bitboard) == uo_white, "Unexpected field offset: uo_position.white");
+  //static_assert(offsetof(uo_position, black) / sizeof(uo_bitboard) == uo_black, "Unexpected field offset: uo_position.black");
   static_assert(offsetof(uo_position, P) / sizeof(uo_bitboard) == uo_piece__P, "Unexpected field offset: uo_position.P");
   static_assert(offsetof(uo_position, p) / sizeof(uo_bitboard) == uo_piece__p, "Unexpected field offset: uo_position.p");
   static_assert(offsetof(uo_position, N) / sizeof(uo_bitboard) == uo_piece__N, "Unexpected field offset: uo_position.N");
@@ -166,7 +166,7 @@ extern "C"
     return (flags & 0x0FFF) | ((uo_position_flags)castling << 12);
   }
 
-  static inline uo_position_flags uo_position_flags_update_castling_white(uo_position_flags flags, uint8_t castling_white)
+  static inline uo_position_flags uo_position_flags_update_castling_own(uo_position_flags flags, uint8_t castling_white)
   {
     return (flags & 0xCFFF) | ((uo_position_flags)castling_white << 12);
   }
@@ -196,6 +196,13 @@ extern "C"
     return (flags & 0x7FFF) | ((uo_position_flags)castling_q << 15);
   }
 
+  static inline uo_position_flags uo_position_flags_flip_castling(uo_position_flags flags)
+  {
+    uint8_t castling = uo_position_flags_castling(flags);
+    castling = (castling << 2) | (castling >> 2);
+    return uo_position_flags_update_castling(flags, castling);
+  }
+
 #pragma endregion
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
@@ -221,6 +228,8 @@ extern "C"
   uo_move uo_position_parse_move(uo_position *position, char str[5]);
 
   uo_move uo_position_parse_png_move(uo_position *position, char *png);
+
+  size_t uo_position_print_move(uo_position *position, uo_move move, char str[6]);
 
 #ifdef __cplusplus
 }

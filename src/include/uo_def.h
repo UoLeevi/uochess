@@ -15,12 +15,11 @@ extern "C"
 #define UO_SCORE_MATE_IN_THRESHOLD ((int16_t)(0x7FFF - UO_MAX_PLY))
 
 #define uo_color(color) ((color) & 1)
+#define uo_color_own 0
+#define uo_color_enemy 1
 #define uo_white 0
 #define uo_black 1
 
-#define uo_direction_forward(color) (8 - (uo_color(color) << 4))
-#define uo_direction_backwards(color) ((uo_color(color) << 4) - 8)
-#define uo_rank_fourth(color) (3 + uo_color(color))
 
 #ifdef __cplusplus
 }

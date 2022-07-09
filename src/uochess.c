@@ -212,7 +212,7 @@ static void report_search_info(uo_search_info info)
 
     for (; i < info.depth && pv_entry.bestmove; ++i)
     {
-      uo_move_print(pv_entry.bestmove, buf);
+      uo_position_print_move(&info.search->position, pv_entry.bestmove, buf);
       printf(" %s", buf);
 
       assert(uo_position_is_legal_move(&info.search->position, pv_entry.bestmove));
@@ -230,7 +230,7 @@ static void report_search_info(uo_search_info info)
 
     if (info.completed && info.multipv == 1)
     {
-      uo_move_print(info.search->pv->bestmove, buf);
+      uo_position_print_move(&info.search->position, info.search->pv->bestmove, buf);
       printf("bestmove %s\n", buf);
     }
   }
@@ -276,7 +276,7 @@ static void process_cmd__position(void)
         for (int64_t i = 0; i < move_count; ++i)
         {
           uo_move move = search.head[i - move_count];
-          uo_move_print(move, buf);
+          uo_position_print_move(&search.position, move, buf);
           uo_position_make_move(&search.position, move);
           size_t node_count = depth == 1 ? 1 : uo_search_perft(&search, depth - 1);
           uo_position_unmake_move(&search.position);

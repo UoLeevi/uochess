@@ -59,8 +59,6 @@ extern "C"
     return (uo_move)from | ((uo_move)to << 6) | ((uo_move)type << 12);
   }
 
-  size_t uo_move_print(uo_move move, char str[6]);
-
 #ifdef __cplusplus
 }
 #endif

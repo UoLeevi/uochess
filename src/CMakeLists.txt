@@ -5,7 +5,6 @@ add_executable(uochess
     uo_bitboard.c
     uo_position.c
     uo_square.c
-    uo_move.c
     uo_search.c
     uo_util.c
     uo_zobrist.c

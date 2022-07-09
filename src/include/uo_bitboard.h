@@ -78,27 +78,41 @@ extern "C"
     return uo_bitboard_attacks_B(square, blockers) | uo_bitboard_attacks_R(square, blockers);
   }
 
-  // see: https://www.chessprogramming.org/Pawn_Pushes_(Bitboards)#Generalized_Push
-  static inline uo_bitboard uo_bitboard_single_push_P(uo_bitboard pawns, uint8_t color, uo_bitboard empty)
+  static inline uo_bitboard uo_bitboard_single_push_P(uo_bitboard pawns, uo_bitboard empty)
   {
-    return ((pawns << 8) >> (color << 4)) & empty;
+    return (pawns << 8) & empty;
   }
 
-  static inline uo_bitboard uo_bitboard_double_push_P(uo_bitboard pawns, uint8_t color, uo_bitboard empty)
+  static inline uo_bitboard uo_bitboard_double_push_P(uo_bitboard pawns, uo_bitboard empty)
   {
-    uo_bitboard bitboard_second_rank = (uo_bitboard)0x000000000000FF00 << (color * 40);
-    uo_bitboard single_push = uo_bitboard_single_push_P(pawns & bitboard_second_rank, color, empty);
-    return uo_bitboard_single_push_P(single_push, color, empty);
+    uo_bitboard bitboard_second_rank = (uo_bitboard)0x000000000000FF00;
+    uo_bitboard single_push = uo_bitboard_single_push_P(pawns & bitboard_second_rank, empty);
+    return uo_bitboard_single_push_P(single_push, empty);
   }
 
-  static inline uo_bitboard uo_bitboard_captures_left_P(uo_bitboard pawns, uint8_t color, uo_bitboard enemy)
+  static inline uo_bitboard uo_bitboard_attacks_left_P(uo_bitboard pawns)
   {
-    return (((pawns & (uo_bitboard)0x00FEFEFEFEFEFE00) << 7) >> (color << 4)) & enemy;
+    return (pawns & (uo_bitboard)0x00FEFEFEFEFEFE00) << 7;
   }
 
-  static inline uo_bitboard uo_bitboard_captures_right_P(uo_bitboard pawns, uint8_t color, uo_bitboard enemy)
+  static inline uo_bitboard uo_bitboard_attacks_right_P(uo_bitboard pawns)
   {
-    return (((pawns & (uo_bitboard)0x007F7F7F7F7F7F00) << 9) >> (color << 4)) & enemy;
+    return (pawns & (uo_bitboard)0x007F7F7F7F7F7F00) << 9;
+  }
+
+  //static inline uo_bitboard uo_bitboard_attacks_P(uo_bitboard pawns)
+  //{
+  //  return uo_bitboard_attacks_left_P(pawns) | uo_bitboard_attacks_right_P(pawns);
+  //}
+
+  static inline uo_bitboard uo_bitboard_captures_left_P(uo_bitboard pawns, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_left_P(pawns) & enemy;
+  }
+
+  static inline uo_bitboard uo_bitboard_captures_right_P(uo_bitboard pawns, uo_bitboard enemy)
+  {
+    return uo_bitboard_attacks_right_P(pawns) & enemy;
   }
 
   static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
