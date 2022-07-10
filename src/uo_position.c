@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <assert.h>
+#include <immintrin.h>
 
 //const size_t uo_position__piece_bitboard_offset[0x22] = {
 //    [uo_piece__P] = offsetof(uo_position, P),
@@ -161,38 +162,29 @@ static inline void uo_position_flip_board(uo_position *position)
   position->own = uo_bswap(position->enemy);
   position->enemy = uo_bswap(temp);
 
-  temp = position->P;
-  position->P = uo_bswap(position->p);
-  position->p = uo_bswap(temp);
-
-  temp = position->N;
-  position->N = uo_bswap(position->n);
-  position->n = uo_bswap(temp);
-
-  temp = position->B;
-  position->B = uo_bswap(position->b);
-  position->b = uo_bswap(temp);
-
-  temp = position->R;
-  position->R = uo_bswap(position->r);
-  position->r = uo_bswap(temp);
-
-  temp = position->Q;
-  position->Q = uo_bswap(position->q);
-  position->q = uo_bswap(temp);
-
-  temp = position->K;
-  position->K = uo_bswap(position->k);
-  position->k = uo_bswap(temp);
+  position->P = uo_bswap(position->P);
+  position->N = uo_bswap(position->N);
+  position->B = uo_bswap(position->B);
+  position->R = uo_bswap(position->R);
+  position->Q = uo_bswap(position->Q);
+  position->K = uo_bswap(position->K);
 
   uint64_t *board = (uint64_t *)position->board;
 
-  for (int i = 0; i < 4; ++i)
-  {
-    uint64_t temp = board[i];
-    board[i] = board[7 - i] ^ 0x0101010101010101;
-    board[7 - i] = temp ^ 0x0101010101010101;
-  }
+  __m256i mask_color = _mm256_set1_epi64x(0x0101010101010101);
+  __m256i lo = _mm256_set_epi64x(board[0], board[1], board[2], board[3]);
+  __m256i hi = _mm256_set_epi64x(board[4], board[5], board[6], board[7]);
+  lo = _mm256_xor_si256(lo, mask_color);
+  hi = _mm256_xor_si256(hi, mask_color);
+  _mm256_storeu_si256(board, hi);
+  _mm256_storeu_si256(board + 4, lo);
+
+  //for (int i = 0; i < 4; ++i)
+  //{
+  //  uint64_t temp = board[i];
+  //  board[i] = board[7 - i] ^ 0x0101010101010101;
+  //  board[7 - i] = temp ^ 0x0101010101010101;
+  //}
 
   position->flags = uo_position_flags_flip_castling(position->flags);
 }
@@ -227,13 +219,11 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   uo_position_set_flags(position, flags);
   position->flags ^= 1;
   position->key ^= uo_zobrist_color_to_move;
-  //position->board_xor ^= 56;
   ++position->ply;
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
   position->key ^= uo_zobrist_color_to_move;
-  //position->board_xor ^= 56;
   --position->ply;
 
   uo_position_flags flags = *--position->history.flags;
@@ -334,15 +324,13 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_piece *board = position->board;
   uo_piece piece = board[square_to];
   uo_square square_piece_captured = square_to - 8;
-  uo_piece piece_captured = position->board[square_piece_captured];
   board[square_piece_captured] = 0;
 
-  size_t zpiece_captured = (size_t)piece_captured << 6;
+  size_t zpiece_captured = (size_t)uo_piece__p << 6;
   position->key ^= uo_zobrist[zpiece_captured + square_piece_captured];
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
-  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-  *bitboard_captured = uo_andn(enpassant, *bitboard_captured);
+  position->P = uo_andn(enpassant, position->P);
   position->enemy = uo_andn(enpassant, position->enemy);
 }
 static inline void uo_position_undo_enpassant(uo_position *position, uo_square square_from, uo_square square_to)
@@ -352,15 +340,13 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   uo_piece *board = position->board;
   uo_piece piece = board[square_from];
   uo_square square_piece_captured = square_to - 8;
-  uo_piece piece_captured = piece ^ 1;
-  position->board[square_piece_captured] = piece_captured;
+  position->board[square_piece_captured] = uo_piece__p;
 
-  size_t zpiece_captured = (size_t)piece_captured << 6;
+  size_t zpiece_captured = (size_t)uo_piece__p << 6;
   position->key ^= uo_zobrist[zpiece_captured + square_piece_captured];
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
-  uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
-  *bitboard_captured |= enpassant;
+  position->P |= enpassant;
   position->enemy |= enpassant;
 }
 
@@ -516,7 +502,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
       }
 
       uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-      uo_bitboard *bitboard_color = uo_position_piece_bitboard(position, uo_color(piece));
+      uo_bitboard *bitboard_color = position->bitboards + uo_color(piece);
       uo_square square = (i << 3) + j;
       uo_bitboard mask = uo_square_bitboard(square);
 
@@ -786,17 +772,24 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
       // en passant
 
-      uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank_fourth & position->p;
+      uo_bitboard mask_enemy = position->enemy;
+      uo_bitboard enemy_P = mask_enemy & position->P;
+
+      uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank_fourth & enemy_P;
       if (adjecent_enemy_pawn)
       {
-        uo_square square_enemy_K = uo_tzcnt(position->k);
+        uo_bitboard enemy_K = mask_enemy & position->K;
+        uo_square square_enemy_K = uo_tzcnt(enemy_K);
         uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
 
         if (rank_enemy_K == 3 && uo_popcnt(adjecent_enemy_pawn) == 1)
         {
+          uo_bitboard mask_own = position->own;
+          uo_bitboard own_R = mask_own & position->R;
+          uo_bitboard own_Q = mask_own & position->Q;
           uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
           uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->own | position->enemy);
-          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, position->R | position->Q) & bitboard_rank_enemy_K;
+          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, own_R | own_Q) & bitboard_rank_enemy_K;
 
           if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
           {
@@ -1018,18 +1011,18 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard occupied = mask_own | mask_enemy;
   uo_bitboard empty = ~occupied;
 
-  uo_bitboard own_P = position->P;
-  uo_bitboard own_N = position->N;
-  uo_bitboard own_B = position->B;
-  uo_bitboard own_R = position->R;
-  uo_bitboard own_Q = position->Q;
-  uo_bitboard own_K = position->K;
-  uo_bitboard enemy_P = position->p;
-  uo_bitboard enemy_N = position->n;
-  uo_bitboard enemy_B = position->b;
-  uo_bitboard enemy_R = position->r;
-  uo_bitboard enemy_Q = position->q;
-  uo_bitboard enemy_K = position->k;
+  uo_bitboard own_P = mask_own & position->P;
+  uo_bitboard own_N = mask_own & position->N;
+  uo_bitboard own_B = mask_own & position->B;
+  uo_bitboard own_R = mask_own & position->R;
+  uo_bitboard own_Q = mask_own & position->Q;
+  uo_bitboard own_K = mask_own & position->K;
+  uo_bitboard enemy_P = mask_enemy & position->P;
+  uo_bitboard enemy_N = mask_enemy & position->N;
+  uo_bitboard enemy_B = mask_enemy & position->B;
+  uo_bitboard enemy_R = mask_enemy & position->R;
+  uo_bitboard enemy_Q = mask_enemy & position->Q;
+  uo_bitboard enemy_K = mask_enemy & position->K;
   uo_bitboard enemy_BQ = enemy_B | enemy_Q;
   uo_bitboard enemy_RQ = enemy_R | enemy_Q;
 
@@ -1049,7 +1042,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
   uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
   uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
-  uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_white);
+  uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
   uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P;
 
   uo_bitboard pins_to_own_K_by_B = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
@@ -1679,7 +1672,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__f1, occupied);
     uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__f1, occupied);
     uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__f1);
-    uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__f1, uo_white);
+    uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__f1, uo_color_own);
     uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__f1);
     uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
 
@@ -1688,7 +1681,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__g1, occupied);
       uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__g1, occupied);
       uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__g1);
-      uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__g1, uo_white);
+      uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__g1, uo_color_own);
       uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__g1);
       uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
 
@@ -1704,7 +1697,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__d1, occupied);
     uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__d1, occupied);
     uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__d1);
-    uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__d1, uo_white);
+    uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__d1, uo_color_own);
     uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__d1);
     uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
 
@@ -1713,7 +1706,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__c1, occupied);
       uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__c1, occupied);
       uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__c1);
-      uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__c1, uo_white);
+      uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__c1, uo_color_own);
       uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__c1);
       uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
 
@@ -1751,18 +1744,21 @@ bool uo_position_is_check(uo_position *position)
 {
   uint8_t color_to_move = uo_position_flags_color_to_move(position->flags);
 
-  uo_bitboard occupied = position->own | position->enemy;
+  uo_bitboard mask_own = position->own;
+  uo_bitboard mask_enemy = position->enemy;
+  uo_bitboard occupied = mask_own | mask_enemy;
 
-  uo_bitboard enemy_P = position->p;
-  uo_bitboard enemy_N = position->n;
-  uo_bitboard enemy_B = position->b;
-  uo_bitboard enemy_R = position->r;
-  uo_bitboard enemy_Q = position->q;
-  uo_bitboard enemy_K = position->k;
+  uo_bitboard enemy_P = mask_enemy & position->P;
+  uo_bitboard enemy_N = mask_enemy & position->N;
+  uo_bitboard enemy_B = mask_enemy & position->B;
+  uo_bitboard enemy_R = mask_enemy & position->R;
+  uo_bitboard enemy_Q = mask_enemy & position->Q;
+  uo_bitboard enemy_K = mask_enemy & position->K;
   uo_bitboard enemy_BQ = enemy_B | enemy_Q;
   uo_bitboard enemy_RQ = enemy_R | enemy_Q;
 
-  uo_square square_own_K = uo_tzcnt(position->K);
+  uo_bitboard own_K = mask_own & position->K;
+  uo_square square_own_K = uo_tzcnt(own_K);
 
   uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
   uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
@@ -1797,15 +1793,15 @@ bool uo_position_is_check_move(uo_position *position, uo_move move)
   uo_square square_to = uo_move_square_to(move);
   uint8_t color = uo_color(piece);
 
-  uo_bitboard mask_enemy_K = *uo_position_piece_bitboard(position, uo_piece__K | !color);
+  uo_bitboard enemy_K = position->enemy & position->K;
 
   switch (uo_piece_type(piece))
   {
     case uo_piece__P:
-      return mask_enemy_K & uo_bitboard_attacks_P(square_to, color);
+      return enemy_K & uo_bitboard_attacks_P(square_to, color);
 
     case uo_piece__N:
-      return mask_enemy_K & uo_bitboard_attacks_N(square_to);
+      return enemy_K & uo_bitboard_attacks_N(square_to);
   }
 
   uo_bitboard occupied = position->own | position->enemy;
@@ -1813,13 +1809,13 @@ bool uo_position_is_check_move(uo_position *position, uo_move move)
   switch (uo_piece_type(piece))
   {
     case uo_piece__B:
-      return mask_enemy_K & uo_bitboard_attacks_B(square_to, occupied);
+      return enemy_K & uo_bitboard_attacks_B(square_to, occupied);
 
     case uo_piece__R:
-      return mask_enemy_K & uo_bitboard_attacks_R(square_to, occupied);
+      return enemy_K & uo_bitboard_attacks_R(square_to, occupied);
 
     case uo_piece__Q:
-      return mask_enemy_K & (
+      return enemy_K & (
         uo_bitboard_attacks_B(square_to, occupied) |
         uo_bitboard_attacks_R(square_to, occupied));
   }

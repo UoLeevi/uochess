@@ -291,29 +291,29 @@ size_t uo_search_perft(uo_search *search, size_t depth)
     uo_position_unmake_move(&search->position);
     //assert(search->position.key == key);
 
-    //uo_position_print_fen(&search->position, fen_after_unmake);
+  //  uo_position_print_fen(&search->position, fen_after_unmake);
 
-    //if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != search->position.key */)
-    //{
-    //  uo_position position;
-    //  uo_position_from_fen(&position, fen_before_make);
+  //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != search->position.key */)
+  //  {
+  //    uo_position position;
+  //    uo_position_from_fen(&position, fen_before_make);
 
-    //  uo_position_print_move(&search->position, move, buf);
-    //  printf("error when unmaking move: %s\n", buf);
-    //  printf("\nbefore make move\n");
-    //  uo_position_print_diagram(&position, buf);
-    //  printf("\n%s", buf);
-    //  printf("\n");
-    //  printf("Fen: %s\n", fen_before_make);
-    //  printf("Key: %" PRIu64 "\n", key);
-    //  printf("\nafter unmake move\n");
-    //  uo_position_print_diagram(&search->position, buf);
-    //  printf("\n%s", buf);
-    //  printf("\n");
-    //  printf("Fen: %s\n", fen_after_unmake);
-    //  printf("Key: %" PRIu64 "\n", search->position.key);
-    //  printf("\n");
-    //}
+  //    uo_position_print_move(&search->position, move, buf);
+  //    printf("error when unmaking move: %s\n", buf);
+  //    printf("\nbefore make move\n");
+  //    uo_position_print_diagram(&position, buf);
+  //    printf("\n%s", buf);
+  //    printf("\n");
+  //    printf("Fen: %s\n", fen_before_make);
+  //    printf("Key: %" PRIu64 "\n", key);
+  //    printf("\nafter unmake move\n");
+  //    uo_position_print_diagram(&search->position, buf);
+  //    printf("\n%s", buf);
+  //    printf("\n");
+  //    printf("Fen: %s\n", fen_after_unmake);
+  //    printf("Key: %" PRIu64 "\n", search->position.key);
+  //    printf("\n");
+  //  }
   }
 
   search->head -= move_count;

@@ -34,20 +34,19 @@ extern "C"
 
   typedef struct uo_position
   {
-    uo_bitboard own;
-    uo_bitboard enemy;
-    uo_bitboard P;
-    uo_bitboard p;
-    uo_bitboard N;
-    uo_bitboard n;
-    uo_bitboard B;
-    uo_bitboard b;
-    uo_bitboard R;
-    uo_bitboard r;
-    uo_bitboard Q;
-    uo_bitboard q;
-    uo_bitboard K;
-    uo_bitboard k;
+    union {
+      uo_bitboard bitboards[8];
+      struct {
+        uo_bitboard own;
+        uo_bitboard enemy;
+        uo_bitboard P;
+        uo_bitboard N;
+        uo_bitboard B;
+        uo_bitboard R;
+        uo_bitboard Q;
+        uo_bitboard K;
+      };
+    };
 
     uo_piece board[64];
     //uint8_t board_xor;
@@ -74,22 +73,16 @@ extern "C"
 
   //static_assert(offsetof(uo_position, white) / sizeof(uo_bitboard) == uo_white, "Unexpected field offset: uo_position.white");
   //static_assert(offsetof(uo_position, black) / sizeof(uo_bitboard) == uo_black, "Unexpected field offset: uo_position.black");
-  static_assert(offsetof(uo_position, P) / sizeof(uo_bitboard) == uo_piece__P, "Unexpected field offset: uo_position.P");
-  static_assert(offsetof(uo_position, p) / sizeof(uo_bitboard) == uo_piece__p, "Unexpected field offset: uo_position.p");
-  static_assert(offsetof(uo_position, N) / sizeof(uo_bitboard) == uo_piece__N, "Unexpected field offset: uo_position.N");
-  static_assert(offsetof(uo_position, n) / sizeof(uo_bitboard) == uo_piece__n, "Unexpected field offset: uo_position.n");
-  static_assert(offsetof(uo_position, B) / sizeof(uo_bitboard) == uo_piece__B, "Unexpected field offset: uo_position.B");
-  static_assert(offsetof(uo_position, b) / sizeof(uo_bitboard) == uo_piece__b, "Unexpected field offset: uo_position.b");
-  static_assert(offsetof(uo_position, R) / sizeof(uo_bitboard) == uo_piece__R, "Unexpected field offset: uo_position.R");
-  static_assert(offsetof(uo_position, r) / sizeof(uo_bitboard) == uo_piece__r, "Unexpected field offset: uo_position.r");
-  static_assert(offsetof(uo_position, Q) / sizeof(uo_bitboard) == uo_piece__Q, "Unexpected field offset: uo_position.Q");
-  static_assert(offsetof(uo_position, q) / sizeof(uo_bitboard) == uo_piece__q, "Unexpected field offset: uo_position.q");
-  static_assert(offsetof(uo_position, K) / sizeof(uo_bitboard) == uo_piece__K, "Unexpected field offset: uo_position.K");
-  static_assert(offsetof(uo_position, k) / sizeof(uo_bitboard) == uo_piece__k, "Unexpected field offset: uo_position.k");
+  static_assert(offsetof(uo_position, P) / sizeof(uo_bitboard) == (uo_piece__P >> 1) + 1, "Unexpected field offset: uo_position.P");
+  static_assert(offsetof(uo_position, N) / sizeof(uo_bitboard) == (uo_piece__N >> 1) + 1, "Unexpected field offset: uo_position.N");
+  static_assert(offsetof(uo_position, B) / sizeof(uo_bitboard) == (uo_piece__B >> 1) + 1, "Unexpected field offset: uo_position.B");
+  static_assert(offsetof(uo_position, R) / sizeof(uo_bitboard) == (uo_piece__R >> 1) + 1, "Unexpected field offset: uo_position.R");
+  static_assert(offsetof(uo_position, Q) / sizeof(uo_bitboard) == (uo_piece__Q >> 1) + 1, "Unexpected field offset: uo_position.Q");
+  static_assert(offsetof(uo_position, K) / sizeof(uo_bitboard) == (uo_piece__K >> 1) + 1, "Unexpected field offset: uo_position.K");
 
   static inline uo_bitboard *uo_position_piece_bitboard(uo_position *position, uo_piece piece)
   {
-    return (uo_bitboard *)position + piece;
+    return position->bitboards + (1 + (piece >> 1));
   };
 
 #pragma endregion
