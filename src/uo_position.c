@@ -1028,9 +1028,6 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
   uo_bitboard attacks_enemy_P = uo_bitboard_attacks_enemy_P(enemy_P);
 
-  int8_t direction_forwards = 8;
-  int8_t direction_backwards = -8;
-
   // 1. Check for checks and pieces pinned to the king
 
   uo_square square_own_K = uo_tzcnt(own_K);
@@ -1138,12 +1135,12 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     {
       if (enpassant_file > 1 && (own_P & (enemy_checks_P >> 1)))
       {
-        *moves++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
+        *moves++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + 8, uo_move_type__enpassant);
       }
 
       if (enpassant_file < 8 && (own_P & (enemy_checks_P << 1)))
       {
-        *moves++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + direction_forwards, uo_move_type__enpassant);
+        *moves++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + 8, uo_move_type__enpassant);
       }
     }
 
@@ -1191,11 +1188,11 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
         *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
       }
 
-      uo_bitboard block_P = own_P & uo_square_bitboard(square_between + direction_backwards);
+      uo_bitboard block_P = own_P & uo_square_bitboard(square_between - 8);
 
-      if ((bitboard_square_between & uo_bitboard_rank_fourth) && (uo_bitboard_double_push_P(uo_square_bitboard(square_between + direction_backwards * 2), empty)))
+      if ((bitboard_square_between & uo_bitboard_rank_fourth) && (uo_bitboard_double_push_P(uo_square_bitboard(square_between - 16), empty)))
       {
-        block_P |= own_P & uo_square_bitboard(square_between + (direction_backwards * 2));
+        block_P |= own_P & uo_square_bitboard(square_between - 16);
       }
 
       block_P = uo_andn(pins_to_own_K, block_P);
@@ -1347,7 +1344,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while (non_pinned_single_push_P)
   {
     square_to = uo_bitboard_next_square(&non_pinned_single_push_P);
-    square_from = square_to + direction_backwards;
+    square_from = square_to - 8;
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
@@ -1368,7 +1365,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while (non_pinned_double_push_P)
   {
     square_to = uo_bitboard_next_square(&non_pinned_double_push_P);
-    square_from = square_to + direction_backwards * 2;
+    square_from = square_to - 16;
     *moves++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
   }
 
@@ -1378,7 +1375,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while (non_pinned_captures_right_P)
   {
     square_to = uo_bitboard_next_square(&non_pinned_captures_right_P);
-    square_from = square_to + direction_backwards - 1;
+    square_from = square_to - 9;
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
@@ -1399,7 +1396,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   while (non_pinned_captures_left_P)
   {
     square_to = uo_bitboard_next_square(&non_pinned_captures_left_P);
-    square_from = square_to + direction_backwards + 1;
+    square_from = square_to - 7;
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
@@ -1418,16 +1415,16 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
   if (enpassant_file)
   {
     uo_bitboard enpassant = bitboard_enpassant_file & uo_bitboard_rank_fifth;
-    square_to = uo_tzcnt(enpassant) + direction_forwards;
+    square_to = uo_tzcnt(enpassant) + 8;
 
     if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
     {
-      *moves++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
+      *moves++ = uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant);
     }
 
     if (enpassant_file < 8 && (non_pinned_P & (enpassant << 1)))
     {
-      *moves++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
+      *moves++ = uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant);
     }
   }
 
@@ -1522,7 +1519,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     while (pinned_single_push_P)
     {
       square_to = uo_bitboard_next_square(&pinned_single_push_P);
-      square_from = square_to + direction_backwards;
+      square_from = square_to - 8;
       uo_bitboard bitboard_from = uo_square_bitboard(square_from);
       uo_bitboard bitboard_to = uo_square_bitboard(square_to);
       uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied | bitboard_to);
@@ -1552,7 +1549,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     while (pinned_double_push_P)
     {
       square_to = uo_bitboard_next_square(&pinned_double_push_P);
-      square_from = square_to + direction_backwards * 2;
+      square_from = square_to - 16;
       uo_bitboard bitboard_from = uo_square_bitboard(square_from);
       uo_bitboard bitboard_to = uo_square_bitboard(square_to);
       uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied | bitboard_to);
@@ -1572,7 +1569,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     while (pinned_captures_right_P)
     {
       square_to = uo_bitboard_next_square(&pinned_captures_right_P);
-      square_from = square_to + direction_backwards - 1;
+      square_from = square_to - 9;
       uo_bitboard bitboard_from = uo_square_bitboard(square_from);
       uo_bitboard bitboard_to = uo_square_bitboard(square_to);
       uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied | bitboard_to);
@@ -1602,7 +1599,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
     while (pinned_captures_left_P)
     {
       square_to = uo_bitboard_next_square(&pinned_captures_left_P);
-      square_from = square_to + direction_backwards + 1;
+      square_from = square_to - 7;
       uo_bitboard bitboard_from = uo_square_bitboard(square_from);
       uo_bitboard bitboard_to = uo_square_bitboard(square_to);
       uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied | bitboard_to);
@@ -1635,7 +1632,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
       uo_bitboard bitboard_from = uo_square_bitboard(square_from);
       uo_bitboard occupied_after_move = uo_andn(bitboard_from, occupied);
       uo_bitboard enpassant = bitboard_enpassant_file & uo_bitboard_rank_fifth;
-      square_to = uo_tzcnt(enpassant) + direction_forwards;
+      square_to = uo_tzcnt(enpassant) + 8;
 
       if (enpassant_file > 1 && (pinned_P & (enpassant >> 1)))
       {
@@ -1645,7 +1642,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *moves++ = uo_move_encode(square_to - 1 + direction_backwards, square_to, uo_move_type__enpassant);
+          *moves++ = uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant);
         }
       }
 
@@ -1657,7 +1654,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 
         if (!enemy_checks)
         {
-          *moves++ = uo_move_encode(square_to + 1 + direction_backwards, square_to, uo_move_type__enpassant);
+          *moves++ = uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant);
         }
       }
     }
