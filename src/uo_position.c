@@ -171,21 +171,25 @@ static inline void uo_position_flip_board(uo_position *position)
 
   position->key = uo_bswap(position->key);
 
-  uint64_t *board = (uint64_t *)position->board;
+  //uint64_t *board = (uint64_t *)position->board;
 
-  __m256i mask_color = _mm256_set1_epi64x(0x0101010101010101);
-  __m256i lo = _mm256_set_epi64x(board[0], board[1], board[2], board[3]);
-  __m256i hi = _mm256_set_epi64x(board[4], board[5], board[6], board[7]);
+  __m256i mask_color = _mm256_set1_epi64x(0x0101010101010101ull);
+  __m256i *board_lo = (__m256i *)(&position->board[0]);
+  __m256i *board_hi = (__m256i *)(&position->board[32]);
+  __m256i lo = _mm256_loadu_si256(board_lo);
+  __m256i hi = _mm256_loadu_si256(board_hi);
   lo = _mm256_xor_si256(lo, mask_color);
   hi = _mm256_xor_si256(hi, mask_color);
-  _mm256_storeu_si256(board, hi);
-  _mm256_storeu_si256(board + 4, lo);
+  lo = _mm256_permute4x64_epi64(lo, 0x1B);
+  hi = _mm256_permute4x64_epi64(hi, 0x1B);
+  _mm256_storeu_si256(board_lo, hi);
+  _mm256_storeu_si256(board_hi, lo);
 
   //for (int i = 0; i < 4; ++i)
   //{
   //  uint64_t temp = board[i];
-  //  board[i] = board[7 - i] ^ 0x0101010101010101;
-  //  board[7 - i] = temp ^ 0x0101010101010101;
+  //  board[i] = board[7 - i] ^ 0x0101010101010101ull;
+  //  board[7 - i] = temp ^ 0x0101010101010101ull;
   //}
 
   position->flags = uo_position_flags_flip_castling(position->flags);

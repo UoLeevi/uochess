@@ -13,9 +13,7 @@
 
 int search_id;
 
-char buf[0x1000];
-
-const size_t quicksort_depth = 4; // arbitrary 
+const size_t quicksort_depth = 4; // arbitrary
 
 int16_t uo_search_static_evaluate(uo_search *search);
 
@@ -362,23 +360,23 @@ void uo_search_end(int search_id)
 
 static double uo_eval_feature_material_P(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__P & color));
+  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__P & color));
 }
 static double uo_eval_feature_material_N(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__N & color));
+  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__N & color));
 }
 static double uo_eval_feature_material_B(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__B & color));
+  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__B & color));
 }
 static double uo_eval_feature_material_R(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__R & color));
+  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__R & color));
 }
 static double uo_eval_feature_material_Q(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(uo_position_piece_bitboard(&search->position, uo_piece__Q & color));
+  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__Q & color));
 }
 
 #pragma endregion

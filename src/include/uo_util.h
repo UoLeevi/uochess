@@ -18,10 +18,6 @@ extern "C"
   //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
   //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
 
-# define uo_popcnt __popcnt64
-
-# define uo_bswap _byteswap_uint64
-
 #elif defined(__has_builtin)
 
   // uo_popcnt
@@ -49,11 +45,9 @@ extern "C"
 #endif
 
 
-#if defined(__AVX__)
+#if defined(__AVX2__)
 
 #include <immintrin.h>
-
-# define uo_bzhi _bzhi_u64
 
 // ~a & b
 # define uo_andn _andn_u64
@@ -76,7 +70,23 @@ extern "C"
 
 # define uo_pdep _pdep_u64
 
-//# define uo_bswap _bswap64
+# define uo_bzhi _bzhi_u64
+
+# define uo_bzlo(u64, i) (uo_andn(_bzhi_u64(-1, i), u64))
+
+# if defined(__INTEL_LLVM_COMPILER)
+
+#  define uo_popcnt _popcnt64
+
+#  define uo_bswap _bswap64
+
+# else
+
+#  define uo_popcnt __popcnt64
+
+#  define uo_bswap _byteswap_uint64
+
+# endif
 
 #endif
 

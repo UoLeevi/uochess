@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.21.0)
 
 add_executable(uochess
     uochess.c
@@ -20,7 +20,13 @@ target_compile_features(uochess
     PUBLIC
         c_std_11)
 
-if(MSVC)
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+    target_compile_options(uochess
+        PRIVATE -mavx -mavx2 -mbmi2 -mpopcnt)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    target_compile_options(uochess
+        PRIVATE /QxKABYLAKE)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(uochess
         PRIVATE /arch:AVX2)
 endif()

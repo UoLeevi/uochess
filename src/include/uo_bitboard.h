@@ -188,12 +188,7 @@ extern "C"
       if (antidiagonal_attackers_below)
       {
         uo_square square_antidiagonal_attacker_below = uo_msb(antidiagonal_attackers_below);
-
-        if (square_antidiagonal_attacker_below)
-        {
-          antidiagonal_below = uo_bzlo(antidiagonal_below, square_antidiagonal_attacker_below);
-        }
-
+        antidiagonal_below = uo_bzlo(antidiagonal_below, square_antidiagonal_attacker_below);
         uo_bitboard antidiagonal_blockers_below = antidiagonal_below & antidiagonal_blockers;
 
         if (uo_popcnt(antidiagonal_blockers_below) == 2) pins |= antidiagonal_below;
@@ -223,12 +218,7 @@ extern "C"
       if (diagonal_attackers_below)
       {
         uo_square square_diagonal_attacker_below = uo_msb(diagonal_attackers_below);
-
-        if (square_diagonal_attacker_below)
-        {
-          diagonal_below = uo_bzlo(diagonal_below, square_diagonal_attacker_below);
-        }
-
+        diagonal_below = uo_bzlo(diagonal_below, square_diagonal_attacker_below);
         uo_bitboard diagonal_blockers_below = diagonal_below & diagonal_blockers;
 
         if (uo_popcnt(diagonal_blockers_below) == 2) pins |= diagonal_below;
@@ -279,12 +269,7 @@ extern "C"
       if (rank_attackers_left)
       {
         uo_square square_rank_attacker_left = uo_msb(rank_attackers_left);
-
-        if (square_rank_attacker_left)
-        {
-          rank_left = uo_bzlo(rank_left, square_rank_attacker_left);
-        }
-
+        rank_left = uo_bzlo(rank_left, square_rank_attacker_left);
         uo_bitboard rank_blockers_left = rank_left & rank_blockers;
 
         if (uo_popcnt(rank_blockers_left) == 2) pins |= rank_left;
@@ -314,12 +299,7 @@ extern "C"
       if (file_attackers_below)
       {
         uo_square square_file_attacker_below = uo_msb(file_attackers_below);
-
-        if (square_file_attacker_below)
-        {
-          file_below = uo_bzlo(file_below, square_file_attacker_below);
-        }
-
+        file_below = uo_bzlo(file_below, square_file_attacker_below);
         uo_bitboard file_blockers_below = file_below & file_blockers;
 
         if (uo_popcnt(file_blockers_below) == 2) pins |= file_below;
