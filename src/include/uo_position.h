@@ -215,30 +215,30 @@ extern "C"
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   uo_position *uo_position_from_fen(uo_position *position, char *fen);
 
-  size_t uo_position_print_fen(uo_position *position, char fen[90]);
+  size_t uo_position_print_fen(uo_position *const position, char fen[90]);
 
-  size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
+  size_t uo_position_print_diagram(uo_position *const position, char diagram[663]);
 
   void uo_position_make_move(uo_position *position, uo_move move);
 
   void uo_position_unmake_move(uo_position *position);
 
-  size_t uo_position_get_moves(uo_position *position, uo_move *movelist);
+  size_t uo_position_get_moves(uo_position *const position, uo_move *movelist);
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
-  static inline bool uo_position_is_check(uo_position *position)
+  static inline bool uo_position_is_check(uo_position *const position)
   {
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
   }
 
-  bool uo_position_is_legal_move(uo_position *position, uo_move move);
+  bool uo_position_is_legal_move(uo_position *const position, uo_move move);
 
-  uo_move uo_position_parse_move(uo_position *position, char str[5]);
+  uo_move uo_position_parse_move(uo_position *const position, char str[5]);
 
-  uo_move uo_position_parse_png_move(uo_position *position, char *png);
+  uo_move uo_position_parse_png_move(uo_position *const position, char *png);
 
-  size_t uo_position_print_move(uo_position *position, uo_move move, char str[6]);
+  size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6]);
 
 #ifdef __cplusplus
 }

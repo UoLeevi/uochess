@@ -121,7 +121,7 @@
 //  return true;
 //}
 
-uint64_t uo_position_calculate_key(uo_position *position)
+uint64_t uo_position_calculate_key(uo_position *const position)
 {
   uint64_t key = 0;
 
@@ -632,7 +632,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   return position;
 }
 
-size_t uo_position_print_fen(uo_position *position, char fen[90])
+size_t uo_position_print_fen(uo_position *const position, char fen[90])
 {
   if (uo_color(position->flags) == uo_black)
   {
@@ -731,7 +731,7 @@ size_t uo_position_print_fen(uo_position *position, char fen[90])
   return ptr - fen;
 }
 
-size_t uo_position_print_diagram(uo_position *position, char diagram[663])
+size_t uo_position_print_diagram(uo_position *const position, char diagram[663])
 {
   char *ptr = diagram;
 
@@ -990,7 +990,7 @@ void uo_position_unmake_move(uo_position *position)
   uo_position_undo_switch_turn(position);
 }
 
-bool uo_position_is_legal_move(uo_position *position, uo_move move)
+bool uo_position_is_legal_move(uo_position *const position, uo_move move)
 {
   uo_piece *board = position->board;
   uo_square square_from = uo_move_square_from(move);
@@ -1018,7 +1018,7 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
   return true;
 }
 
-size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
+size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)
 {
   uo_move *moves = movelist;
   uo_square square_from;
@@ -1678,7 +1678,7 @@ size_t uo_position_get_moves(uo_position *position, uo_move *movelist)
 }
 
 // Only direct checks, does not take into account discoveries
-bool uo_position_is_check_move(uo_position *position, uo_move move)
+bool uo_position_is_check_move(uo_position *const position, uo_move move)
 {
   uo_square square_from = uo_move_square_from(move);
   uo_piece piece = position->board[square_from];
@@ -1715,7 +1715,7 @@ bool uo_position_is_check_move(uo_position *position, uo_move move)
   return false;
 }
 
-uo_move uo_position_parse_move(uo_position *position, char str[5])
+uo_move uo_position_parse_move(uo_position *const position, char str[5])
 {
   if (!str)
     return (uo_move) { 0 };
@@ -1801,7 +1801,7 @@ uo_move uo_position_parse_move(uo_position *position, char str[5])
   return uo_move_encode(square_from, square_to, move_type);
 }
 
-size_t uo_position_print_move(uo_position *position, uo_move move, char str[6])
+size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6])
 {
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
