@@ -32,6 +32,12 @@ extern "C"
       8 q - a8
   */
 
+  typedef struct uo_move_history
+  {
+    uo_move move;
+    uo_position_flags flags;
+  } uo_move_history;
+
   typedef struct uo_position
   {
     union {
@@ -49,24 +55,31 @@ extern "C"
     };
 
     uo_piece board[64];
-    //uint8_t board_xor;
+
+    uo_piece captures[30];
 
     uo_position_flags flags;
     uint16_t ply;
 
-    uo_square checkers[2];
-
     uint64_t key;
+    uo_piece *piece_captured;
 
     struct
     {
-      uo_piece *piece_captured;
-      uo_move *move;
-      uo_position_flags *flags;
-      uo_piece captures[30];
-      uo_move moves[UO_MAX_PLY];
-      uo_position_flags prev_flags[UO_MAX_PLY];
-    } history;
+      uo_bitboard by_BQ;
+      uo_bitboard by_RQ;
+      uo_bitboard by_N;
+      uo_bitboard by_P;
+    } checks;
+
+    struct
+    {
+      uo_bitboard by_BQ;
+      uo_bitboard by_RQ;
+    } pins;
+
+    uo_move_history *stack;
+    uo_move_history history[UO_MAX_PLY];
   } uo_position;
 
 #pragma region uo_position_piece_bitboard
@@ -214,7 +227,10 @@ extern "C"
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
-  bool uo_position_is_check(uo_position *position);
+  static inline bool uo_position_is_check(uo_position *position)
+  {
+    return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
+  }
 
   bool uo_position_is_legal_move(uo_position *position, uo_move move);
 
