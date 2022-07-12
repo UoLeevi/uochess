@@ -25,12 +25,7 @@ char buf[0x1000];
 
 char *ptr;
 
-struct
-{
-  uint16_t multipv;
-  size_t hash_size;
-} options;
-
+uo_search_init_options options;
 uo_search search;
 
 enum state
@@ -45,8 +40,8 @@ static void engine_init(void)
 {
   uo_zobrist_init();
   uo_bitboard_init();
-  search.head = search.moves;
   options.multipv = 1;
+  options.threads = 1;
 
   size_t capacity = (size_t)16000000 / sizeof * search.ttable.entries;
   capacity = (size_t)1 << uo_msb(capacity);
@@ -59,10 +54,12 @@ static void process_cmd__init(void)
   {
     printf("id name uochess\n");
     printf("id author Leevi Uotinen\n\n");
+    printf("option name Threads type spin default 1 min 1 max 512\n");
     printf("option name Hash type spin default 16 min 1 max 33554432\n");
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
-    printf("uciok\n");
+
     state = OPTIONS;
+    printf("uciok\n");
   }
 }
 
@@ -80,9 +77,9 @@ static void process_cmd__options(void)
 
       int64_t spin;
 
-      if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
+      if (ptr && sscanf(ptr, "Threads value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 512)
       {
-        options.multipv = spin;
+        options.threads = spin;
       }
 
       if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
@@ -90,17 +87,18 @@ static void process_cmd__options(void)
         size_t capacity = spin * (size_t)1000000 / sizeof * search.ttable.entries;
         options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * search.ttable.entries;
       }
+
+      if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
+      {
+        options.multipv = spin;
+      }
     }
   }
   else if (ptr && strcmp(ptr, "isready") == 0)
   {
-    printf("readyok\n");
-
-    size_t capacity = options.hash_size / sizeof * search.ttable.entries;
-    uo_ttable_init(&search.ttable, uo_msb(capacity) + 1);
-    search.pv = malloc(options.multipv * sizeof * search.pv);
-
+    uo_search_init(&search, &options);
     state = READY;
+    printf("readyok\n");
   }
 }
 
@@ -114,10 +112,10 @@ static void process_cmd__ready(void)
 
     if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      uo_position *ret = uo_position_from_fen(&search.position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position *ret = uo_position_from_fen(&search.main_thread->position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&search.position, buf);
+      //uo_position_to_diagram(&search.main_thread->position, buf);
       //printf("diagram:\n%s", buf);
 
       ptr = strtok(NULL, "\n ");
@@ -135,10 +133,10 @@ static void process_cmd__ready(void)
         *ptr = 'm';
       }
 
-      uo_position *ret = uo_position_from_fen(&search.position, fen);
+      uo_position *ret = uo_position_from_fen(&search.main_thread->position, fen);
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&search.position, buf);
+      //uo_position_to_diagram(&search.main_thread->position, buf);
       //printf("diagram:\n%s", buf);
     }
     else
@@ -153,28 +151,28 @@ static void process_cmd__ready(void)
       {
         if (strlen(ptr) < 4) return;
 
-        uo_move move = uo_position_parse_move(&search.position, ptr);
+        uo_move move = uo_position_parse_move(&search.main_thread->position, ptr);
         if (!move) return;
 
         uo_square square_from = uo_move_square_from(move);
         uo_square square_to = uo_move_square_to(move);
 
-        int move_count = uo_position_get_moves(&search.position, search.head);
-        search.head += move_count;
+        int move_count = uo_position_get_moves(&search.main_thread->position, search.main_thread->head);
+        search.main_thread->head += move_count;
 
         for (int i = 0; i < move_count; ++i)
         {
-          uo_move move = search.head[i - move_count];
+          uo_move move = search.main_thread->head[i - move_count];
           if (square_from == uo_move_square_from(move)
             && square_to == uo_move_square_to(move))
           {
-            uo_position_make_move(&search.position, move);
-            *search.head++ = move;
+            uo_position_make_move(&search.main_thread->position, move);
+            *search.main_thread->head++ = move;
             goto next_move;
           }
         }
 
-        search.head -= move_count;
+        search.main_thread->head -= move_count;
 
         // Not a legal move
         return;
@@ -189,7 +187,7 @@ static void report_search_info(uo_search_info info)
 {
   for (int i = 0; i < info.multipv; ++i)
   {
-    uo_position_update_checks_and_pins(&info.search->position);
+    uo_position_update_checks_and_pins(&info.search->main_thread->position);
 
     printf("info depth %d seldepth %d multipv %d ",
       info.depth, info.seldepth, info.multipv);
@@ -218,41 +216,41 @@ static void report_search_info(uo_search_info info)
 
     for (; i < info.depth && pv_entry; ++i)
     {
-      uo_position_print_move(&info.search->position, pv_entry->bestmove, buf);
+      uo_position_print_move(&info.search->main_thread->position, pv_entry->bestmove, buf);
       printf(" %s", buf);
 
-      if (!uo_position_is_legal_move(&info.search->position, info.search->head, pv_entry->bestmove))
+      if (!uo_position_is_legal_move(&info.search->main_thread->position, info.search->main_thread->head, pv_entry->bestmove))
       {
-        uo_position_print_move(&info.search->position, pv_entry->bestmove, buf);
+        uo_position_print_move(&info.search->main_thread->position, pv_entry->bestmove, buf);
         printf("\n\nillegal bestmove %s\n", buf);
-        uo_position_print_diagram(&info.search->position, buf);
+        uo_position_print_diagram(&info.search->main_thread->position, buf);
         printf("\n%s", buf);
-        uo_position_print_fen(&info.search->position, buf);
+        uo_position_print_fen(&info.search->main_thread->position, buf);
         printf("\n");
         printf("Fen: %s\n", buf);
-        printf("Key: %" PRIu64 "\n", info.search->position.key);
+        printf("Key: %" PRIu64 "\n", info.search->main_thread->position.key);
         assert(false);
       }
 
-      uo_position_make_move(&info.search->position, pv_entry->bestmove);
-      pv_entry = uo_ttable_get(&info.search->ttable, info.search->position.key);
+      uo_position_make_move(&info.search->main_thread->position, pv_entry->bestmove);
+      pv_entry = uo_ttable_get(&info.search->ttable, info.search->main_thread->position.key);
     }
 
     while (i--)
     {
-      uo_position_unmake_move(&info.search->position);
+      uo_position_unmake_move(&info.search->main_thread->position);
     }
 
     printf("\n");
 
     if (info.completed && info.multipv == 1)
     {
-      uo_position_print_move(&info.search->position, info.search->pv->bestmove, buf);
+      uo_position_print_move(&info.search->main_thread->position, info.search->pv->bestmove, buf);
       printf("bestmove %s\n", buf);
     }
   }
 
-  uo_position_update_checks_and_pins(&info.search->position);
+  uo_position_update_checks_and_pins(&info.search->main_thread->position);
 }
 
 static void process_cmd__position(void)
@@ -267,12 +265,12 @@ static void process_cmd__position(void)
 
   if (ptr && strcmp(ptr, "d") == 0)
   {
-    uo_position_print_diagram(&search.position, buf);
+    uo_position_print_diagram(&search.main_thread->position, buf);
     printf("\n%s", buf);
-    uo_position_print_fen(&search.position, buf);
+    uo_position_print_fen(&search.main_thread->position, buf);
     printf("\n");
     printf("Fen: %s\n", buf);
-    printf("Key: %" PRIu64 "\n", search.position.key);
+    printf("Key: %" PRIu64 "\n", search.main_thread->position.key);
     return;
   }
 
@@ -289,21 +287,21 @@ static void process_cmd__position(void)
       {
         clock_t clock_start = clock();
         size_t total_node_count = 0;
-        size_t move_count = uo_position_get_moves(&search.position, search.head);
-        search.head += move_count;
+        size_t move_count = uo_position_get_moves(&search.main_thread->position, search.main_thread->head);
+        search.main_thread->head += move_count;
 
         for (int64_t i = 0; i < move_count; ++i)
         {
-          uo_move move = search.head[i - move_count];
-          uo_position_print_move(&search.position, move, buf);
-          uo_position_make_move(&search.position, move);
-          size_t node_count = depth == 1 ? 1 : uo_search_perft(&search, depth - 1);
-          uo_position_unmake_move(&search.position);
+          uo_move move = search.main_thread->head[i - move_count];
+          uo_position_print_move(&search.main_thread->position, move, buf);
+          uo_position_make_move(&search.main_thread->position, move);
+          size_t node_count = depth == 1 ? 1 : uo_search_perft(search.main_thread, depth - 1);
+          uo_position_unmake_move(&search.main_thread->position);
           total_node_count += node_count;
           printf("%s: %zu\n", buf, node_count);
         }
 
-        search.head -= move_count;
+        search.main_thread->head -= move_count;
 
         clock_t clock_end = clock();
         int duration_ms = (clock_end - clock_start) * 1000 / CLOCKS_PER_SEC;
@@ -335,7 +333,7 @@ static int run_tests(char *test_data_dir)
 {
   bool passed = true;
 
-  passed &= uo_test_move_generation(&search, test_data_dir);
+  passed &= uo_test_move_generation(search.main_thread, test_data_dir);
 
   return passed ? 0 : 1;
 }
@@ -381,6 +379,7 @@ int main(
     }
 
     engine_init();
+    uo_search_init(&search, &options);
     return run_tests(test_data_dir);
   }
 

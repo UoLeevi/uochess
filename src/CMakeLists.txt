@@ -7,6 +7,9 @@ add_executable(uochess
     uo_square.c
     uo_search.c
     uo_zobrist.c
+    uo_evaluation.c
+    uo_thread.c
+    uo_misc.c
     uo_test.c)
 
 target_include_directories(uochess

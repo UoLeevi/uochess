@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-bool uo_test_move_generation(uo_search *search, char *test_data_dir)
+bool uo_test_move_generation(uo_search_thread *thread, char *test_data_dir)
 {
   if (!test_data_dir) return false;
 
@@ -73,7 +73,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
     char *fen = strtok(NULL, "\n");
     ptr = fen + strlen(fen) + 1;
 
-    if (!uo_position_from_fen(&search->position, fen))
+    if (!uo_position_from_fen(&thread->position, fen))
     {
       printf("Error while parsing fen '%s'\n", fen);
       fclose(fp);
@@ -97,10 +97,10 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
       return false;
     }
 
-    uint64_t key = search->position.key;
+    uint64_t key = thread->position.key;
 
-    move_count = uo_position_get_moves(&search->position, search->head);
-    search->head += move_count;
+    move_count = uo_position_get_moves(&thread->position, thread->head);
+    thread->head += move_count;
 
     while (fgets(ptr, ptr - buf, fp))
     {
@@ -108,7 +108,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       if (!move_str || strlen(move_str) == 0) break;
 
-      uo_move move = uo_position_parse_move(&search->position, move_str);
+      uo_move move = uo_position_parse_move(&thread->position, move_str);
       if (!move)
       {
         printf("Error while parsing move '%s'", move_str);
@@ -133,7 +133,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
       for (int64_t i = 0; i < move_count; ++i)
       {
-        uo_move move = search->head[i - move_count];
+        uo_move move = thread->head[i - move_count];
         if (uo_move_square_from(move) == square_from && uo_move_square_to(move) == square_to)
         {
           uo_move_type move_type = uo_move_get_type(move);
@@ -145,36 +145,36 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
           // move found
 
-          uo_position_make_move(&search->position, move);
-          size_t node_count = depth == 1 ? 1 : uo_search_perft(search, depth - 1);
+          uo_position_make_move(&thread->position, move);
+          size_t node_count = depth == 1 ? 1 : uo_search_perft(thread, depth - 1);
 
           if (node_count != node_count_expected)
           {
             printf("TEST 'move_generation' FAILED: generated node count %zu for move '%s' did not match expected count %zu for fen '%s'\n", node_count, move_str, node_count_expected, fen);
-            uo_position_print_diagram(&search->position, buf);
+            uo_position_print_diagram(&thread->position, buf);
             printf("\n%s", buf);
-            uo_position_print_fen(&search->position, buf);
+            uo_position_print_fen(&thread->position, buf);
             printf("\nFen: %s\n", buf);
 
             fclose(fp);
             return false;
           }
 
-          uo_position_unmake_move(&search->position);
+          uo_position_unmake_move(&thread->position);
 
-          if (search->position.key != key)
+          if (thread->position.key != key)
           {
-            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\n", search->position.key, move_str, key, fen);
-            uo_position_print_diagram(&search->position, buf);
+            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\n", thread->position.key, move_str, key, fen);
+            uo_position_print_diagram(&thread->position, buf);
             printf("\n%s", buf);
-            uo_position_print_fen(&search->position, buf);
+            uo_position_print_fen(&thread->position, buf);
             printf("\nFen: %s\n", buf);
 
             fclose(fp);
             return false;
           }
 
-          search->head[i - move_count] = (uo_move){ 0 };
+          thread->head[i - move_count] = (uo_move){ 0 };
           goto next_move;
         }
       }
@@ -188,7 +188,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
 
     for (int64_t i = 0; i < move_count; ++i)
     {
-      uo_move move = search->head[i - move_count];
+      uo_move move = thread->head[i - move_count];
       if (move)
       {
         uo_square square_from = uo_move_square_from(move);
@@ -203,7 +203,7 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
       }
     }
 
-    search->head -= move_count;
+    thread->head -= move_count;
     ++test_count;
   }
 

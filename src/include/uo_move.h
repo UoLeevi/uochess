@@ -54,6 +54,11 @@ extern "C"
     return move & 0x4000;
   }
 
+  static inline bool uo_move_is_promotion(uo_move move)
+  {
+    return move & 0x8000;
+  }
+
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)
   {
     return (uo_move)from | ((uo_move)to << 6) | ((uo_move)type << 12);

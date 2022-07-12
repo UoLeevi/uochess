@@ -10,7 +10,7 @@ extern "C"
 
 #include <stdbool.h>
 
-  bool uo_test_move_generation(uo_search *search, char *test_data_dir);
+  bool uo_test_move_generation(uo_search_thread *thread, char *test_data_dir);
 
 
 #ifdef __cplusplus
