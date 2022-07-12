@@ -6,7 +6,6 @@ add_executable(uochess
     uo_position.c
     uo_square.c
     uo_search.c
-    uo_util.c
     uo_zobrist.c
     uo_test.c)
 

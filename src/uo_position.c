@@ -136,18 +136,14 @@ uint64_t uo_position_calculate_key(uo_position *const position)
   }
 
   key ^= uo_zobrist_castling[castling];
-
-  if (enpassant_file)
-  {
-    key ^= uo_zobrist_enpassant_file[enpassant_file - 1];
-  }
+  key ^= uo_zobrist_enpassant_file[enpassant_file];
 
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_piece piece = position->board[square];
     if (piece > 1)
     {
-      key ^= uo_zobrist[((size_t)piece << 6) + square];
+      key ^= uo_zobkey(piece, square);
     }
   }
 
@@ -156,9 +152,7 @@ uint64_t uo_position_calculate_key(uo_position *const position)
 
 static inline void uo_position_flip_board(uo_position *position)
 {
-  uo_bitboard temp;
-
-  temp = position->own;
+  uo_bitboard temp = position->own;
   position->own = uo_bswap(position->enemy);
   position->enemy = uo_bswap(temp);
 
@@ -170,8 +164,6 @@ static inline void uo_position_flip_board(uo_position *position)
   position->K = uo_bswap(position->K);
 
   position->key = uo_bswap(position->key);
-
-  //uint64_t *board = (uint64_t *)position->board;
 
   __m256i mask_color = _mm256_set1_epi64x(0x0101010101010101ull);
   __m256i *board_lo = (__m256i *)(&position->board[0]);
@@ -185,13 +177,6 @@ static inline void uo_position_flip_board(uo_position *position)
   _mm256_storeu_si256(board_lo, hi);
   _mm256_storeu_si256(board_hi, lo);
 
-  //for (int i = 0; i < 4; ++i)
-  //{
-  //  uint64_t temp = board[i];
-  //  board[i] = board[7 - i] ^ 0x0101010101010101ull;
-  //  board[7 - i] = temp ^ 0x0101010101010101ull;
-  //}
-
   position->flags = uo_position_flags_flip_castling(position->flags);
 }
 
@@ -200,21 +185,14 @@ static inline void uo_position_set_flags(uo_position *position, uo_position_flag
   uint64_t key = position->key;
 
   uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
-  if (enpassant_file)
-  {
-    key ^= uo_zobrist_enpassant_file[enpassant_file - 1];
-  }
-
+  key ^= uo_zobrist_enpassant_file[enpassant_file];
   enpassant_file = uo_position_flags_enpassant_file(flags);
-  if (enpassant_file)
-  {
-    key ^= uo_zobrist_enpassant_file[enpassant_file - 1];
-  }
+  key ^= uo_zobrist_enpassant_file[enpassant_file];
 
   uint8_t castling = uo_position_flags_castling(position->flags);
-  key ^= uo_zobrist_castling[castling - 1];
+  key ^= uo_zobrist_castling[castling];
   castling = uo_position_flags_castling(flags);
-  key ^= uo_zobrist_castling[castling - 1];
+  key ^= uo_zobrist_castling[castling];
 
   position->key = key;
   position->flags = flags;
@@ -247,8 +225,7 @@ static inline void uo_position_do_move(uo_position *position, uo_square square_f
   board[square_from] = 0;
   board[square_to] = piece;
 
-  size_t zpiece = (size_t)piece << 6;
-  position->key ^= uo_zobrist[zpiece + square_from] ^ uo_zobrist[zpiece + square_to];
+  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -264,8 +241,7 @@ static inline void uo_position_undo_move(uo_position *position, uo_square square
   board[square_from] = piece;
   board[square_to] = 0;
 
-  size_t zpiece = (size_t)piece << 6;
-  position->key ^= uo_zobrist[zpiece + square_from] ^ uo_zobrist[zpiece + square_to];
+  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -283,9 +259,7 @@ static inline void uo_position_do_capture(uo_position *position, uo_square squar
   board[square_from] = 0;
   board[square_to] = piece;
 
-  size_t zpiece = (size_t)piece << 6;
-  size_t zpiece_captured = (size_t)piece_captured << 6;
-  position->key ^= uo_zobrist[zpiece + square_from] ^ uo_zobrist[zpiece + square_to] ^ uo_zobrist[zpiece_captured + square_to];
+  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -305,9 +279,7 @@ static inline void uo_position_undo_capture(uo_position *position, uo_square squ
   board[square_from] = piece;
   board[square_to] = piece_captured;
 
-  size_t zpiece = (size_t)piece << 6;
-  size_t zpiece_captured = (size_t)piece_captured << 6;
-  position->key ^= uo_zobrist[zpiece + square_from] ^ uo_zobrist[zpiece + square_to] ^ uo_zobrist[zpiece_captured + square_to];
+  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -330,8 +302,7 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_square square_piece_captured = square_to - 8;
   board[square_piece_captured] = 0;
 
-  size_t zpiece_captured = (size_t)uo_piece__p << 6;
-  position->key ^= uo_zobrist[zpiece_captured + square_piece_captured];
+  position->key ^= uo_zobkey(uo_piece__p, square_piece_captured);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P = uo_andn(enpassant, position->P);
@@ -346,8 +317,7 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   uo_square square_piece_captured = square_to - 8;
   position->board[square_piece_captured] = uo_piece__p;
 
-  size_t zpiece_captured = (size_t)uo_piece__p << 6;
-  position->key ^= uo_zobrist[zpiece_captured + square_piece_captured];
+  position->key ^= uo_zobkey(uo_piece__p, square_piece_captured);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P |= enpassant;
@@ -361,9 +331,7 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
   board[square_from] = 0;
   board[square_to] = piece;
 
-  size_t zpawn = (size_t)uo_piece__P << 6;
-  size_t zpiece = (size_t)piece << 6;
-  position->key ^= uo_zobrist[zpawn + square_from] ^ uo_zobrist[zpiece + square_to];
+  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -384,9 +352,7 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
   board[square_from] = uo_piece__P;
   board[square_to] = 0;
 
-  size_t zpawn = (size_t)uo_piece__P << 6;
-  size_t zpiece = (size_t)piece << 6;
-  position->key ^= uo_zobrist[zpawn + square_from] ^ uo_zobrist[zpiece + square_to];
+  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -406,10 +372,7 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
   board[square_from] = 0;
   board[square_to] = piece;
 
-  size_t zpawn = (size_t)uo_piece__P << 6;
-  size_t zpiece = (size_t)piece << 6;
-  size_t zpiece_captured = (size_t)piece_captured << 6;
-  position->key ^= uo_zobrist[zpawn + square_from] ^ uo_zobrist[zpiece + square_to] ^ uo_zobrist[zpiece_captured + square_to];
+  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -432,10 +395,7 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   board[square_from] = uo_piece__P;
   board[square_to] = piece_captured;
 
-  size_t zpawn = (size_t)uo_piece__P << 6;
-  size_t zpiece = (size_t)piece << 6;
-  size_t zpiece_captured = (size_t)piece_captured << 6;
-  position->key ^= uo_zobrist[zpawn + square_from] ^ uo_zobrist[zpiece + square_to] ^ uo_zobrist[zpiece_captured + square_to];
+  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -449,29 +409,6 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
   *bitboard_captured |= bitboard_to;
   position->enemy |= bitboard_to;
-}
-
-static inline void uo_position_update_checks_and_pins(uo_position *position)
-{
-  uo_bitboard mask_own = position->own;
-  uo_bitboard mask_enemy = position->enemy;
-  uo_bitboard occupied = mask_own | mask_enemy;
-
-  uo_bitboard enemy_P = mask_enemy & position->P;
-  uo_bitboard enemy_N = mask_enemy & position->N;
-  uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
-  uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
-
-  uo_bitboard own_K = mask_own & position->K;
-  uo_square square_own_K = uo_tzcnt(own_K);
-
-  position->checks.by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
-  position->checks.by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
-  position->checks.by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
-  position->checks.by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
-
-  position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
-  position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
 }
 
 // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
@@ -994,32 +931,26 @@ void uo_position_unmake_move(uo_position *position)
   uo_position_undo_switch_turn(position);
 }
 
-bool uo_position_is_legal_move(uo_position *const position, uo_move move)
+bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, uo_move move)
 {
   uo_piece *board = position->board;
   uo_square square_from = uo_move_square_from(move);
   uo_piece piece = board[square_from];
-  if (!piece) return false;
 
+  if (piece <= 1) return false;
   if (uo_color(piece) != uo_color_own) return false;
 
-  //uo_move_type move_type = uo_move_get_type(move);
-  //uo_square square_to = uo_move_square_to(move);
-  //uo_piece piece_captured = board[square_to];
+  int64_t move_count = uo_position_get_moves(position, movelist);
 
-  uo_position_make_move(position, move);
-
-  position->flags ^= 1;
-
-  if (uo_position_is_check(position))
+  while (move_count--)
   {
-    position->flags ^= 1;
-    return false;
+    if (move == *movelist++)
+    {
+      return true;
+    }
   }
 
-  position->flags ^= 1;
-  uo_position_unmake_move(position);
-  return true;
+  return false;
 }
 
 size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)

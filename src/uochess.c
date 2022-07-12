@@ -70,22 +70,26 @@ static void process_cmd__options(void)
 {
   char *ptr = buf;
 
-  if (ptr && strcmp(ptr, "setoption name") == 0)
+  if (ptr && strcmp(ptr, "setoption") == 0)
   {
     ptr = strtok(NULL, " ");
-    ptr = strtok(NULL, " ");
 
-    int64_t spin;
-
-    if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
+    if (ptr && strcmp(ptr, "name") == 0)
     {
-      options.multipv = spin;
-    }
+      ptr = strtok(NULL, "\n");
 
-    if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
-    {
-      size_t capacity = spin * (size_t)1000000 / sizeof * search.ttable.entries;
-      options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * search.ttable.entries;
+      int64_t spin;
+
+      if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
+      {
+        options.multipv = spin;
+      }
+
+      if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
+      {
+        size_t capacity = spin * (size_t)1000000 / sizeof * search.ttable.entries;
+        options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * search.ttable.entries;
+      }
     }
   }
   else if (ptr && strcmp(ptr, "isready") == 0)
@@ -185,6 +189,8 @@ static void report_search_info(uo_search_info info)
 {
   for (int i = 0; i < info.multipv; ++i)
   {
+    uo_position_update_checks_and_pins(&info.search->position);
+
     printf("info depth %d seldepth %d multipv %d ",
       info.depth, info.seldepth, info.multipv);
 
@@ -206,19 +212,30 @@ static void report_search_info(uo_search_info info)
       info.nodes, info.nps, info.tbhits, info.time);
 
     size_t pv_len = 1;
-    uo_tentry pv_entry = *info.search->pv;
+    uo_tentry *pv_entry = info.search->pv;
 
     size_t i = 0;
 
-    for (; i < info.depth && pv_entry.bestmove; ++i)
+    for (; i < info.depth && pv_entry; ++i)
     {
-      uo_position_print_move(&info.search->position, pv_entry.bestmove, buf);
+      uo_position_print_move(&info.search->position, pv_entry->bestmove, buf);
       printf(" %s", buf);
 
-      assert(uo_position_is_legal_move(&info.search->position, pv_entry.bestmove));
+      if (!uo_position_is_legal_move(&info.search->position, info.search->head, pv_entry->bestmove))
+      {
+        uo_position_print_move(&info.search->position, pv_entry->bestmove, buf);
+        printf("\n\nillegal bestmove %s\n", buf);
+        uo_position_print_diagram(&info.search->position, buf);
+        printf("\n%s", buf);
+        uo_position_print_fen(&info.search->position, buf);
+        printf("\n");
+        printf("Fen: %s\n", buf);
+        printf("Key: %" PRIu64 "\n", info.search->position.key);
+        assert(false);
+      }
 
-      uo_position_make_move(&info.search->position, pv_entry.bestmove);
-      pv_entry = *uo_ttable_get(&info.search->ttable, info.search->position.key);
+      uo_position_make_move(&info.search->position, pv_entry->bestmove);
+      pv_entry = uo_ttable_get(&info.search->ttable, info.search->position.key);
     }
 
     while (i--)
@@ -234,6 +251,8 @@ static void report_search_info(uo_search_info info)
       printf("bestmove %s\n", buf);
     }
   }
+
+  uo_position_update_checks_and_pins(&info.search->position);
 }
 
 static void process_cmd__position(void)
@@ -298,7 +317,7 @@ static void process_cmd__position(void)
       ptr = strtok(NULL, "\n ");
 
       int depth;
-      if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
+      if (ptr && sscanf(ptr, "%d", &depth) == 1 && depth > 0)
       {
         uo_search_params search_params = {
           .depth = depth,

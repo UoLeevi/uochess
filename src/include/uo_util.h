@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include <inttypes.h>
+#include <stdlib.h>
 
 #if defined(_MSC_VER)
 
@@ -103,12 +104,25 @@ extern "C"
 
 #endif
 
-  uint64_t uo_rand();
+  static inline uint64_t uo_rand()
+  {
+    uint64_t r = 0;
 
-  void uo_rand_init(uint64_t seed);
+    for (int i = 0; i < 64; i += 15) {
+      r <<= 15;
+      r ^= (unsigned)rand();
+    }
+
+    return r;
+  }
+
+  static inline void uo_rand_init(uint64_t seed)
+  {
+    srand(seed);
+  }
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

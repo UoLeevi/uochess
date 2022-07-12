@@ -227,12 +227,35 @@ extern "C"
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
+  static inline void uo_position_update_checks_and_pins(uo_position *position)
+  {
+    uo_bitboard mask_own = position->own;
+    uo_bitboard mask_enemy = position->enemy;
+    uo_bitboard occupied = mask_own | mask_enemy;
+
+    uo_bitboard enemy_P = mask_enemy & position->P;
+    uo_bitboard enemy_N = mask_enemy & position->N;
+    uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
+    uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
+
+    uo_bitboard own_K = mask_own & position->K;
+    uo_square square_own_K = uo_tzcnt(own_K);
+
+    position->checks.by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
+    position->checks.by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
+    position->checks.by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
+    position->checks.by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
+
+    position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
+    position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+  }
+
   static inline bool uo_position_is_check(uo_position *const position)
   {
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
   }
 
-  bool uo_position_is_legal_move(uo_position *const position, uo_move move);
+  bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, uo_move move);
 
   uo_move uo_position_parse_move(uo_position *const position, char str[5]);
 

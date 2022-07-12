@@ -31,7 +31,11 @@ int uo_search_moves_cmp(uo_search *search, uo_move move_lhs, uo_move move_rhs)
     score_lhs = uo_piece_type(piece_captured_lhs) - uo_piece_type(piece_lhs) + uo_piece__B;
   }
 
-  if (uo_position_is_check_move(&search->position, move_lhs))
+  if (uo_bitboard_attacks_enemy_P(search->position.P & search->position.enemy) & uo_square_bitboard(square_to_lhs))
+  {
+    score_lhs -= 1;
+  }
+  else if (uo_position_is_check_move(&search->position, move_lhs))
   {
     score_lhs += 2;
   }
@@ -48,7 +52,11 @@ int uo_search_moves_cmp(uo_search *search, uo_move move_lhs, uo_move move_rhs)
     score_rhs = uo_piece_type(piece_captured_rhs) - uo_piece_type(piece_rhs) + uo_piece__B;
   }
 
-  if (uo_position_is_check_move(&search->position, move_rhs))
+  if (uo_bitboard_attacks_enemy_P(search->position.P & search->position.enemy) & uo_square_bitboard(square_to_rhs))
+  {
+    score_rhs -= 1;
+  }
+  else if (uo_position_is_check_move(&search->position, move_rhs))
   {
     score_rhs += 2;
   }
@@ -122,15 +130,15 @@ void uo_search_quicksort_moves(uo_search *search, uo_move *movelist, int lo, int
 void uo_search_sort_moves(uo_search *search, int64_t move_count)
 {
   uo_tentry *entry = uo_ttable_get(&search->ttable, search->position.key);
-  uo_tentry_release_if_unused(entry);
-  uo_move move_pv = entry->bestmove;
   uo_move *movelist = search->head;
 
   int lo = 0;
 
   // If found, set pv move as first
-  if (move_pv)
+  if (entry)
   {
+    uo_move move_pv = entry->bestmove;
+
     for (int i = 1; i < move_count; ++i)
     {
       if (movelist[i] == move_pv)
@@ -152,7 +160,7 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
   int16_t a_orig = a;
 
   uo_tentry *entry = uo_ttable_get(&search->ttable, search->position.key);
-  if (entry->type && entry->depth >= depth)
+  if (entry && entry->depth >= depth)
   {
     int16_t score = color * entry->score;
 
@@ -183,19 +191,16 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
 
   if (move_count == 0)
   {
-    uo_tentry_release_if_unused(entry);
     return uo_position_is_check(&search->position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
   if (depth == 0)
   {
-    uo_tentry_release_if_unused(entry);
-    return color * uo_search_static_evaluate(search);
+    return uo_search_static_evaluate(search);
   }
 
   uo_search_sort_moves(search, move_count);
   search->head += move_count;
-  entry->keep = true;
 
   uo_move bestmove;
   int16_t value = -UO_SCORE_CHECKMATE;
@@ -234,14 +239,19 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
   }
 
   search->head -= move_count;
-  entry->keep = false;
+
+  if (!entry)
+  {
+    entry = uo_ttable_set(&search->ttable, search->position.key);
+  }
+
   entry->score = color * value;
   entry->depth = depth;
+  entry->bestmove = bestmove;
 
   if (value > a_orig)
   {
     entry->type = uo_tentry_type__upper_bound;
-    entry->bestmove = bestmove;
   }
   else if (value >= b)
   {
@@ -250,7 +260,6 @@ static int16_t uo_search_negamax(uo_search *search, size_t depth, int16_t a, int
   else
   {
     entry->type = uo_tentry_type__exact;
-    entry->bestmove = bestmove;
   }
 
   return value;
@@ -324,28 +333,26 @@ int uo_search_start(uo_search *search, const uo_search_params params)
   int16_t color = uo_position_flags_color_to_move(search->position.flags) ? -1 : 1;
 
   uo_search_info info = {
+    .depth = 1,
     .search = search,
     .multipv = params.multipv
   };
 
-  uo_tentry *pv = uo_ttable_get(&search->ttable, search->position.key);
-  pv->keep = true;
+  uo_search_negamax(search, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color);
 
-  for (size_t depth = 1; depth < params.depth; ++depth)
+  search->pv = uo_ttable_get(&search->ttable, search->position.key);
+  search->pv->keep = true;
+
+  for (size_t depth = 2; depth <= params.depth; ++depth)
   {
-    int16_t cp = uo_search_negamax(search, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color) * color;
-    *search->pv = *pv;
-    info.depth = depth;
     params.report(info);
+    uo_search_negamax(search, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color);
+    info.depth = depth;
   }
 
-  int16_t cp = uo_search_negamax(search, params.depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color) * color;
-  *search->pv = *pv;
-  info.depth = params.depth;
   info.completed = true;
-
   params.report(info);
-  pv->keep = false;
+  search->pv->keep = false;
 
   return ++search_id;
 }
@@ -360,23 +367,23 @@ void uo_search_end(int search_id)
 
 static double uo_eval_feature_material_P(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__P & color));
+  return uo_popcnt(search->position.P & (color ? search->position.enemy : search->position.own));
 }
 static double uo_eval_feature_material_N(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__N & color));
+  return uo_popcnt(search->position.N & (color ? search->position.enemy : search->position.own));
 }
 static double uo_eval_feature_material_B(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__B & color));
+  return uo_popcnt(search->position.B & (color ? search->position.enemy : search->position.own));
 }
 static double uo_eval_feature_material_R(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__R & color));
+  return uo_popcnt(search->position.R & (color ? search->position.enemy : search->position.own));
 }
 static double uo_eval_feature_material_Q(uo_search *search, uint8_t color)
 {
-  return uo_popcnt(*uo_position_piece_bitboard(&search->position, uo_piece__Q & color));
+  return uo_popcnt(search->position.Q & (color ? search->position.enemy : search->position.own));
 }
 
 #pragma endregion
@@ -410,8 +417,8 @@ int16_t uo_search_static_evaluate(uo_search *search)
 
   for (int i = 0; i < UO_EVAL_FEATURE_COUNT; ++i)
   {
-    inputs[i << 1] = eval_features[i](search, uo_white);
-    inputs[(i << 1) + 1] = eval_features[i](search, uo_black);
+    inputs[i << 1] = eval_features[i](search, uo_color_own);
+    inputs[(i << 1) + 1] = eval_features[i](search, uo_color_enemy);
     evaluation += inputs[i << 1] * weights[i << 1];
     evaluation += inputs[(i << 1) + 1] * weights[(i << 1) + 1];
   }

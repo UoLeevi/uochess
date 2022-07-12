@@ -97,6 +97,8 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
       return false;
     }
 
+    uint64_t key = search->position.key;
+
     move_count = uo_position_get_moves(&search->position, search->head);
     search->head += move_count;
 
@@ -159,6 +161,18 @@ bool uo_test_move_generation(uo_search *search, char *test_data_dir)
           }
 
           uo_position_unmake_move(&search->position);
+
+          if (search->position.key != key)
+          {
+            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\n", search->position.key, move_str, key, fen);
+            uo_position_print_diagram(&search->position, buf);
+            printf("\n%s", buf);
+            uo_position_print_fen(&search->position, buf);
+            printf("\nFen: %s\n", buf);
+
+            fclose(fp);
+            return false;
+          }
 
           search->head[i - move_count] = (uo_move){ 0 };
           goto next_move;

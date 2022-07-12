@@ -16,16 +16,10 @@ extern "C"
   {
     uint64_t key;
     uo_move bestmove;
-    uint8_t depth;
     int16_t score;
-    /*
-      0 = exact
-      1 = lower bound
-      2 = upper bound
-      3 = mate
-    */
+    uint8_t depth;
     uint8_t type;
-    uint8_t priority;
+    int8_t priority;
     bool keep;
   } uo_tentry;
 
@@ -33,11 +27,11 @@ extern "C"
 #define uo_tentry_type__lower_bound ((uint8_t)2)
 #define uo_tentry_type__upper_bound ((uint8_t)4)
 
-#define uo_tentry_initial_priority ((uint8_t)2)
-
   typedef struct uo_ttable
   {
     uint64_t hash_mask;
+    uint64_t count;
+    int8_t priority_initial;
     uo_tentry *entries;
   } uo_ttable;
 
@@ -46,6 +40,8 @@ extern "C"
     uint64_t capacity = (uint64_t)1 << (hash_bits - 1);
     ttable->entries = calloc(capacity, sizeof * ttable->entries);
     ttable->hash_mask = capacity - 1;
+    ttable->count = 0;
+    ttable->priority_initial = hash_bits >> 1;
   }
 
   static inline void uo_ttable_free(uo_ttable *ttable)
@@ -76,12 +72,60 @@ extern "C"
       return entry;
     }
 
+    // 3. No match was found, remove first item with priority 0
+
+    int8_t priority_decrement = uo_msb(ttable->count + 1) >> 2;
+
+    while (i && --i >= hash)
+    {
+      entry = ttable->entries + i;
+
+      if (!entry->keep && (entry->priority -= priority_decrement) <= 0)
+      {
+        break;
+      }
+    }
+
+    if (entry->key)
+    {
+      memset(entry, 0, sizeof * entry);
+      --ttable->count;
+    }
+
+    return NULL;
+  }
+
+  static inline uo_tentry *uo_ttable_set(uo_ttable *ttable, uint64_t key)
+  {
+    uint64_t mask = ttable->hash_mask;
+    uint64_t hash = key & mask;
+    uint64_t i = hash;
+    uo_tentry *entry = ttable->entries + i;
+
+    // 1. Look for matching key and stop on first empty key
+
+    while (entry->key && entry->key != key)
+    {
+      i = (i + 1) & mask;
+      entry = ttable->entries + i;
+    }
+
+    // 2. If exact match was found, increment priority and return
+
+    if (entry->key)
+    {
+      ++entry->priority;
+      return entry;
+    }
+
     // 3. No exact match was found, replace first item with priority 0
 
     i = hash;
     entry = ttable->entries + i;
 
-    while (entry->key && (entry->keep || --entry->priority))
+    int8_t priority_decrement = uo_msb(ttable->count + 1);
+
+    while (entry->key && entry->keep || (entry->priority -= priority_decrement) > 0)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;
@@ -90,22 +134,14 @@ extern "C"
     if (entry->key)
     {
       memset(entry, 0, sizeof * entry);
+      --ttable->count;
     }
 
     entry->key = key;
-    entry->priority = uo_tentry_initial_priority;
+    entry->priority = ttable->priority_initial;
+    ++ttable->count;
 
     return entry;
-  }
-
-  // If used, must be called before `uo_ttable_get` is called for the next time
-  static inline void uo_tentry_release_if_unused(uo_tentry *entry)
-  {
-    if (!entry->type)
-    {
-      entry->key = 0;
-      entry->priority = 0;
-    }
   }
 
 #ifdef __cplusplus
