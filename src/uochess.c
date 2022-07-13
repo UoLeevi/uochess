@@ -5,7 +5,8 @@
 #include "uo_move.h"
 #include "uo_square.h"
 #include "uo_zobrist.h"
-#include "uo_search.h"
+#include "uo_engine.h"
+#include "uo_engine.h"
 #include "uo_thread.h"
 #include "uo_test.h"
 
@@ -26,8 +27,8 @@ char buf[0x1000];
 
 char *ptr;
 
-uo_search_init_options options;
-uo_search search;
+uo_engine_init_options options;
+uo_engine engine;
 
 enum state
 {
@@ -38,7 +39,7 @@ enum state
   GO
 } state = INIT;
 
-static void engine_init(void)
+static void uochess_init(void)
 {
   uo_zobrist_init();
   uo_bitboard_init();
@@ -48,9 +49,9 @@ static void engine_init(void)
   options.multipv = 1;
   options.threads = 1;
 
-  size_t capacity = (size_t)16000000 / sizeof * search.ttable.entries;
+  size_t capacity = (size_t)16000000 / sizeof * engine.ttable.entries;
   capacity = (size_t)1 << uo_msb(capacity);
-  options.hash_size = capacity * sizeof * search.ttable.entries;
+  options.hash_size = capacity * sizeof * engine.ttable.entries;
 
 }
 
@@ -92,8 +93,8 @@ static void process_cmd__options(void)
       // Hash
       if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
       {
-        size_t capacity = spin * (size_t)1000000 / sizeof * search.ttable.entries;
-        options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * search.ttable.entries;
+        size_t capacity = spin * (size_t)1000000 / sizeof * engine.ttable.entries;
+        options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * engine.ttable.entries;
       }
 
       // MultiPV
@@ -105,7 +106,7 @@ static void process_cmd__options(void)
   }
   else if (ptr && strcmp(ptr, "isready") == 0)
   {
-    uo_search_init(&search, &options);
+    uo_engine_init(&engine, &options);
     state = READY;
     printf("readyok\n");
   }
@@ -119,14 +120,14 @@ static void process_cmd__ready(void)
   {
     ptr = strtok(NULL, "\n ");
 
-    uo_search_lock_position(&search);
+    uo_engine_lock_position(&engine);
 
     if (ptr && strcmp(ptr, "startpos") == 0)
     {
-      uo_position *ret = uo_position_from_fen(&search.position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      uo_position *ret = uo_position_from_fen(&engine.position, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&search.position, buf);
+      //uo_position_to_diagram(&engine.position, buf);
       //printf("diagram:\n%s", buf);
 
       ptr = strtok(NULL, "\n ");
@@ -144,15 +145,15 @@ static void process_cmd__ready(void)
         *ptr = 'm';
       }
 
-      uo_position *ret = uo_position_from_fen(&search.position, fen);
+      uo_position *ret = uo_position_from_fen(&engine.position, fen);
       state = POSITION;
       //printf("position: %p\n", ret);
-      //uo_position_to_diagram(&search.position, buf);
+      //uo_position_to_diagram(&engine.position, buf);
       //printf("diagram:\n%s", buf);
     }
     else
     {
-      uo_search_unlock_position(&search);
+      uo_engine_unlock_position(&engine);
       // unexpected command
       return;
     }
@@ -163,28 +164,28 @@ static void process_cmd__ready(void)
       {
         if (strlen(ptr) < 4) return;
 
-        uo_move move = uo_position_parse_move(&search.position, ptr);
+        uo_move move = uo_position_parse_move(&engine.position, ptr);
         if (!move) return;
 
         uo_square square_from = uo_move_square_from(move);
         uo_square square_to = uo_move_square_to(move);
 
-        int move_count = uo_position_generate_moves(&search.position);
-        search.position.movelist.head += move_count;
+        int move_count = uo_position_generate_moves(&engine.position);
+        engine.position.movelist.head += move_count;
 
         for (int i = 0; i < move_count; ++i)
         {
-          uo_move move = search.position.movelist.head[i - move_count];
+          uo_move move = engine.position.movelist.head[i - move_count];
           if (square_from == uo_move_square_from(move)
             && square_to == uo_move_square_to(move))
           {
-            uo_position_make_move(&search.position, move);
-            *search.position.movelist.head++ = move;
+            uo_position_make_move(&engine.position, move);
+            *engine.position.movelist.head++ = move;
             goto next_move;
           }
         }
 
-        search.position.movelist.head -= move_count;
+        engine.position.movelist.head -= move_count;
 
         // Not a legal move
         return;
@@ -193,7 +194,7 @@ static void process_cmd__ready(void)
       }
     }
 
-    uo_search_unlock_position(&search);
+    uo_engine_unlock_position(&engine);
   }
 }
 
@@ -209,16 +210,16 @@ static void process_cmd__position(void)
 
   if (ptr && strcmp(ptr, "d") == 0)
   {
-    uo_search_lock_position(&search);
-    uo_search_lock_stdout(&search);
-    uo_position_print_diagram(&search.position, buf);
+    uo_engine_lock_position(&engine);
+    uo_engine_lock_stdout(&engine);
+    uo_position_print_diagram(&engine.position, buf);
     printf("\n%s", buf);
-    uo_position_print_fen(&search.position, buf);
+    uo_position_print_fen(&engine.position, buf);
     printf("\n");
     printf("Fen: %s\n", buf);
-    printf("Key: %" PRIu64 "\n", search.position.key);
-    uo_search_unlock_stdout(&search);
-    uo_search_unlock_position(&search);
+    printf("Key: %" PRIu64 "\n", engine.position.key);
+    uo_engine_unlock_stdout(&engine);
+    uo_engine_unlock_position(&engine);
     return;
   }
 
@@ -233,38 +234,40 @@ static void process_cmd__position(void)
       int depth;
       if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
       {
-        uo_search_lock_stdout(&search);
-        uo_search_lock_position(&search);
+        uo_engine_lock_stdout(&engine);
+        uo_engine_lock_position(&engine);
 
         struct timespec ts_start;
         timespec_get(&ts_start, TIME_UTC);
 
         size_t total_node_count = 0;
-        size_t move_count = uo_position_generate_moves(&search.position);
-        search.position.movelist.head += move_count;
+        size_t move_count = uo_position_generate_moves(&engine.position);
+        engine.position.movelist.head += move_count;
 
         for (int64_t i = 0; i < move_count; ++i)
         {
-          uo_move move = search.position.movelist.head[i - move_count];
-          uo_position_print_move(&search.position, move, buf);
-          uo_position_make_move(&search.position, move);
-          size_t node_count = depth == 1 ? 1 : uo_position_perft(&search.position, depth - 1);
-          uo_position_unmake_move(&search.position);
+          uo_move move = engine.position.movelist.head[i - move_count];
+          uo_position_print_move(&engine.position, move, buf);
+          uo_position_make_move(&engine.position, move);
+          size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1);
+          uo_position_unmake_move(&engine.position);
           total_node_count += node_count;
           printf("%s: %zu\n", buf, node_count);
         }
 
-        search.position.movelist.head -= move_count;
+        engine.position.movelist.head -= move_count;
 
         struct timespec ts_end;
         timespec_get(&ts_end, TIME_UTC);
 
-        uint64_t time_ms = (uint64_t)difftime(ts_end.tv_sec, ts_start.tv_sec) * (uint64_t)1000;
-        time_ms += (ts_end.tv_nsec - ts_start.tv_nsec) / (uint64_t)1000000;
+        double time_ms = difftime(ts_end.tv_sec, ts_start.tv_sec) * 1000.0;
+        time_ms += (ts_end.tv_nsec - ts_start.tv_nsec) / 1000000.0;
 
-        printf("\nNodes searched: %zu, time: %" PRIu64 ".%03" PRIu64 " s (%zu kN/s)\n\n", total_node_count, time_ms / 1000, time_ms % 1000, total_node_count / time_ms);
-        uo_search_unlock_position(&search);
-        uo_search_unlock_stdout(&search);
+        uint64_t knps = total_node_count / time_ms;
+
+        printf("\nNodes engineed: %zu, time: %.03f s (%zu kN/s)\n\n", total_node_count, time_ms / 1000.0, knps);
+        uo_engine_unlock_position(&engine);
+        uo_engine_unlock_stdout(&engine);
       }
     }
 
@@ -280,7 +283,7 @@ static void process_cmd__position(void)
           .multipv = options.multipv
         };
 
-        uo_search_start(&search, search_params);
+        uo_engine_start_search(&engine, &search_params);
         state = GO;
         return;
       }
@@ -294,12 +297,12 @@ static void process_cmd__go(void)
 
   if (ptr && strcmp(ptr, "stop") == 0)
   {
-    uo_search_stop(&search);
+    uo_engine_stop_search(&engine);
     state = POSITION;
     return;
   }
 
-  if (uo_atomic_compare_exchange(&search.stop, 1, 1))
+  if (uo_atomic_compare_exchange(&engine.stop, 1, 1))
   {
     state = POSITION;
     process_cmd__position();
@@ -308,16 +311,16 @@ static void process_cmd__go(void)
 
   if (ptr && strcmp(ptr, "d") == 0)
   {
-    uo_search_lock_position(&search);
-    uo_search_lock_stdout(&search);
-    uo_position_print_diagram(&search.position, buf);
+    uo_engine_lock_position(&engine);
+    uo_engine_lock_stdout(&engine);
+    uo_position_print_diagram(&engine.position, buf);
     printf("\n%s", buf);
-    uo_position_print_fen(&search.position, buf);
+    uo_position_print_fen(&engine.position, buf);
     printf("\n");
     printf("Fen: %s\n", buf);
-    printf("Key: %" PRIu64 "\n", search.position.key);
-    uo_search_unlock_stdout(&search);
-    uo_search_unlock_position(&search);
+    printf("Key: %" PRIu64 "\n", engine.position.key);
+    uo_engine_unlock_stdout(&engine);
+    uo_engine_unlock_position(&engine);
     return;
   }
 }
@@ -326,11 +329,11 @@ static int run_tests(char *test_data_dir)
 {
   bool passed = true;
 
-  uo_search_lock_position(&search);
-  uo_search_lock_stdout(&search);
-  passed &= uo_test_move_generation(&search.position, test_data_dir);
-  uo_search_unlock_position(&search);
-  uo_search_unlock_stdout(&search);
+  uo_engine_lock_position(&engine);
+  uo_engine_lock_stdout(&engine);
+  passed &= uo_test_move_generation(&engine.position, test_data_dir);
+  uo_engine_unlock_position(&engine);
+  uo_engine_unlock_stdout(&engine);
 
   return passed ? 0 : 1;
 }
@@ -376,13 +379,13 @@ int main(
       }
     }
 
-    engine_init();
-    uo_search_init(&search, &options);
+    uochess_init();
+    uo_engine_init(&engine, &options);
     return run_tests(test_data_dir);
   }
 
   printf("Uochess 0.1 by Leevi Uotinen\n");
-  engine_init();
+  uochess_init();
 
   while (fgets(buf, sizeof buf, stdin))
   {
