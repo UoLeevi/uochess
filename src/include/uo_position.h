@@ -80,6 +80,12 @@ extern "C"
 
     uo_move_history *stack;
     uo_move_history history[UO_MAX_PLY];
+
+    struct
+    {
+      uo_move *head;
+      uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
+    } movelist;
   } uo_position;
 
 #pragma region uo_position_piece_bitboard
@@ -219,11 +225,13 @@ extern "C"
 
   size_t uo_position_print_diagram(uo_position *const position, char diagram[663]);
 
+  void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src);
+
   void uo_position_make_move(uo_position *position, uo_move move);
 
   void uo_position_unmake_move(uo_position *position);
 
-  size_t uo_position_get_moves(uo_position *const position, uo_move *movelist);
+  size_t uo_position_generate_moves(uo_position *position);
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
@@ -255,13 +263,15 @@ extern "C"
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
   }
 
-  bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, uo_move move);
+  bool uo_position_is_legal_move(uo_position *position, uo_move move);
 
   uo_move uo_position_parse_move(uo_position *const position, char str[5]);
 
-  uo_move uo_position_parse_png_move(uo_position *const position, char *png);
+  uo_move uo_position_parse_png_move(uo_position *position, char *png);
 
   size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6]);
+
+  size_t uo_position_perft(uo_position *position, size_t depth);
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@ extern "C"
     uint8_t depth;
     uint8_t type;
     int8_t priority;
-    bool keep;
+    uint8_t refcount;
   } uo_tentry;
 
 #define uo_tentry_type__exact ((uint8_t)1)
@@ -94,13 +94,13 @@ extern "C"
     {
       entry = ttable->entries + i;
 
-      if (!entry->keep && (entry->priority -= priority_decrement) <= 0)
+      if (!entry->key || (!entry->refcount && (entry->priority -= priority_decrement) <= 0))
       {
         break;
       }
     }
 
-    if (entry->key)
+    if (entry->key && !entry->refcount)
     {
       memset(entry, 0, sizeof * entry);
       --ttable->count;
@@ -139,7 +139,7 @@ extern "C"
 
     int8_t priority_decrement = uo_msb(ttable->count + 1);
 
-    while (entry->key && entry->keep || (entry->priority -= priority_decrement) > 0)
+    while (entry->key && (entry->refcount || (entry->priority -= priority_decrement) > 0))
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;

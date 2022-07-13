@@ -11,17 +11,28 @@
 #include <string.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include <time.h>
 #include <assert.h>
 
-int search_id;
+typedef struct uo_search_info
+{
+  uo_search_thread *thread;
+  uint64_t nodes;
+  struct timespec ts_start;
+  uint16_t multipv;
+  uint8_t depth;
+  uint8_t seldepth;
+  uint8_t tbhits;
+  bool completed;
+} uo_search_info;
 
 const size_t quicksort_depth = 4; // arbitrary
 
-void uo_search_queue_work(uo_search *search, uo_thread_function *function, void *arg)
+void uo_search_queue_work(uo_search *search, uo_thread_function *function, void *data)
 {
   uo_search_work_queue *work_queue = &search->work_queue;
   uo_mutex_lock(work_queue->mutex);
-  work_queue->work[work_queue->head] = (uo_search_thread_work){ .function = function, .arg = arg };
+  work_queue->work[work_queue->head] = (uo_search_thread_work){ .function = function, .data = data };
   work_queue->head = (work_queue->head + 1) % uo_search_work_queue_max_count;
   uo_mutex_unlock(work_queue->mutex);
   uo_semaphore_release(work_queue->semaphore);
@@ -48,11 +59,24 @@ void *uo_search_thread_run(void *arg)
   return thread_return;
 }
 
+void uo_search_thread_load_position(uo_search_thread *thread)
+{
+  uo_mutex_lock(thread->search->position_mutex);
+  uo_position *position = &thread->search->position;
+  uo_position_copy(&thread->position, position);
+  uo_mutex_unlock(thread->search->position_mutex);
+}
+
 void uo_search_init(uo_search *search, uo_search_init_options *options)
 {
+  // stop flag
+  uo_atomic_init(&search->stop, 1);
+
+  // position mutex
+  search->position_mutex = uo_mutex_create();
+
   // stdout_mutex
   search->stdout_mutex = uo_mutex_create();
-  uo_mutex_lock(search->stdout_mutex);
 
   // work_queue
   search->work_queue.semaphore = uo_semaphore_create(0);
@@ -63,13 +87,11 @@ void uo_search_init(uo_search *search, uo_search_init_options *options)
   // threads
   search->thread_count = options->threads;
   search->threads = calloc(search->thread_count, sizeof * search->threads);
-  search->main_thread = search->threads;
 
   for (size_t i = 0; i < search->thread_count; ++i)
   {
     uo_search_thread *thread = search->threads + i;
     thread->search = search;
-    thread->head = thread->moves;
     thread->thread = uo_thread_create(uo_search_thread_run, thread);
   }
 
@@ -95,20 +117,20 @@ static int16_t uo_search_quiesce(uo_search_thread *thread, int16_t a, int16_t b,
     a = stand_pat;
   }
 
-  thread->head += move_count;
+  thread->position.movelist.head += move_count;
 
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move move = thread->head[i - move_count];
+    uo_move move = thread->position.movelist.head[i - move_count];
 
     if (uo_move_is_capture(move) || uo_move_is_promotion(move))
     {
       uo_position_make_move(&thread->position, move);
-      int64_t next_move_count = uo_position_get_moves(&thread->position, thread->head);
+      int64_t next_move_count = uo_position_generate_moves(&thread->position);
 
       if (next_move_count == 0)
       {
-        thread->head -= move_count;
+        thread->position.movelist.head -= move_count;
         uo_position_unmake_move(&thread->position);
         return uo_position_is_check(&thread->position) ? -UO_SCORE_CHECKMATE : 0;
       }
@@ -127,7 +149,7 @@ static int16_t uo_search_quiesce(uo_search_thread *thread, int16_t a, int16_t b,
 
       if (node_value >= b)
       {
-        thread->head -= move_count;
+        thread->position.movelist.head -= move_count;
         return b;
       }
 
@@ -138,7 +160,7 @@ static int16_t uo_search_quiesce(uo_search_thread *thread, int16_t a, int16_t b,
     }
   }
 
-  thread->head -= move_count;
+  thread->position.movelist.head -= move_count;
 
   return a;
 }
@@ -255,22 +277,23 @@ static void uo_search_quicksort_moves(uo_search_thread *thread, uo_move *movelis
 
 static void uo_search_sort_moves(uo_search_thread *thread, int64_t move_count)
 {
+  uo_ttable_lock(&thread->search->ttable);
   uo_tentry *entry = uo_ttable_get(&thread->search->ttable, thread->position.key);
-  uo_move *movelist = thread->head;
+  uo_move bestmove = entry ? entry->bestmove : 0;
+  uo_ttable_unlock(&thread->search->ttable);
+  uo_move *movelist = thread->position.movelist.head;
 
   int lo = 0;
 
   // If found, set pv move as first
-  if (entry)
+  if (bestmove)
   {
-    uo_move move_pv = entry->bestmove;
-
     for (int i = 1; i < move_count; ++i)
     {
-      if (movelist[i] == move_pv)
+      if (movelist[i] == bestmove)
       {
         movelist[i] = movelist[0];
-        movelist[0] = move_pv;
+        movelist[0] = bestmove;
         lo = 1;
         break;
       }
@@ -281,10 +304,11 @@ static void uo_search_sort_moves(uo_search_thread *thread, int64_t move_count)
 }
 
 // see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
-static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t a, int16_t b, int16_t color)
+static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t a, int16_t b, int16_t color, uo_search_info *info)
 {
   int16_t a_orig = a;
 
+  uo_ttable_lock(&thread->search->ttable);
   uo_tentry *entry = uo_ttable_get(&thread->search->ttable, thread->position.key);
   if (entry && entry->depth >= depth)
   {
@@ -293,6 +317,7 @@ static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t
     switch (entry->type)
     {
       case uo_tentry_type__exact:
+        uo_ttable_unlock(&thread->search->ttable);
         return score;
 
       case uo_tentry_type__lower_bound:
@@ -309,11 +334,14 @@ static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t
 
     if (a >= b)
     {
+      uo_ttable_unlock(&thread->search->ttable);
       return score;
     }
   }
 
-  int64_t move_count = uo_position_get_moves(&thread->position, thread->head);
+  uo_ttable_unlock(&thread->search->ttable);
+
+  int64_t move_count = uo_position_generate_moves(&thread->position);
 
   if (move_count == 0)
   {
@@ -326,17 +354,23 @@ static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t
   }
 
   uo_search_sort_moves(thread, move_count);
-  thread->head += move_count;
+  thread->position.movelist.head += move_count;
 
   uo_move bestmove;
   int16_t value = -UO_SCORE_CHECKMATE;
 
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move move = thread->head[i - move_count];
+    uo_move move = thread->position.movelist.head[i - move_count];
     uo_position_make_move(&thread->position, move);
-    int16_t node_value = -uo_search_negamax(thread, depth - 1, -b, -a, -color);
+    int16_t node_value = -uo_search_negamax(thread, depth - 1, -b, -a, -color, info);
     uo_position_unmake_move(&thread->position);
+
+    if (uo_atomic_compare_exchange(&thread->search->stop, 1, 1))
+    {
+      thread->position.movelist.head -= move_count;
+      return value;
+    }
 
     if (node_value > UO_SCORE_MATE_IN_THRESHOLD)
     {
@@ -364,7 +398,9 @@ static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t
     }
   }
 
-  thread->head -= move_count;
+  thread->position.movelist.head -= move_count;
+
+  uo_ttable_lock(&thread->search->ttable);
 
   if (!entry)
   {
@@ -388,102 +424,168 @@ static int16_t uo_search_negamax(uo_search_thread *thread, size_t depth, int16_t
     entry->type = uo_tentry_type__exact;
   }
 
+  uo_ttable_unlock(&thread->search->ttable);
+
   return value;
 }
 
-size_t uo_search_perft(uo_search_thread *thread, size_t depth)
+static void uo_search_info_print(uo_search_info *info)
 {
-  size_t move_count = uo_position_get_moves(&thread->position, thread->head);
-  //uint64_t key = thread->position.key;
+  uo_search_thread *thread = info->thread;
+  uo_search_lock_stdout(thread->search);
 
-  if (depth == 1)
+  struct timespec ts_end;
+  timespec_get(&ts_end, TIME_UTC);
+  uint64_t time_ms = (uint64_t)difftime(ts_end.tv_sec, info->ts_start.tv_sec) * (uint64_t)1000;
+  time_ms += (ts_end.tv_nsec - info->ts_start.tv_nsec) / (uint64_t)1000000;
+  uint64_t nps = info->nodes / (time_ms / 1000);
+
+  for (int i = 0; i < info->multipv; ++i)
   {
-    return move_count;
+    uo_position_update_checks_and_pins(&info->thread->position);
+
+    printf("info depth %d seldepth %d multipv %d ",
+      info->depth, info->seldepth, info->multipv);
+
+    uo_ttable_lock(&thread->search->ttable);
+    uo_tentry *next_entry = uo_ttable_get(&thread->search->ttable, thread->position.key);
+    uo_ttable_unlock(&thread->search->ttable);
+
+    assert(next_entry);
+
+    uo_tentry pv_entry = *next_entry;
+
+    if (pv_entry.score > UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", (UO_SCORE_CHECKMATE - pv_entry.score + 1) >> 1);
+    }
+    else if (pv_entry.score < -UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", (UO_SCORE_CHECKMATE + pv_entry.score + 1) >> 1);
+    }
+    else
+    {
+      printf("score cp %d ", pv_entry.score);
+    }
+
+    printf("nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
+      info->nodes, nps, info->tbhits, time_ms);
+
+    size_t pv_len = 1;
+
+    size_t i = 0;
+
+    for (; i < info->depth && next_entry; ++i)
+    {
+      uo_position_print_move(&thread->position, pv_entry.bestmove, buf);
+      printf(" %s", buf);
+
+      if (!uo_position_is_legal_move(&thread->position, pv_entry.bestmove))
+      {
+        uo_position_print_move(&thread->position, pv_entry.bestmove, buf);
+        printf("\n\nillegal bestmove %s\n", buf);
+        uo_position_print_diagram(&thread->position, buf);
+        printf("\n%s", buf);
+        uo_position_print_fen(&thread->position, buf);
+        printf("\n");
+        printf("Fen: %s\n", buf);
+        printf("Key: %" PRIu64 "\n", thread->position.key);
+        assert(false);
+      }
+
+      uo_position_make_move(&thread->position, pv_entry.bestmove);
+
+      uo_ttable_lock(&thread->search->ttable);
+      next_entry = uo_ttable_get(&thread->search->ttable, thread->position.key);
+
+      if (next_entry)
+      {
+        pv_entry = *next_entry;
+      }
+
+      uo_ttable_unlock(&thread->search->ttable);
+    }
+
+    while (i--)
+    {
+      uo_position_unmake_move(&thread->position);
+    }
+
+    printf("\n");
+
+    if (info->completed && info->multipv == 1)
+    {
+      uo_ttable_lock(&thread->search->ttable);
+      uo_tentry pv_entry = *uo_ttable_get(&thread->search->ttable, thread->position.key);
+      uo_ttable_unlock(&thread->search->ttable);
+      uo_position_print_move(&thread->position, pv_entry.bestmove, buf);
+      printf("bestmove %s\n", buf);
+    }
   }
 
-  thread->head += move_count;
-
-  size_t node_count = 0;
-
-  //char fen_before_make[90];
-  //char fen_after_unmake[90];
-
-  //uo_position_print_fen(&thread->position, fen_before_make);
-
-  for (int64_t i = 0; i < move_count; ++i)
-  {
-    uo_move move = thread->head[i - move_count];
-    uo_position_make_move(&thread->position, move);
-    //uo_position_print_move(&thread->position, move, buf);
-    //printf("move: %s\n", buf);
-    //uo_position_print_fen(&thread->position, buf);
-    //printf("%s\n", buf);
-    //uo_position_print_diagram(&thread->position, buf);
-    //printf("%s\n", buf);
-    node_count += uo_search_perft(thread, depth - 1);
-    uo_position_unmake_move(&thread->position);
-    //assert(thread->position.key == key);
-
-  //  uo_position_print_fen(&thread->position, fen_after_unmake);
-
-  //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
-  //  {
-  //    uo_position position;
-  //    uo_position_from_fen(&position, fen_before_make);
-
-  //    uo_position_print_move(&thread->position, move, buf);
-  //    printf("error when unmaking move: %s\n", buf);
-  //    printf("\nbefore make move\n");
-  //    uo_position_print_diagram(&position, buf);
-  //    printf("\n%s", buf);
-  //    printf("\n");
-  //    printf("Fen: %s\n", fen_before_make);
-  //    printf("Key: %" PRIu64 "\n", key);
-  //    printf("\nafter unmake move\n");
-  //    uo_position_print_diagram(&thread->position, buf);
-  //    printf("\n%s", buf);
-  //    printf("\n");
-  //    printf("Fen: %s\n", fen_after_unmake);
-  //    printf("Key: %" PRIu64 "\n", thread->position.key);
-  //    printf("\n");
-  //  }
-  }
-
-  thread->head -= move_count;
-
-  return node_count;
+  uo_search_unlock_stdout(thread->search);
+  uo_position_update_checks_and_pins(&thread->position);
 }
 
-int uo_search_start(uo_search *search, const uo_search_params params)
+static void *uo_search_thread_run_negamax(void *arg)
 {
-  int16_t color = uo_position_flags_color_to_move(search->main_thread->position.flags) ? -1 : 1;
+  uo_search_thread_work *work = arg;
+  uo_search_thread *thread = work->thread;
+  uo_search_params *params = work->data;
 
   uo_search_info info = {
+    .thread = thread,
     .depth = 1,
-    .search = search,
-    .multipv = params.multipv
+    .multipv = params->multipv
   };
 
-  uo_search_negamax(search->main_thread, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color);
+  timespec_get(&info.ts_start, TIME_UTC);
 
-  search->pv = uo_ttable_get(&search->ttable, search->main_thread->position.key);
-  search->pv->keep = true;
+  uo_search_thread_load_position(thread);
+  int16_t color = uo_position_flags_color_to_move(thread->position.flags) ? -1 : 1;
 
-  for (size_t depth = 2; depth <= params.depth; ++depth)
+  uo_atomic_store(&thread->search->stop, 0);
+
+  uo_search_negamax(thread, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color, &info);
+
+  uo_ttable_lock(&thread->search->ttable);
+  uo_tentry *pv_entry = uo_ttable_get(&thread->search->ttable, thread->position.key);
+  ++pv_entry->refcount;
+  uo_ttable_unlock(&thread->search->ttable);
+
+  for (size_t depth = 2; depth <= params->depth; ++depth)
   {
-    params.report(info);
-    uo_search_negamax(search->main_thread, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color);
+    uo_search_info_print(&info);
+    uo_search_negamax(thread, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color, &info);
+
+    if (uo_atomic_compare_exchange(&thread->search->stop, 1, 1))
+    {
+      break;
+    }
+
     info.depth = depth;
   }
 
   info.completed = true;
-  params.report(info);
-  search->pv->keep = false;
+  uo_search_info_print(&info);
 
-  return ++search_id;
+  uo_ttable_lock(&thread->search->ttable);
+  --pv_entry->refcount;
+  uo_ttable_unlock(&thread->search->ttable);
+
+  uo_atomic_store(&thread->search->stop, 1);
+  free(params);
+  return NULL;
 }
 
-void uo_search_end(int search_id)
+void uo_search_start(uo_search *search, uo_search_params params)
 {
-  // TODO
+  void *data = malloc(sizeof params);
+  memcpy(data, &params, sizeof params);
+  uo_search_queue_work(search, uo_search_thread_run_negamax, data);
+}
+
+void uo_search_stop(uo_search *search)
+{
+  uo_atomic_store(&search->stop, 1);
 }

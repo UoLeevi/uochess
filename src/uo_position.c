@@ -549,6 +549,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   position->key = uo_position_calculate_key(position);
   position->stack = position->history;
   position->piece_captured = position->captures;
+  position->movelist.head = position->movelist.moves;
 
   if (uo_color(position->flags) == uo_black)
   {
@@ -689,6 +690,16 @@ size_t uo_position_print_diagram(uo_position *const position, char diagram[663])
   ptr += sprintf(ptr, "   a   b   c   d   e   f   g   h\n");
 
   return ptr - diagram;
+}
+
+void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src)
+{
+  size_t movelist_advance = src->movelist.head - src->movelist.moves;
+  size_t size = offsetof(uo_position, movelist) + (movelist_advance / sizeof(uo_move));
+  memcpy(dst, src, size);
+  dst->piece_captured = dst->captures + (src->piece_captured - src->captures);
+  dst->stack = dst->history + (src->stack - src->history);
+  dst->movelist.head = dst->movelist.moves + movelist_advance;
 }
 
 void uo_position_make_move(uo_position *position, uo_move move)
@@ -924,7 +935,7 @@ void uo_position_unmake_move(uo_position *position)
   assert(uo_position_is_ok(position));
 }
 
-bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, uo_move move)
+bool uo_position_is_legal_move(uo_position *position, uo_move move)
 {
   uo_piece *board = position->board;
   uo_square square_from = uo_move_square_from(move);
@@ -933,11 +944,11 @@ bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, u
   if (piece <= 1) return false;
   if (uo_color(piece) != uo_color_own) return false;
 
-  int64_t move_count = uo_position_get_moves(position, movelist);
+  int64_t move_count = uo_position_generate_moves(position);
 
   while (move_count--)
   {
-    if (move == *movelist++)
+    if (move == *position->movelist.head++)
     {
       return true;
     }
@@ -946,9 +957,9 @@ bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, u
   return false;
 }
 
-size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)
+size_t uo_position_generate_moves(uo_position *position)
 {
-  uo_move *moves = movelist;
+  uo_move *moves = position->movelist.head;
   uo_square square_from;
   uo_square square_to;
 
@@ -1020,7 +1031,7 @@ size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)
         *moves++ = uo_move_encode(square_own_K, square_to, move_type);
       }
 
-      return moves - movelist;
+      return moves - position->movelist.head;
     }
 
     // Only one piece is giving a check
@@ -1189,7 +1200,7 @@ size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)
       *moves++ = uo_move_encode(square_own_K, square_to, move_type);
     }
 
-    return moves - movelist;
+    return moves - position->movelist.head;
   }
 
   // King is not in check. Let's list moves by piece type
@@ -1602,7 +1613,7 @@ size_t uo_position_get_moves(uo_position *const position, uo_move *movelist)
     *moves++ = uo_move_encode(square_own_K, square_to, move_type);
   }
 
-  return moves - movelist;
+  return moves - position->movelist.head;
 }
 
 // Only direct checks, does not take into account discoveries
@@ -1765,4 +1776,67 @@ size_t uo_position_print_move(uo_position *const position, uo_move move, char st
     str[4] = '\0';
     return 4;
   }
+}
+
+size_t uo_position_perft(uo_position *position, size_t depth)
+{
+  size_t move_count = uo_position_generate_moves(position);
+  //uint64_t key = thread->position.key;
+
+  if (depth == 1)
+  {
+    return move_count;
+  }
+
+  position->movelist.head += move_count;
+
+  size_t node_count = 0;
+
+  //char fen_before_make[90];
+  //char fen_after_unmake[90];
+
+  //uo_position_print_fen(position, fen_before_make);
+
+  for (int64_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = position->movelist.head[i - move_count];
+    uo_position_make_move(position, move);
+    //uo_position_print_move(position, move, buf);
+    //printf("move: %s\n", buf);
+    //uo_position_print_fen(position, buf);
+    //printf("%s\n", buf);
+    //uo_position_print_diagram(position, buf);
+    //printf("%s\n", buf);
+    node_count += uo_position_perft(position, depth - 1);
+    uo_position_unmake_move(position);
+    //assert(thread->position.key == key);
+
+  //  uo_position_print_fen(position, fen_after_unmake);
+
+  //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
+  //  {
+  //    uo_position position;
+  //    uo_position_from_fen(&position, fen_before_make);
+
+  //    uo_position_print_move(position, move, buf);
+  //    printf("error when unmaking move: %s\n", buf);
+  //    printf("\nbefore make move\n");
+  //    uo_position_print_diagram(&position, buf);
+  //    printf("\n%s", buf);
+  //    printf("\n");
+  //    printf("Fen: %s\n", fen_before_make);
+  //    printf("Key: %" PRIu64 "\n", key);
+  //    printf("\nafter unmake move\n");
+  //    uo_position_print_diagram(position, buf);
+  //    printf("\n%s", buf);
+  //    printf("\n");
+  //    printf("Fen: %s\n", fen_after_unmake);
+  //    printf("Key: %" PRIu64 "\n", thread->position.key);
+  //    printf("\n");
+  //  }
+  }
+
+  position->movelist.head -= move_count;
+
+  return node_count;
 }
