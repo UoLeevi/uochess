@@ -7,10 +7,12 @@ extern "C"
 #endif
 
 #include "uo_move.h"
+#include "uo_thread.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
   typedef struct uo_tentry
   {
@@ -33,6 +35,7 @@ extern "C"
     uint64_t count;
     int8_t priority_initial;
     uo_tentry *entries;
+    volatile uo_atomic_int busy;
   } uo_ttable;
 
   static inline void uo_ttable_init(uo_ttable *ttable, uint8_t hash_bits)
@@ -42,11 +45,22 @@ extern "C"
     ttable->hash_mask = capacity - 1;
     ttable->count = 0;
     ttable->priority_initial = hash_bits >> 1;
+    uo_atomic_init(&ttable->busy, 0);
   }
 
   static inline void uo_ttable_free(uo_ttable *ttable)
   {
     free(ttable->entries);
+  }
+
+  static inline void uo_ttable_lock(uo_ttable *ttable)
+  {
+    uo_atomic_compare_exchange_wait(&ttable->busy, 0, 1);
+  }
+
+  static inline void uo_ttable_unlock(uo_ttable *ttable)
+  {
+    uo_atomic_store(&ttable->busy, 0);
   }
 
   static inline uo_tentry *uo_ttable_get(uo_ttable *ttable, uint64_t key)

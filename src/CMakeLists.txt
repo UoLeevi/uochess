@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.21.0)
 
+find_package(Threads)
+
 add_executable(uochess
     uochess.c
     uo_bitboard.c
@@ -16,7 +18,9 @@ target_include_directories(uochess
     PRIVATE
         include)
 
-target_link_libraries(uochess)
+target_link_libraries(uochess
+    PRIVATE
+        ${CMAKE_THREAD_LIBS_INIT})
 
 target_compile_features(uochess
     PUBLIC
@@ -30,7 +34,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
         PRIVATE /QxKABYLAKE)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(uochess
-        PRIVATE /arch:AVX2)
+        PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
 add_test(NAME uochess_test

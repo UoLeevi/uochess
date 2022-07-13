@@ -13,113 +13,100 @@
 #include <assert.h>
 #include <immintrin.h>
 
-//const size_t uo_position__piece_bitboard_offset[0x22] = {
-//    [uo_piece__P] = offsetof(uo_position, P),
-//    [uo_piece__N] = offsetof(uo_position, N),
-//    [uo_piece__B] = offsetof(uo_position, B),
-//    [uo_piece__R] = offsetof(uo_position, R),
-//    [uo_piece__Q] = offsetof(uo_position, Q),
-//    [uo_piece__K] = offsetof(uo_position, K),
-//    [uo_piece__p] = offsetof(uo_position, P),
-//    [uo_piece__n] = offsetof(uo_position, N),
-//    [uo_piece__b] = offsetof(uo_position, B),
-//    [uo_piece__r] = offsetof(uo_position, R),
-//    [uo_piece__q] = offsetof(uo_position, Q),
-//    [uo_piece__k] = offsetof(uo_position, K)
-//};
+bool uo_position_is_ok(uo_position *position)
+{
+  if (uo_popcnt(position->K) != 2) return false;
 
-//bool uo_position_is_ok(uo_position *position)
-//{
-//  for (uo_square square = 0; square < 64; ++square)
-//  {
-//    uo_bitboard mask = uo_square_bitboard(square);
-//    uo_piece piece = position->board[square];
-//
-//    if (piece == 0)
-//    {
-//      if (position->P & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (position->N & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (position->B & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (position->R & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (position->Q & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (position->K & mask)
-//      {
-//        return false;
-//      }
-//    }
-//    else
-//    {
-//      uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-//
-//      if (!(*bitboard & mask))
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->P && position->P & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->N && position->N & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->B && position->B & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->R && position->R & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->Q && position->Q & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (bitboard != &position->K && position->K & mask)
-//      {
-//        return false;
-//      }
-//
-//      if (uo_color(piece) == uo_white && (position->piece_color & mask))
-//      {
-//        return false;
-//      }
-//
-//      if (uo_color(piece) == uo_black && !(position->piece_color & mask))
-//      {
-//        return false;
-//      }
-//    }
-//  }
-//
-//  return true;
-//}
+  for (uo_square square = 0; square < 64; ++square)
+  {
+    uo_bitboard mask = uo_square_bitboard(square);
+    uo_piece piece = position->board[square];
+
+    if (piece <= 1)
+    {
+      if (position->P & mask)
+      {
+        return false;
+      }
+
+      if (position->N & mask)
+      {
+        return false;
+      }
+
+      if (position->B & mask)
+      {
+        return false;
+      }
+
+      if (position->R & mask)
+      {
+        return false;
+      }
+
+      if (position->Q & mask)
+      {
+        return false;
+      }
+
+      if (position->K & mask)
+      {
+        return false;
+      }
+    }
+    else
+    {
+      uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
+
+      if (!(*bitboard & mask))
+      {
+        return false;
+      }
+
+      if (bitboard != &position->P && position->P & mask)
+      {
+        return false;
+      }
+
+      if (bitboard != &position->N && position->N & mask)
+      {
+        return false;
+      }
+
+      if (bitboard != &position->B && position->B & mask)
+      {
+        return false;
+      }
+
+      if (bitboard != &position->R && position->R & mask)
+      {
+        return false;
+      }
+
+      if (bitboard != &position->Q && position->Q & mask)
+      {
+        return false;
+      }
+
+      if (bitboard != &position->K && position->K & mask)
+      {
+        return false;
+      }
+
+      if (uo_color(piece) == uo_color_own && !(position->own & mask))
+      {
+        return false;
+      }
+
+      if (uo_color(piece) == uo_color_enemy && !(position->enemy & mask))
+      {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 uint64_t uo_position_calculate_key(uo_position *const position)
 {
@@ -706,6 +693,8 @@ size_t uo_position_print_diagram(uo_position *const position, char diagram[663])
 
 void uo_position_make_move(uo_position *position, uo_move move)
 {
+  assert(uo_position_is_ok(position));
+
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
   uo_piece *board = position->board;
@@ -876,6 +865,8 @@ void uo_position_make_move(uo_position *position, uo_move move)
   uo_position_do_switch_turn(position, flags);
   uo_position_flip_board(position);
   uo_position_update_checks_and_pins(position);
+
+  assert(uo_position_is_ok(position));
 }
 
 void uo_position_unmake_move(uo_position *position)
@@ -929,6 +920,8 @@ void uo_position_unmake_move(uo_position *position)
   }
 
   uo_position_undo_switch_turn(position);
+
+  assert(uo_position_is_ok(position));
 }
 
 bool uo_position_is_legal_move(uo_position *const position, uo_move *movelist, uo_move move)

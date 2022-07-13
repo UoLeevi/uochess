@@ -192,36 +192,39 @@ static void report_search_info(uo_search_info info)
     printf("info depth %d seldepth %d multipv %d ",
       info.depth, info.seldepth, info.multipv);
 
-    int16_t score = info.search->pv[i].score;
-    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    uo_ttable_lock(&info.search->ttable);
+    uo_tentry pv_entry = info.search->pv[i];
+    uo_ttable_unlock(&info.search->ttable);
+
+    if (pv_entry.score > UO_SCORE_MATE_IN_THRESHOLD)
     {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
+      printf("score mate %d ", (UO_SCORE_CHECKMATE - pv_entry.score + 1) >> 1);
     }
-    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    else if (pv_entry.score < -UO_SCORE_MATE_IN_THRESHOLD)
     {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE + score + 1) >> 1);
+      printf("score mate %d ", (UO_SCORE_CHECKMATE + pv_entry.score + 1) >> 1);
     }
     else
     {
-      printf("score cp %d ", score);
+      printf("score cp %d ", pv_entry.score);
     }
 
     printf("nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %" PRIu64 " pv",
       info.nodes, info.nps, info.tbhits, info.time);
 
     size_t pv_len = 1;
-    uo_tentry *pv_entry = info.search->pv;
 
     size_t i = 0;
+    uo_tentry *next_entry = &pv_entry;
 
-    for (; i < info.depth && pv_entry; ++i)
+    for (; i < info.depth && next_entry; ++i)
     {
-      uo_position_print_move(&info.search->main_thread->position, pv_entry->bestmove, buf);
+      uo_position_print_move(&info.search->main_thread->position, pv_entry.bestmove, buf);
       printf(" %s", buf);
 
-      if (!uo_position_is_legal_move(&info.search->main_thread->position, info.search->main_thread->head, pv_entry->bestmove))
+      if (!uo_position_is_legal_move(&info.search->main_thread->position, info.search->main_thread->head, pv_entry.bestmove))
       {
-        uo_position_print_move(&info.search->main_thread->position, pv_entry->bestmove, buf);
+        uo_position_print_move(&info.search->main_thread->position, pv_entry.bestmove, buf);
         printf("\n\nillegal bestmove %s\n", buf);
         uo_position_print_diagram(&info.search->main_thread->position, buf);
         printf("\n%s", buf);
@@ -232,8 +235,17 @@ static void report_search_info(uo_search_info info)
         assert(false);
       }
 
-      uo_position_make_move(&info.search->main_thread->position, pv_entry->bestmove);
-      pv_entry = uo_ttable_get(&info.search->ttable, info.search->main_thread->position.key);
+      uo_position_make_move(&info.search->main_thread->position, pv_entry.bestmove);
+
+      uo_ttable_lock(&info.search->ttable);
+      next_entry = uo_ttable_get(&info.search->ttable, info.search->main_thread->position.key);
+
+      if (next_entry)
+      {
+        pv_entry = *next_entry;
+      }
+
+      uo_ttable_unlock(&info.search->ttable);
     }
 
     while (i--)

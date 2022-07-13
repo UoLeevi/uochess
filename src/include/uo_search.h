@@ -33,6 +33,26 @@ extern "C"
     uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
   } uo_search_thread;
 
+  typedef struct uo_search_thread_work
+  {
+    union
+    {
+      uo_search_thread *thread;
+      uo_thread_function *function;
+    };
+    void *arg;
+  } uo_search_thread_work;
+
+#define uo_search_work_queue_max_count 0x100
+
+  typedef struct uo_search_work_queue {
+    uo_semaphore *semaphore;
+    uo_mutex *mutex;
+    int head;
+    int tail;
+    uo_search_thread_work work[uo_search_work_queue_max_count];
+  } uo_search_work_queue;
+
   typedef struct uo_search
   {
     uo_ttable ttable;
@@ -40,6 +60,9 @@ extern "C"
     uo_search_thread *main_thread;
     uo_search_thread *threads;
     size_t thread_count;
+    uo_mutex *stdout_mutex;
+    uo_search_work_queue work_queue;
+    bool exit;
   } uo_search;
 
   typedef struct uo_search_info

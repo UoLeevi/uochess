@@ -17,8 +17,49 @@ int search_id;
 
 const size_t quicksort_depth = 4; // arbitrary
 
+void uo_search_queue_work(uo_search *search, uo_thread_function *function, void *arg)
+{
+  uo_search_work_queue *work_queue = &search->work_queue;
+  uo_mutex_lock(work_queue->mutex);
+  work_queue->work[work_queue->head] = (uo_search_thread_work){ .function = function, .arg = arg };
+  work_queue->head = (work_queue->head + 1) % uo_search_work_queue_max_count;
+  uo_mutex_unlock(work_queue->mutex);
+  uo_semaphore_release(work_queue->semaphore);
+}
+
+void *uo_search_thread_run(void *arg)
+{
+  uo_search_thread *thread = arg;
+  uo_search_work_queue *work_queue = &thread->search->work_queue;
+  void *thread_return = NULL;
+
+  while (!thread->search->exit)
+  {
+    uo_semaphore_wait(work_queue->semaphore);
+    uo_mutex_lock(work_queue->mutex);
+    uo_search_thread_work work = work_queue->work[work_queue->tail];
+    work_queue->tail = (work_queue->tail + 1) % uo_search_work_queue_max_count;
+    uo_mutex_unlock(work_queue->mutex);
+    uo_thread_function *function = work.function;
+    work.thread = thread;
+    thread_return = function(&work);
+  }
+
+  return thread_return;
+}
+
 void uo_search_init(uo_search *search, uo_search_init_options *options)
 {
+  // stdout_mutex
+  search->stdout_mutex = uo_mutex_create();
+  uo_mutex_lock(search->stdout_mutex);
+
+  // work_queue
+  search->work_queue.semaphore = uo_semaphore_create(0);
+  search->work_queue.mutex = uo_mutex_create();
+  search->work_queue.head = 0;
+  search->work_queue.tail = 0;
+
   // threads
   search->thread_count = options->threads;
   search->threads = calloc(search->thread_count, sizeof * search->threads);
@@ -29,6 +70,7 @@ void uo_search_init(uo_search *search, uo_search_init_options *options)
     uo_search_thread *thread = search->threads + i;
     thread->search = search;
     thread->head = thread->moves;
+    thread->thread = uo_thread_create(uo_search_thread_run, thread);
   }
 
   // hash table
