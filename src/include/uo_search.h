@@ -19,7 +19,6 @@ extern "C"
   {
     uint8_t depth;
     uint64_t movetime;
-    uint16_t multipv;
     uint32_t wtime;
     uint32_t btime;
     uint32_t winc;
@@ -27,7 +26,6 @@ extern "C"
     uint64_t nodes;
     uint8_t mate;
     uint16_t movestogo;
-    bool infinite;
     bool ponder;
     uo_move *searchmoves;
   } uo_search_params;

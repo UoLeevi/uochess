@@ -6,8 +6,6 @@ extern "C"
 {
 #endif
 
-#include "uo_search.h"
-
 extern char buf[0x1000];
 
 #ifdef __cplusplus

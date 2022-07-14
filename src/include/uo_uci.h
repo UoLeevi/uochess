@@ -6,8 +6,7 @@ extern "C"
 {
 #endif
 
-
-
+  int uo_uci_run();
 
 #ifdef __cplusplus
 }

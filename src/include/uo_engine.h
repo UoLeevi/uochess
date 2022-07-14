@@ -16,19 +16,16 @@ extern "C"
 #include <stddef.h>
 #include <inttypes.h>
 
-  typedef struct uo_engine_init_options
+  typedef struct uo_engine_options
   {
     size_t threads;
     uint16_t multipv;
     size_t hash_size;
-  } uo_engine_init_options;
-
-  typedef struct uo_engine uo_engine;
+  } uo_engine_options;
 
   typedef struct uo_engine_thread
   {
     uo_thread *thread;
-    uo_engine *engine;
     uo_position position;
   } uo_engine_thread;
 
@@ -62,45 +59,63 @@ extern "C"
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
-    volatile uo_atomic_int stop;
+    volatile uo_atomic_int stopped;
     bool exit;
   } uo_engine;
 
-  void uo_engine_init(uo_engine *engine, uo_engine_init_options *options);
+  extern uo_engine_options engine_options;
+  extern uo_engine engine;
 
-  static inline void uo_engine_lock_position(uo_engine *engine)
+  void uo_engine_load_default_options();
+  void uo_engine_init();
+
+  static inline void uo_engine_lock_position()
   {
-    uo_mutex_lock(engine->position_mutex);
+    uo_mutex_lock(engine.position_mutex);
   }
 
-  static inline void uo_engine_unlock_position(uo_engine *engine)
+  static inline void uo_engine_unlock_position()
   {
-    uo_mutex_unlock(engine->position_mutex);
+    uo_mutex_unlock(engine.position_mutex);
   }
 
-  static inline void uo_engine_lock_stdout(uo_engine *engine)
+  static inline void uo_engine_lock_stdout()
   {
-    uo_mutex_lock(engine->stdout_mutex);
+    uo_mutex_lock(engine.stdout_mutex);
   }
 
-  static inline void uo_engine_unlock_stdout(uo_engine *engine)
+  static inline void uo_engine_unlock_stdout()
   {
-    uo_mutex_unlock(engine->stdout_mutex);
+    uo_mutex_unlock(engine.stdout_mutex);
+  }
+
+  static inline void uo_engine_lock_ttable()
+  {
+    uo_ttable_lock(&engine.ttable);
+  }
+
+  static inline void uo_engine_unlock_ttable()
+  {
+    uo_ttable_unlock(&engine.ttable);
   }
 
   static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
   {
-    uo_mutex_lock(thread->engine->position_mutex);
-    uo_position *position = &thread->engine->position;
-    uo_position_copy(&thread->position, position);
-    uo_mutex_unlock(thread->engine->position_mutex);
+    uo_mutex_lock(engine.position_mutex);
+    uo_position_copy(&thread->position, &engine.position);
+    uo_mutex_unlock(engine.position_mutex);
   }
 
-  void uo_engine_start_search(uo_engine *engine, uo_search_params *params);
+  void uo_engine_start_search(uo_search_params *params);
 
-  static inline void uo_engine_stop_search(uo_engine *engine)
+  static inline bool uo_engine_is_stopped()
   {
-    uo_atomic_store(&engine->stop, 1);
+    return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
+  }
+
+  static inline void uo_engine_stop_search()
+  {
+    uo_atomic_store(&engine.stopped, 1);
   }
 
 #ifdef __cplusplus

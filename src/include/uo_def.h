@@ -20,6 +20,8 @@ extern "C"
 #define uo_white 0
 #define uo_black 1
 
+#define uo_fen_startpos "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 
 #ifdef __cplusplus
 }
