@@ -23,11 +23,11 @@ static int run_tests(char *test_data_dir)
 {
   bool passed = true;
 
-  uo_engine_lock_position(&engine);
-  uo_engine_lock_stdout(&engine);
+  uo_engine_lock_position();
+  uo_engine_lock_stdout();
   passed &= uo_test_move_generation(&engine.position, test_data_dir);
-  uo_engine_unlock_position(&engine);
-  uo_engine_unlock_stdout(&engine);
+  uo_engine_unlock_position();
+  uo_engine_unlock_stdout();
 
   return passed ? 0 : 1;
 }
