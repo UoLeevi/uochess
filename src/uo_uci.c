@@ -436,6 +436,7 @@ static void uo_uci_process_input__init(void)
 
     state = states.options;
     printf("uciok\n");
+    fflush(stdout);
   }
 }
 
@@ -476,6 +477,7 @@ static void uo_uci_process_input__options(void)
     uo_engine_init();
     state = states.ready;
     printf("readyok\n");
+    fflush(stdout);
   }
 }
 
@@ -543,7 +545,8 @@ static void uo_uci_process_input__ready(void)
         double time_msec = uo_time_elapsed_msec(&time_start);
         uint64_t knps = total_node_count / time_msec;
 
-        printf("\nNodes engineed: %zu, time: %.03f s (%zu kN/s)\n\n", total_node_count, time_msec / 1000.0, knps);
+        printf("\nNodes searched: %zu, time: %.03f s (%zu kN/s)\n\n", total_node_count, time_msec / 1000.0, knps);
+        fflush(stdout);
         uo_engine_unlock_position();
         uo_engine_unlock_stdout();
       }
@@ -721,6 +724,7 @@ static void (*process_input[])() = {
 int uo_uci_run()
 {
   printf("Uochess 0.1 by Leevi Uotinen\n");
+  fflush(stdout);
   uo_uci_read_token();
 
   while (token >= 0)

@@ -5,6 +5,7 @@
 #include "uo_uci.h"
 #include "uo_test.h"
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -49,6 +50,7 @@ static int process_args(int argc, char **argv, bool *exit)
         if (stat(test_data_dir, &info) != 0)
         {
           printf("cannot access '%s'\n", test_data_dir);
+          fflush(stdout);
           return 1;
         }
         else if (info.st_mode & S_IFDIR)
@@ -59,6 +61,7 @@ static int process_args(int argc, char **argv, bool *exit)
         else
         {
           printf("'%s' is no directory\n", test_data_dir);
+          fflush(stdout);
           return 1;
         }
       }

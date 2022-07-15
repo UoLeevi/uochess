@@ -80,8 +80,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
       if (next_move_count == 0)
       {
         thread->position.movelist.head -= move_count;
+        bool mate = uo_position_is_check(&thread->position);
         uo_position_unmake_move(&thread->position);
-        return uo_position_is_check(&thread->position) ? -UO_SCORE_CHECKMATE : 0;
+        return mate ? -UO_SCORE_CHECKMATE : 0;
       }
 
       int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
@@ -440,6 +441,7 @@ static void uo_search_info_print(uo_search_info *info)
         printf("\n");
         printf("Fen: %s\n", buf);
         printf("Key: %" PRIu64 "\n", thread->position.key);
+        fflush(stdout);
         assert(false);
       }
 

@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <immintrin.h>
 
-bool uo_position_is_ok(uo_position *position)
+bool uo_position_is_ok(const uo_position *position)
 {
   if (uo_popcnt(position->K) != 2) return false;
 
@@ -104,6 +104,54 @@ bool uo_position_is_ok(uo_position *position)
       }
     }
   }
+
+  return true;
+}
+
+bool uo_position_is_move_ok(const uo_position *position, uo_move move)
+{
+  uo_square square_from = uo_move_square_from(move);
+  uo_square square_to = uo_move_square_to(move);
+  const uo_piece *board = position->board;
+
+  uo_piece piece = board[square_from];
+  if (piece <= 1) return false;
+  if (uo_color(piece) != uo_color_own) return false;
+
+  uo_piece piece_captured = board[square_to];
+  if (piece_captured == uo_piece__k) return false;
+
+  return true;
+}
+
+bool uo_position_is_checks_and_pins_ok(const uo_position *position)
+{
+  uo_bitboard mask_own = position->own;
+  uo_bitboard mask_enemy = position->enemy;
+  uo_bitboard occupied = mask_own | mask_enemy;
+
+  uo_bitboard enemy_P = mask_enemy & position->P;
+  uo_bitboard enemy_N = mask_enemy & position->N;
+  uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
+  uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
+
+  uo_bitboard own_K = mask_own & position->K;
+  uo_square square_own_K = uo_tzcnt(own_K);
+
+  uo_bitboard checks_by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
+  uo_bitboard checks_by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
+  uo_bitboard checks_by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
+  uo_bitboard checks_by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
+
+  uo_bitboard pins_by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
+  uo_bitboard pins_by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+
+  if (position->checks.by_BQ != checks_by_BQ) return false;
+  if (position->checks.by_RQ != checks_by_RQ) return false;
+  if (position->checks.by_N != checks_by_N) return false;
+  if (position->checks.by_P != checks_by_P) return false;
+  if (position->pins.by_BQ != pins_by_BQ) return false;
+  if (position->pins.by_RQ != pins_by_RQ) return false;
 
   return true;
 }
@@ -704,6 +752,7 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 
 void uo_position_make_move(uo_position *position, uo_move move)
 {
+  assert(uo_position_is_move_ok(position, move));
   assert(uo_position_is_ok(position));
 
   uo_square square_from = uo_move_square_from(move);
@@ -875,9 +924,10 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
   uo_position_do_switch_turn(position, flags);
   uo_position_flip_board(position);
-  uo_position_update_checks_and_pins(position);
 
   assert(uo_position_is_ok(position));
+
+  uo_position_update_checks_and_pins(position);
 }
 
 void uo_position_unmake_move(uo_position *position)
@@ -959,6 +1009,9 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
 
 size_t uo_position_generate_moves(uo_position *position)
 {
+  assert(uo_position_is_ok(position));
+  assert(uo_position_is_checks_and_pins_ok(position));
+
   uo_move *moves = position->movelist.head;
   uo_square square_from;
   uo_square square_to;

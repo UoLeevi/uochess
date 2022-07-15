@@ -13,6 +13,7 @@ extern "C"
 #include "uo_def.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
 
@@ -86,6 +87,7 @@ extern "C"
 
   static inline void uo_engine_unlock_stdout()
   {
+    fflush(stdout);
     uo_mutex_unlock(engine.stdout_mutex);
   }
 
