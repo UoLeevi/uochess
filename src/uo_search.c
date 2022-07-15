@@ -385,15 +385,13 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
 static void uo_search_info_print(uo_search_info *info)
 {
   uo_engine_thread *thread = info->thread;
-  uo_engine_lock_stdout(engine);
+  uo_engine_lock_stdout();
 
   double time_msec = uo_time_elapsed_msec(&info->time_start);
   uint64_t nps = info->nodes / time_msec * 1000.0;
 
   for (int i = 0; i < info->multipv; ++i)
   {
-    uo_position_update_checks_and_pins(&info->thread->position);
-
     printf("info depth %d ", info->depth);
     if (info->seldepth) printf("seldepth %d ", info->seldepth);
     printf("multipv %d ", info->multipv);
@@ -475,8 +473,7 @@ static void uo_search_info_print(uo_search_info *info)
     }
   }
 
-  uo_engine_unlock_stdout(engine);
-  uo_position_update_checks_and_pins(&thread->position);
+  uo_engine_unlock_stdout();
 }
 
 void *uo_engine_thread_run_negamax_search(void *arg)

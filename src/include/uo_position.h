@@ -78,6 +78,11 @@ extern "C"
       uo_bitboard by_RQ;
     } pins;
 
+    struct
+    {
+      bool checks_and_pins;
+    } update_status;
+
     uo_move_history *stack;
     uo_move_history history[UO_MAX_PLY];
 
@@ -256,10 +261,17 @@ extern "C"
 
     position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+
+    position->update_status.checks_and_pins = true;
   }
 
   static inline bool uo_position_is_check(uo_position *const position)
   {
+    if (!position->update_status.checks_and_pins)
+    {
+      uo_position_update_checks_and_pins(position);
+    }
+
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
   }
 

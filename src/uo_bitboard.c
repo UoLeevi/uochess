@@ -1,4 +1,5 @@
 #include "uo_bitboard.h"
+#include "uo_square.h"
 #include "uo_util.h"
 #include "uo_piece.h"
 #include "uo_util.h"
@@ -23,6 +24,14 @@ uo_bitboard uo_bitboard_file[8];          //  |
 uo_bitboard uo_bitboard_rank[8];          //  -
 uo_bitboard uo_bitboard_diagonal[15];     //  /
 uo_bitboard uo_bitboard_antidiagonal[15]; //  \
+
+uo_bitboard uo_square_bitboard_file[64];         //  |
+uo_bitboard uo_square_bitboard_rank[64];         //  -
+uo_bitboard uo_square_bitboard_lines[64];        //  +
+uo_bitboard uo_square_bitboard_diagonal[64];     //  /
+uo_bitboard uo_square_bitboard_antidiagonal[64]; //  
+uo_bitboard uo_square_bitboard_diagonals[64];    //  X
+uo_bitboard uo_square_bitboard_rays[64];         //  *
 
 uo_bitboard uo_moves_K[64];
 uo_bitboard uo_moves_N[64];
@@ -482,6 +491,17 @@ void uo_bitboard_init()
     uo_bitboard_diagonal[7 + i] = uo_bitboard__a1_h8_diagonal >> (i << 3);
     uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
     uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
+  }
+
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    uo_square_bitboard_file[i] = uo_bitboard_file[uo_square_file(i)];
+    uo_square_bitboard_rank[i] = uo_bitboard_rank[uo_square_rank(i)];
+    uo_square_bitboard_lines[i] = uo_square_bitboard_file[i] | uo_square_bitboard_rank[i];
+    uo_square_bitboard_diagonal[i] = uo_bitboard_diagonal[uo_square_diagonal[i]];
+    uo_square_bitboard_antidiagonal[i] = uo_bitboard_antidiagonal[uo_square_antidiagonal[i]];
+    uo_square_bitboard_diagonals[i] = uo_square_bitboard_diagonal[i] | uo_square_bitboard_antidiagonal[i];
+    uo_square_bitboard_rays[i] = uo_square_bitboard_lines[i] | uo_square_bitboard_diagonals[i];
   }
 
   uo_moves_K_init();

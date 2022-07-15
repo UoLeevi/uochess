@@ -752,6 +752,8 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 
 void uo_position_make_move(uo_position *position, uo_move move)
 {
+  position->update_status.checks_and_pins = false;
+
   assert(uo_position_is_move_ok(position, move));
   assert(uo_position_is_ok(position));
 
@@ -801,7 +803,7 @@ void uo_position_make_move(uo_position *position, uo_move move)
           uo_bitboard own_R = mask_own & position->R;
           uo_bitboard own_Q = mask_own & position->Q;
           uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
-          uo_bitboard occupied = uo_andn(uo_bitboard_file[uo_square_file(square_to)], position->own | position->enemy);
+          uo_bitboard occupied = uo_andn(uo_square_bitboard_file[square_to], position->own | position->enemy);
           uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, own_R | own_Q) & bitboard_rank_enemy_K;
 
           if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
@@ -926,12 +928,12 @@ void uo_position_make_move(uo_position *position, uo_move move)
   uo_position_flip_board(position);
 
   assert(uo_position_is_ok(position));
-
-  uo_position_update_checks_and_pins(position);
 }
 
 void uo_position_unmake_move(uo_position *position)
 {
+  position->update_status.checks_and_pins = true;
+
   uo_position_flip_board(position);
 
   uo_move move = position->stack[-1].move;
@@ -1010,7 +1012,6 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
 size_t uo_position_generate_moves(uo_position *position)
 {
   assert(uo_position_is_ok(position));
-  assert(uo_position_is_checks_and_pins_ok(position));
 
   uo_move *moves = position->movelist.head;
   uo_square square_from;
@@ -1047,8 +1048,19 @@ size_t uo_position_generate_moves(uo_position *position)
   // 1. Check for checks and pieces pinned to the king
 
   uo_square square_own_K = uo_tzcnt(own_K);
-  uint8_t file_own_K = uo_square_file(square_own_K);
-  uint8_t rank_own_K = uo_square_rank(square_own_K);
+
+  if (!position->update_status.checks_and_pins)
+  {
+    position->checks.by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
+    position->checks.by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
+    position->checks.by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
+    position->checks.by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
+
+    position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
+    position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+    position->update_status.checks_and_pins = true;
+  }
+
   uo_bitboard moves_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);
   moves_K = uo_andn(attacks_enemy_P, moves_K);
 
@@ -1491,7 +1503,7 @@ size_t uo_position_generate_moves(uo_position *position)
     }
 
     // Moves for pinned pawns
-    uo_bitboard pinned_file_P = own_P & pins_to_own_K_by_RQ & uo_bitboard_file[file_own_K];
+    uo_bitboard pinned_file_P = own_P & pins_to_own_K_by_RQ & uo_square_bitboard_file[square_own_K];
 
     // Single pawn push
     uo_bitboard pinned_single_push_P = uo_bitboard_single_push_P(pinned_file_P, empty);

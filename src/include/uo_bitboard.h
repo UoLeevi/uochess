@@ -40,6 +40,14 @@ extern "C"
   extern uo_bitboard uo_bitboard_diagonal[15];     //  /
   extern uo_bitboard uo_bitboard_antidiagonal[15]; //  \
 
+  extern uo_bitboard uo_square_bitboard_file[64];         //  |
+  extern uo_bitboard uo_square_bitboard_rank[64];         //  -
+  extern uo_bitboard uo_square_bitboard_lines[64];        //  +
+  extern uo_bitboard uo_square_bitboard_diagonal[64];     //  /
+  extern uo_bitboard uo_square_bitboard_antidiagonal[64]; //  
+  extern uo_bitboard uo_square_bitboard_diagonals[64];    //  X
+  extern uo_bitboard uo_square_bitboard_rays[64];         //  *
+
   extern uo_bitboard uo_moves_K[64];
   extern uo_bitboard uo_moves_N[64];
   extern uo_bitboard uo_attacks_P[2][64];
@@ -161,12 +169,9 @@ extern "C"
 
   static inline uo_bitboard uo_bitboard_pins_B(uo_square square, uo_bitboard blockers, uo_bitboard diagonal_attackers)
   {
-    uint8_t diagonal = uo_square_diagonal[square];
-    uint8_t antidiagonal = uo_square_antidiagonal[square];
-
     uo_bitboard mask = uo_square_bitboard(square);
-    uo_bitboard bitboard_diagonal = uo_andn(mask, uo_bitboard_diagonal[diagonal]);
-    uo_bitboard bitboard_antidiagonal = uo_andn(mask, uo_bitboard_antidiagonal[antidiagonal]);
+    uo_bitboard bitboard_diagonal = uo_andn(mask, uo_square_bitboard_diagonal[square]);
+    uo_bitboard bitboard_antidiagonal = uo_andn(mask, uo_square_bitboard_antidiagonal[square]);
     uo_bitboard bitboard_both_diagonals = bitboard_diagonal | bitboard_antidiagonal;
 
     diagonal_attackers &= bitboard_both_diagonals;
@@ -242,12 +247,9 @@ extern "C"
 
   static inline uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboard line_attackers)
   {
-    uint8_t file = uo_square_file(square);
-    uint8_t rank = uo_square_rank(square);
-
     uo_bitboard mask = uo_square_bitboard(square);
-    uo_bitboard bitboard_file = uo_andn(mask, uo_bitboard_file[file]);
-    uo_bitboard bitboard_rank = uo_andn(mask, uo_bitboard_rank[rank]);
+    uo_bitboard bitboard_file = uo_andn(mask, uo_square_bitboard_file[square]);
+    uo_bitboard bitboard_rank = uo_andn(mask, uo_square_bitboard_rank[square]);
     uo_bitboard bitboard_lines = bitboard_file | bitboard_rank;
 
     line_attackers &= bitboard_lines;
