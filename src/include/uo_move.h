@@ -54,6 +54,11 @@ extern "C"
     return move & 0x4000;
   }
 
+  static inline bool uo_move_is_enpassant(uo_move move)
+  {
+    return uo_move_get_type(move) == uo_move_type__enpassant;
+  }
+
   static inline bool uo_move_is_promotion(uo_move move)
   {
     return move & 0x8000;

@@ -15,7 +15,10 @@
 
 bool uo_position_is_ok(const uo_position *position)
 {
-  if (uo_popcnt(position->K) != 2) return false;
+  if (uo_popcnt(position->K) != 2)
+  {
+    return false;
+  }
 
   for (uo_square square = 0; square < 64; ++square)
   {
@@ -112,14 +115,37 @@ bool uo_position_is_move_ok(const uo_position *position, uo_move move)
 {
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
+
   const uo_piece *board = position->board;
 
   uo_piece piece = board[square_from];
-  if (piece <= 1) return false;
-  if (uo_color(piece) != uo_color_own) return false;
+  if (piece <= 1)
+  {
+    return false;
+  }
+
+  if (uo_color(piece) != uo_color_own)
+  {
+    return false;
+  }
 
   uo_piece piece_captured = board[square_to];
-  if (piece_captured == uo_piece__k) return false;
+  if (piece_captured == uo_piece__k)
+  {
+    return false;
+  }
+
+  if (uo_move_is_capture(move))
+  {
+    if (piece_captured <= 1 && !uo_move_is_enpassant(move))
+    {
+      return false;
+    }
+  }
+  else if (piece_captured > 1)
+  {
+    return false;
+  }
 
   return true;
 }
@@ -752,7 +778,7 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 
 void uo_position_make_move(uo_position *position, uo_move move)
 {
-  position->update_status.checks_and_pins = false;
+  position->update_status.value = 0;
 
   assert(uo_position_is_move_ok(position, move));
   assert(uo_position_is_ok(position));
@@ -924,6 +950,8 @@ void uo_position_make_move(uo_position *position, uo_move move)
       }
   }
 
+  assert(uo_position_is_ok(position));
+
   uo_position_do_switch_turn(position, flags);
   uo_position_flip_board(position);
 
@@ -932,7 +960,7 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
 void uo_position_unmake_move(uo_position *position)
 {
-  position->update_status.checks_and_pins = true;
+  position->update_status.value = 0;
 
   uo_position_flip_board(position);
 
@@ -1096,7 +1124,11 @@ size_t uo_position_generate_moves(uo_position *position)
         *moves++ = uo_move_encode(square_own_K, square_to, move_type);
       }
 
-      return moves - position->movelist.head;
+      position->update_status.moves_generated = true;
+
+      int16_t move_count = moves - position->movelist.head;
+      position->movelist.count = move_count;
+      return move_count;
     }
 
     // Only one piece is giving a check
@@ -1156,12 +1188,14 @@ size_t uo_position_generate_moves(uo_position *position)
     // Let's still check for en passant captures
     if (position->checks.by_P && enpassant_file)
     {
-      if (enpassant_file > 1 && (own_P & (position->checks.by_P >> 1)))
+      uo_bitboard non_pinned_P = uo_andn(pins_to_own_K, own_P);
+
+      if (enpassant_file > 1 && (non_pinned_P & (position->checks.by_P >> 1)))
       {
         *moves++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + 8, uo_move_type__enpassant);
       }
 
-      if (enpassant_file < 8 && (own_P & (position->checks.by_P << 1)))
+      if (enpassant_file < 8 && (non_pinned_P & (position->checks.by_P << 1)))
       {
         *moves++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + 8, uo_move_type__enpassant);
       }
@@ -1265,7 +1299,11 @@ size_t uo_position_generate_moves(uo_position *position)
       *moves++ = uo_move_encode(square_own_K, square_to, move_type);
     }
 
-    return moves - position->movelist.head;
+    position->update_status.moves_generated = true;
+
+    int16_t move_count = moves - position->movelist.head;
+    position->movelist.count = move_count;
+    return move_count;
   }
 
   // King is not in check. Let's list moves by piece type
@@ -1678,7 +1716,11 @@ size_t uo_position_generate_moves(uo_position *position)
     *moves++ = uo_move_encode(square_own_K, square_to, move_type);
   }
 
-  return moves - position->movelist.head;
+  position->update_status.moves_generated = true;
+
+  int16_t move_count = moves - position->movelist.head;
+  position->movelist.count = move_count;
+  return move_count;
 }
 
 // Only direct checks, does not take into account discoveries

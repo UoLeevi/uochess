@@ -78,9 +78,14 @@ extern "C"
       uo_bitboard by_RQ;
     } pins;
 
-    struct
+    union
     {
-      bool checks_and_pins;
+      uint16_t value;
+      struct
+      {
+        bool checks_and_pins;
+        bool moves_generated;
+      };
     } update_status;
 
     uo_move_history *stack;
@@ -88,6 +93,7 @@ extern "C"
 
     struct
     {
+      int16_t count;
       uo_move *head;
       uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
     } movelist;

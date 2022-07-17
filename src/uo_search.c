@@ -54,6 +54,53 @@ static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
 
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b, int64_t move_count)
 {
+  if (uo_position_is_check(&thread->position))
+  {
+    thread->position.movelist.head += move_count;
+
+    for (int64_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = thread->position.movelist.head[i - move_count];
+
+      uo_position_make_move(&thread->position, move);
+      int64_t next_move_count = uo_position_generate_moves(&thread->position);
+
+      if (next_move_count == 0)
+      {
+        thread->position.movelist.head -= move_count;
+        bool mate = uo_position_is_check(&thread->position);
+        uo_position_unmake_move(&thread->position);
+        return mate ? -UO_SCORE_CHECKMATE : 0;
+      }
+
+      int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
+      uo_position_unmake_move(&thread->position);
+
+      if (node_value > UO_SCORE_MATE_IN_THRESHOLD)
+      {
+        --node_value;
+      }
+      else if (node_value < -UO_SCORE_MATE_IN_THRESHOLD)
+      {
+        ++node_value;
+      }
+
+      if (node_value >= b)
+      {
+        thread->position.movelist.head -= move_count;
+        return b;
+      }
+
+      if (node_value > a)
+      {
+        a = node_value;
+      }
+    }
+
+    thread->position.movelist.head -= move_count;
+    return a;
+  }
+
   int16_t stand_pat = uo_position_evaluate(&thread->position);
 
   if (stand_pat >= b)
@@ -111,7 +158,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
   }
 
   thread->position.movelist.head -= move_count;
-
   return a;
 }
 
