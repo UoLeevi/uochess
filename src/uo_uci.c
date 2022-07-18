@@ -390,6 +390,11 @@ static void uo_uci__position(void)
         return;
       }
 
+      if (uo_position_is_max_depth_reached(&engine.position))
+      {
+        uo_position_reset_root(&engine.position);
+      }
+
       uo_square square_from = uo_move_square_from(move);
       uo_square square_to = uo_move_square_to(move);
 
