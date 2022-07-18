@@ -18,7 +18,7 @@ extern "C"
   {
     uint64_t key;
     uo_move bestmove;
-    int16_t score;
+    int16_t value;
     uint8_t depth;
     uint8_t type;
     int8_t priority;

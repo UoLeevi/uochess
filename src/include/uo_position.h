@@ -255,6 +255,22 @@ extern "C"
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
+  static inline bool uo_position_is_rule50_draw(uo_position *position)
+  {
+    return uo_position_flags_rule50(position->flags) >= 100;
+  }
+
+  static inline bool uo_position_is_repetition_draw(uo_position *position)
+  {
+    // TODO
+    return false;
+  }
+
+  static inline bool uo_position_is_max_depth_reached(uo_position *position)
+  {
+    return position->ply - position->root_ply >= UO_MAX_PLY;
+  }
+
   static inline void uo_position_update_checks_and_pins(uo_position *position)
   {
     uo_bitboard mask_own = position->own;

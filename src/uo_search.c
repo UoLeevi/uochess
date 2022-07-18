@@ -29,116 +29,9 @@ typedef struct uo_search_info
   bool completed;
   uo_search_params *params;
   uo_move bestmove;
-  int16_t score;
+  int16_t value;
 } uo_search_info;
 
-static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
-{
-  uint64_t movetime = info->params->movetime;
-
-  // TODO: make better decisions about how mutch time to use
-  if (!movetime && (info->params->btime + info->params->wtime))
-  {
-    movetime = 3000;
-  }
-
-  if (movetime)
-  {
-    const double margin_msec = 1.0;
-    double time_msec = uo_time_elapsed_msec(&info->time_start);
-
-    if (time_msec + margin_msec > (double)movetime)
-    {
-      uo_engine_stop_search();
-    }
-  }
-}
-
-static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b, int64_t move_count)
-{
-  if (uo_position_is_check(&thread->position))
-  {
-    for (int64_t i = 0; i < move_count; ++i)
-    {
-      uo_move move = thread->position.movelist.head[i];
-
-      uo_position_make_move(&thread->position, move);
-      size_t next_move_count = uo_position_generate_moves(&thread->position);
-
-      if (next_move_count == 0)
-      {
-        bool mate = uo_position_is_check(&thread->position);
-        uo_position_unmake_move(&thread->position);
-        return mate ? -UO_SCORE_CHECKMATE : 0;
-      }
-
-      int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
-      node_value = uo_score_adjust_for_mate(node_value);
-
-      uo_position_unmake_move(&thread->position);
-
-
-      if (node_value >= b)
-      {
-        return b;
-      }
-
-      if (node_value > a)
-      {
-        a = node_value;
-      }
-    }
-
-    return a;
-  }
-
-  int16_t stand_pat = uo_position_evaluate(&thread->position);
-
-  if (stand_pat >= b)
-  {
-    return b;
-  }
-
-  if (a < stand_pat)
-  {
-    a = stand_pat;
-  }
-
-  for (int64_t i = 0; i < move_count; ++i)
-  {
-    uo_move move = thread->position.movelist.head[i];
-
-    if (uo_move_is_capture(move) || uo_move_is_promotion(move))
-    {
-      uo_position_make_move(&thread->position, move);
-      int64_t next_move_count = uo_position_generate_moves(&thread->position);
-
-      if (next_move_count == 0)
-      {
-        bool mate = uo_position_is_check(&thread->position);
-        uo_position_unmake_move(&thread->position);
-        return mate ? -UO_SCORE_CHECKMATE : 0;
-      }
-
-      int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
-      node_value = uo_score_adjust_for_mate(node_value);
-
-      uo_position_unmake_move(&thread->position);
-
-      if (node_value >= b)
-      {
-        return b;
-      }
-
-      if (node_value > a)
-      {
-        a = node_value;
-      }
-    }
-  }
-
-  return a;
-}
 
 static int uo_search_moves_cmp(uo_engine_thread *thread, uo_move move_lhs, uo_move move_rhs)
 {
@@ -250,20 +143,18 @@ static void uo_search_quicksort_moves(uo_engine_thread *thread, uo_move *movelis
   uo_search_quicksort_moves(thread, movelist, p + 1, hi, depth - 2);
 }
 
-static void uo_search_sort_moves(uo_engine_thread *thread, int64_t move_count)
+static void uo_search_sort_moves(uo_engine_thread *thread, uo_search_info *info)
 {
-  uo_engine_lock_ttable();
-  uo_tentry *entry = uo_ttable_get(&engine.ttable, thread->position.key);
-  uo_move bestmove = entry ? entry->bestmove : 0;
-  uo_engine_unlock_ttable();
+  uo_move bestmove = info->bestmove;
   uo_move *movelist = thread->position.movelist.head;
+  size_t move_count = thread->position.stack->move_count;
 
   int lo = 0;
 
   // If found, set pv move as first
   if (bestmove)
   {
-    for (int i = 1; i < move_count; ++i)
+    for (size_t i = 1; i < move_count; ++i)
     {
       if (movelist[i] == bestmove)
       {
@@ -278,39 +169,192 @@ static void uo_search_sort_moves(uo_engine_thread *thread, int64_t move_count)
   uo_search_quicksort_moves(thread, movelist, lo, move_count - 1, quicksort_depth);
 }
 
-// see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
-static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t a, int16_t b, uo_search_info *info)
+static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
 {
-  int16_t a_orig = a;
+  uint64_t movetime = info->params->movetime;
+
+  // TODO: make better decisions about how mutch time to use
+  if (!movetime && (info->params->btime + info->params->wtime))
+  {
+    movetime = 3000;
+  }
+
+  if (movetime)
+  {
+    const double margin_msec = 1.0;
+    double time_msec = uo_time_elapsed_msec(&info->time_start);
+
+    if (time_msec + margin_msec > (double)movetime)
+    {
+      uo_engine_stop_search();
+    }
+  }
+}
+
+static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta)
+{
+  uo_position *position = &thread->position;
+  size_t move_count = position->stack->move_count;
+
+  if (uo_position_is_check(&thread->position))
+  {
+    int16_t value = -UO_SCORE_CHECKMATE;
+
+    for (int64_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+
+      uo_position_make_move(position, move);
+
+      if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+      {
+        return 0;
+      }
+
+      if (uo_position_is_max_depth_reached(position))
+      {
+        return uo_position_evaluate(position);
+      }
+
+      size_t next_move_count = uo_position_generate_moves(position);
+
+      if (next_move_count == 0)
+      {
+        bool mate = uo_position_is_check(position);
+        uo_position_unmake_move(position);
+        return mate ? -UO_SCORE_CHECKMATE : 0;
+      }
+
+      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
+      node_value = uo_score_adjust_for_mate(node_value);
+
+      uo_position_unmake_move(position);
+
+      if (node_value > value)
+      {
+        value = node_value;
+
+        if (value > alpha)
+        {
+          alpha = value;
+        }
+
+        if (value >= beta)
+        {
+          break;
+        }
+      }
+    }
+
+    return value;
+  }
+
+  int16_t value = uo_position_evaluate(position);
+
+  if (value >= beta)
+  {
+    return value;
+  }
+
+  if (value > alpha)
+  {
+    alpha = value;
+  }
+
+  for (int64_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = position->movelist.head[i];
+
+    if (uo_move_is_capture(move) || uo_move_is_promotion(move))
+    {
+      uo_position_make_move(position, move);
+
+      if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+      {
+        return 0;
+      }
+
+      if (uo_position_is_max_depth_reached(position))
+      {
+        return uo_position_evaluate(position);
+      }
+
+      int64_t next_move_count = uo_position_generate_moves(position);
+
+      if (next_move_count == 0)
+      {
+        bool mate = uo_position_is_check(position);
+        uo_position_unmake_move(position);
+        return mate ? -UO_SCORE_CHECKMATE : 0;
+      }
+
+      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
+      node_value = uo_score_adjust_for_mate(node_value);
+
+      uo_position_unmake_move(position);
+
+      if (node_value > value)
+      {
+        value = node_value;
+
+        if (value > alpha)
+        {
+          alpha = value;
+        }
+
+        if (value >= beta)
+        {
+          break;
+        }
+      }
+    }
+  }
+
+  return value;
+}
+
+// see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
+static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_search_info *info)
+{
+  uo_position *position = &thread->position;
+  int16_t alpha_original = alpha;
 
   uo_engine_lock_ttable();
   uo_tentry *entry = uo_ttable_get(&engine.ttable, thread->position.key);
 
   if (entry && entry->depth >= depth)
   {
-    int16_t score = entry->score;
+    int16_t value = entry->value;
     uo_engine_unlock_ttable();
 
     switch (entry->type)
     {
       case uo_tentry_type__exact:
-        return score;
+        return value;
 
       case uo_tentry_type__lower_bound:
-        a = score > a ? score : a;
+        if (value > alpha)
+        {
+          alpha = value;
+        }
+
         break;
 
       case uo_tentry_type__upper_bound:
-        b = score < b ? score : b;
+        if (value < beta)
+        {
+          beta = value;
+        }
+
         break;
 
       default:
         assert(false);
     }
 
-    if (a >= b)
+    if (alpha >= beta)
     {
-      return score;
+      return value;
     }
   }
   else
@@ -318,21 +362,31 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
     uo_engine_unlock_ttable();
   }
 
-  int64_t move_count = uo_position_generate_moves(&thread->position);
+  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+  {
+    return 0;
+  }
+
+  if (uo_position_is_max_depth_reached(position))
+  {
+    return uo_position_evaluate(position);
+  }
+
+  int64_t move_count = uo_position_generate_moves(position);
 
   if (move_count == 0)
   {
-    return uo_position_is_check(&thread->position) ? -UO_SCORE_CHECKMATE : 0;
+    return uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
   if (depth == 0)
   {
-    return uo_search_quiesce(thread, a, b, move_count);
+    return uo_search_quiesce(thread, alpha, beta);
   }
 
   uo_search_stop_if_movetime_over(info);
 
-  uo_search_sort_moves(thread, move_count);
+  uo_search_sort_moves(thread, info);
 
   uo_move bestmove;
   int16_t value = -UO_SCORE_CHECKMATE;
@@ -340,30 +394,30 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
   for (int64_t i = 0; i < move_count; ++i)
   {
     uo_move move = thread->position.movelist.head[i];
-    uo_position_make_move(&thread->position, move);
-    int16_t node_value = -uo_search_negamax(thread, depth - 1, -b, -a, info);
+    uo_position_make_move(position, move);
+    int16_t node_value = -uo_search_negamax(thread, depth - 1, -beta, -alpha, info);
     node_value = uo_score_adjust_for_mate(node_value);
-    uo_position_unmake_move(&thread->position);
+    uo_position_unmake_move(position);
 
     if (node_value > value)
     {
       value = node_value;
       bestmove = move;
 
-      if (value > a)
+      if (value > alpha)
       {
-        a = value;
+        alpha = value;
+      }
+
+      if (value >= beta)
+      {
+        break;
       }
     }
 
     if (uo_engine_is_stopped())
     {
       return value;
-    }
-
-    if (a >= b)
-    {
-      break;
     }
   }
 
@@ -372,20 +426,20 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
   if (!entry)
   {
     ++info->nodes;
-    entry = uo_ttable_set(&engine.ttable, thread->position.key);
+    entry = uo_ttable_set(&engine.ttable, position->key);
   }
 
-  entry->score = value;
   entry->depth = depth;
   entry->bestmove = bestmove;
+  entry->value = value;
 
-  if (value > a_orig)
-  {
-    entry->type = uo_tentry_type__upper_bound;
-  }
-  else if (value >= b)
+  if (alpha >= beta)
   {
     entry->type = uo_tentry_type__lower_bound;
+  }
+  else if (alpha != alpha_original)
+  {
+    entry->type = uo_tentry_type__upper_bound;
   }
   else
   {
@@ -413,7 +467,7 @@ static void uo_search_info_print(uo_search_info *info)
     if (info->seldepth) printf("seldepth %d ", info->seldepth);
     printf("multipv %d ", info->multipv);
 
-    int16_t score = color * info->score;
+    int16_t score = color * info->value;
 
     if (score > UO_SCORE_MATE_IN_THRESHOLD)
     {
@@ -510,7 +564,7 @@ void *uo_engine_thread_run_negamax_search(void *arg)
   uo_engine_lock_ttable();
   uo_tentry *pv_entry = uo_ttable_get(&engine.ttable, thread->position.key);
   info.bestmove = pv_entry->bestmove;
-  info.score = pv_entry->score;
+  info.value = pv_entry->value;
   ++pv_entry->refcount;
   uo_engine_unlock_ttable();
 
@@ -531,7 +585,7 @@ void *uo_engine_thread_run_negamax_search(void *arg)
 
     uo_engine_lock_ttable();
     info.bestmove = pv_entry->bestmove;
-    info.score = pv_entry->score;
+    info.value = pv_entry->value;
     uo_engine_unlock_ttable();
   }
 
