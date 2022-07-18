@@ -6,7 +6,9 @@ extern "C"
 {
 #endif
 
-#include <inttypes.h>
+#include "uo_def.h"
+
+#include <stdint.h>
 
   typedef uint8_t uo_piece;
 
@@ -61,6 +63,38 @@ extern "C"
       case 'r': return uo_piece__r;
       case 'q': return uo_piece__q;
       case 'k': return uo_piece__k;
+      default: return 0;
+    }
+  };
+
+  static inline int16_t up_piece_value(uo_piece piece)
+  {
+    switch (piece)
+    {
+      case uo_piece__P:
+      case uo_piece__p:
+        return 100;
+
+      case uo_piece__n:
+      case uo_piece__N:
+        return 300;
+
+      case uo_piece__B:
+      case uo_piece__b:
+        return 301;
+
+      case uo_piece__R:
+      case uo_piece__r:
+        return 500;
+
+      case uo_piece__Q:
+      case uo_piece__q:
+        return 900;
+
+      case uo_piece__K:
+      case uo_piece__k:
+        return UO_SCORE_MATE_IN_THRESHOLD;
+
       default: return 0;
     }
   };

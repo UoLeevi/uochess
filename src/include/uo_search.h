@@ -19,10 +19,10 @@ extern "C"
   {
     uint8_t depth;
     uint64_t movetime;
-    uint32_t wtime;
-    uint32_t btime;
-    uint32_t winc;
-    uint32_t binc;
+    uint32_t time_own;
+    uint32_t time_enemy;
+    uint32_t time_inc_own;
+    uint32_t time_inc_enemy;
     uint64_t nodes;
     uint8_t mate;
     uint16_t movestogo;

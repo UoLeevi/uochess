@@ -63,6 +63,17 @@ extern "C"
     return lsb;
   }
 
+  static inline uo_bitboard uo_bitboard_files(uo_bitboard mask)
+  {
+    mask <<= 8;
+    mask <<= 16;
+    mask <<= 32;
+    mask >>= 8;
+    mask >>= 16;
+    mask >>= 32;
+    return mask;
+  }
+
   static inline uo_bitboard uo_bitboard_attacks_N(uo_square square)
   {
     return uo_moves_N[square];

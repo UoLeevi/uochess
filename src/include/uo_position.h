@@ -97,6 +97,7 @@ extern "C"
     {
       uo_move *head;
       uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
+      int8_t ordering_scores[0x100];
     } movelist;
   } uo_position;
 
@@ -304,6 +305,166 @@ extern "C"
     }
 
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
+  }
+
+  // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
+  static inline int16_t uo_position_capture_gain(uo_position *position, uo_move move)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    uo_piece *board = position->board;
+    uo_piece piece = board[square_from];
+    uo_piece piece_captured = board[square_to];
+
+    uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+
+    uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
+    uo_bitboard mask_enemy = uo_andn(bitboard_to, position->enemy);
+    uo_bitboard occupied = mask_own | mask_enemy;
+
+    uo_bitboard attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+    uo_bitboard attacks_by_R = mask_enemy & position->R & uo_bitboard_attacks_R(square_to, occupied);
+    uo_bitboard attacks_by_B = mask_enemy & position->B & uo_bitboard_attacks_B(square_to, occupied);
+    uo_bitboard attacks_by_N = mask_enemy & position->N & uo_bitboard_attacks_N(square_to);
+    uo_bitboard attacks_by_P = mask_enemy & position->P & uo_bitboard_attacks_P(square_to, uo_color_own);
+    uo_bitboard attacks_by_K = mask_enemy & position->K & uo_bitboard_attacks_K(square_to);
+
+    uo_bitboard defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+    uo_bitboard defended_by_R = mask_own & position->R & uo_bitboard_attacks_R(square_to, occupied);
+    uo_bitboard defended_by_B = mask_own & position->B & uo_bitboard_attacks_B(square_to, occupied);
+    uo_bitboard defended_by_N = mask_own & position->N & uo_bitboard_attacks_N(square_to);
+    uo_bitboard defended_by_P = mask_own & position->P & uo_bitboard_attacks_P(square_to, uo_color_enemy);
+    uo_bitboard defended_by_K = mask_own & position->K & uo_bitboard_attacks_K(square_to);
+
+    int16_t gain[32];
+    size_t depth = 0;
+
+    gain[depth] = up_piece_value(piece_captured);
+
+    while (true)
+    {
+      depth++;
+      gain[depth] = up_piece_value(piece) - gain[depth - 1]; // speculative store, if defended
+
+      if (gain[depth - 1] > 0 && gain[depth] < 0)
+      {
+        break; // pruning does not influence the result
+      }
+
+      if (attacks_by_P)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_P);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__P;
+        occupied ^= bitboard_from;
+
+        attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        attacks_by_B = mask_enemy & position->B & uo_bitboard_attacks_B(square_to, occupied);
+        defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        defended_by_B = mask_own & position->B & uo_bitboard_attacks_B(square_to, occupied);
+      }
+      else if (attacks_by_N)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_N);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__N;
+        occupied ^= bitboard_from;
+      }
+      else if (attacks_by_B)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_B);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__B;
+        occupied ^= bitboard_from;
+
+        attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        attacks_by_B = mask_enemy & position->B & uo_bitboard_attacks_B(square_to, occupied);
+        defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        defended_by_B = mask_own & position->B & uo_bitboard_attacks_B(square_to, occupied);
+      }
+      else if (attacks_by_R)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_R);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__R;
+        occupied ^= bitboard_from;
+
+        attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        attacks_by_R = mask_enemy & position->R & uo_bitboard_attacks_R(square_to, occupied);
+        defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        defended_by_R = mask_own & position->R & uo_bitboard_attacks_R(square_to, occupied);
+      }
+      else if (attacks_by_Q)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_Q);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__Q;
+        occupied ^= bitboard_from;
+
+        attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        attacks_by_R = mask_enemy & position->R & uo_bitboard_attacks_R(square_to, occupied);
+        attacks_by_B = mask_enemy & position->B & uo_bitboard_attacks_B(square_to, occupied);
+        defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        defended_by_R = mask_own & position->R & uo_bitboard_attacks_R(square_to, occupied);
+        defended_by_B = mask_own & position->B & uo_bitboard_attacks_B(square_to, occupied);
+      }
+      else if (attacks_by_K)
+      {
+        square_from = uo_bitboard_next_square(&attacks_by_K);
+        bitboard_from = uo_square_bitboard(square_from);
+        piece = uo_piece__K;
+        occupied ^= bitboard_from;
+
+        attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        attacks_by_R = mask_enemy & position->R & uo_bitboard_attacks_R(square_to, occupied);
+        attacks_by_B = mask_enemy & position->B & uo_bitboard_attacks_B(square_to, occupied);
+        defended_by_Q = mask_own & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
+        defended_by_R = mask_own & position->R & uo_bitboard_attacks_R(square_to, occupied);
+        defended_by_B = mask_own & position->B & uo_bitboard_attacks_B(square_to, occupied);
+      }
+      else
+      {
+        break;
+      }
+
+      uo_bitboard temp;
+
+      temp = mask_own;
+      mask_own = mask_enemy & occupied;
+      mask_enemy = temp;
+
+      temp = attacks_by_Q;
+      attacks_by_Q = defended_by_Q;
+      defended_by_Q = temp;
+
+      temp = attacks_by_R;
+      attacks_by_R = defended_by_R;
+      defended_by_R = temp;
+
+      temp = attacks_by_B;
+      attacks_by_B = defended_by_B;
+      defended_by_B = temp;
+
+      temp = attacks_by_N;
+      attacks_by_N = defended_by_N;
+      defended_by_N = temp;
+
+      temp = attacks_by_P;
+      attacks_by_P = defended_by_P;
+      defended_by_P = temp;
+
+      temp = attacks_by_K;
+      attacks_by_K = defended_by_K;
+      defended_by_K = temp;
+    }
+
+    while (--depth)
+    {
+      gain[depth - 1] = -(gain[depth] > -gain[depth - 1] ? gain[depth] : -gain[depth - 1]);
+    }
+
+    return gain[0];
   }
 
   bool uo_position_is_legal_move(uo_position *position, uo_move move);

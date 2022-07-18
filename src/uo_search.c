@@ -15,8 +15,6 @@
 #include <inttypes.h>
 #include <assert.h>
 
-const size_t quicksort_depth = 4; // arbitrary
-
 typedef struct uo_search_info
 {
   uo_engine_thread *thread;
@@ -32,101 +30,73 @@ typedef struct uo_search_info
   int16_t value;
 } uo_search_info;
 
-
-static int uo_search_moves_cmp(uo_engine_thread *thread, uo_move move_lhs, uo_move move_rhs)
-{
-  uo_square square_from_lhs = uo_move_square_from(move_lhs);
-  uo_square square_to_lhs = uo_move_square_to(move_lhs);
-  uo_square move_type_lhs = uo_move_get_type(move_lhs);
-  int score_lhs = 0;
-
-  if (move_type_lhs & uo_move_type__x)
-  {
-    uo_piece piece_lhs = thread->position.board[square_from_lhs];
-    uo_piece piece_captured_lhs = thread->position.board[square_to_lhs];
-    score_lhs = uo_piece_type(piece_captured_lhs) - uo_piece_type(piece_lhs) + uo_piece__B;
-  }
-
-  if (uo_bitboard_attacks_enemy_P(thread->position.P & thread->position.enemy) & uo_square_bitboard(square_to_lhs))
-  {
-    score_lhs -= 1;
-  }
-  else if (uo_position_is_check_move(&thread->position, move_lhs))
-  {
-    score_lhs += 2;
-  }
-
-  uo_square square_from_rhs = uo_move_square_from(move_rhs);
-  uo_square square_to_rhs = uo_move_square_to(move_rhs);
-  uo_square move_type_rhs = uo_move_get_type(move_rhs);
-  int score_rhs = 0;
-
-  if (move_type_rhs & uo_move_type__x)
-  {
-    uo_piece piece_rhs = thread->position.board[square_from_rhs];
-    uo_piece piece_captured_rhs = thread->position.board[square_to_rhs];
-    score_rhs = uo_piece_type(piece_captured_rhs) - uo_piece_type(piece_rhs) + uo_piece__B;
-  }
-
-  if (uo_bitboard_attacks_enemy_P(thread->position.P & thread->position.enemy) & uo_square_bitboard(square_to_rhs))
-  {
-    score_rhs -= 1;
-  }
-  else if (uo_position_is_check_move(&thread->position, move_rhs))
-  {
-    score_rhs += 2;
-  }
-
-  return score_lhs == score_rhs
-    ? 0
-    : score_lhs > score_rhs
-    ? -1
-    : 1;
-}
-
 static int uo_search_partition_moves(uo_engine_thread *thread, uo_move *movelist, int lo, int hi)
 {
+  int8_t *move_ordering_scores = thread->position.movelist.ordering_scores;
   int mid = (lo + hi) >> 1;
-  uo_move temp;
+  uo_move temp_move;
+  int8_t temp_score;
 
-  if (uo_search_moves_cmp(thread, movelist[mid], movelist[lo]) < 0)
+  if (move_ordering_scores[mid] > move_ordering_scores[lo])
   {
-    temp = movelist[mid];
+    temp_move = movelist[mid];
     movelist[mid] = movelist[lo];
-    movelist[lo] = temp;
+    movelist[lo] = temp_move;
+
+    temp_score = move_ordering_scores[mid];
+    move_ordering_scores[mid] = move_ordering_scores[lo];
+    move_ordering_scores[lo] = temp_score;
   }
 
-  if (uo_search_moves_cmp(thread, movelist[hi], movelist[lo]) < 0)
+  if (move_ordering_scores[hi] > move_ordering_scores[lo])
   {
-    temp = movelist[hi];
+    temp_move = movelist[hi];
     movelist[hi] = movelist[lo];
-    movelist[lo] = temp;
+    movelist[lo] = temp_move;
+
+    temp_score = move_ordering_scores[hi];
+    move_ordering_scores[hi] = move_ordering_scores[lo];
+    move_ordering_scores[lo] = temp_score;
   }
 
-  if (uo_search_moves_cmp(thread, movelist[mid], movelist[hi]) < 0)
+  if (move_ordering_scores[mid] > move_ordering_scores[hi])
   {
-    temp = movelist[mid];
+    temp_move = movelist[mid];
     movelist[mid] = movelist[hi];
-    movelist[hi] = temp;
+    movelist[hi] = temp_move;
+
+    temp_score = move_ordering_scores[mid];
+    move_ordering_scores[mid] = move_ordering_scores[hi];
+    move_ordering_scores[hi] = temp_score;
   }
 
-  uo_move pivot = movelist[hi];
+  int8_t pivot = move_ordering_scores[hi];
 
   for (int j = lo; j < hi - 1; ++j)
   {
-    if (uo_search_moves_cmp(thread, movelist[j], pivot) < 0)
+    if (move_ordering_scores[j] > pivot)
     {
 
-      temp = movelist[lo];
+      temp_move = movelist[lo];
       movelist[lo] = movelist[j];
-      movelist[j] = temp;
+      movelist[j] = temp_move;
+
+      temp_score = move_ordering_scores[lo];
+      move_ordering_scores[lo] = move_ordering_scores[j];
+      move_ordering_scores[j] = temp_score;
+
       ++lo;
     }
   }
 
-  temp = movelist[lo];
+  temp_move = movelist[lo];
   movelist[lo] = movelist[hi];
-  movelist[hi] = temp;
+  movelist[hi] = temp_move;
+
+  temp_score = move_ordering_scores[lo];
+  move_ordering_scores[lo] = move_ordering_scores[hi];
+  move_ordering_scores[hi] = temp_score;
+
   return lo;
 }
 
@@ -143,11 +113,48 @@ static void uo_search_quicksort_moves(uo_engine_thread *thread, uo_move *movelis
   uo_search_quicksort_moves(thread, movelist, p + 1, hi, depth - 2);
 }
 
+inline static int8_t uo_search_calculate_move_ordering_score(uo_engine_thread *thread, uo_move move, uo_search_info *info)
+{
+  uo_square square_from = uo_move_square_from(move);
+  uo_square square_to = uo_move_square_to(move);
+  uo_square move_type = uo_move_get_type(move);
+  uo_piece piece = thread->position.board[square_from];
+
+  int8_t score = 0;
+
+  if (move_type & uo_move_type__x)
+  {
+
+    uo_piece piece_captured = thread->position.board[square_to];
+    score = piece_captured - piece + uo_piece__B;
+  }
+  else if (move_type & uo_move_type__OO)
+  {
+    score += 2;
+  }
+  else if (piece == uo_piece__K)
+  {
+    score -= 1;
+  }
+  else if (square_from < 8 && square_to >= 8)
+  {
+    score += 1;
+  }
+
+  if (uo_bitboard_attacks_enemy_P(thread->position.P & thread->position.enemy) & uo_square_bitboard(square_to))
+  {
+    score -= 1;
+  }
+
+  return score;
+}
+
 static void uo_search_sort_moves(uo_engine_thread *thread, uo_search_info *info)
 {
   uo_move bestmove = info->bestmove;
-  uo_move *movelist = thread->position.movelist.head;
-  size_t move_count = thread->position.stack->move_count;
+  uo_position *position = &thread->position;
+  uo_move *movelist = position->movelist.head;
+  size_t move_count = position->stack->move_count;
 
   int lo = 0;
 
@@ -166,17 +173,29 @@ static void uo_search_sort_moves(uo_engine_thread *thread, uo_search_info *info)
     }
   }
 
+  for (size_t i = lo; i < move_count; ++i)
+  {
+    position->movelist.ordering_scores[i] = uo_search_calculate_move_ordering_score(thread, movelist[i], info);
+  }
+
+  const size_t quicksort_depth = 4; // arbitrary
   uo_search_quicksort_moves(thread, movelist, lo, move_count - 1, quicksort_depth);
 }
 
-static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
+static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread, uo_search_info *info)
 {
-  uint64_t movetime = info->params->movetime;
+  uo_search_params *params = info->params;
+  uint64_t movetime = params->movetime;
 
   // TODO: make better decisions about how mutch time to use
-  if (!movetime && (info->params->btime + info->params->wtime))
+  if (!movetime && params->time_own)
   {
-    movetime = 3000;
+    movetime = 3000 + (params->time_own - params->time_enemy) / 2;
+
+    if (movetime > params->time_own / 8)
+    {
+      movetime = params->time_own / 8 + 1;
+    }
   }
 
   if (movetime)
@@ -191,10 +210,23 @@ static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
   }
 }
 
-static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta)
+static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uo_search_info *info)
 {
+  uo_search_stop_if_movetime_over(thread, info);
+
+  if (uo_engine_is_stopped())
+  {
+    return 0;
+  }
+
   uo_position *position = &thread->position;
   size_t move_count = position->stack->move_count;
+  int quiesce_ply = position->ply - position->root_ply;
+
+  if (info->seldepth < quiesce_ply)
+  {
+    info->seldepth = quiesce_ply;
+  }
 
   if (uo_position_is_check(&thread->position))
   {
@@ -225,7 +257,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         return mate ? -UO_SCORE_CHECKMATE : 0;
       }
 
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
+      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
       node_value = uo_score_adjust_for_mate(node_value);
 
       uo_position_unmake_move(position);
@@ -265,47 +297,52 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   {
     uo_move move = position->movelist.head[i];
 
-    if (uo_move_is_capture(move) || uo_move_is_promotion(move))
+    bool critical_move = uo_move_is_promotion(move)
+      || (uo_move_is_capture(move) && uo_position_capture_gain(position, move) >= 0);
+
+    if (!critical_move)
     {
-      uo_position_make_move(position, move);
+      continue;
+    }
 
-      if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
-      {
-        return 0;
-      }
+    uo_position_make_move(position, move);
 
-      if (uo_position_is_max_depth_reached(position))
-      {
-        return uo_position_evaluate(position);
-      }
+    if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+    {
+      return 0;
+    }
 
-      int64_t next_move_count = uo_position_generate_moves(position);
+    if (uo_position_is_max_depth_reached(position))
+    {
+      return uo_position_evaluate(position);
+    }
 
-      if (next_move_count == 0)
-      {
-        bool mate = uo_position_is_check(position);
-        uo_position_unmake_move(position);
-        return mate ? -UO_SCORE_CHECKMATE : 0;
-      }
+    int64_t next_move_count = uo_position_generate_moves(position);
 
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
-      node_value = uo_score_adjust_for_mate(node_value);
-
+    if (next_move_count == 0)
+    {
+      bool mate = uo_position_is_check(position);
       uo_position_unmake_move(position);
+      return mate ? -UO_SCORE_CHECKMATE : 0;
+    }
 
-      if (node_value > value)
+    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
+    node_value = uo_score_adjust_for_mate(node_value);
+
+    uo_position_unmake_move(position);
+
+    if (node_value > value)
+    {
+      value = node_value;
+
+      if (value > alpha)
       {
-        value = node_value;
+        alpha = value;
+      }
 
-        if (value > alpha)
-        {
-          alpha = value;
-        }
-
-        if (value >= beta)
-        {
-          break;
-        }
+      if (value >= beta)
+      {
+        break;
       }
     }
   }
@@ -379,14 +416,14 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
     return uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
+  uo_search_sort_moves(thread, info);
+
   if (depth == 0)
   {
-    return uo_search_quiesce(thread, alpha, beta);
+    return uo_search_quiesce(thread, alpha, beta, info);
   }
 
-  uo_search_stop_if_movetime_over(info);
-
-  uo_search_sort_moves(thread, info);
+  uo_search_stop_if_movetime_over(thread, info);
 
   uo_move bestmove;
   int16_t value = -UO_SCORE_CHECKMATE;
@@ -419,6 +456,11 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
     {
       return value;
     }
+  }
+
+  if (uo_engine_is_stopped())
+  {
+    return value;
   }
 
   uo_engine_lock_ttable();
@@ -578,7 +620,7 @@ void *uo_engine_thread_run_negamax_search(void *arg)
     info.nodes = 0;
     uo_search_negamax(thread, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, &info);
 
-    uo_search_stop_if_movetime_over(&info);
+    uo_search_stop_if_movetime_over(thread, &info);
     if (uo_engine_is_stopped()) break;
 
     info.depth = depth;
