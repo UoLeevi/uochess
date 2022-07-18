@@ -139,7 +139,7 @@ static void uo_uci_read_token(void)
 
     if (log_file)
     {
-      fwrite(buf, sizeof *buf, strlen(buf), log_file);
+      fwrite(buf, sizeof * buf, strlen(buf), log_file);
     }
 
     ptr = strtok(buf, "\n ");
@@ -393,22 +393,19 @@ static void uo_uci__position(void)
       uo_square square_from = uo_move_square_from(move);
       uo_square square_to = uo_move_square_to(move);
 
-      int move_count = uo_position_generate_moves(&engine.position);
-      engine.position.movelist.head += move_count;
+      size_t move_count = uo_position_generate_moves(&engine.position);
 
-      for (int i = 0; i < move_count; ++i)
+      for (size_t i = 0; i < move_count; ++i)
       {
-        uo_move move = engine.position.movelist.head[i - move_count];
+        uo_move move = engine.position.movelist.head[i];
         if (square_from == uo_move_square_from(move)
           && square_to == uo_move_square_to(move))
         {
           uo_position_make_move(&engine.position, move);
-          *engine.position.movelist.head++ = move;
           goto next_move;
         }
       }
 
-      engine.position.movelist.head -= move_count;
       uo_engine_unlock_position();
 
       // Not a legal move
@@ -416,6 +413,8 @@ static void uo_uci__position(void)
 
     next_move:;
     }
+
+    uo_position_reset_root(&engine.position);
   }
 
   uo_engine_unlock_position();
@@ -527,11 +526,10 @@ static void uo_uci_process_input__ready(void)
 
         size_t total_node_count = 0;
         size_t move_count = uo_position_generate_moves(&engine.position);
-        engine.position.movelist.head += move_count;
 
-        for (int64_t i = 0; i < move_count; ++i)
+        for (size_t i = 0; i < move_count; ++i)
         {
-          uo_move move = engine.position.movelist.head[i - move_count];
+          uo_move move = engine.position.movelist.head[i];
           uo_position_print_move(&engine.position, move, buf);
           uo_position_make_move(&engine.position, move);
           size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1);
@@ -539,8 +537,6 @@ static void uo_uci_process_input__ready(void)
           total_node_count += node_count;
           printf("%s: %zu\n", buf, node_count);
         }
-
-        engine.position.movelist.head -= move_count;
 
         double time_msec = uo_time_elapsed_msec(&time_start);
         uint64_t knps = total_node_count / time_msec;

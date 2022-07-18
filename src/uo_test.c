@@ -100,7 +100,6 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
     uint64_t key = position->key;
 
     move_count = uo_position_generate_moves(position);
-    position->movelist.head += move_count;
 
     while (fgets(ptr, ptr - buf, fp))
     {
@@ -133,7 +132,7 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
       for (int64_t i = 0; i < move_count; ++i)
       {
-        uo_move move = position->movelist.head[i - move_count];
+        uo_move move = position->movelist.head[i];
         if (uo_move_square_from(move) == square_from && uo_move_square_to(move) == square_to)
         {
           uo_move_type move_type = uo_move_get_type(move);
@@ -174,7 +173,7 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
             return false;
           }
 
-          position->movelist.head[i - move_count] = (uo_move){ 0 };
+          position->movelist.head[i] = (uo_move){ 0 };
           goto next_move;
         }
       }
@@ -188,7 +187,7 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
     for (int64_t i = 0; i < move_count; ++i)
     {
-      uo_move move = position->movelist.head[i - move_count];
+      uo_move move = position->movelist.head[i];
       if (move)
       {
         uo_square square_from = uo_move_square_from(move);
@@ -203,7 +202,6 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
       }
     }
 
-    position->movelist.head -= move_count;
     ++test_count;
   }
 

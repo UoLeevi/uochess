@@ -28,6 +28,8 @@ typedef struct uo_search_info
   uint8_t tbhits;
   bool completed;
   uo_search_params *params;
+  uo_move bestmove;
+  int16_t score;
 } uo_search_info;
 
 static inline void uo_search_stop_if_movetime_over(uo_search_info *info)
@@ -56,38 +58,28 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
 {
   if (uo_position_is_check(&thread->position))
   {
-    thread->position.movelist.head += move_count;
-
     for (int64_t i = 0; i < move_count; ++i)
     {
-      uo_move move = thread->position.movelist.head[i - move_count];
+      uo_move move = thread->position.movelist.head[i];
 
       uo_position_make_move(&thread->position, move);
-      int64_t next_move_count = uo_position_generate_moves(&thread->position);
+      size_t next_move_count = uo_position_generate_moves(&thread->position);
 
       if (next_move_count == 0)
       {
-        thread->position.movelist.head -= move_count;
         bool mate = uo_position_is_check(&thread->position);
         uo_position_unmake_move(&thread->position);
         return mate ? -UO_SCORE_CHECKMATE : 0;
       }
 
       int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
+      node_value = uo_score_adjust_for_mate(node_value);
+
       uo_position_unmake_move(&thread->position);
 
-      if (node_value > UO_SCORE_MATE_IN_THRESHOLD)
-      {
-        --node_value;
-      }
-      else if (node_value < -UO_SCORE_MATE_IN_THRESHOLD)
-      {
-        ++node_value;
-      }
 
       if (node_value >= b)
       {
-        thread->position.movelist.head -= move_count;
         return b;
       }
 
@@ -97,7 +89,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
       }
     }
 
-    thread->position.movelist.head -= move_count;
     return a;
   }
 
@@ -113,11 +104,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
     a = stand_pat;
   }
 
-  thread->position.movelist.head += move_count;
-
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move move = thread->position.movelist.head[i - move_count];
+    uo_move move = thread->position.movelist.head[i];
 
     if (uo_move_is_capture(move) || uo_move_is_promotion(move))
     {
@@ -126,27 +115,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
 
       if (next_move_count == 0)
       {
-        thread->position.movelist.head -= move_count;
         bool mate = uo_position_is_check(&thread->position);
         uo_position_unmake_move(&thread->position);
         return mate ? -UO_SCORE_CHECKMATE : 0;
       }
 
       int16_t node_value = -uo_search_quiesce(thread, -b, -a, next_move_count);
-      uo_position_unmake_move(&thread->position);
+      node_value = uo_score_adjust_for_mate(node_value);
 
-      if (node_value > UO_SCORE_MATE_IN_THRESHOLD)
-      {
-        --node_value;
-      }
-      else if (node_value < -UO_SCORE_MATE_IN_THRESHOLD)
-      {
-        ++node_value;
-      }
+      uo_position_unmake_move(&thread->position);
 
       if (node_value >= b)
       {
-        thread->position.movelist.head -= move_count;
         return b;
       }
 
@@ -157,7 +137,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t a, int16_t b,
     }
   }
 
-  thread->position.movelist.head -= move_count;
   return a;
 }
 
@@ -300,20 +279,21 @@ static void uo_search_sort_moves(uo_engine_thread *thread, int64_t move_count)
 }
 
 // see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
-static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t a, int16_t b, int16_t color, uo_search_info *info)
+static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t a, int16_t b, uo_search_info *info)
 {
   int16_t a_orig = a;
 
   uo_engine_lock_ttable();
   uo_tentry *entry = uo_ttable_get(&engine.ttable, thread->position.key);
+
   if (entry && entry->depth >= depth)
   {
-    int16_t score = color * entry->score;
+    int16_t score = entry->score;
+    uo_engine_unlock_ttable();
 
     switch (entry->type)
     {
       case uo_tentry_type__exact:
-        uo_engine_unlock_ttable();
         return score;
 
       case uo_tentry_type__lower_bound:
@@ -330,12 +310,13 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
 
     if (a >= b)
     {
-      uo_engine_unlock_ttable();
       return score;
     }
   }
-
-  uo_engine_unlock_ttable();
+  else
+  {
+    uo_engine_unlock_ttable();
+  }
 
   int64_t move_count = uo_position_generate_moves(&thread->position);
 
@@ -352,32 +333,17 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
   uo_search_stop_if_movetime_over(info);
 
   uo_search_sort_moves(thread, move_count);
-  thread->position.movelist.head += move_count;
 
   uo_move bestmove;
   int16_t value = -UO_SCORE_CHECKMATE;
 
   for (int64_t i = 0; i < move_count; ++i)
   {
-    uo_move move = thread->position.movelist.head[i - move_count];
+    uo_move move = thread->position.movelist.head[i];
     uo_position_make_move(&thread->position, move);
-    int16_t node_value = -uo_search_negamax(thread, depth - 1, -b, -a, -color, info);
+    int16_t node_value = -uo_search_negamax(thread, depth - 1, -b, -a, info);
+    node_value = uo_score_adjust_for_mate(node_value);
     uo_position_unmake_move(&thread->position);
-
-    if (uo_engine_is_stopped())
-    {
-      thread->position.movelist.head -= move_count;
-      return value;
-    }
-
-    if (node_value > UO_SCORE_MATE_IN_THRESHOLD)
-    {
-      --node_value;
-    }
-    else if (node_value < -UO_SCORE_MATE_IN_THRESHOLD)
-    {
-      ++node_value;
-    }
 
     if (node_value > value)
     {
@@ -390,13 +356,16 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
       }
     }
 
+    if (uo_engine_is_stopped())
+    {
+      return value;
+    }
+
     if (a >= b)
     {
       break;
     }
   }
-
-  thread->position.movelist.head -= move_count;
 
   uo_engine_lock_ttable();
 
@@ -406,7 +375,7 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
     entry = uo_ttable_set(&engine.ttable, thread->position.key);
   }
 
-  entry->score = color * value;
+  entry->score = value;
   entry->depth = depth;
   entry->bestmove = bestmove;
 
@@ -431,10 +400,12 @@ static int16_t uo_search_negamax(uo_engine_thread *thread, size_t depth, int16_t
 static void uo_search_info_print(uo_search_info *info)
 {
   uo_engine_thread *thread = info->thread;
-  uo_engine_lock_stdout();
+  int8_t color = uo_color(thread->position.flags) == uo_white ? 1 : -1;
 
   double time_msec = uo_time_elapsed_msec(&info->time_start);
   uint64_t nps = info->nodes / time_msec * 1000.0;
+
+  uo_engine_lock_stdout();
 
   for (int i = 0; i < info->multipv; ++i)
   {
@@ -442,33 +413,36 @@ static void uo_search_info_print(uo_search_info *info)
     if (info->seldepth) printf("seldepth %d ", info->seldepth);
     printf("multipv %d ", info->multipv);
 
-    uo_engine_lock_ttable();
-    uo_tentry *next_entry = uo_ttable_get(&engine.ttable, thread->position.key);
-    uo_engine_unlock_ttable();
+    int16_t score = color * info->score;
 
-    assert(next_entry);
-
-    uo_tentry pv_entry = *next_entry;
-
-    if (pv_entry.score > UO_SCORE_MATE_IN_THRESHOLD)
+    if (score > UO_SCORE_MATE_IN_THRESHOLD)
     {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE - pv_entry.score + 1) >> 1);
+      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
     }
-    else if (pv_entry.score < -UO_SCORE_MATE_IN_THRESHOLD)
+    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
     {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE + pv_entry.score + 1) >> 1);
+      printf("score mate %d ", (UO_SCORE_CHECKMATE + score + 1) >> 1);
     }
     else
     {
-      printf("score cp %d ", pv_entry.score);
+      printf("score cp %d ", score);
     }
 
-    printf("nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %.0f pv",
-      info->nodes, nps, info->tbhits, time_msec);
+    uo_position_print_move(&thread->position, info->bestmove, buf);
+    printf("nodes %" PRIu64 " nps %" PRIu64 " tbhits %d time %.0f pv %s",
+      info->nodes, nps, info->tbhits, time_msec, buf);
 
     size_t pv_len = 1;
 
-    size_t i = 0;
+    size_t i = 1;
+
+    uo_position_make_move(&thread->position, info->bestmove);
+
+    uo_engine_lock_ttable();
+    uo_tentry *next_entry = uo_ttable_get(&engine.ttable, thread->position.key);
+    uo_tentry pv_entry;
+    if (next_entry) pv_entry = *next_entry;
+    uo_engine_unlock_ttable();
 
     for (; i < info->depth && next_entry; ++i)
     {
@@ -493,12 +467,7 @@ static void uo_search_info_print(uo_search_info *info)
 
       uo_engine_lock_ttable();
       next_entry = uo_ttable_get(&engine.ttable, thread->position.key);
-
-      if (next_entry)
-      {
-        pv_entry = *next_entry;
-      }
-
+      if (next_entry) pv_entry = *next_entry;
       uo_engine_unlock_ttable();
     }
 
@@ -511,10 +480,7 @@ static void uo_search_info_print(uo_search_info *info)
 
     if (info->completed && info->multipv == 1)
     {
-      uo_engine_lock_ttable();
-      uo_tentry pv_entry = *uo_ttable_get(&engine.ttable, thread->position.key);
-      uo_engine_unlock_ttable();
-      uo_position_print_move(&thread->position, pv_entry.bestmove, buf);
+      uo_position_print_move(&thread->position, info->bestmove, buf);
       printf("bestmove %s\n", buf);
     }
   }
@@ -539,12 +505,12 @@ void *uo_engine_thread_run_negamax_search(void *arg)
   uo_time_now(&info.time_start);
 
   uo_engine_thread_load_position(thread);
-  int16_t color = uo_position_flags_color_to_move(thread->position.flags) ? -1 : 1;
-
-  uo_search_negamax(thread, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color, &info);
+  uo_search_negamax(thread, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, &info);
 
   uo_engine_lock_ttable();
   uo_tentry *pv_entry = uo_ttable_get(&engine.ttable, thread->position.key);
+  info.bestmove = pv_entry->bestmove;
+  info.score = pv_entry->score;
   ++pv_entry->refcount;
   uo_engine_unlock_ttable();
 
@@ -556,12 +522,17 @@ void *uo_engine_thread_run_negamax_search(void *arg)
     }
 
     info.nodes = 0;
-    uo_search_negamax(thread, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, color, &info);
+    uo_search_negamax(thread, depth, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, &info);
 
     uo_search_stop_if_movetime_over(&info);
     if (uo_engine_is_stopped()) break;
 
     info.depth = depth;
+
+    uo_engine_lock_ttable();
+    info.bestmove = pv_entry->bestmove;
+    info.score = pv_entry->score;
+    uo_engine_unlock_ttable();
   }
 
   info.completed = true;

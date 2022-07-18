@@ -7,6 +7,4 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-set(CMAKE_PREFIX_PATH "/usr/local/libuo" "/usr/local")
-
 add_subdirectory(src)

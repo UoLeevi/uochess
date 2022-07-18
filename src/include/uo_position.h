@@ -36,6 +36,7 @@ extern "C"
   {
     uo_move move;
     uo_position_flags flags;
+    uint8_t move_count;
   } uo_move_history;
 
   typedef struct uo_position
@@ -60,6 +61,7 @@ extern "C"
 
     uo_position_flags flags;
     uint16_t ply;
+    uint16_t root_ply;
 
     uint64_t key;
     uo_piece *piece_captured;
@@ -93,7 +95,6 @@ extern "C"
 
     struct
     {
-      int16_t count;
       uo_move *head;
       uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
     } movelist;
@@ -231,6 +232,14 @@ extern "C"
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   uo_position *uo_position_from_fen(uo_position *position, char *fen);
+
+  static inline void uo_position_reset_root(uo_position *position)
+  {
+    position->stack = position->history;
+    position->piece_captured = position->captures;
+    position->movelist.head = position->movelist.moves;
+    position->root_ply = position->ply;
+  }
 
   size_t uo_position_print_fen(uo_position *const position, char fen[90]);
 

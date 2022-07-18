@@ -14,7 +14,8 @@ add_executable(uochess
     uo_misc.c
     uo_uci.c
     uo_engine.c
-    uo_test.c)
+    uo_nn.c
+    uo_test.c "include/uo_math.h")
 
 target_include_directories(uochess
     PRIVATE

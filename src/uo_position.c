@@ -262,6 +262,7 @@ static inline void uo_position_set_flags(uo_position *position, uo_position_flag
 static inline void uo_position_do_switch_turn(uo_position *position, uo_position_flags flags)
 {
   uo_position_set_flags(position, flags);
+  position->movelist.head += position->stack->move_count;
   position->flags ^= 1;
   ++position->ply;
   ++position->stack;
@@ -270,6 +271,7 @@ static inline void uo_position_undo_switch_turn(uo_position *position)
 {
   --position->ply;
   --position->stack;
+  position->movelist.head -= position->stack->move_count;
 
   uo_position_set_flags(position, position->stack->flags);
 
@@ -618,12 +620,9 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   // 6. Fullmove number
   flags = uo_position_flags_update_rule50(flags, rule50);
   position->ply += (fullmove - 1) << 1;
-
   position->flags = flags;
   position->key = uo_position_calculate_key(position);
-  position->stack = position->history;
-  position->piece_captured = position->captures;
-  position->movelist.head = position->movelist.moves;
+  uo_position_reset_root(position);
 
   if (uo_color(position->flags) == uo_black)
   {
@@ -1024,11 +1023,11 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
   if (piece <= 1) return false;
   if (uo_color(piece) != uo_color_own) return false;
 
-  int64_t move_count = uo_position_generate_moves(position);
+  size_t move_count = uo_position_generate_moves(position);
 
-  while (move_count--)
+  for (size_t i = 0; i < move_count; ++i)
   {
-    if (move == *position->movelist.head++)
+    if (move == position->movelist.head[i])
     {
       return true;
     }
@@ -1126,8 +1125,8 @@ size_t uo_position_generate_moves(uo_position *position)
 
       position->update_status.moves_generated = true;
 
-      int16_t move_count = moves - position->movelist.head;
-      position->movelist.count = move_count;
+      uint8_t move_count = moves - position->movelist.head;
+      position->stack->move_count = move_count;
       return move_count;
     }
 
@@ -1301,8 +1300,8 @@ size_t uo_position_generate_moves(uo_position *position)
 
     position->update_status.moves_generated = true;
 
-    int16_t move_count = moves - position->movelist.head;
-    position->movelist.count = move_count;
+    uint8_t move_count = moves - position->movelist.head;
+    position->stack->move_count = move_count;
     return move_count;
   }
 
@@ -1718,8 +1717,8 @@ size_t uo_position_generate_moves(uo_position *position)
 
   position->update_status.moves_generated = true;
 
-  int16_t move_count = moves - position->movelist.head;
-  position->movelist.count = move_count;
+  uint8_t move_count = moves - position->movelist.head;
+  position->stack->move_count = move_count;
   return move_count;
 }
 
@@ -1895,8 +1894,6 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     return move_count;
   }
 
-  position->movelist.head += move_count;
-
   size_t node_count = 0;
 
   //char fen_before_make[90];
@@ -1904,9 +1901,9 @@ size_t uo_position_perft(uo_position *position, size_t depth)
 
   //uo_position_print_fen(position, fen_before_make);
 
-  for (int64_t i = 0; i < move_count; ++i)
+  for (size_t i = 0; i < move_count; ++i)
   {
-    uo_move move = position->movelist.head[i - move_count];
+    uo_move move = position->movelist.head[i];
     uo_position_make_move(position, move);
     //uo_position_print_move(position, move, buf);
     //printf("move: %s\n", buf);
@@ -1942,8 +1939,6 @@ size_t uo_position_perft(uo_position *position, size_t depth)
   //    printf("\n");
   //  }
   }
-
-  position->movelist.head -= move_count;
 
   return node_count;
 }
