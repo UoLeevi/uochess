@@ -262,20 +262,18 @@ static inline void uo_position_set_flags(uo_position *position, uo_position_flag
 static inline void uo_position_do_switch_turn(uo_position *position, uo_position_flags flags)
 {
   uo_position_set_flags(position, flags);
-  position->movelist.head += position->stack->move_count;
+  position->movelist.head += position->history[position->ply].move_count;
   position->flags ^= 1;
   ++position->ply;
-  ++position->stack;
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
   --position->ply;
-  --position->stack;
-  position->movelist.head -= position->stack->move_count;
+  uo_move_history *stack = position->history + position->ply;
+  position->movelist.head -= stack->move_count;
+  uo_position_set_flags(position, stack->flags);
 
-  uo_position_set_flags(position, position->stack->flags);
-
-  if (uo_move_is_capture(position->stack->move))
+  if (uo_move_is_capture(stack->move))
   {
     --position->piece_captured;
   }
@@ -619,7 +617,8 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   // 5. Halfmove clock
   // 6. Fullmove number
   flags = uo_position_flags_update_rule50(flags, rule50);
-  position->ply += (fullmove - 1) << 1;
+  position->root_ply += (fullmove - 1) << 1;
+  position->ply = 0;
   position->flags = flags;
   position->key = uo_position_calculate_key(position);
   uo_position_reset_root(position);
@@ -726,7 +725,7 @@ size_t uo_position_print_fen(uo_position *const position, char fen[90])
   }
 
   uint8_t rule50 = uo_position_flags_rule50(flags);
-  uint16_t fullmoves = (position->ply >> 1) + 1;
+  uint16_t fullmoves = ((position->root_ply + position->ply) >> 1) + 1;
 
   ptr += sprintf(ptr, "%d %d", rule50, fullmoves);
 
@@ -771,7 +770,6 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
   size_t size = offsetof(uo_position, movelist) + (movelist_advance / sizeof(uo_move));
   memcpy(dst, src, size);
   dst->piece_captured = dst->captures + (src->piece_captured - src->captures);
-  dst->stack = dst->history + (src->stack - src->history);
   dst->movelist.head = dst->movelist.moves + movelist_advance;
 }
 
@@ -790,8 +788,9 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
   uo_position_flags flags = position->flags;
 
-  position->stack->flags = flags;
-  position->stack->move = move;
+  uo_move_history *stack = position->history + position->ply;
+  stack->flags = flags;
+  stack->move = move;
 
   uint8_t rule50 = uo_position_flags_rule50(flags);
   flags = uo_position_flags_update_rule50(flags, rule50 + 1);
@@ -963,7 +962,8 @@ void uo_position_unmake_move(uo_position *position)
 
   uo_position_flip_board(position);
 
-  uo_move move = position->stack[-1].move;
+  uo_move_history *stack = position->history + position->ply;
+  uo_move move = stack[-1].move;
   uo_position_flags flags = position->flags;
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
@@ -1014,6 +1014,36 @@ void uo_position_unmake_move(uo_position *position)
   assert(uo_position_is_ok(position));
 }
 
+void uo_position_make_null_move(uo_position *position)
+{
+  position->update_status.value = 0;
+
+  assert(uo_position_is_ok(position));
+
+  uo_position_flags flags = position->flags;
+
+  uo_move_history *stack = position->history + position->ply;
+  stack->flags = flags;
+  stack->move = 0;
+
+  flags = uo_position_flags_update_enpassant_file(flags, 0);
+
+  uo_position_do_switch_turn(position, flags);
+  uo_position_flip_board(position);
+
+  assert(uo_position_is_ok(position));
+}
+
+void uo_position_unmake_null_move(uo_position *position)
+{
+  position->update_status.value = 0;
+
+  uo_position_flip_board(position);
+  uo_position_undo_switch_turn(position);
+
+  assert(uo_position_is_ok(position));
+}
+
 bool uo_position_is_legal_move(uo_position *position, uo_move move)
 {
   uo_piece *board = position->board;
@@ -1040,6 +1070,7 @@ size_t uo_position_generate_moves(uo_position *position)
 {
   assert(uo_position_is_ok(position));
 
+  uo_move_history *stack = position->history + position->ply;
   uo_move *moves = position->movelist.head;
   uo_square square_from;
   uo_square square_to;
@@ -1126,7 +1157,7 @@ size_t uo_position_generate_moves(uo_position *position)
       position->update_status.moves_generated = true;
 
       uint8_t move_count = moves - position->movelist.head;
-      position->stack->move_count = move_count;
+      stack->move_count = move_count;
       return move_count;
     }
 
@@ -1301,7 +1332,7 @@ size_t uo_position_generate_moves(uo_position *position)
     position->update_status.moves_generated = true;
 
     uint8_t move_count = moves - position->movelist.head;
-    position->stack->move_count = move_count;
+    stack->move_count = move_count;
     return move_count;
   }
 
@@ -1718,7 +1749,7 @@ size_t uo_position_generate_moves(uo_position *position)
   position->update_status.moves_generated = true;
 
   uint8_t move_count = moves - position->movelist.head;
-  position->stack->move_count = move_count;
+  stack->move_count = move_count;
   return move_count;
 }
 

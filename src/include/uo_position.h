@@ -37,6 +37,12 @@ extern "C"
     uo_move move;
     uo_position_flags flags;
     uint8_t move_count;
+    uint8_t searched_move_count;
+    /*
+      none: 0
+      pv_move: 1
+    */
+    uint8_t selection_state;
   } uo_move_history;
 
   typedef struct uo_position
@@ -90,14 +96,13 @@ extern "C"
       };
     } update_status;
 
-    uo_move_history *stack;
     uo_move_history history[UO_MAX_PLY];
 
     struct
     {
       uo_move *head;
       uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
-      int8_t ordering_scores[0x100];
+      int16_t move_scores[0x100];
     } movelist;
   } uo_position;
 
@@ -236,10 +241,10 @@ extern "C"
 
   static inline void uo_position_reset_root(uo_position *position)
   {
-    position->stack = position->history;
     position->piece_captured = position->captures;
     position->movelist.head = position->movelist.moves;
-    position->root_ply = position->ply;
+    position->root_ply += position->ply;
+    position->ply = 0;
   }
 
   size_t uo_position_print_fen(uo_position *const position, char fen[90]);
@@ -251,6 +256,10 @@ extern "C"
   void uo_position_make_move(uo_position *position, uo_move move);
 
   void uo_position_unmake_move(uo_position *position);
+
+  void uo_position_make_null_move(uo_position *position);
+
+  void uo_position_unmake_null_move(uo_position *position);
 
   size_t uo_position_generate_moves(uo_position *position);
 
@@ -269,7 +278,7 @@ extern "C"
 
   static inline bool uo_position_is_max_depth_reached(uo_position *position)
   {
-    return position->ply - position->root_ply >= UO_MAX_PLY;
+    return position->ply >= UO_MAX_PLY;
   }
 
   static inline void uo_position_update_checks_and_pins(uo_position *position)
@@ -305,6 +314,11 @@ extern "C"
     }
 
     return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
+  }
+
+  static inline bool uo_position_is_null_move_allowed(uo_position *position)
+  {
+    return !uo_position_is_check(position) && position->history[position->ply - 1].move != 0;
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
@@ -345,11 +359,14 @@ extern "C"
     while (true)
     {
       depth++;
-      gain[depth] = up_piece_value(piece) - gain[depth - 1]; // speculative store, if defended
+
+      // speculative store, if defended
+      gain[depth] = up_piece_value(piece) - gain[depth - 1];
 
       if (gain[depth - 1] > 0 && gain[depth] < 0)
       {
-        break; // pruning does not influence the result
+        // pruning does not influence the result
+        break;
       }
 
       if (attacks_by_P)
@@ -413,8 +430,8 @@ extern "C"
       {
         square_from = uo_bitboard_next_square(&attacks_by_K);
         bitboard_from = uo_square_bitboard(square_from);
-        piece = uo_piece__K;
         occupied ^= bitboard_from;
+        piece = uo_piece__K;
 
         attacks_by_Q = mask_enemy & position->Q & uo_bitboard_attacks_Q(square_to, occupied);
         attacks_by_R = mask_enemy & position->R & uo_bitboard_attacks_R(square_to, occupied);
