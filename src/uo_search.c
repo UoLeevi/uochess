@@ -113,14 +113,20 @@ static void uo_search_quicksort_moves(uo_engine_thread *thread, uo_move *movelis
   uo_search_quicksort_moves(thread, movelist, p + 1, hi, depth - 2);
 }
 
-inline static int8_t uo_search_calculate_move_ordering_score(uo_engine_thread *thread, uo_move move, uo_search_info *info)
+inline static int8_t uo_search_calculate_move_score(uo_engine_thread *thread, uo_move move, uo_search_info *info)
 {
+  uo_position *position = &thread->position;
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
   uo_square move_type = uo_move_get_type(move);
-  uo_piece piece = thread->position.board[square_from];
+  uo_piece piece = position->board[square_from];
 
   int8_t score = 0;
+
+  if (uo_bitboard_attacks_P(square_from, uo_color_own) & (position->P & position->enemy))
+  {
+    score += 4;
+  }
 
   if (move_type == uo_move_type__enpassant)
   {
@@ -142,7 +148,7 @@ inline static int8_t uo_search_calculate_move_ordering_score(uo_engine_thread *t
   {
     if (!uo_position_is_check(&thread->position))
     {
-      if (thread->position.Q & thread->position.enemy)
+      if (position->Q & position->enemy)
       {
         score -= 1;
       }
@@ -153,7 +159,7 @@ inline static int8_t uo_search_calculate_move_ordering_score(uo_engine_thread *t
     score += 1;
   }
 
-  if (uo_bitboard_attacks_enemy_P(thread->position.P & thread->position.enemy) & uo_square_bitboard(square_to))
+  if (uo_bitboard_attacks_enemy_P(position->P & position->enemy) & uo_square_bitboard(square_to))
   {
     score -= 1;
   }
@@ -166,7 +172,7 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search
   uo_move bestmove = info->bestmove;
   uo_position *position = &thread->position;
   uo_move *movelist = position->movelist.head;
-  size_t move_count = position->history[position->ply].move_count;
+  size_t move_count = position->stack->move_count;
 
   int lo = 0;
 
@@ -189,7 +195,7 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search
   if (move_count < 10) return move_count;
 
   // If it is our turn, then let's be more heavy handed with pruning moves
-  int8_t pruning_threshold = (uo_color(position->ply) == uo_color_own ? -10 : -20) + position->ply;
+  int8_t pruning_threshold = (uo_color(position->ply) == uo_color_own ? -100 : -200) + position->ply;
 
   if (pruning_threshold < 0) pruning_threshold = 0;
 
@@ -199,7 +205,7 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search
   do
   {
     uo_move move = movelist[i];
-    int8_t score = uo_search_calculate_move_ordering_score(thread, move, info);
+    int8_t score = uo_search_calculate_move_score(thread, move, info);
 
     if (score >= pruning_threshold)
     {
@@ -284,7 +290,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   uo_position *position = &thread->position;
-  size_t move_count = position->history[position->ply].move_count;
+  size_t move_count = position->stack->move_count;
 
   if (info->seldepth < position->ply)
   {
@@ -297,17 +303,20 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     for (int64_t i = 0; i < move_count; ++i)
     {
+      assert(position->update_status.moves_generated);
       uo_move move = position->movelist.head[i];
 
       uo_position_make_move(position, move);
 
       if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
       {
+        uo_position_unmake_move(position);
         return 0;
       }
 
       if (uo_position_is_max_depth_reached(position))
       {
+        uo_position_unmake_move(position);
         return uo_position_evaluate(position);
       }
 
@@ -358,9 +367,11 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   for (int64_t i = 0; i < move_count; ++i)
   {
+    assert(position->update_status.moves_generated);
     uo_move move = position->movelist.head[i];
 
     bool critical_move = uo_move_is_promotion(move)
+      || uo_position_move_threatens_material(position, move)
       || (uo_move_is_capture(move) && uo_position_capture_gain(position, move) >= 0);
 
     if (!critical_move)
@@ -372,11 +383,13 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
     {
+      uo_position_unmake_move(position);
       return 0;
     }
 
     if (uo_position_is_max_depth_reached(position))
     {
+      uo_position_unmake_move(position);
       return uo_position_evaluate(position);
     }
 

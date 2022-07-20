@@ -13,7 +13,8 @@ extern "C"
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stddef.h>
+#include <stddef.h> 
+#include <string.h> 
 #include <assert.h>
 
   typedef uint16_t uo_position_flags;
@@ -34,15 +35,11 @@ extern "C"
 
   typedef struct uo_move_history
   {
+    uint64_t key;
     uo_move move;
     uo_position_flags flags;
     uint8_t move_count;
-    uint8_t searched_move_count;
-    /*
-      none: 0
-      pv_move: 1
-    */
-    uint8_t selection_state;
+    uint8_t repetitions;
   } uo_move_history;
 
   typedef struct uo_position
@@ -86,17 +83,14 @@ extern "C"
       uo_bitboard by_RQ;
     } pins;
 
-    union
+    struct
     {
-      uint16_t value;
-      struct
-      {
-        bool checks_and_pins;
-        bool moves_generated;
-      };
+      bool checks_and_pins;
+      bool moves_generated;
     } update_status;
 
-    uo_move_history history[UO_MAX_PLY];
+    uo_move_history *stack;
+    uo_move_history history[UO_MAX_PLY + 100];
 
     struct
     {
@@ -243,6 +237,17 @@ extern "C"
   {
     position->piece_captured = position->captures;
     position->movelist.head = position->movelist.moves;
+
+    size_t relevant_history_count = position->stack - position->history;
+    int rule50 = uo_position_flags_rule50(position->flags);
+    relevant_history_count = rule50 > relevant_history_count ? relevant_history_count : rule50;
+
+    if (relevant_history_count > 0)
+    {
+      memmove(position->history, position->stack - relevant_history_count, relevant_history_count * sizeof * position->stack);
+    }
+
+    position->stack = position->history + relevant_history_count;
     position->root_ply += position->ply;
     position->ply = 0;
   }
@@ -261,22 +266,26 @@ extern "C"
 
   void uo_position_unmake_null_move(uo_position *position);
 
+  static inline uo_move uo_position_previous_move(uo_position *position)
+  {
+    return position->ply > 0 ? position->stack[-1].move : 0;
+  }
+
   size_t uo_position_generate_moves(uo_position *position);
 
   bool uo_position_is_check_move(uo_position *position, uo_move move);
 
-  static inline bool uo_position_is_rule50_draw(uo_position *position)
+  static inline bool uo_position_is_rule50_draw(const uo_position *position)
   {
     return uo_position_flags_rule50(position->flags) >= 100;
   }
 
-  static inline bool uo_position_is_repetition_draw(uo_position *position)
+  static inline bool uo_position_is_repetition_draw(const uo_position *position)
   {
-    // TODO
-    return false;
+    return position->stack->repetitions == 3;
   }
 
-  static inline bool uo_position_is_max_depth_reached(uo_position *position)
+  static inline bool uo_position_is_max_depth_reached(const uo_position *position)
   {
     return position->ply >= UO_MAX_PLY;
   }
@@ -306,7 +315,7 @@ extern "C"
     position->update_status.checks_and_pins = true;
   }
 
-  static inline bool uo_position_is_check(uo_position *const position)
+  static inline bool uo_position_is_check(uo_position *position)
   {
     if (!position->update_status.checks_and_pins)
     {
@@ -318,7 +327,7 @@ extern "C"
 
   static inline bool uo_position_is_null_move_allowed(uo_position *position)
   {
-    return !uo_position_is_check(position) && position->history[position->ply - 1].move != 0;
+    return !uo_position_is_check(position) && uo_position_previous_move(position) != 0;
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
@@ -329,6 +338,8 @@ extern "C"
     uo_piece *board = position->board;
     uo_piece piece = board[square_from];
     uo_piece piece_captured = board[square_to];
+
+    assert(uo_color(piece) == uo_color_own);
 
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -482,6 +493,45 @@ extern "C"
     }
 
     return gain[0];
+  }
+
+  static inline bool uo_position_move_threatens_material(uo_position *position, uo_move move)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    uo_piece *board = position->board;
+    uo_piece piece = board[square_from];
+
+    assert(uo_color(piece) == uo_color_own);
+
+    uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+
+    uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
+    uo_bitboard mask_enemy = uo_andn(bitboard_to, position->enemy);
+    uo_bitboard occupied = mask_own | mask_enemy;
+
+    uo_bitboard enemy_P = mask_enemy & position->P;
+    uo_bitboard defended_by_enemy_P = uo_bitboard_attacks_left_enemy_P(enemy_P) | uo_bitboard_attacks_right_enemy_P(enemy_P);
+    uo_bitboard mask_undefended_by_P = mask_enemy & defended_by_enemy_P;
+
+    switch (piece)
+    {
+      case uo_piece__P:
+
+        return 0 != (uo_bitboard_attacks_P(square_to, uo_color_own) & mask_undefended_by_P & (position->N | position->B | position->R | position->Q));
+
+      case uo_piece__N:
+        return 0 != (uo_bitboard_attacks_N(square_to) & mask_undefended_by_P & (position->R | position->Q));
+
+      case uo_piece__B:
+        return 0 != (uo_bitboard_attacks_B(square_to, occupied) & mask_undefended_by_P & (position->R | position->Q));
+
+      case uo_piece__R:
+        return 0 != (uo_bitboard_attacks_R(square_to, occupied) & mask_undefended_by_P & position->Q);
+    }
+
+    return false;
   }
 
   bool uo_position_is_legal_move(uo_position *position, uo_move move);

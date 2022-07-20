@@ -113,9 +113,19 @@ extern "C"
 
   static inline uo_bitboard uo_bitboard_double_push_P(uo_bitboard pawns, uo_bitboard empty)
   {
-    uo_bitboard bitboard_second_rank = (uo_bitboard)0x000000000000FF00;
-    uo_bitboard single_push = uo_bitboard_single_push_P(pawns & bitboard_second_rank, empty);
+    uo_bitboard single_push = uo_bitboard_single_push_P(pawns & uo_bitboard_rank_second, empty);
     return uo_bitboard_single_push_P(single_push, empty);
+  }
+
+  static inline uo_bitboard uo_bitboard_single_push_enemy_P(uo_bitboard pawns, uo_bitboard empty)
+  {
+    return (pawns >> 8) & empty;
+  }
+
+  static inline uo_bitboard uo_bitboard_double_push_enemy_P(uo_bitboard pawns, uo_bitboard empty)
+  {
+    uo_bitboard single_push = uo_bitboard_single_push_enemy_P(pawns & uo_bitboard_rank_seventh, empty);
+    return uo_bitboard_single_push_enemy_P(single_push, empty);
   }
 
   static inline uo_bitboard uo_bitboard_attacks_left_P(uo_bitboard pawns)
