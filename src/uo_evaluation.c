@@ -68,7 +68,7 @@ int16_t uo_position_evaluate(uo_position *const position)
   score += 900 * ((int16_t)uo_popcnt(own_Q) - (int16_t)uo_popcnt(enemy_Q));
 
   // first rank piece count (development)
-  score += 10 * ((int16_t)uo_popcnt((enemy_N | enemy_B | enemy_R | enemy_Q) & uo_bitboard_rank_last) - (int16_t)uo_popcnt((own_N | own_B | own_R | own_Q) & uo_bitboard_rank_first));
+  score += 10 * ((int16_t)uo_popcnt((enemy_N | enemy_B | enemy_Q) & uo_bitboard_rank_last) - (int16_t)uo_popcnt((own_N | own_B | own_Q) & uo_bitboard_rank_first));
 
   // castling rights
   score += 10 * (uo_position_flags_castling_OO(position->flags) + uo_position_flags_castling_OOO(position->flags)
@@ -111,6 +111,34 @@ int16_t uo_position_evaluate(uo_position *const position)
   // knights on outpost
   score += 30 * ((int16_t)uo_popcnt(uo_andn(potential_attacks_enemy_P, dangerous_own_N))
     - (int16_t)uo_popcnt(uo_andn(potential_attacks_own_P, dangerous_enemy_N)));
+
+  // endgame
+
+  if (!enemy_Q)
+  {
+    uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
+
+    if (passed_own_P)
+    {
+      score += 20 * (int16_t)uo_popcnt(passed_own_P);
+      score += 30 * (int16_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
+      score += 70 * (int16_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
+      score += 120 * (int16_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
+    }
+  }
+
+  if (!own_Q)
+  {
+    uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
+
+    if (passed_enemy_P)
+    {
+      score -= 20 * (int16_t)uo_popcnt(passed_enemy_P);
+      score -= 30 * (int16_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
+      score -= 70 * (int16_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
+      score -= 120 * (int16_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
+    }
+  }
 
   return score;
 }

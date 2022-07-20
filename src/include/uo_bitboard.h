@@ -163,6 +163,69 @@ extern "C"
     return uo_bitboard_attacks_right_P(pawns) & enemy;
   }
 
+  static inline uo_bitboard uo_bitboard_passed_P(uo_bitboard own_P, uo_bitboard enemy_P)
+  {
+    uo_bitboard passed_P = 0;
+
+    while (own_P)
+    {
+      uo_square square = uo_bitboard_next_square(&own_P);
+      uo_bitboard pawn = uo_square_bitboard(square);
+      uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square + 2);
+      uint8_t file = uo_square_file(square);
+      uo_bitboard mask = uo_square_bitboard_file[square];
+
+      if (file > 0)
+      {
+        mask |= mask >> 1;
+      }
+
+      if (file < 7)
+      {
+        mask |= mask << 1;
+      }
+
+      if (!(enemy_P_above & mask))
+      {
+        passed_P |= pawn;
+      }
+    }
+
+    return passed_P;
+  }
+
+  static inline uo_bitboard uo_bitboard_passed_enemy_P(uo_bitboard enemy_P, uo_bitboard own_P)
+  {
+    uo_bitboard passed_P = 0;
+
+    while (enemy_P)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_P);
+      uo_bitboard pawn = uo_square_bitboard(square);
+      uo_bitboard own_P_below = uo_bzhi(own_P, square - 2);
+      uint8_t file = uo_square_file(square);
+      uo_bitboard mask = uo_square_bitboard_file[square];
+
+      if (file > 0)
+      {
+        mask |= mask >> 1;
+      }
+
+      if (file < 7)
+      {
+        mask |= mask << 1;
+      }
+
+      if (!(own_P_below & mask))
+      {
+        passed_P |= pawn;
+      }
+    }
+
+    return passed_P;
+  }
+
+
   static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {
     return uo_andn(own, uo_bitboard_attacks_N(square));
