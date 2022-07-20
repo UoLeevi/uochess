@@ -842,7 +842,7 @@ void uo_position_make_move(uo_position *position, uo_move move)
       uo_bitboard mask_enemy = position->enemy;
       uo_bitboard enemy_P = mask_enemy & position->P;
 
-      uo_bitboard adjecent_enemy_pawn = ((bitboard_to << 1) | (bitboard_to >> 1)) & uo_bitboard_rank_fourth & enemy_P;
+      uo_bitboard adjecent_enemy_pawn = uo_square_bitboard_adjecent_files[square_to] & uo_bitboard_rank_fourth & enemy_P;
       if (adjecent_enemy_pawn)
       {
         uo_bitboard enemy_K = mask_enemy & position->K;

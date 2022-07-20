@@ -48,6 +48,17 @@ extern "C"
   extern uo_bitboard uo_square_bitboard_diagonals[64];    //  X
   extern uo_bitboard uo_square_bitboard_rays[64];         //  *
 
+  extern uo_bitboard uo_square_bitboard_adjecent_files[64];
+  extern uo_bitboard uo_square_bitboard_adjecent_ranks[64];
+  extern uo_bitboard uo_square_bitboard_adjecent_lines[64];
+  extern uo_bitboard uo_square_bitboard_adjecent_diagonals[64];
+  extern uo_bitboard uo_square_bitboard_adjecent_rays[64];
+
+  extern uo_bitboard uo_square_bitboard_above[64];
+  extern uo_bitboard uo_square_bitboard_below[64];
+  extern uo_bitboard uo_square_bitboard_left[64];
+  extern uo_bitboard uo_square_bitboard_right[64];
+
   extern uo_bitboard uo_moves_K[64];
   extern uo_bitboard uo_moves_N[64];
   extern uo_bitboard uo_attacks_P[2][64];
@@ -173,17 +184,7 @@ extern "C"
       uo_bitboard pawn = uo_square_bitboard(square);
       uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square + 2);
       uint8_t file = uo_square_file(square);
-      uo_bitboard mask = uo_square_bitboard_file[square];
-
-      if (file > 0)
-      {
-        mask |= mask >> 1;
-      }
-
-      if (file < 7)
-      {
-        mask |= mask << 1;
-      }
+      uo_bitboard mask = uo_square_bitboard_file[square] | uo_square_bitboard_adjecent_files[square];
 
       if (!(enemy_P_above & mask))
       {
@@ -204,17 +205,7 @@ extern "C"
       uo_bitboard pawn = uo_square_bitboard(square);
       uo_bitboard own_P_below = uo_bzhi(own_P, square - 2);
       uint8_t file = uo_square_file(square);
-      uo_bitboard mask = uo_square_bitboard_file[square];
-
-      if (file > 0)
-      {
-        mask |= mask >> 1;
-      }
-
-      if (file < 7)
-      {
-        mask |= mask << 1;
-      }
+      uo_bitboard mask = uo_square_bitboard_file[square] | uo_square_bitboard_adjecent_files[square];
 
       if (!(own_P_below & mask))
       {
@@ -224,7 +215,6 @@ extern "C"
 
     return passed_P;
   }
-
 
   static inline uo_bitboard uo_bitboard_moves_N(uo_square square, uo_bitboard own, uo_bitboard enemy)
   {

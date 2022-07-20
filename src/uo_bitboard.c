@@ -33,6 +33,17 @@ uo_bitboard uo_square_bitboard_antidiagonal[64]; //
 uo_bitboard uo_square_bitboard_diagonals[64];    //  X
 uo_bitboard uo_square_bitboard_rays[64];         //  *
 
+uo_bitboard uo_square_bitboard_adjecent_files[64];
+uo_bitboard uo_square_bitboard_adjecent_ranks[64];
+uo_bitboard uo_square_bitboard_adjecent_lines[64];
+uo_bitboard uo_square_bitboard_adjecent_diagonals[64];
+uo_bitboard uo_square_bitboard_adjecent_rays[64];
+
+uo_bitboard uo_square_bitboard_above[64];
+uo_bitboard uo_square_bitboard_below[64];
+uo_bitboard uo_square_bitboard_left[64];
+uo_bitboard uo_square_bitboard_right[64];
+
 uo_bitboard uo_moves_K[64];
 uo_bitboard uo_moves_N[64];
 uo_bitboard uo_attacks_P[2][64];
@@ -502,6 +513,47 @@ void uo_bitboard_init()
     uo_square_bitboard_antidiagonal[i] = uo_bitboard_antidiagonal[uo_square_antidiagonal[i]];
     uo_square_bitboard_diagonals[i] = uo_square_bitboard_diagonal[i] | uo_square_bitboard_antidiagonal[i];
     uo_square_bitboard_rays[i] = uo_square_bitboard_lines[i] | uo_square_bitboard_diagonals[i];
+  }
+
+  for (uo_square i = 0; i < 64; ++i)
+  {
+    uo_square_bitboard_adjecent_files[i] =
+      (uo_square_file(i) > 0 ? uo_square_bitboard_file[i - 1] : 0) |
+      (uo_square_file(i) < 7 ? uo_square_bitboard_file[i + 1] : 0);
+
+    uo_square_bitboard_adjecent_ranks[i] =
+      (uo_square_rank(i) > 0 ? uo_square_bitboard_rank[i - 1] : 0) |
+      (uo_square_rank(i) < 7 ? uo_square_bitboard_rank[i + 1] : 0);
+
+    uo_square_bitboard_adjecent_lines[i] = uo_square_bitboard_adjecent_files[i] | uo_square_bitboard_adjecent_ranks[i];
+
+    uo_square_bitboard_adjecent_diagonals[i] =
+      (uo_square_diagonal[i] > 0 ? uo_bitboard_diagonal[uo_square_diagonal[i] - 1] : 0) |
+      (uo_square_diagonal[i] < 14 ? uo_bitboard_diagonal[uo_square_diagonal[i] + 1] : 0) |
+      (uo_square_antidiagonal[i] > 0 ? uo_bitboard_antidiagonal[uo_square_antidiagonal[i] - 1] : 0) |
+      (uo_square_antidiagonal[i] < 14 ? uo_bitboard_antidiagonal[uo_square_antidiagonal[i] + 1] : 0);
+
+    uo_square_bitboard_adjecent_rays[i] = uo_square_bitboard_adjecent_lines[i] | uo_square_bitboard_adjecent_diagonals[i];
+
+    for (int rank = uo_square_rank(i) + 1; rank < 8; ++rank)
+    {
+      uo_square_bitboard_above[i] |= uo_bitboard_rank[rank];
+    }
+
+    for (int rank = uo_square_rank(i) - 1; rank >= 0; --rank)
+    {
+      uo_square_bitboard_below[i] |= uo_bitboard_rank[rank];
+    }
+
+    for (int file = uo_square_file(i) + 1; file < 8; ++file)
+    {
+      uo_square_bitboard_right[i] |= uo_bitboard_file[file];
+    }
+
+    for (int file = uo_square_file(i) - 1; file >= 0; --file)
+    {
+      uo_square_bitboard_left[i] |= uo_bitboard_file[file];
+    }
   }
 
   uo_moves_K_init();

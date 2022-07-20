@@ -38,12 +38,6 @@ int16_t uo_position_evaluate(uo_position *const position)
   uo_bitboard diagonals_own_K = uo_square_bitboard_diagonals[square_own_K];
   uo_bitboard diagonals_enemy_K = uo_square_bitboard_diagonals[square_enemy_K];
 
-  uo_bitboard diagonals_own_Q = own_Q ? uo_square_bitboard_diagonals[uo_tzcnt(own_Q)] : 0;
-  uo_bitboard diagonals_enemy_Q = enemy_Q ? uo_square_bitboard_diagonals[uo_tzcnt(enemy_Q)] : 0;
-
-  uo_bitboard files_own_R = uo_bitboard_files(own_R);
-  uo_bitboard files_enemy_R = uo_bitboard_files(enemy_R);
-
   uo_bitboard pushes_own_P = uo_bitboard_single_push_P(own_P, empty) | uo_bitboard_double_push_P(own_P, empty);
   uo_bitboard pushes_enemy_P = uo_bitboard_single_push_enemy_P(enemy_P, empty) | uo_bitboard_double_push_enemy_P(enemy_P, empty);
 
@@ -67,55 +61,58 @@ int16_t uo_position_evaluate(uo_position *const position)
   score += 500 * ((int16_t)uo_popcnt(own_R) - (int16_t)uo_popcnt(enemy_R));
   score += 900 * ((int16_t)uo_popcnt(own_Q) - (int16_t)uo_popcnt(enemy_Q));
 
-  // first rank piece count (development)
-  score += 10 * ((int16_t)uo_popcnt((enemy_N | enemy_B | enemy_Q) & uo_bitboard_rank_last) - (int16_t)uo_popcnt((own_N | own_B | own_Q) & uo_bitboard_rank_first));
+    // queen opointing towards opponent king
+  score += 25 * ((int16_t)uo_popcnt(own_Q & (uo_square_bitboard_rays[square_enemy_K] | uo_square_bitboard_adjecent_rays[square_enemy_K]))
+    - (int16_t)uo_popcnt(enemy_Q & (uo_square_bitboard_rays[square_own_K] | uo_square_bitboard_adjecent_rays[square_own_K])));
 
-  // castling rights
-  score += 10 * (uo_position_flags_castling_OO(position->flags) + uo_position_flags_castling_OOO(position->flags)
-    - uo_position_flags_castling_enemy_OO(position->flags) - uo_position_flags_castling_enemy_OOO(position->flags));
+  // rook pointing towards opponent king
+  score += 40 * ((int16_t)uo_popcnt(own_R & (uo_square_bitboard_file[square_enemy_K] | uo_square_bitboard_adjecent_files[square_enemy_K]))
+    - (int16_t)uo_popcnt(enemy_R & (uo_square_bitboard_file[square_own_K] | uo_square_bitboard_adjecent_files[square_own_K])));
 
-  // king safety
-  score += 50 * ((square_own_K == uo_square__g1) - (square_enemy_K == uo_square__g8));
-  score += 40 * ((square_own_K == uo_square__b1) - (square_enemy_K == uo_square__b8));
-  score += 20 * ((int16_t)uo_popcnt(uo_bitboard_moves_K(square_own_K, ~(own_P), own_P))
-    - (int16_t)uo_popcnt(uo_bitboard_moves_K(square_enemy_K, ~(enemy_P), enemy_P)));
+  // bishop opointing towards opponent king
+  score += 50 * ((int16_t)uo_popcnt(own_B & (uo_square_bitboard_diagonals[square_enemy_K] | uo_square_bitboard_adjecent_diagonals[square_enemy_K]))
+    - (int16_t)uo_popcnt(enemy_B & (uo_square_bitboard_diagonals[square_own_K] | uo_square_bitboard_adjecent_diagonals[square_own_K])));
 
-  // rooks on open files
-  score += 20 * ((int16_t)uo_popcnt(files_enemy_R & enemy_P)
-    - (int16_t)uo_popcnt(files_own_R & own_P));
-
-  // rook on same file as opponent king
-  score += 20 * ((int16_t)uo_popcnt(files_own_R & enemy_K) - (int16_t)uo_popcnt(files_enemy_R & own_K));
-
-  // rook on same file as opponent queen
-  score += 5 * ((int16_t)uo_popcnt(files_own_R & enemy_Q) - (int16_t)uo_popcnt(files_enemy_R & own_Q));
-
-  // bishop on same diagonal as opponent king
-  score += 15 * ((int16_t)uo_popcnt(own_B & diagonals_enemy_K) - (int16_t)uo_popcnt(enemy_B & diagonals_own_K));
-
-  // bishop on same diagonal as opponent queen
-  score += 5 * ((int16_t)uo_popcnt(own_B & diagonals_enemy_Q) - (int16_t)uo_popcnt(enemy_B & diagonals_own_Q));
-
-  // pieces protected by pawns
-  score += 15 * ((int16_t)uo_popcnt(attacks_own_P & mask_own)
-    - (int16_t)uo_popcnt(attacks_enemy_P & mask_enemy));
-
-  // pieces attacked by pawns
-  score += 20 * ((int16_t)uo_popcnt(attacks_own_P & uo_andn(enemy_P, mask_enemy))
-    - (int16_t)uo_popcnt(attacks_enemy_P & uo_andn(own_P, mask_own)));
-
-  // developed pieces which cannot be attacked by pushing pawns
-  score += 15 * ((int16_t)uo_popcnt(uo_andn(potential_attacks_enemy_P, developed_own_N | developed_own_B))
-    - (int16_t)uo_popcnt(uo_andn(potential_attacks_own_P, developed_enemy_N | developed_enemy_B)));
-
-  // knights on outpost
-  score += 30 * ((int16_t)uo_popcnt(uo_andn(potential_attacks_enemy_P, dangerous_own_N))
-    - (int16_t)uo_popcnt(uo_andn(potential_attacks_own_P, dangerous_enemy_N)));
-
-  // endgame
-
-  if (!enemy_Q)
+  if (enemy_Q) // opening & middle game
   {
+    uo_square square_enemy_Q = uo_tzcnt(enemy_Q);
+
+    // first rank piece count (development)
+    score -= 25 * (int16_t)uo_popcnt((own_N | own_B | own_Q) & uo_bitboard_rank_first);
+
+    // castling rights
+    score += 10 * (int16_t)(uo_position_flags_castling_OO(position->flags) + uo_position_flags_castling_OOO(position->flags));
+
+    // king safety
+    score += 50 * (int16_t)(square_own_K == uo_square__g1);
+    score += 40 * (int16_t)(square_own_K == uo_square__b1);
+    score += 40 * (int16_t)uo_popcnt(uo_bitboard_moves_K(square_own_K, ~own_P, own_P));
+    score -= 90 * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_own_K] | uo_square_bitboard_file[square_own_K]) & uo_bitboard_files(own_P) & uo_bitboard_rank_first);
+
+    // rooks on open files
+    score -= 20 * (int16_t)uo_popcnt(uo_bitboard_files(own_R) & own_P);
+
+    // rook on same file or rank as opponent queen
+    score += 5 * (int16_t)uo_popcnt(uo_square_bitboard_lines[square_enemy_Q]);
+
+    // bishop on same diagonal as opponent queen
+    score += 5 * (int16_t)uo_popcnt(own_B & uo_square_bitboard_diagonals[square_enemy_Q]);
+
+    // pieces protected by pawns
+    score += 15 * (int16_t)uo_popcnt(attacks_own_P & mask_own);
+
+    // pieces attacked by pawns
+    score += 20 * (int16_t)uo_popcnt(attacks_own_P & uo_andn(enemy_P, mask_enemy));
+
+    // developed pieces which cannot be attacked by pushing pawns
+    score += 15 * (int16_t)uo_popcnt(uo_andn(potential_attacks_enemy_P, developed_own_N | developed_own_B));
+
+    // knights on outpost
+    score += 30 * (int16_t)uo_popcnt(uo_andn(potential_attacks_enemy_P, dangerous_own_N));
+  }
+  else // endgame
+  {
+    // passed pawns
     uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
 
     if (passed_own_P)
@@ -127,8 +124,46 @@ int16_t uo_position_evaluate(uo_position *const position)
     }
   }
 
-  if (!own_Q)
+  if (own_Q) // opening & middle game
   {
+    uo_square square_own_Q = uo_tzcnt(own_Q);
+
+    // first rank piece count (development)
+    score += 10 * (int16_t)uo_popcnt((enemy_N | enemy_B | enemy_Q) & uo_bitboard_rank_last);
+
+    // castling rights
+    score -= 10 * (int16_t)(uo_position_flags_castling_enemy_OO(position->flags) + uo_position_flags_castling_enemy_OOO(position->flags));
+
+    // king safety
+    score -= 50 * (int16_t)(square_enemy_K == uo_square__g8);
+    score -= 40 * (int16_t)(square_enemy_K == uo_square__b8);
+    score -= 40 * (int16_t)uo_popcnt(uo_bitboard_moves_K(square_enemy_K, ~enemy_P, enemy_P));
+    score += 90 * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_enemy_K] | uo_square_bitboard_file[square_enemy_K]) & uo_bitboard_files(enemy_P) & uo_bitboard_rank_first);
+
+    // rooks on open files
+    score += 20 * (int16_t)uo_popcnt(uo_bitboard_files(enemy_R) & enemy_P);
+
+    // rook on same file or rank as opponent queen
+    score -= 5 * (int16_t)uo_popcnt(uo_square_bitboard_lines[square_own_Q]);
+
+    // bishop on same diagonal as opponent queen
+    score -= 5 * (int16_t)uo_popcnt(enemy_B & uo_square_bitboard_diagonals[square_own_Q]);
+
+    // pieces protected by pawns
+    score -= 15 * (int16_t)uo_popcnt(attacks_enemy_P & mask_enemy);
+
+    // pieces attacked by pawns
+    score -= 20 * (int16_t)uo_popcnt(attacks_enemy_P & uo_andn(own_P, mask_own));
+
+    // developed pieces which cannot be attacked by pushing pawns
+    score -= 15 * (int16_t)uo_popcnt(uo_andn(potential_attacks_own_P, developed_enemy_N | developed_enemy_B));
+
+    // knights on outpost
+    score -= 30 * (int16_t)uo_popcnt(uo_andn(potential_attacks_own_P, dangerous_enemy_N));
+  }
+  else // endgame
+  {
+    // passed pawns
     uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
 
     if (passed_enemy_P)
