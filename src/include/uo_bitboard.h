@@ -25,6 +25,7 @@ extern "C"
 
 #define uo_bitboard_all ((uo_bitboard)-1ll)
 #define uo_bitboard_edge ((uo_bitboard)0xFF818181818181FFull)
+#define uo_bitboard_center ((uo_bitboard)0x0000001818000000ull)
 
 #define uo_bitboard_rank_first   ((uo_bitboard)0x00000000000000FFull)
 #define uo_bitboard_rank_second  ((uo_bitboard)0x000000000000FF00ull)
@@ -58,6 +59,7 @@ extern "C"
   extern uo_bitboard uo_square_bitboard_below[64];
   extern uo_bitboard uo_square_bitboard_left[64];
   extern uo_bitboard uo_square_bitboard_right[64];
+  extern uo_bitboard uo_square_bitboard_radius_two[64];
 
   extern uo_bitboard uo_moves_K[64];
   extern uo_bitboard uo_moves_N[64];

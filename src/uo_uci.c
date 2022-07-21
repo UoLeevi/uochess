@@ -42,7 +42,9 @@ typedef const struct uo_uci_tokens
     ponder,
     nodes,
     mate,
-    movetime;
+    movetime,
+    test,
+    sse;
 
   struct
   {
@@ -98,6 +100,8 @@ uo_uci_tokens tokens = {
   .nodes = 25,
   .mate = 26,
   .movetime = 27,
+  .test = 28,
+  .sse = 29,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -319,6 +323,19 @@ static void uo_uci_read_token(void)
     return;
   }
 
+  if (streq(ptr, "test"))
+  {
+    token = tokens.test;
+    return;
+  }
+
+
+  if (streq(ptr, "sse"))
+  {
+    token = tokens.sse;
+    return;
+  }
+
   token = tokens.unknown;
   return;
 
@@ -502,7 +519,9 @@ static void uo_uci_process_input__ready(void)
 
   if (uo_uci_match(tokens.ucinewgame))
   {
-    // currently does nothing
+    uo_engine_lock_ttable();
+    uo_ttable_clear(&engine.ttable);
+    uo_engine_unlock_ttable();
     return;
   }
 
@@ -704,6 +723,39 @@ static void uo_uci_process_input__ready(void)
       uo_engine_start_search(&search_params);
       state = states.go;
       return;
+    }
+  }
+
+  if (uo_uci_match(tokens.test))
+  {
+    uo_uci_read_token();
+
+    if (uo_uci_match(tokens.sse))
+    {
+      uo_engine_lock_stdout();
+      uo_engine_lock_position();
+
+      uo_time time_start;
+      uo_time_now(&time_start);
+
+      size_t total_node_count = 0;
+      size_t move_count = uo_position_generate_moves(&engine.position);
+
+      for (size_t i = 0; i < move_count; ++i)
+      {
+        uo_move move = engine.position.movelist.head[i];
+        if (uo_move_is_capture(move))
+        {
+          uo_position_print_move(&engine.position, move, buf);
+          int16_t gain = uo_position_capture_gain(&engine.position, move);
+          printf("%s: %d\n", buf, gain);
+        }
+      }
+
+      printf("\n");
+      fflush(stdout);
+      uo_engine_unlock_position();
+      uo_engine_unlock_stdout();
     }
   }
 }

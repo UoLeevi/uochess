@@ -10,6 +10,7 @@ extern "C"
 #include "uo_piece.h"
 #include "uo_move.h"
 #include "uo_def.h"
+#include "uo_util.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -40,6 +41,10 @@ extern "C"
     uo_position_flags flags;
     uint8_t move_count;
     uint8_t repetitions;
+    struct
+    {
+      uo_move killers[2];
+    } search;
   } uo_move_history;
 
   typedef struct uo_position
@@ -91,6 +96,11 @@ extern "C"
 
     uo_move_history *stack;
     uo_move_history history[UO_MAX_PLY + 100];
+
+    // Relative history heuristic
+    // see: https://www.researchgate.net/publication/220962554_The_Relative_History_Heuristic
+    uint32_t hhtable[2][64*64];
+    uint32_t bftable[2][64*64];
 
     struct
     {
@@ -327,7 +337,9 @@ extern "C"
 
   static inline bool uo_position_is_null_move_allowed(uo_position *position)
   {
-    return !uo_position_is_check(position) && uo_position_previous_move(position) != 0;
+    return !uo_position_is_check(position)
+      && uo_position_previous_move(position) != 0
+      && uo_andn(position->P | position->K, position->own);
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
@@ -504,37 +516,50 @@ extern "C"
 
     assert(uo_color(piece) == uo_color_own);
 
+    bool square_defended_by_P = 0 != (uo_bitboard_attacks_P(square_to, uo_color_own) & position->enemy & position->P);
+    if (square_defended_by_P)
+    {
+      return false;
+    }
+
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
 
     uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
     uo_bitboard mask_enemy = uo_andn(bitboard_to, position->enemy);
+
     uo_bitboard occupied = mask_own | mask_enemy;
 
     uo_bitboard enemy_P = mask_enemy & position->P;
     uo_bitboard defended_by_enemy_P = uo_bitboard_attacks_left_enemy_P(enemy_P) | uo_bitboard_attacks_right_enemy_P(enemy_P);
-    uo_bitboard mask_undefended_by_P = mask_enemy & defended_by_enemy_P;
+    uo_bitboard mask_undefended_by_P = mask_enemy & ~defended_by_enemy_P;
 
     switch (piece)
     {
       case uo_piece__P:
-
-        return 0 != (uo_bitboard_attacks_P(square_to, uo_color_own) & mask_undefended_by_P & (position->N | position->B | position->R | position->Q));
+        return 0 != (uo_bitboard_attacks_P(square_to, uo_color_own) & mask_enemy & (position->N | position->B | position->R | position->Q));
 
       case uo_piece__N:
-        return 0 != (uo_bitboard_attacks_N(square_to) & mask_undefended_by_P & (position->R | position->Q));
+        return 0 != (uo_bitboard_attacks_N(square_to) & mask_enemy & (position->R | position->Q));
 
       case uo_piece__B:
-        return 0 != (uo_bitboard_attacks_B(square_to, occupied) & mask_undefended_by_P & (position->R | position->Q));
+        return 0 != (uo_bitboard_attacks_B(square_to, occupied) & mask_enemy & (position->R | position->Q));
 
       case uo_piece__R:
-        return 0 != (uo_bitboard_attacks_R(square_to, occupied) & mask_undefended_by_P & position->Q);
+        return 0 != (uo_bitboard_attacks_R(square_to, occupied) & mask_enemy & position->Q);
     }
 
     return false;
   }
 
   bool uo_position_is_legal_move(uo_position *position, uo_move move);
+
+  static inline bool uo_position_is_killer_move(const uo_position *position, uo_move move)
+  {
+    uo_move *killers = position->stack->search.killers;
+
+    return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
+  }
 
   uo_move uo_position_parse_move(uo_position *const position, char str[5]);
 

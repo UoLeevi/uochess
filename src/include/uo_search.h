@@ -6,14 +6,12 @@ extern "C"
 {
 #endif
 
-#include "uo_position.h"
-#include "uo_ttable.h"
 #include "uo_thread.h"
-#include "uo_def.h"
+#include "uo_move.h"
+#include "uo_misc.h"
 
 #include <stdbool.h>
-#include <stddef.h>
-#include <inttypes.h>
+#include <stdint.h>
 
   typedef struct uo_search_params
   {
@@ -30,7 +28,24 @@ extern "C"
     uo_move *searchmoves;
   } uo_search_params;
 
-  void *uo_engine_thread_run_negamax_search(void *arg);
+  typedef struct uo_engine_thread uo_engine_thread;
+
+  typedef struct uo_search_info
+  {
+    uo_engine_thread *thread;
+    uint64_t nodes;
+    uo_time time_start;
+    uint16_t multipv;
+    uint8_t depth;
+    uint8_t seldepth;
+    uint8_t tbhits;
+    bool completed;
+    uo_search_params *params;
+    uo_move bestmove;
+    int16_t value;
+  } uo_search_info;
+
+  void *uo_engine_thread_run_principal_variation_search(void *arg);
 
 #ifdef __cplusplus
 }

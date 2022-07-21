@@ -43,6 +43,7 @@ uo_bitboard uo_square_bitboard_above[64];
 uo_bitboard uo_square_bitboard_below[64];
 uo_bitboard uo_square_bitboard_left[64];
 uo_bitboard uo_square_bitboard_right[64];
+uo_bitboard uo_square_bitboard_radius_two[64];
 
 uo_bitboard uo_moves_K[64];
 uo_bitboard uo_moves_N[64];
@@ -534,6 +535,28 @@ void uo_bitboard_init()
       (uo_square_antidiagonal[i] < 14 ? uo_bitboard_antidiagonal[uo_square_antidiagonal[i] + 1] : 0);
 
     uo_square_bitboard_adjecent_rays[i] = uo_square_bitboard_adjecent_lines[i] | uo_square_bitboard_adjecent_diagonals[i];
+
+    uo_square_bitboard_radius_two[i] = uo_square_bitboard_adjecent_files[i] & uo_square_bitboard_adjecent_ranks[i];
+
+    if (uo_square_file(i) > 1)
+    {
+      uo_square_bitboard_radius_two[i] |= uo_square_bitboard_radius_two[i] >> 1;
+    }
+
+    if (uo_square_file(i) < 6)
+    {
+      uo_square_bitboard_radius_two[i] |= uo_square_bitboard_radius_two[i] << 1;
+    }
+
+    if (uo_square_rank(i) > 1)
+    {
+      uo_square_bitboard_radius_two[i] |= uo_square_bitboard_radius_two[i] >> 8;
+    }
+
+    if (uo_square_rank(i) < 6)
+    {
+      uo_square_bitboard_radius_two[i] |= uo_square_bitboard_radius_two[i] << 8;
+    }
 
     for (int rank = uo_square_rank(i) + 1; rank < 8; ++rank)
     {

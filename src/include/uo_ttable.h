@@ -8,6 +8,8 @@ extern "C"
 
 #include "uo_move.h"
 #include "uo_thread.h"
+#include "uo_search.h"
+#include "uo_position.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -21,19 +23,20 @@ extern "C"
     int16_t value;
     uint8_t depth;
     uint8_t type;
-    int8_t priority;
     uint8_t refcount;
+    uint8_t expiry_ply;
   } uo_tentry;
 
 #define uo_tentry_type__exact ((uint8_t)1)
-#define uo_tentry_type__lower_bound ((uint8_t)2)
-#define uo_tentry_type__upper_bound ((uint8_t)4)
+#define uo_tentry_type__alpha ((uint8_t)2)
+#define uo_tentry_type__beta ((uint8_t)4)
+
+#define uo_ttable_max_probe 5
 
   typedef struct uo_ttable
   {
     uint64_t hash_mask;
     uint64_t count;
-    int8_t priority_initial;
     uo_tentry *entries;
     volatile uo_atomic_int busy;
   } uo_ttable;
@@ -44,8 +47,13 @@ extern "C"
     ttable->entries = calloc(capacity, sizeof * ttable->entries);
     ttable->hash_mask = capacity - 1;
     ttable->count = 0;
-    ttable->priority_initial = hash_bits >> 1;
     uo_atomic_init(&ttable->busy, 0);
+  }
+
+  static inline void uo_ttable_clear(uo_ttable *ttable)
+  {
+    memset(ttable->entries, 0, (ttable->hash_mask + 1) * sizeof * ttable->entries);
+    ttable->count = 0;
   }
 
   static inline void uo_ttable_free(uo_ttable *ttable)
@@ -63,14 +71,15 @@ extern "C"
     uo_atomic_store(&ttable->busy, 0);
   }
 
-  static inline uo_tentry *uo_ttable_get(uo_ttable *ttable, uint64_t key)
+  static inline uo_tentry *uo_ttable_get(uo_ttable *ttable, const uo_position *position)
   {
     uint64_t mask = ttable->hash_mask;
+    uint64_t key = position->key;
     uint64_t hash = key & mask;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
 
-    // 1. Look for matching key and stop on first empty key
+    // Look for matching key and stop on first empty key
 
     while (entry->key && entry->key != key)
     {
@@ -78,40 +87,49 @@ extern "C"
       entry = ttable->entries + i;
     }
 
-    // 2. If exact match was found, increment priority and return
+    // 2. If exact match was found, return entry
 
     if (entry->key)
     {
-      ++entry->priority;
       return entry;
     }
 
-    // 3. No match was found, remove first item with priority 0
+    // 3. Loop backwards and remove consecutive expired entries
+    uint8_t root_ply = position->root_ply;
 
-    int8_t priority_decrement = uo_msb(ttable->count + 1) >> 2;
+    i = (i - 1) & mask;
+    entry = ttable->entries + i;
 
-    while (i && --i >= hash)
-    {
-      entry = ttable->entries + i;
-
-      if (!entry->key || (!entry->refcount && (entry->priority -= priority_decrement) <= 0))
-      {
-        break;
-      }
-    }
-
-    if (entry->key && !entry->refcount)
+    while (entry->key && !entry->refcount && entry->expiry_ply < root_ply)
     {
       memset(entry, 0, sizeof * entry);
       --ttable->count;
+
+      i = (i - 1) & mask;
+      entry = ttable->entries + i;
+    }
+
+    // 4. If load factor is above 75 %, remove couple extra entries
+
+    if (ttable->count > ((mask + 1) * 3) >> 2)
+    {
+      while (entry->key && !entry->refcount)
+      {
+        memset(entry, 0, sizeof * entry);
+        --ttable->count;
+
+        i = (i - 1) & mask;
+        entry = ttable->entries + i;
+      }
     }
 
     return NULL;
   }
 
-  static inline uo_tentry *uo_ttable_set(uo_ttable *ttable, uint64_t key)
+  static inline uo_tentry *uo_ttable_set(uo_ttable *ttable, const uo_position *position)
   {
     uint64_t mask = ttable->hash_mask;
+    uint64_t key = position->key;
     uint64_t hash = key & mask;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
@@ -124,42 +142,65 @@ extern "C"
       entry = ttable->entries + i;
     }
 
-    // 2. If exact match was found, increment priority and return
+    // 2. If exact match was found, return exisiting entry
 
     if (entry->key)
     {
-      ++entry->priority;
       return entry;
     }
 
-    // 3. No exact match was found, replace first item with priority 0
+    // 3. No exact match was found, return first vacant slot or replace first expired entry or else replace `uo_ttable_max_probe` th entry
+
+    uint8_t root_ply = position->root_ply;
 
     i = hash;
     entry = ttable->entries + i;
 
-    int8_t priority_decrement = uo_msb(ttable->count + 1);
+    for (size_t j = 0; j < uo_ttable_max_probe; ++j)
+    {
+      if (!entry->key)
+      {
+        entry->key = key;
+        entry->expiry_ply = root_ply + 1;
+        ++ttable->count;
+        return entry;
+      }
 
-    while (entry->key && (entry->refcount || (entry->priority -= priority_decrement) > 0))
+      if (!entry->refcount && entry->expiry_ply < root_ply)
+      {
+        memset(entry, 0, sizeof * entry);
+        entry->key = key;
+        entry->expiry_ply = root_ply + 1;
+        return entry;
+      }
+
+      i = (i + 1) & mask;
+      entry = ttable->entries + i;
+    }
+
+    while (entry->key && entry->refcount)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;
     }
 
-    if (entry->key)
+    if (!entry->key)
     {
-      memset(entry, 0, sizeof * entry);
-      --ttable->count;
-    }
+      entry->key = key;
+      entry->expiry_ply = root_ply + 1;
+      ++ttable->count;
+      return entry;
+  }
 
+    memset(entry, 0, sizeof * entry);
     entry->key = key;
-    entry->priority = ttable->priority_initial;
-    ++ttable->count;
+    entry->expiry_ply = root_ply + 1;
 
     return entry;
   }
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

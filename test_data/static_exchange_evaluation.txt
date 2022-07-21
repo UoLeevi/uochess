@@ -1,0 +1,11 @@
+ucinewgame
+position fen 1k1r4/1pp4p/p7/4p3/8/P5P1/1PP4P/2K1R3 w - - 0 1
+test sse
+e1e5: 100
+
+ucinewgame
+position fen 1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - - 0 1
+test sse
+d3e5: -200
+g2b7: -201
+e2e5: -400

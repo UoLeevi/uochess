@@ -90,5 +90,5 @@ void uo_engine_start_search(uo_search_params *params)
   void *data = malloc(sizeof * params);
   memcpy(data, params, sizeof * params);
   uo_atomic_store(&engine.stopped, 0);
-  uo_engine_queue_work(uo_engine_thread_run_negamax_search, data);
+  uo_engine_queue_work(uo_engine_thread_run_principal_variation_search, data);
 }

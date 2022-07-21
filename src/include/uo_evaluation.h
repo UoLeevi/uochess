@@ -11,11 +11,6 @@ extern "C"
 
   int16_t uo_position_evaluate(uo_position *const position);
 
-  static int16_t uo_score_is_mate_found(int16_t score)
-  {
-
-  }
-
   static int16_t uo_score_adjust_for_mate(int16_t score)
   {
     if (score > UO_SCORE_MATE_IN_THRESHOLD)
