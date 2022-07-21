@@ -40,6 +40,7 @@ extern "C"
     uo_move move;
     uo_position_flags flags;
     uint8_t move_count;
+    bool moves_generated;
     uint8_t repetitions;
     struct
     {
@@ -91,7 +92,6 @@ extern "C"
     struct
     {
       bool checks_and_pins;
-      bool moves_generated;
     } update_status;
 
     uo_move_history *stack;
@@ -99,8 +99,8 @@ extern "C"
 
     // Relative history heuristic
     // see: https://www.researchgate.net/publication/220962554_The_Relative_History_Heuristic
-    uint32_t hhtable[2][64*64];
-    uint32_t bftable[2][64*64];
+    uint32_t hhtable[2][64 * 64];
+    uint32_t bftable[2][64 * 64];
 
     struct
     {
@@ -559,6 +559,36 @@ extern "C"
     uo_move *killers = position->stack->search.killers;
 
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
+  }
+
+  static inline bool uo_position_is_quiescent(uo_position *position)
+  {
+    if (!position->stack->moves_generated)
+    {
+      uo_position_generate_moves(position);
+    }
+
+    if (uo_position_is_check(position))
+    {
+      return true;
+    }
+
+    size_t move_count = position->stack->move_count;
+
+    for (size_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+
+      bool is_tacktical_move = uo_move_is_promotion(move)
+        || (uo_move_is_capture(move) && uo_position_capture_gain(position, move) >= 0);
+
+      if (is_tacktical_move)
+      {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   uo_move uo_position_parse_move(uo_position *const position, char str[5]);

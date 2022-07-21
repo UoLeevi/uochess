@@ -1,6 +1,7 @@
 #include "uo_uci.h"
 #include "uo_misc.h"
 #include "uo_engine.h"
+#include "uo_evaluation.h"
 #include "uo_def.h"
 #include "uo_global.h"
 
@@ -44,7 +45,8 @@ typedef const struct uo_uci_tokens
     mate,
     movetime,
     test,
-    sse;
+    sse,
+    eval;
 
   struct
   {
@@ -102,6 +104,7 @@ uo_uci_tokens tokens = {
   .movetime = 27,
   .test = 28,
   .sse = 29,
+  .eval = 30,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -329,10 +332,15 @@ static void uo_uci_read_token(void)
     return;
   }
 
-
   if (streq(ptr, "sse"))
   {
     token = tokens.sse;
+    return;
+  }
+
+  if (streq(ptr, "eval"))
+  {
+    token = tokens.eval;
     return;
   }
 
@@ -735,10 +743,6 @@ static void uo_uci_process_input__ready(void)
       uo_engine_lock_stdout();
       uo_engine_lock_position();
 
-      uo_time time_start;
-      uo_time_now(&time_start);
-
-      size_t total_node_count = 0;
       size_t move_count = uo_position_generate_moves(&engine.position);
 
       for (size_t i = 0; i < move_count; ++i)
@@ -757,6 +761,31 @@ static void uo_uci_process_input__ready(void)
       uo_engine_unlock_position();
       uo_engine_unlock_stdout();
     }
+  }
+
+  if (uo_uci_match(tokens.eval))
+  {
+    uo_uci__d();
+
+    uo_engine_lock_stdout();
+    uo_engine_lock_position();
+
+    uint16_t color = uo_color(engine.position.flags) == uo_white ? 1 : -1;
+    int16_t score = color * uo_position_evaluate(&engine.position);
+    printf("Evaluation: %d", score);
+
+    if (uo_position_is_quiescent(&engine.position))
+    {
+      printf("\n\n");
+    }
+    else
+    {
+      printf(" (Position not quiescent)\n\n");
+    }
+
+    fflush(stdout);
+    uo_engine_unlock_position();
+    uo_engine_unlock_stdout();
   }
 }
 

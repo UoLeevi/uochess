@@ -285,11 +285,11 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
 {
   uo_position_set_flags(position, flags);
   position->update_status.checks_and_pins = false;
-  position->update_status.moves_generated = false;
   position->movelist.head += position->stack->move_count;
   position->flags ^= 1;
   ++position->ply;
   ++position->stack;
+  position->stack->moves_generated = false;
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
@@ -1177,7 +1177,7 @@ size_t uo_position_generate_moves(uo_position *position)
         *moves++ = uo_move_encode(square_own_K, square_to, move_type);
       }
 
-      position->update_status.moves_generated = true;
+      position->stack->moves_generated = true;
 
       uint8_t move_count = moves - position->movelist.head;
       stack->move_count = move_count;
@@ -1352,7 +1352,7 @@ size_t uo_position_generate_moves(uo_position *position)
       *moves++ = uo_move_encode(square_own_K, square_to, move_type);
     }
 
-    position->update_status.moves_generated = true;
+    position->stack->moves_generated = true;
 
     uint8_t move_count = moves - position->movelist.head;
     stack->move_count = move_count;
@@ -1769,7 +1769,7 @@ size_t uo_position_generate_moves(uo_position *position)
     *moves++ = uo_move_encode(square_own_K, square_to, move_type);
   }
 
-  position->update_status.moves_generated = true;
+  position->stack->moves_generated = true;
 
   uint8_t move_count = moves - position->movelist.head;
   stack->move_count = move_count;
