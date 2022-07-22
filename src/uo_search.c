@@ -349,16 +349,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         {
           if (value >= beta)
           {
-            uo_engine_lock_ttable();
-            if (!entry || (entry->type & uo_tentry_type__quiesce))
-            {
-              if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-              entry->depth = 0;
-              entry->bestmove = bestmove;
-              entry->value = value;
-              entry->type = uo_tentry_type__quiesce_upper_bound;
+            if (position->ply <= uo_ttable_quiesce_max_ply) {
+              uo_engine_lock_ttable();
+              if (!entry || (entry->type & uo_tentry_type__quiesce))
+              {
+                if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+                entry->depth = 0;
+                entry->bestmove = bestmove;
+                entry->value = value;
+                entry->type = uo_tentry_type__quiesce_upper_bound;
+              }
+              uo_engine_unlock_ttable();
             }
-            uo_engine_unlock_ttable();
 
             return value;
           }
@@ -369,16 +371,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       }
     }
 
-    uo_engine_lock_ttable();
-    if (!entry || (entry->type & uo_tentry_type__quiesce))
-    {
-      if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-      entry->depth = 0;
-      entry->bestmove = bestmove;
-      entry->value = value;
-      entry->type = entry_type;
+    if (position->ply <= uo_ttable_quiesce_max_ply) {
+      uo_engine_lock_ttable();
+      if (!entry || (entry->type & uo_tentry_type__quiesce))
+      {
+        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+        entry->depth = 0;
+        entry->bestmove = bestmove;
+        entry->value = value;
+        entry->type = entry_type;
+      }
+      uo_engine_unlock_ttable();
     }
-    uo_engine_unlock_ttable();
 
     return value;
   }
@@ -413,16 +417,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       {
         if (value >= beta)
         {
-          uo_engine_lock_ttable();
-          if (!entry || (entry->type & uo_tentry_type__quiesce))
-          {
-            if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-            entry->depth = 0;
-            entry->bestmove = bestmove;
-            entry->value = value;
-            entry->type = uo_tentry_type__quiesce_upper_bound;
+          if (position->ply <= uo_ttable_quiesce_max_ply) {
+            uo_engine_lock_ttable();
+            if (!entry || (entry->type & uo_tentry_type__quiesce))
+            {
+              if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+              entry->depth = 0;
+              entry->bestmove = bestmove;
+              entry->value = value;
+              entry->type = uo_tentry_type__quiesce_upper_bound;
+            }
+            uo_engine_unlock_ttable();
           }
-          uo_engine_unlock_ttable();
 
           return value;
         }
@@ -443,16 +449,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
   }
 
-  uo_engine_lock_ttable();
-  if (!entry || (entry->type & uo_tentry_type__quiesce))
-  {
-    if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-    entry->depth = 0;
-    entry->bestmove = bestmove;
-    entry->value = value;
-    entry->type = entry_type;
+  if (position->ply <= uo_ttable_quiesce_max_ply) {
+    uo_engine_lock_ttable();
+    if (!entry || (entry->type & uo_tentry_type__quiesce))
+    {
+      if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+      entry->depth = 0;
+      entry->bestmove = bestmove;
+      entry->value = value;
+      entry->type = entry_type;
+    }
+    uo_engine_unlock_ttable();
   }
-  uo_engine_unlock_ttable();
 
   return value;
 }
@@ -973,7 +981,7 @@ static void uo_search_info_currmove_print(uo_search_info *info, uo_move currmove
 
   uo_engine_lock_stdout();
   uo_position_print_move(position, currmove, buf);
-  printf("info depth %d currmove %s currmovenumber %d", info->depth, buf, currmovenumber);
+  printf("info depth %d currmove %s currmovenumber %zu", info->depth, buf, currmovenumber);
   uo_engine_unlock_stdout();
 }
 

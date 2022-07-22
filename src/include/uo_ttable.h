@@ -35,8 +35,9 @@ extern "C"
 #define uo_tentry_type__quiesce_upper_bound ((uint8_t)10)
 #define uo_tentry_type__quiesce_lower_bound ((uint8_t)12)
 
+#define uo_ttable_quiesce_max_ply 15
 #define uo_ttable_max_probe 5
-#define uo_ttable_expiry_ply 2
+#define uo_ttable_expiry_ply 1
 
   typedef struct uo_ttable
   {
