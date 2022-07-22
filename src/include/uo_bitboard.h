@@ -78,12 +78,12 @@ extern "C"
 
   static inline uo_bitboard uo_bitboard_files(uo_bitboard mask)
   {
-    mask <<= 8;
-    mask <<= 16;
-    mask <<= 32;
-    mask >>= 8;
-    mask >>= 16;
-    mask >>= 32;
+    mask |= mask << 8;
+    mask |= mask << 16;
+    mask |= mask << 32;
+    mask |= mask >> 8;
+    mask |= mask >> 16;
+    mask |= mask >> 32;
     return mask;
   }
 

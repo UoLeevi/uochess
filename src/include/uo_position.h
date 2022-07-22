@@ -258,6 +258,7 @@ extern "C"
     }
 
     position->stack = position->history + relevant_history_count;
+    position->stack->moves_generated = false;
     position->root_ply += position->ply;
     position->ply = 0;
   }

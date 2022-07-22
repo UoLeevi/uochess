@@ -89,7 +89,7 @@ extern "C"
 
       case uo_piece__Q:
       case uo_piece__q:
-        return 900;
+        return 1050;
 
       case uo_piece__K:
       case uo_piece__k:

@@ -20,7 +20,7 @@ const int16_t uo_score_P = 100;
 const int16_t uo_score_N = 300;
 const int16_t uo_score_B = 301;
 const int16_t uo_score_R = 500;
-const int16_t uo_score_Q = 900;
+const int16_t uo_score_Q = 1050;
 
 // pawns
 const int16_t uo_score_center_P = 60;
@@ -125,9 +125,9 @@ int16_t uo_position_evaluate(uo_position *const position)
   score += uo_score_N_aiming_K * ((int16_t)uo_popcnt(own_N & uo_square_bitboard_radius_two[square_enemy_K])
     - (int16_t)uo_popcnt(enemy_N & uo_square_bitboard_radius_two[square_own_K]));
 
-  //// doupled pawns
-  //score += uo_score_doubled_P * (((int16_t)uo_popcnt(own_P) - (int16_t)uo_popcnt(uo_bitboard_files(own_P) & uo_bitboard_rank_first))
-  //  - ((int16_t)uo_popcnt(enemy_P) - (int16_t)uo_popcnt(uo_bitboard_files(enemy_P) & uo_bitboard_rank_first)));
+  // doupled pawns
+  score += uo_score_doubled_P * (((int16_t)uo_popcnt(own_P) - (int16_t)uo_popcnt(uo_bitboard_files(own_P) & uo_bitboard_rank_first))
+    - ((int16_t)uo_popcnt(enemy_P) - (int16_t)uo_popcnt(uo_bitboard_files(enemy_P) & uo_bitboard_rank_first)));
 
   if (enemy_Q) // opening & middle game
   {
@@ -147,10 +147,10 @@ int16_t uo_position_evaluate(uo_position *const position)
     score += uo_score_castled_king * (square_own_K == uo_square__g1);
     score += uo_score_castled_king * (square_own_K == uo_square__b1);
     score += uo_score_king_cover_pawn * (int16_t)uo_popcnt(uo_bitboard_moves_K(square_own_K, ~own_P, own_P));
-    //score += uo_score_king_next_to_open_file * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_own_K] | uo_square_bitboard_file[square_own_K]) & uo_bitboard_files(own_P) & uo_bitboard_rank_first);
+    score += uo_score_king_next_to_open_file * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_own_K] | uo_square_bitboard_file[square_own_K]) & uo_bitboard_files(own_P) & uo_bitboard_rank_first);
 
-    //// rooks on open files
-    //score += uo_score_rook_on_open_file * (int16_t)uo_popcnt(uo_andn(uo_bitboard_files(own_P), own_R));
+    // rooks on open files
+    score += uo_score_rook_on_open_file * (int16_t)uo_popcnt(uo_andn(uo_bitboard_files(own_P), own_R));
 
     // pieces defended by pawns
     score += uo_score_defended_by_pawn * (int16_t)uo_popcnt(attacks_own_P & mask_own);
@@ -196,10 +196,10 @@ int16_t uo_position_evaluate(uo_position *const position)
     score -= uo_score_castled_king * (square_enemy_K == uo_square__g8);
     score -= uo_score_castled_king * (square_enemy_K == uo_square__b8);
     score -= uo_score_king_cover_pawn * (int16_t)uo_popcnt(uo_bitboard_moves_K(square_enemy_K, ~enemy_P, enemy_P));
-    //score -= uo_score_king_next_to_open_file * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_enemy_K] | uo_square_bitboard_file[square_enemy_K]) & uo_bitboard_files(enemy_P) & uo_bitboard_rank_first);
+    score -= uo_score_king_next_to_open_file * (int16_t)uo_popcnt((uo_square_bitboard_adjecent_files[square_enemy_K] | uo_square_bitboard_file[square_enemy_K]) & uo_bitboard_files(enemy_P) & uo_bitboard_rank_first);
 
-    //// rooks on open files
-    //score -= uo_score_rook_on_open_file * (int16_t)uo_popcnt(uo_andn(uo_bitboard_files(enemy_P), enemy_R));
+    // rooks on open files
+    score -= uo_score_rook_on_open_file * (int16_t)uo_popcnt(uo_andn(uo_bitboard_files(enemy_P), enemy_R));
 
     // pieces defended by pawns
     score -= uo_score_defended_by_pawn * (int16_t)uo_popcnt(attacks_enemy_P & mask_enemy);

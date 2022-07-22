@@ -795,7 +795,9 @@ size_t uo_position_print_diagram(uo_position *const position, char diagram[663])
 void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src)
 {
   size_t movelist_advance = src->movelist.head - src->movelist.moves;
-  size_t size = offsetof(uo_position, movelist) + (movelist_advance / sizeof(uo_move));
+  size_t generated_move_count = src->stack->moves_generated ? src->stack->move_count : 0;
+
+  size_t size = offsetof(uo_position, movelist) + ((movelist_advance + generated_move_count) / sizeof(uo_move));
   memcpy(dst, src, size);
   dst->piece_captured = dst->captures + (src->piece_captured - src->captures);
   dst->movelist.head = dst->movelist.moves + movelist_advance;

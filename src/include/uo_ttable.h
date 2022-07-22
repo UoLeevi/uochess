@@ -18,7 +18,7 @@ extern "C"
 
   typedef struct uo_tentry
   {
-    uint64_t key;
+    uint32_t key;
     uo_move bestmove;
     int16_t value;
     uint8_t depth;
@@ -28,10 +28,15 @@ extern "C"
   } uo_tentry;
 
 #define uo_tentry_type__exact ((uint8_t)1)
-#define uo_tentry_type__alpha ((uint8_t)2)
-#define uo_tentry_type__beta ((uint8_t)4)
+#define uo_tentry_type__upper_bound ((uint8_t)2)
+#define uo_tentry_type__lower_bound ((uint8_t)4)
+#define uo_tentry_type__quiesce ((uint8_t)8)
+#define uo_tentry_type__quiesce_exact ((uint8_t)9)
+#define uo_tentry_type__quiesce_upper_bound ((uint8_t)10)
+#define uo_tentry_type__quiesce_lower_bound ((uint8_t)12)
 
 #define uo_ttable_max_probe 5
+#define uo_ttable_expiry_ply 2
 
   typedef struct uo_ttable
   {
@@ -74,8 +79,8 @@ extern "C"
   static inline uo_tentry *uo_ttable_get(uo_ttable *ttable, const uo_position *position)
   {
     uint64_t mask = ttable->hash_mask;
-    uint64_t key = position->key;
-    uint64_t hash = key & mask;
+    uint64_t hash = position->key & mask;
+    uint32_t key = (uint32_t)position->key;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
 
@@ -113,7 +118,7 @@ extern "C"
 
     if (ttable->count > ((mask + 1) * 3) >> 2)
     {
-      while (entry->key && !entry->refcount)
+      while (entry->key && !entry->refcount && entry->type & uo_tentry_type__quiesce)
       {
         memset(entry, 0, sizeof * entry);
         --ttable->count;
@@ -129,8 +134,8 @@ extern "C"
   static inline uo_tentry *uo_ttable_set(uo_ttable *ttable, const uo_position *position)
   {
     uint64_t mask = ttable->hash_mask;
-    uint64_t key = position->key;
-    uint64_t hash = key & mask;
+    uint64_t hash = position->key & mask;
+    uint32_t key = (uint32_t)position->key;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
 
@@ -161,7 +166,7 @@ extern "C"
       if (!entry->key)
       {
         entry->key = key;
-        entry->expiry_ply = root_ply + 1;
+        entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
         ++ttable->count;
         return entry;
       }
@@ -170,7 +175,7 @@ extern "C"
       {
         memset(entry, 0, sizeof * entry);
         entry->key = key;
-        entry->expiry_ply = root_ply + 1;
+        entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
         return entry;
       }
 
@@ -187,20 +192,20 @@ extern "C"
     if (!entry->key)
     {
       entry->key = key;
-      entry->expiry_ply = root_ply + 1;
+      entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
       ++ttable->count;
       return entry;
-  }
+    }
 
     memset(entry, 0, sizeof * entry);
     entry->key = key;
-    entry->expiry_ply = root_ply + 1;
+    entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
 
     return entry;
   }
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif
