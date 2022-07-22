@@ -116,7 +116,8 @@ inline static uint16_t uo_search_calculate_move_score(uo_engine_thread *thread, 
   }
   else if (move_type & uo_move_type__x)
   {
-    return 2000 + uo_position_capture_gain(&thread->position, move);
+    uo_piece piece_captured = position->board[square_to];
+    return 2000 + up_piece_value(piece_captured) - up_piece_value(piece) / 10;
   }
   else
   {
