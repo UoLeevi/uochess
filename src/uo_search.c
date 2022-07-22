@@ -258,13 +258,6 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread, uo_
 
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uo_search_info *info)
 {
-  uo_search_stop_if_movetime_over(thread, info);
-
-  if (uo_engine_is_stopped())
-  {
-    return 0;
-  }
-
   uo_position *position = &thread->position;
 
   if (info->seldepth < position->ply)
@@ -276,8 +269,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   {
     return 0;
   }
-
-  uint8_t entry_type = uo_tentry_type__quiesce_upper_bound;
 
   uo_engine_lock_ttable();
   uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
@@ -294,7 +285,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     if ((entry->type & uo_tentry_type__lower_bound) && value > alpha)
     {
-      entry_type = uo_tentry_type__quiesce_lower_bound;
       alpha = value;
     }
     else if ((entry->type & uo_tentry_type__upper_bound) && value < beta)
@@ -350,41 +340,25 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         {
           if (value >= beta)
           {
-            if (position->ply <= uo_ttable_quiesce_max_ply) {
-              uo_engine_lock_ttable();
-              if (!entry || (entry->type & uo_tentry_type__quiesce))
-              {
-                if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-                entry->depth = 0;
-                entry->bestmove = bestmove;
-                entry->value = value;
-                entry->type = uo_tentry_type__quiesce_upper_bound;
-              }
-              uo_engine_unlock_ttable();
-            }
-
+            uo_engine_ttable_store(entry, position, bestmove, value, 0, uo_tentry_type__quiesce_lower_bound);
             return value;
           }
 
-          entry_type = uo_tentry_type__quiesce_exact;
           alpha = value;
+        }
+      }
+
+      if (value == alpha)
+      {
+        uo_search_stop_if_movetime_over(thread, info);
+        if (uo_engine_is_stopped())
+        {
+          return value;
         }
       }
     }
 
-    if (position->ply <= uo_ttable_quiesce_max_ply) {
-      uo_engine_lock_ttable();
-      if (!entry || (entry->type & uo_tentry_type__quiesce))
-      {
-        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-        entry->depth = 0;
-        entry->bestmove = bestmove;
-        entry->value = value;
-        entry->type = entry_type;
-      }
-      uo_engine_unlock_ttable();
-    }
-
+    uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__quiesce_exact : uo_tentry_type__quiesce_upper_bound);
     return value;
   }
 
@@ -418,24 +392,20 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       {
         if (value >= beta)
         {
-          if (position->ply <= uo_ttable_quiesce_max_ply) {
-            uo_engine_lock_ttable();
-            if (!entry || (entry->type & uo_tentry_type__quiesce))
-            {
-              if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-              entry->depth = 0;
-              entry->bestmove = bestmove;
-              entry->value = value;
-              entry->type = uo_tentry_type__quiesce_upper_bound;
-            }
-            uo_engine_unlock_ttable();
-          }
-
+          uo_engine_ttable_store(entry, position, bestmove, value, 0, uo_tentry_type__quiesce_lower_bound);
           return value;
         }
 
-        entry_type = uo_tentry_type__quiesce_exact;
         alpha = value;
+      }
+    }
+
+    if (value == alpha)
+    {
+      uo_search_stop_if_movetime_over(thread, info);
+      if (uo_engine_is_stopped())
+      {
+        return value;
       }
     }
   }
@@ -443,26 +413,11 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   if (is_queiscent)
   {
     value = uo_position_evaluate(position);
-
-    if (value > alpha)
-    {
-      entry_type = uo_tentry_type__quiesce_exact;
-    }
+    uo_engine_ttable_store(entry, position, 0, value, 0, uo_tentry_type__quiesce_exact);
+    return value;
   }
 
-  if (position->ply <= uo_ttable_quiesce_max_ply) {
-    uo_engine_lock_ttable();
-    if (!entry || (entry->type & uo_tentry_type__quiesce))
-    {
-      if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-      entry->depth = 0;
-      entry->bestmove = bestmove;
-      entry->value = value;
-      entry->type = entry_type;
-    }
-    uo_engine_unlock_ttable();
-  }
-
+  uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__quiesce_exact : uo_tentry_type__quiesce_upper_bound);
   return value;
 }
 
@@ -520,37 +475,72 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
   {
     // Search depth reached. Let's perform quiescence search.
 
+    bool is_check = uo_position_is_check(position);
+    bool is_quiescent = !is_check;
+    int16_t static_evaluation;
+
+    if (!is_check)
+    {
+      static_evaluation = uo_position_evaluate(position);
+      const int16_t stand_pat_margin = -1;
+      int16_t stand_pat = static_evaluation + stand_pat_margin;
+
+      if (stand_pat >= beta)
+      {
+        uo_engine_ttable_store(entry, position, 0, beta, 0, uo_tentry_type__lower_bound);
+        return beta;
+      }
+
+      if (stand_pat > alpha)
+      {
+        alpha = stand_pat;
+      }
+    }
+
     int16_t value = -UO_SCORE_CHECKMATE;
 
     for (size_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
-      uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -beta + 1, info);
-      node_value = uo_score_adjust_for_mate(node_value);
-      uo_position_unmake_move(position);
 
-      if (node_value > value)
+      if (is_check || uo_move_is_promotion(move) || uo_move_is_capture(move))
       {
-        value = node_value;
+        is_quiescent = false;
 
-        if (value >= beta)
+        uo_position_make_move(position, move);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -beta + 1, info);
+        node_value = uo_score_adjust_for_mate(node_value);
+        uo_position_unmake_move(position);
+
+        if (node_value > value)
         {
-          // fail-hard beta-cutoff
-          return beta;
+          value = node_value;
+
+          if (value >= beta)
+          {
+            // fail-hard beta-cutoff
+            return beta;
+          }
+        }
+
+        if (value == alpha)
+        {
+          uo_search_stop_if_movetime_over(thread, info);
+          if (uo_engine_is_stopped())
+          {
+            return value;
+          }
         }
       }
+    }
 
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
+    if (is_quiescent)
+    {
+      return static_evaluation;
     }
 
     return value;
   }
-
-  uo_search_stop_if_movetime_over(thread, info);
 
   int16_t value = -UO_SCORE_CHECKMATE;
   uo_move bestmove;
@@ -582,10 +572,13 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
       }
     }
 
-    if (uo_engine_is_stopped())
+    if (value == alpha)
     {
-      // fail-hard, return alpha
-      return beta - 1;
+      uo_search_stop_if_movetime_over(thread, info);
+      if (uo_engine_is_stopped())
+      {
+        return value;
+      }
     }
   }
 
@@ -603,8 +596,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return 0;
   }
 
-  uint8_t entry_type = uo_tentry_type__upper_bound;
-
   uo_engine_lock_ttable();
   uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
 
@@ -620,7 +611,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     if (entry->type == uo_tentry_type__lower_bound && value > alpha)
     {
-      entry_type = uo_tentry_type__lower_bound;
       alpha = value;
     }
     else if (entry->type == uo_tentry_type__upper_bound && value < beta)
@@ -666,17 +656,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     if (pass_value >= beta)
     {
-      uo_engine_lock_ttable();
-      if (!entry || (entry->depth <= depth_nmp))
-      {
-        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-        entry->depth = depth_nmp;
-        entry->bestmove = 0;
-        entry->value = beta;
-        entry->type = uo_tentry_type__upper_bound;
-      }
-      uo_engine_unlock_ttable();
-
+      uo_engine_ttable_store(entry, position, 0, beta, depth_nmp, uo_tentry_type__lower_bound);
       return beta;
     }
   }
@@ -687,25 +667,19 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   {
     // Search depth reached. Let's perform quiescence search.
 
-    if (!uo_position_is_check(position))
+    bool is_check = uo_position_is_check(position);
+    bool is_quiescent = !is_check;
+    int16_t static_evaluation;
+
+    if (!is_check)
     {
-      int16_t static_evaluation = uo_position_evaluate(position);
-      const int16_t stand_pat_margin = -200;
+      static_evaluation = uo_position_evaluate(position);
+      const int16_t stand_pat_margin = -1;
       int16_t stand_pat = static_evaluation + stand_pat_margin;
 
       if (stand_pat >= beta)
       {
-        uo_engine_lock_ttable();
-        if (!entry || (entry->depth <= 0))
-        {
-          if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-          entry->depth = 0;
-          entry->bestmove = 0;
-          entry->value = beta;
-          entry->type = uo_tentry_type__upper_bound;
-        }
-        uo_engine_unlock_ttable();
-
+        uo_engine_ttable_store(entry, position, 0, beta, 0, uo_tentry_type__lower_bound);
         return beta;
       }
 
@@ -716,56 +690,57 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
 
     uo_move bestmove = 0;
-    entry_type = uo_tentry_type__upper_bound;
     int16_t value = -UO_SCORE_CHECKMATE;
 
     for (size_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
-      uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
-      node_value = uo_score_adjust_for_mate(node_value);
-      uo_position_unmake_move(position);
-
-      if (node_value > value)
+      if (is_check || uo_move_is_promotion(move) || uo_move_is_capture(move))
       {
-        value = node_value;
-        bestmove = move;
+        is_quiescent = false;
 
-        if (value > alpha)
+        uo_position_make_move(position, move);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
+        node_value = uo_score_adjust_for_mate(node_value);
+        uo_position_unmake_move(position);
+
+        if (node_value > value)
         {
-          if (value >= beta)
-          {
-            entry_type = uo_tentry_type__upper_bound;
-            break;
-          }
+          value = node_value;
+          bestmove = move;
 
-          entry_type = uo_tentry_type__lower_bound;
-          alpha = value;
+          if (value > alpha)
+          {
+            if (value >= beta)
+            {
+              uo_engine_ttable_store(entry, position, move, value, 0, uo_tentry_type__lower_bound);
+              return value;
+            }
+
+            alpha = value;
+          }
+        }
+
+        if (value == alpha)
+        {
+          uo_search_stop_if_movetime_over(thread, info);
+          if (uo_engine_is_stopped())
+          {
+            return value;
+          }
         }
       }
-
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
     }
 
-    uo_engine_lock_ttable();
-    if (!entry || (entry->depth <= 0))
+    if (is_quiescent)
     {
-      if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-      entry->depth = 0;
-      entry->bestmove = bestmove;
-      entry->value = value;
-      entry->type = entry_type;
+      uo_engine_ttable_store(entry, position, 0, static_evaluation, 0, uo_tentry_type__exact);
+      return value;
     }
-    uo_engine_unlock_ttable();
 
+    uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound);
     return value;
   }
-
-  uo_search_stop_if_movetime_over(thread, info);
 
   uo_move bestmove = position->movelist.head[0];
   uint8_t bestmove_depth = depth;
@@ -789,21 +764,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         position->stack->search.killers[0] = bestmove;
       }
 
-      uo_engine_lock_ttable();
-      if (!entry || (entry->depth <= bestmove_depth))
-      {
-        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-        entry->depth = bestmove_depth;
-        entry->bestmove = bestmove;
-        entry->value = value;
-        entry->type = uo_tentry_type__upper_bound;
-      }
-      uo_engine_unlock_ttable();
-
+      uo_engine_ttable_store(entry, position, bestmove, value, depth, uo_tentry_type__lower_bound);
       return value;
     }
 
-    entry_type = uo_tentry_type__exact;
     alpha = value;
   }
 
@@ -844,39 +808,31 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
         if (value >= beta)
         {
-          entry_type = uo_tentry_type__upper_bound;
-
           if (!uo_move_is_capture(move))
           {
             position->stack->search.killers[1] = position->stack->search.killers[0];
             position->stack->search.killers[0] = move;
           }
 
-          break;
+          uo_engine_ttable_store(entry, position, bestmove, value, bestmove_depth, uo_tentry_type__lower_bound);
+          return value;
         }
 
-        entry_type = uo_tentry_type__exact;
         alpha = value;
       }
     }
 
-    if (uo_engine_is_stopped())
+    if (value == alpha)
     {
-      return value;
+      uo_search_stop_if_movetime_over(thread, info);
+      if (uo_engine_is_stopped())
+      {
+        return value;
+      }
     }
   }
 
-  uo_engine_lock_ttable();
-  if (!entry || (entry->depth <= bestmove_depth))
-  {
-    if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-    entry->depth = bestmove_depth;
-    entry->bestmove = bestmove;
-    entry->value = value;
-    entry->type = entry_type;
-  }
-  uo_engine_unlock_ttable();
-
+  uo_engine_ttable_store(entry, position, bestmove, value, bestmove_depth, value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound);
   return value;
 }
 
@@ -986,7 +942,6 @@ static void uo_search_info_currmove_print(uo_search_info *info, uo_move currmove
   uo_engine_unlock_stdout();
 }
 
-
 void *uo_engine_thread_run_principal_variation_search(void *arg)
 {
   uo_engine_thread_work *work = arg;
@@ -1006,8 +961,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   uo_engine_thread_load_position(thread);
 
-
-  int16_t score = uo_search_principal_variation(thread, 1, -UO_SCORE_CHECKMATE, UO_SCORE_CHECKMATE, &info);
+  int16_t score = uo_search_principal_variation(thread, 1, params->alpha, params->beta, &info);
 
   const int16_t aspiration_window_initial = 40;
   const int16_t aspiration_window_fail_threshold = 2;
@@ -1081,6 +1035,190 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     engine.position.bftable[0][i] = position->bftable[0][i] >> 1;
   }
   uo_engine_unlock_position();
+
+  uo_engine_stop_search();
+
+  info.params = NULL;
+  free(params);
+  return NULL;
+}
+
+void *uo_engine_thread_run_quiescence_search(void *arg)
+{
+  uo_engine_thread_work *work = arg;
+  uo_engine_thread *thread = work->thread;
+  uo_position *position = &thread->position;
+  uo_search_params *params = work->data;
+
+  uo_search_info info = {
+    .thread = thread,
+    .depth = 0,
+    .multipv = engine_options.multipv,
+    .nodes = 0,
+    .params = params
+  };
+
+  uo_time_now(&info.time_start);
+
+  uo_engine_thread_load_position(thread);
+
+  uint8_t entry_type;
+  uo_move bestmove = 0;
+  int16_t quiescence_value;
+  int16_t alpha = params->alpha;
+  int16_t beta = params->beta;
+
+  do
+  {
+    if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+    {
+      entry_type = uo_tentry_type__exact;
+      quiescence_value = 0;
+      goto return_quiescence;
+    }
+
+    size_t move_count = position->stack->moves_generated
+      ? position->stack->move_count
+      : uo_position_generate_moves(position);
+
+    if (move_count == 0)
+    {
+      entry_type = uo_tentry_type__exact;
+      quiescence_value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+      goto return_quiescence;
+    }
+
+    bool is_check = uo_position_is_check(position);
+    bool is_quiescent = !is_check;
+    int16_t static_evaluation;
+
+    if (!is_check)
+    {
+      static_evaluation = uo_position_evaluate(position);
+      const int16_t stand_pat_margin = -1;
+      int16_t stand_pat = static_evaluation + stand_pat_margin;
+
+      if (stand_pat >= beta)
+      {
+        entry_type = uo_tentry_type__lower_bound;
+        quiescence_value = beta;
+        goto return_quiescence;
+      }
+
+      if (stand_pat > alpha)
+      {
+        alpha = stand_pat;
+      }
+    }
+
+    int16_t value = -UO_SCORE_CHECKMATE;
+
+    for (size_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+
+      if (is_check || uo_move_is_promotion(move) || uo_move_is_capture(move))
+      {
+        is_quiescent = false;
+
+        uo_position_make_move(position, move);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, &info);
+        node_value = uo_score_adjust_for_mate(node_value);
+        uo_position_unmake_move(position);
+
+        if (node_value > value)
+        {
+          value = node_value;
+          bestmove = move;
+
+          if (value > alpha)
+          {
+            if (value >= beta)
+            {
+              entry_type = uo_tentry_type__lower_bound;
+              quiescence_value = value;
+              goto return_quiescence;
+            }
+
+            alpha = value;
+          }
+        }
+      }
+
+      if (value == alpha)
+      {
+        uo_search_stop_if_movetime_over(thread, &info);
+        if (uo_engine_is_stopped())
+        {
+          entry_type = uo_tentry_type__upper_bound;
+          quiescence_value = alpha;
+          goto return_quiescence;
+        }
+      }
+    }
+
+    if (is_quiescent)
+    {
+      quiescence_value = static_evaluation;
+      entry_type = uo_tentry_type__exact;
+      goto return_quiescence;
+    }
+
+    entry_type = value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound;
+    quiescence_value = value;
+    goto return_quiescence;
+  } while (false);
+
+return_quiescence:;
+
+  double time_msec = uo_time_elapsed_msec(&info.time_start);
+  uint64_t nps = info.nodes / time_msec * 1000.0;
+
+  uo_engine_lock_ttable();
+  uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
+  uo_engine_unlock_ttable();
+
+  uo_engine_lock_stdout();
+
+  printf("info qsearch ");
+  if (info.seldepth) printf("seldepth %d ", info.seldepth);
+
+  int16_t score = quiescence_value;
+
+  if (score > UO_SCORE_MATE_IN_THRESHOLD)
+  {
+    printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
+  }
+  else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+  {
+    printf("score mate %d ", (UO_SCORE_CHECKMATE + score + 1) >> 1);
+  }
+  else
+  {
+    printf("score cp %d ", score);
+  }
+
+  if (entry_type & uo_tentry_type__lower_bound)
+  {
+    printf("lowerbound ");
+  }
+  else if (entry_type & uo_tentry_type__upper_bound)
+  {
+    printf("upperbound ");
+  }
+
+  printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
+    info.nodes, nps, hashfull, info.tbhits, time_msec);
+
+  if (bestmove)
+  {
+    uo_position_print_move(position, bestmove, buf);
+    printf(" pv %s", buf);
+  }
+
+  printf("\n");
+
+  uo_engine_unlock_stdout();
 
   uo_engine_stop_search();
 

@@ -46,7 +46,10 @@ typedef const struct uo_uci_tokens
     movetime,
     test,
     sse,
-    eval;
+    eval,
+    qsearch,
+    alpha,
+    beta;
 
   struct
   {
@@ -105,6 +108,9 @@ uo_uci_tokens tokens = {
   .test = 28,
   .sse = 29,
   .eval = 30,
+  .qsearch = 31,
+  .alpha = 32,
+  .beta = 33,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -341,6 +347,24 @@ static void uo_uci_read_token(void)
   if (streq(ptr, "eval"))
   {
     token = tokens.eval;
+    return;
+  }
+
+  if (streq(ptr, "qsearch"))
+  {
+    token = tokens.qsearch;
+    return;
+  }
+
+  if (streq(ptr, "alpha"))
+  {
+    token = tokens.alpha;
+    return;
+  }
+
+  if (streq(ptr, "beta"))
+  {
+    token = tokens.beta;
     return;
   }
 
@@ -582,7 +606,9 @@ static void uo_uci_process_input__ready(void)
     else
     {
       uo_search_params search_params = {
-        .depth = UO_MAX_PLY
+        .depth = UO_MAX_PLY,
+        .alpha = -UO_SCORE_CHECKMATE,
+        .beta = UO_SCORE_CHECKMATE
       };
 
       while (ptr)
@@ -725,6 +751,30 @@ static void uo_uci_process_input__ready(void)
           }
         }
 
+        if (uo_uci_match(tokens.alpha))
+        {
+          uo_uci_read_token();
+
+          if (ptr)
+          {
+            search_params.alpha = strtol(ptr, NULL, 10);
+            uo_uci_read_token();
+            continue;
+          }
+        }
+
+        if (uo_uci_match(tokens.beta))
+        {
+          uo_uci_read_token();
+
+          if (ptr)
+          {
+            search_params.beta = strtol(ptr, NULL, 10);
+            uo_uci_read_token();
+            continue;
+          }
+        }
+
         uo_uci_read_token();
       }
 
@@ -760,6 +810,49 @@ static void uo_uci_process_input__ready(void)
       fflush(stdout);
       uo_engine_unlock_position();
       uo_engine_unlock_stdout();
+    }
+
+    if (uo_uci_match(tokens.qsearch))
+    {
+      uo_uci_read_token();
+
+      uo_search_params search_params = {
+        .alpha = -UO_SCORE_CHECKMATE,
+        .beta = UO_SCORE_CHECKMATE
+      };
+
+      while (ptr)
+      {
+        if (uo_uci_match(tokens.alpha))
+        {
+          uo_uci_read_token();
+
+          if (ptr)
+          {
+            search_params.alpha = strtol(ptr, NULL, 10);
+            uo_uci_read_token();
+            continue;
+          }
+        }
+
+        if (uo_uci_match(tokens.beta))
+        {
+          uo_uci_read_token();
+
+          if (ptr)
+          {
+            search_params.beta = strtol(ptr, NULL, 10);
+            uo_uci_read_token();
+            continue;
+          }
+        }
+
+        uo_uci_read_token();
+      }
+
+      uo_engine_start_quiescence_search(&search_params);
+      state = states.go;
+      return;
     }
   }
 

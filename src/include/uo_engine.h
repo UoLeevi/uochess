@@ -101,6 +101,39 @@ extern "C"
     uo_ttable_unlock(&engine.ttable);
   }
 
+  static inline void uo_engine_ttable_store(uo_tentry *entry, const uo_position *position,
+    uo_move bestmove, int16_t value, uint8_t depth, uint8_t type)
+  {
+    if (type & uo_tentry_type__quiesce)
+    {
+      if (position->ply <= uo_ttable_quiesce_max_ply) {
+        uo_engine_lock_ttable();
+        if (!entry || (entry->type & uo_tentry_type__quiesce))
+        {
+          if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+          entry->depth = 0;
+          entry->bestmove = bestmove;
+          entry->value = value;
+          entry->type = type;
+        }
+        uo_engine_unlock_ttable();
+      }
+    }
+    else
+    {
+      uo_engine_lock_ttable();
+      if (!entry || (entry->depth <= depth))
+      {
+        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
+        entry->depth = depth;
+        entry->bestmove = bestmove;
+        entry->value = value;
+        entry->type = type;
+      }
+      uo_engine_unlock_ttable();
+    }
+  }
+
   static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
   {
     uo_mutex_lock(engine.position_mutex);
@@ -109,6 +142,8 @@ extern "C"
   }
 
   void uo_engine_start_search(uo_search_params *params);
+
+  void uo_engine_start_quiescence_search(uo_search_params *params);
 
   static inline bool uo_engine_is_stopped()
   {
@@ -121,7 +156,7 @@ extern "C"
   }
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

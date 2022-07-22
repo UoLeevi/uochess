@@ -20,8 +20,8 @@ const int16_t uo_score_R = 500;
 const int16_t uo_score_Q = 1050;
 
 // pawns
-const int16_t uo_score_center_P = 30;
-const int16_t uo_score_doubled_P = -40;
+const int16_t uo_score_center_P = 20;
+const int16_t uo_score_doubled_P = -20;
 
 const int16_t uo_score_passed_pawn = 20;
 const int16_t uo_score_passed_pawn_on_fifth = 30;
@@ -37,7 +37,7 @@ const int16_t uo_score_rook_on_open_file = 20;
 const int16_t uo_score_defended_by_pawn = 20;
 const int16_t uo_score_attacked_by_pawn = 10;
 
-const int16_t uo_score_knight_on_outpost = 40;
+const int16_t uo_score_knight_on_outpost = 30;
 const int16_t uo_score_unattackable_by_pawn = 20;
 
 // pieces attacking squares next to opponent king
@@ -49,8 +49,8 @@ const int16_t uo_score_N_attacks_near_K = 50;
 // king safety and castling
 const int16_t uo_score_casting_right = 10;
 const int16_t uo_score_king_in_the_center = -40;
-const int16_t uo_score_castled_king = 50;
-const int16_t uo_score_king_cover_pawn = 40;
+const int16_t uo_score_castled_king = 40;
+const int16_t uo_score_king_cover_pawn = 30;
 const int16_t uo_score_king_next_to_open_file = -70;
 
 int16_t uo_position_evaluate(uo_position *const position)

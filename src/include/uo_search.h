@@ -26,6 +26,8 @@ extern "C"
     uint16_t movestogo;
     bool ponder;
     uo_move *searchmoves;
+    uint16_t alpha;
+    uint16_t beta;
   } uo_search_params;
 
   typedef struct uo_engine_thread uo_engine_thread;
@@ -46,6 +48,8 @@ extern "C"
   } uo_search_info;
 
   void *uo_engine_thread_run_principal_variation_search(void *arg);
+
+  void *uo_engine_thread_run_quiescence_search(void *arg);
 
 #ifdef __cplusplus
 }
