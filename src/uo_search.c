@@ -135,17 +135,16 @@ inline static uint16_t uo_search_calculate_move_score(uo_engine_thread *thread, 
   }
 }
 
-static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread)
+static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_move bestmove)
 {
-  uo_move bestmove = thread->info.bestmove;
   uo_position *position = &thread->position;
   uo_move *movelist = position->movelist.head;
   size_t move_count = position->stack->move_count;
 
-  int lo = 0;
+  int lo = bestmove ? 1 : 0;
 
-  // If found, set pv move as first
-  if (bestmove)
+  // set bestmove as first
+  if (bestmove && movelist[0] != bestmove)
   {
     for (size_t i = 1; i < move_count; ++i)
     {
@@ -153,7 +152,6 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread)
       {
         movelist[i] = movelist[0];
         movelist[0] = bestmove;
-        lo = 1;
         break;
       }
     }
@@ -227,11 +225,11 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   {
     int16_t value = entry->value;
 
-    if (entry->type & uo_tentry_type__exact)
-    {
-      uo_engine_unlock_ttable();
-      return value;
-    }
+    //if (entry->type & uo_tentry_type__exact)
+    //{
+    //  uo_engine_unlock_ttable();
+    //  return value;
+    //}
 
     if ((entry->type & uo_tentry_type__lower_bound) && value > alpha)
     {
@@ -267,14 +265,36 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
+  bool is_check = uo_position_is_check(position);
+  bool is_quiescent = !is_check;
+  int16_t static_evaluation;
   uo_move bestmove = 0;
   int16_t value = -UO_SCORE_CHECKMATE;
 
-  if (uo_position_is_check(&thread->position))
+  if (!is_check)
   {
-    for (int64_t i = 0; i < move_count; ++i)
+    static_evaluation = uo_position_evaluate(position);
+    const int16_t stand_pat_margin = -1;
+    value = static_evaluation + stand_pat_margin;
+
+    if (value >= beta)
     {
-      uo_move move = position->movelist.head[i];
+      return value;
+    }
+
+    if (value > alpha)
+    {
+      alpha = value;
+    }
+  }
+
+  for (size_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = position->movelist.head[i];
+
+    if (is_check || uo_move_is_promotion(move) || (uo_move_is_capture(move) && uo_position_capture_gain(position, move) > 0))
+    {
+      is_quiescent = false;
 
       uo_position_make_move(position, move);
       int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
@@ -303,60 +323,12 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         return value;
       }
     }
-
-    uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__quiesce_exact : uo_tentry_type__quiesce_upper_bound);
-    return value;
   }
 
-  bool is_queiscent = true;
-
-  for (size_t i = 0; i < move_count; ++i)
+  if (is_quiescent)
   {
-    uo_move move = position->movelist.head[i];
-
-    bool is_tactical_move = uo_move_is_promotion(move)
-      || (uo_move_is_capture(move) && uo_position_capture_gain(position, move) > 0);
-
-    if (!is_tactical_move)
-    {
-      continue;
-    }
-
-    is_queiscent = false;
-
-    uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
-    node_value = uo_score_adjust_for_mate(node_value);
-    uo_position_unmake_move(position);
-
-    if (node_value > value)
-    {
-      value = node_value;
-      bestmove = move;
-
-      if (value > alpha)
-      {
-        if (value >= beta)
-        {
-          uo_engine_ttable_store(entry, position, bestmove, value, 0, uo_tentry_type__quiesce_lower_bound);
-          return value;
-        }
-
-        alpha = value;
-      }
-    }
-
-    if (value == alpha && uo_engine_is_stopped())
-    {
-      return value;
-    }
-  }
-
-  if (is_queiscent)
-  {
-    value = uo_position_evaluate(position);
-    uo_engine_ttable_store(entry, position, 0, value, 0, uo_tentry_type__quiesce_exact);
-    return value;
+    uo_engine_ttable_store(entry, position, 0, static_evaluation, 0, uo_tentry_type__quiesce_exact);
+    return static_evaluation;
   }
 
   uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__quiesce_exact : uo_tentry_type__quiesce_upper_bound);
@@ -381,11 +353,11 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
   {
     int16_t value = entry->value;
 
-    if (entry->type == uo_tentry_type__exact)
-    {
-      uo_engine_unlock_ttable();
-      return value;
-    }
+    //if (entry->type == uo_tentry_type__exact)
+    //{
+    //  uo_engine_unlock_ttable();
+    //  return value;
+    //}
 
     if (entry->type == uo_tentry_type__lower_bound && value > alpha)
     {
@@ -412,7 +384,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
     return uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
-  uo_search_sort_and_prune_moves(thread);
+  uo_search_sort_and_prune_moves(thread, entry ? entry->bestmove : 0);
 
   if (depth == 0)
   {
@@ -421,26 +393,25 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
     bool is_check = uo_position_is_check(position);
     bool is_quiescent = !is_check;
     int16_t static_evaluation;
+    int16_t value = -UO_SCORE_CHECKMATE;
 
     if (!is_check)
     {
       static_evaluation = uo_position_evaluate(position);
       const int16_t stand_pat_margin = -1;
-      int16_t stand_pat = static_evaluation + stand_pat_margin;
+      value = static_evaluation + stand_pat_margin;
 
-      if (stand_pat >= beta)
+      if (value >= beta)
       {
         uo_engine_ttable_store(entry, position, 0, beta, 0, uo_tentry_type__lower_bound);
         return beta;
       }
 
-      if (stand_pat > alpha)
+      if (value > alpha)
       {
-        alpha = stand_pat;
+        alpha = value;
       }
     }
-
-    int16_t value = -UO_SCORE_CHECKMATE;
 
     for (size_t i = 0; i < move_count; ++i)
     {
@@ -539,11 +510,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   {
     int16_t value = entry->value;
 
-    if (entry->type == uo_tentry_type__exact)
-    {
-      uo_engine_unlock_ttable();
-      return value;
-    }
+    //if (entry->type == uo_tentry_type__exact)
+    //{
+    //  uo_engine_unlock_ttable();
+    //  return value;
+    //}
 
     if (entry->type == uo_tentry_type__lower_bound && value > alpha)
     {
@@ -597,7 +568,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  uo_search_sort_and_prune_moves(thread);
+  uo_search_sort_and_prune_moves(thread, entry ? entry->bestmove : 0);
 
   if (depth == 0)
   {
@@ -606,27 +577,26 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     bool is_check = uo_position_is_check(position);
     bool is_quiescent = !is_check;
     int16_t static_evaluation;
+    uo_move bestmove = 0;
+    int16_t value = -UO_SCORE_CHECKMATE;
 
     if (!is_check)
     {
       static_evaluation = uo_position_evaluate(position);
       const int16_t stand_pat_margin = -1;
-      int16_t stand_pat = static_evaluation + stand_pat_margin;
+      value = static_evaluation + stand_pat_margin;
 
-      if (stand_pat >= beta)
+      if (value >= beta)
       {
         uo_engine_ttable_store(entry, position, 0, beta, 0, uo_tentry_type__lower_bound);
         return beta;
       }
 
-      if (stand_pat > alpha)
+      if (value > alpha)
       {
-        alpha = stand_pat;
+        alpha = value;
       }
     }
-
-    uo_move bestmove = 0;
-    int16_t value = -UO_SCORE_CHECKMATE;
 
     for (size_t i = 0; i < move_count; ++i)
     {
@@ -716,10 +686,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_position_make_move(position, move);
 
     // search with null window
-    int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -alpha);
+    //int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -alpha);
+    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha);
     node_value = uo_score_adjust_for_mate(node_value);
 
-    if (node_value > alpha)
+    if (node_value > alpha && node_value < beta)
     {
       // failed high, do a full re-search
       node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha);
@@ -799,52 +770,27 @@ static void uo_search_info_print(uo_search_info *info)
       printf("score cp %d ", score);
     }
 
-    uo_position_print_move(position, info->bestmove, buf);
-    printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f pv %s",
-      info->nodes, nps, hashfull, info->tbhits, time_msec, buf);
+    printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
+      info->nodes, nps, hashfull, info->tbhits, time_msec);
 
     size_t pv_len = 1;
 
-    size_t i = 1;
+    size_t i = 0;
+    uo_move move = info->bestmove;
 
-    uo_position_make_move(position, info->bestmove);
+    uint8_t color = uo_color(position->flags);
+    uint16_t side_xor = 0;
 
-    uo_engine_lock_ttable();
-    uo_tentry *next_entry = uo_ttable_get(&engine.ttable, position);
-    uo_tentry pv_entry;
-    if (next_entry) pv_entry = *next_entry;
-    uo_engine_unlock_ttable();
-
-    for (; i < info->depth && next_entry && pv_entry.bestmove; ++i)
+    if (move)
     {
-      uo_position_print_move(position, pv_entry.bestmove, buf);
-      printf(" %s", buf);
-
-      if (!uo_position_is_legal_move(position, pv_entry.bestmove))
+      printf(" pv");
+      while (move)
       {
-        uo_position_print_move(position, pv_entry.bestmove, buf);
-        printf("\n\nillegal bestmove %s\n", buf);
-        uo_position_print_diagram(position, buf);
-        printf("\n%s", buf);
-        uo_position_print_fen(position, buf);
-        printf("\n");
-        printf("Fen: %s\n", buf);
-        printf("Key: %" PRIu64 "\n", position->key);
-        fflush(stdout);
-        assert(false);
+        uo_position_print_move(position, move ^ side_xor, buf);
+        side_xor ^= 0xE38;
+        printf(" %s", buf);
+        move = info->pv[++i];
       }
-
-      uo_position_make_move(position, pv_entry.bestmove);
-
-      uo_engine_lock_ttable();
-      next_entry = uo_ttable_get(&engine.ttable, position);
-      if (next_entry) pv_entry = *next_entry;
-      uo_engine_unlock_ttable();
-    }
-
-    while (i--)
-    {
-      uo_position_unmake_move(position);
     }
 
     printf("\n");
@@ -868,6 +814,108 @@ static void uo_search_info_currmove_print(uo_search_info *info, uo_move currmove
   uo_position_print_move(position, currmove, buf);
   printf("info depth %d currmove %s currmovenumber %zu", info->depth, buf, currmovenumber);
   uo_engine_unlock_stdout();
+}
+
+static void uo_engine_thread_release_pv(uo_engine_thread *thread)
+{
+  uo_tentry *pv_entry = thread->entry;
+
+  if (!pv_entry) return;
+
+  uo_position *position = &thread->position;
+  uo_move *pv = thread->info.pv;
+
+  uo_engine_lock_ttable();
+
+  assert(pv_entry->key == (uint32_t)position->key);
+
+  size_t i = 0;
+  while (pv[i + 1])
+  {
+    --pv_entry->refcount;
+    uo_position_make_move(position, pv[i++]);
+    pv_entry = uo_ttable_get(&engine.ttable, position);
+  }
+
+  while (i)
+  {
+    pv[--i] = 0;
+    uo_position_unmake_move(position);
+  }
+
+  uo_engine_unlock_ttable();
+
+  thread->entry = NULL;
+}
+
+static void uo_engine_thread_update_pv(uo_engine_thread *thread)
+{
+  uo_position *position = &thread->position;
+  uo_tentry *pv_entry = thread->entry;
+  uo_move *pv = thread->info.pv;
+
+  // TODO: better handling for repetitions
+  size_t max_depth = thread->info.depth;
+  if (thread->info.seldepth > max_depth) max_depth = thread->info.seldepth;
+  if (max_depth >= UO_MAX_PLY) max_depth = UO_MAX_PLY - 1;
+
+  uo_engine_lock_ttable();
+
+  // 1. Get entry if not set
+  if (!pv_entry)
+  {
+    thread->entry = pv_entry = uo_ttable_get(&engine.ttable, position);
+    ++pv_entry->refcount;
+  }
+
+  assert(pv_entry->key == (uint32_t)position->key);
+
+  // 2. Update score
+  thread->info.value = pv_entry->value;
+
+  // 3. Release obsolete pv entries
+  size_t i = 0;
+  while (pv[i + 1])
+  {
+    uo_position_make_move(position, pv[i++]);
+    uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
+    if (entry) --entry->refcount;
+  }
+
+  while (i)
+  {
+    pv[--i] = 0;
+    uo_position_unmake_move(position);
+  }
+
+  // 4. Save current pv
+  pv[i++] = pv_entry->bestmove;
+  uo_position_make_move(position, pv_entry->bestmove);
+  pv_entry = uo_ttable_get(&engine.ttable, position);
+
+  while (pv_entry && pv_entry->bestmove && i <= max_depth)
+  {
+    ++pv_entry->refcount;
+    pv[i++] = pv_entry->bestmove;
+    uo_position_make_move(position, pv_entry->bestmove);
+    pv_entry = uo_ttable_get(&engine.ttable, position);
+  }
+
+  pv[i] = 0;
+
+  while (i--)
+  {
+    uo_position_unmake_move(position);
+  }
+
+  uo_engine_unlock_ttable();
+}
+
+static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
+{
+  uo_mutex_lock(engine.position_mutex);
+  uo_position_copy(&thread->position, &engine.position);
+  uo_mutex_unlock(engine.position_mutex);
 }
 
 void *uo_engine_thread_start_timer(void *arg)
@@ -899,11 +947,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   };
 
   uo_time_now(&thread->info.time_start);
+  uo_engine_thread_load_position(thread);
   uo_engine_queue_work(uo_engine_thread_start_timer, thread);
 
-  uo_engine_thread_load_position(thread);
-
   int16_t score = uo_search_principal_variation(thread, 1, params->alpha, params->beta);
+  uo_engine_thread_update_pv(thread);
 
   const int16_t aspiration_window_initial = 40;
   const int16_t aspiration_window_fail_threshold = 2;
@@ -911,13 +959,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   int16_t aspiration_window = aspiration_window_initial;
   int16_t alpha = score - aspiration_window;
   int16_t beta = score + aspiration_window;
-
-  uo_engine_lock_ttable();
-  uo_tentry *pv_entry = uo_ttable_get(&engine.ttable, position);
-  thread->info.bestmove = pv_entry->bestmove;
-  thread->info.value = pv_entry->value;
-  ++pv_entry->refcount;
-  uo_engine_unlock_ttable();
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
@@ -945,6 +986,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       }
       else
       {
+        uo_engine_thread_update_pv(thread);
         alpha = score - aspiration_window;
         beta = score + aspiration_window;
         aspiration_fail_count = 0;
@@ -955,19 +997,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     if (uo_engine_is_stopped()) break;
 
     thread->info.depth = depth;
-
-    uo_engine_lock_ttable();
-    thread->info.bestmove = pv_entry->bestmove;
-    thread->info.value = pv_entry->value;
-    uo_engine_unlock_ttable();
   }
 
   thread->info.completed = true;
   uo_search_info_print(&thread->info);
-
-  uo_engine_lock_ttable();
-  --pv_entry->refcount;
-  uo_engine_unlock_ttable();
 
   uo_engine_lock_position();
   for (size_t i = 0; i < 4096; ++i)
@@ -977,6 +1010,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
   uo_engine_unlock_position();
 
+  uo_engine_thread_release_pv(thread);
   uo_engine_stop_search();
 
   return NULL;
@@ -997,9 +1031,8 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   };
 
   uo_time_now(&thread->info.time_start);
-  uo_engine_queue_work(uo_engine_thread_start_timer, thread);
-
   uo_engine_thread_load_position(thread);
+  uo_engine_queue_work(uo_engine_thread_start_timer, thread);
 
   uint8_t entry_type;
   uo_move bestmove = 0;
@@ -1030,27 +1063,26 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
     bool is_check = uo_position_is_check(position);
     bool is_quiescent = !is_check;
     int16_t static_evaluation;
+    int16_t value = -UO_SCORE_CHECKMATE;
 
     if (!is_check)
     {
       static_evaluation = uo_position_evaluate(position);
       const int16_t stand_pat_margin = -1;
-      int16_t stand_pat = static_evaluation + stand_pat_margin;
+      value = static_evaluation + stand_pat_margin;
 
-      if (stand_pat >= beta)
+      if (value >= beta)
       {
         entry_type = uo_tentry_type__lower_bound;
         quiescence_value = beta;
         goto return_quiescence;
       }
 
-      if (stand_pat > alpha)
+      if (value > alpha)
       {
-        alpha = stand_pat;
+        alpha = value;
       }
     }
-
-    int16_t value = -UO_SCORE_CHECKMATE;
 
     for (size_t i = 0; i < move_count; ++i)
     {

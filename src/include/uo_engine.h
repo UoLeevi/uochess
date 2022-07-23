@@ -28,6 +28,7 @@ extern "C"
   typedef struct uo_engine_thread
   {
     uo_thread *thread;
+    uo_tentry *entry;
     uo_position position;
     uo_search_info info;
   } uo_engine_thread;
@@ -104,17 +105,37 @@ extern "C"
     uo_ttable_unlock(&engine.ttable);
   }
 
+  static inline void uo_engine_clear_hash()
+  {
+    uo_engine_lock_ttable();
+    uo_ttable_clear(&engine.ttable);
+    uo_engine_lock_position();
+    engine.position.stack->moves_generated = false;
+    engine.position.update_status.checks_and_pins = false;
+    uo_engine_unlock_position();
+    uo_engine_unlock_ttable();
+  }
+
   static inline void uo_engine_ttable_store(uo_tentry *entry, const uo_position *position,
     uo_move bestmove, int16_t value, uint8_t depth, uint8_t type)
   {
-    if (type & uo_tentry_type__quiesce)
+    if (!entry)
+    {
+      uo_engine_lock_ttable();
+      entry = uo_ttable_set(&engine.ttable, position);
+      entry->depth = depth;
+      entry->bestmove = bestmove;
+      entry->value = value;
+      entry->type = type;
+      uo_engine_unlock_ttable();
+    }
+    else if (type & uo_tentry_type__quiesce)
     {
       if (position->ply <= uo_ttable_quiesce_max_ply) {
         uo_engine_lock_ttable();
-        if (!entry || (entry->type & uo_tentry_type__quiesce))
+        if (entry->type & uo_tentry_type__quiesce)
         {
-          if (!entry) entry = uo_ttable_set(&engine.ttable, position);
-          entry->depth = 0;
+          entry->depth = depth;
           entry->bestmove = bestmove;
           entry->value = value;
           entry->type = type;
@@ -125,9 +146,8 @@ extern "C"
     else
     {
       uo_engine_lock_ttable();
-      if (!entry || (entry->depth <= depth))
+      if (entry->depth <= depth)
       {
-        if (!entry) entry = uo_ttable_set(&engine.ttable, position);
         entry->depth = depth;
         entry->bestmove = bestmove;
         entry->value = value;
@@ -135,13 +155,6 @@ extern "C"
       }
       uo_engine_unlock_ttable();
     }
-  }
-
-  static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
-  {
-    uo_mutex_lock(engine.position_mutex);
-    uo_position_copy(&thread->position, &engine.position);
-    uo_mutex_unlock(engine.position_mutex);
   }
 
   void uo_engine_start_search();

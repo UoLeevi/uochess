@@ -446,6 +446,7 @@ static void uo_uci__position(void)
 
       uo_square square_from = uo_move_square_from(move);
       uo_square square_to = uo_move_square_to(move);
+      uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
 
       size_t move_count = uo_position_generate_moves(&engine.position);
 
@@ -455,6 +456,13 @@ static void uo_uci__position(void)
         if (square_from == uo_move_square_from(move)
           && square_to == uo_move_square_to(move))
         {
+          uo_move_type move_type = uo_move_get_type(move);
+
+          if ((move_type & uo_move_type__promo) && move_type_promo != (move_type & uo_move_type__promo_Q))
+          {
+            continue;
+          }
+
           uo_position_make_move(&engine.position, move);
           goto next_move;
         }
@@ -555,6 +563,24 @@ static void uo_uci_process_input__ready(void)
     uo_ttable_clear(&engine.ttable);
     uo_engine_unlock_ttable();
     return;
+  }
+
+  if (uo_uci_match(tokens.setoption))
+  {
+    uo_uci_read_token();
+    if (uo_uci_match(tokens.name))
+    {
+      ptr = strtok(NULL, "\n");
+
+      int64_t spin;
+
+      // Clear Hash
+      if (ptr && strcmp(ptr, "Clear Hash") == 0)
+      {
+        uo_engine_clear_hash();
+      }
+      return;
+    }
   }
 
   if (uo_uci_match(tokens.d))

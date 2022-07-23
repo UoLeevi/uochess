@@ -36,7 +36,7 @@ extern "C"
 #define uo_tentry_type__quiesce_lower_bound ((uint8_t)12)
 
 #define uo_ttable_quiesce_max_ply 15
-#define uo_ttable_max_probe 5
+#define uo_ttable_max_probe 3
 #define uo_ttable_expiry_ply 1
 
   typedef struct uo_ttable
@@ -119,7 +119,7 @@ extern "C"
 
     if (ttable->count > ((mask + 1) * 3) >> 2)
     {
-      while (entry->key && !entry->refcount && entry->type & uo_tentry_type__quiesce)
+      while (entry->key && !entry->refcount)
       {
         memset(entry, 0, sizeof * entry);
         --ttable->count;

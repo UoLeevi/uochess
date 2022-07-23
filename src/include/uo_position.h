@@ -104,8 +104,8 @@ extern "C"
 
     struct
     {
-      uo_move *head;
       uo_move moves[UO_MAX_PLY * UO_BRANCING_FACTOR];
+      uo_move *head;
       int16_t move_scores[0x100];
     } movelist;
   } uo_position;

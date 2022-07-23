@@ -796,8 +796,7 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 {
   size_t movelist_advance = src->movelist.head - src->movelist.moves;
   size_t generated_move_count = src->stack->moves_generated ? src->stack->move_count : 0;
-
-  size_t size = offsetof(uo_position, movelist) + ((movelist_advance + generated_move_count) / sizeof(uo_move));
+  size_t size = offsetof(uo_position, movelist) + ((movelist_advance + generated_move_count) * sizeof(uo_move));
   memcpy(dst, src, size);
   dst->piece_captured = dst->captures + (src->piece_captured - src->captures);
   dst->movelist.head = dst->movelist.moves + movelist_advance;
@@ -1904,15 +1903,14 @@ uo_move uo_position_parse_move(uo_position *const position, char str[5])
 
 size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6])
 {
-  uo_square square_from = uo_move_square_from(move);
-  uo_square square_to = uo_move_square_to(move);
-
   if (uo_color(position->flags) == uo_black)
   {
-    square_from ^= 56;
-    square_to ^= 56;
+    // flip perspective
+    move ^= 0xE38;
   }
 
+  uo_square square_from = uo_move_square_from(move);
+  uo_square square_to = uo_move_square_to(move);
   uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
 
   sprintf(str, "%c%d%c%d",

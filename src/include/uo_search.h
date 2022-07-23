@@ -46,8 +46,12 @@ extern "C"
     uint8_t seldepth;
     uint8_t tbhits;
     bool completed;
-    uo_move bestmove;
     int16_t value;
+    union
+    {
+      uo_move bestmove;
+      uo_move pv[UO_MAX_PLY];
+    };
   } uo_search_info;
 
   void *uo_engine_thread_start_timer(void *arg);
