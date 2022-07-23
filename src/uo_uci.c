@@ -605,11 +605,7 @@ static void uo_uci_process_input__ready(void)
     }
     else
     {
-      uo_search_params search_params = {
-        .depth = UO_MAX_PLY,
-        .alpha = -UO_SCORE_CHECKMATE,
-        .beta = UO_SCORE_CHECKMATE
-      };
+      uo_engine_reset_search_params(uo_seach_type__principal_variation);
 
       while (ptr)
       {
@@ -626,7 +622,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.depth = strtoul(ptr, NULL, 10);
+            engine.search_params.depth = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -639,8 +635,8 @@ static void uo_uci_process_input__ready(void)
           if (ptr)
           {
             uint32_t *time = uo_color(engine.position.flags) == uo_white
-              ? &search_params.time_own
-              : &search_params.time_enemy;
+              ? &engine.search_params.time_own
+              : &engine.search_params.time_enemy;
 
             *time = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
@@ -655,8 +651,8 @@ static void uo_uci_process_input__ready(void)
           if (ptr)
           {
             uint32_t *time = uo_color(engine.position.flags) == uo_black
-              ? &search_params.time_own
-              : &search_params.time_enemy;
+              ? &engine.search_params.time_own
+              : &engine.search_params.time_enemy;
 
             *time = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
@@ -671,8 +667,8 @@ static void uo_uci_process_input__ready(void)
           if (ptr)
           {
             uint32_t *time = uo_color(engine.position.flags) == uo_white
-              ? &search_params.time_inc_own
-              : &search_params.time_inc_enemy;
+              ? &engine.search_params.time_inc_own
+              : &engine.search_params.time_inc_enemy;
 
             *time = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
@@ -687,8 +683,8 @@ static void uo_uci_process_input__ready(void)
           if (ptr)
           {
             uint32_t *time = uo_color(engine.position.flags) == uo_black
-              ? &search_params.time_inc_own
-              : &search_params.time_inc_enemy;
+              ? &engine.search_params.time_inc_own
+              : &engine.search_params.time_inc_enemy;
 
             *time = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
@@ -702,7 +698,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.movestogo = strtoul(ptr, NULL, 10);
+            engine.search_params.movestogo = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -710,7 +706,7 @@ static void uo_uci_process_input__ready(void)
 
         if (uo_uci_match(tokens.ponder))
         {
-          search_params.ponder = true;
+          engine.search_params.ponder = true;
           uo_uci_read_token();
           continue;
         }
@@ -721,7 +717,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.nodes = strtoull(ptr, NULL, 10);
+            engine.search_params.nodes = strtoull(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -733,7 +729,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.mate = strtoul(ptr, NULL, 10);
+            engine.search_params.mate = strtoul(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -745,7 +741,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.movetime = strtoull(ptr, NULL, 10);
+            engine.search_params.movetime = strtoull(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -757,7 +753,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.alpha = strtol(ptr, NULL, 10);
+            engine.search_params.alpha = strtol(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -769,7 +765,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.beta = strtol(ptr, NULL, 10);
+            engine.search_params.beta = strtol(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -778,7 +774,7 @@ static void uo_uci_process_input__ready(void)
         uo_uci_read_token();
       }
 
-      uo_engine_start_search(&search_params);
+      uo_engine_start_search();
       state = states.go;
       return;
     }
@@ -815,11 +811,7 @@ static void uo_uci_process_input__ready(void)
     if (uo_uci_match(tokens.qsearch))
     {
       uo_uci_read_token();
-
-      uo_search_params search_params = {
-        .alpha = -UO_SCORE_CHECKMATE,
-        .beta = UO_SCORE_CHECKMATE
-      };
+      uo_engine_reset_search_params(uo_seach_type__quiescence);
 
       while (ptr)
       {
@@ -829,7 +821,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.alpha = strtol(ptr, NULL, 10);
+            engine.search_params.alpha = strtol(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -841,7 +833,7 @@ static void uo_uci_process_input__ready(void)
 
           if (ptr)
           {
-            search_params.beta = strtol(ptr, NULL, 10);
+            engine.search_params.beta = strtol(ptr, NULL, 10);
             uo_uci_read_token();
             continue;
           }
@@ -850,7 +842,7 @@ static void uo_uci_process_input__ready(void)
         uo_uci_read_token();
       }
 
-      uo_engine_start_quiescence_search(&search_params);
+      uo_engine_start_search();
       state = states.go;
       return;
     }

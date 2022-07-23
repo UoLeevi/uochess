@@ -64,13 +64,13 @@ void uo_engine_init()
   engine.work_queue.tail = 0;
 
   // threads
-  engine.thread_count = engine_options.threads;
+  engine.thread_count = engine_options.threads + 1; // one additional thread for timer
   engine.threads = calloc(engine.thread_count, sizeof * engine.threads);
 
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
-    engine = engine;
+    thread->info.thread = thread;
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 
@@ -85,18 +85,13 @@ void uo_engine_init()
   uo_position_from_fen(&engine.position, uo_fen_startpos);
 }
 
-void uo_engine_start_search(uo_search_params *params)
-{
-  void *data = malloc(sizeof * params);
-  memcpy(data, params, sizeof * params);
-  uo_atomic_store(&engine.stopped, 0);
-  uo_engine_queue_work(uo_engine_thread_run_principal_variation_search, data);
-}
+static uo_thread_function *uo_search_thread_run_function[] = {
+  [uo_seach_type__principal_variation] = uo_engine_thread_run_principal_variation_search,
+  [uo_seach_type__quiescence] = uo_engine_thread_run_quiescence_search
+};
 
-void uo_engine_start_quiescence_search(uo_search_params *params)
+void uo_engine_start_search()
 {
-  void *data = malloc(sizeof * params);
-  memcpy(data, params, sizeof * params);
   uo_atomic_store(&engine.stopped, 0);
-  uo_engine_queue_work(uo_engine_thread_run_quiescence_search, data);
+  uo_engine_queue_work(uo_search_thread_run_function[engine.search_params.seach_type], NULL);
 }

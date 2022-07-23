@@ -15,7 +15,8 @@ extern "C"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <inttypes.h>
+#include <stdint.h>
+#include <assert.h>
 
   typedef struct uo_engine_options
   {
@@ -28,6 +29,7 @@ extern "C"
   {
     uo_thread *thread;
     uo_position position;
+    uo_search_info info;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_work
@@ -60,6 +62,7 @@ extern "C"
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
+    uo_search_params search_params;
     volatile uo_atomic_int stopped;
     bool exit;
   } uo_engine;
@@ -141,13 +144,22 @@ extern "C"
     uo_mutex_unlock(engine.position_mutex);
   }
 
-  void uo_engine_start_search(uo_search_params *params);
-
-  void uo_engine_start_quiescence_search(uo_search_params *params);
+  void uo_engine_start_search();
 
   static inline bool uo_engine_is_stopped()
   {
     return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
+  }
+
+  static inline void uo_engine_reset_search_params(uint8_t seach_type)
+  {
+    assert(uo_engine_is_stopped());
+    engine.search_params = (uo_search_params){
+      .seach_type = seach_type,
+      .depth = UO_MAX_PLY,
+      .alpha = -UO_SCORE_CHECKMATE,
+      .beta = UO_SCORE_CHECKMATE
+    };
   }
 
   static inline void uo_engine_stop_search()
@@ -155,8 +167,10 @@ extern "C"
     uo_atomic_store(&engine.stopped, 1);
   }
 
+  void uo_engine_queue_work(uo_thread_function *function, void *data);
+
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

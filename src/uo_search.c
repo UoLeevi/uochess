@@ -98,7 +98,7 @@ static void uo_search_quicksort_moves(uo_engine_thread *thread, uo_move *movelis
   uo_search_quicksort_moves(thread, movelist, p + 1, hi, depth - 2);
 }
 
-inline static uint16_t uo_search_calculate_move_score(uo_engine_thread *thread, uo_move move, uo_search_info *info)
+inline static uint16_t uo_search_calculate_move_score(uo_engine_thread *thread, uo_move move)
 {
   uo_position *position = &thread->position;
   uo_square square_from = uo_move_square_from(move);
@@ -135,9 +135,9 @@ inline static uint16_t uo_search_calculate_move_score(uo_engine_thread *thread, 
   }
 }
 
-static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search_info *info)
+static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread)
 {
-  uo_move bestmove = info->bestmove;
+  uo_move bestmove = thread->info.bestmove;
   uo_position *position = &thread->position;
   uo_move *movelist = position->movelist.head;
   size_t move_count = position->stack->move_count;
@@ -159,68 +159,16 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search
     }
   }
 
-  // If there are only few moves, let's search them all
-  if (move_count < 10) return move_count;
-
-  //// If it is our turn, then let's be more heavy handed with pruning moves
-  //int8_t pruning_threshold = (uo_color(position->ply) == uo_color_own ? -100 : -200) + position->ply;
-
-  //if (pruning_threshold < 0) pruning_threshold = 0;
-
   size_t j = move_count;
   size_t i = lo;
 
   while (i < move_count)
   {
     uo_move move = movelist[i];
-    uint16_t score = uo_search_calculate_move_score(thread, move, info);
+    uint16_t score = uo_search_calculate_move_score(thread, move);
     position->movelist.move_scores[i] = score;
     ++i;
   }
-
-  //do
-  //{
-  //  uo_move move = movelist[i];
-  //  int8_t score = uo_search_calculate_move_score(thread, move, info);
-
-  //  if (score >= pruning_threshold)
-  //  {
-  //    position->movelist.move_scores[i] = score;
-  //    ++i;
-  //  }
-  //  else
-  //  {
-  //    --j;
-  //    position->movelist.move_scores[j] = score;
-  //    movelist[i] = movelist[j];
-  //    movelist[j] = move;
-  //  }
-  //} while (i < j);
-
-  //while (j < 10)
-  //{
-  //  i = j;
-  //  j = move_count;
-  //  pruning_threshold += 2;
-
-  //  do
-  //  {
-  //    uo_move move = movelist[i];
-  //    int8_t score = position->movelist.move_scores[i];
-
-  //    if (score >= pruning_threshold)
-  //    {
-  //      ++i;
-  //    }
-  //    else
-  //    {
-  //      --j;
-  //      position->movelist.move_scores[j] = score;
-  //      movelist[i] = movelist[j];
-  //      movelist[j] = move;
-  //    }
-  //  } while (i < j);
-  //}
 
   const size_t quicksort_depth = 4; // arbitrary
   uo_search_quicksort_moves(thread, movelist, lo, j - 1, quicksort_depth);
@@ -228,9 +176,10 @@ static size_t uo_search_sort_and_prune_moves(uo_engine_thread *thread, uo_search
   return j;
 }
 
-static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread, uo_search_info *info)
+static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
 {
-  uo_search_params *params = info->params;
+  uo_search_info *info = &thread->info;
+  uo_search_params *params = &engine.search_params;
   uint64_t movetime = params->movetime;
 
   // TODO: make better decisions about how much time to use
@@ -247,7 +196,7 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread, uo_
   if (movetime)
   {
     const double margin_msec = 1.0;
-    double time_msec = uo_time_elapsed_msec(&info->time_start);
+    double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
 
     if (time_msec + margin_msec > (double)movetime)
     {
@@ -256,8 +205,9 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread, uo_
   }
 }
 
-static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uo_search_info *info)
+static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta)
 {
+  uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
 
   if (info->seldepth < position->ply)
@@ -327,7 +277,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       uo_move move = position->movelist.head[i];
 
       uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
+      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
       node_value = uo_score_adjust_for_mate(node_value);
       uo_position_unmake_move(position);
 
@@ -348,13 +298,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         }
       }
 
-      if (value == alpha)
+      if (value == alpha && uo_engine_is_stopped())
       {
-        uo_search_stop_if_movetime_over(thread, info);
-        if (uo_engine_is_stopped())
-        {
-          return value;
-        }
+        return value;
       }
     }
 
@@ -379,7 +325,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     is_queiscent = false;
 
     uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
+    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
     node_value = uo_score_adjust_for_mate(node_value);
     uo_position_unmake_move(position);
 
@@ -400,13 +346,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       }
     }
 
-    if (value == alpha)
+    if (value == alpha && uo_engine_is_stopped())
     {
-      uo_search_stop_if_movetime_over(thread, info);
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
+      return value;
     }
   }
 
@@ -421,8 +363,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   return value;
 }
 
-static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int16_t beta, uo_search_info *info)
+static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int16_t beta)
 {
+  uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
   int16_t alpha = beta - 1;
 
@@ -469,7 +412,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
     return uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
   }
 
-  uo_search_sort_and_prune_moves(thread, info);
+  uo_search_sort_and_prune_moves(thread);
 
   if (depth == 0)
   {
@@ -508,7 +451,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
         is_quiescent = false;
 
         uo_position_make_move(position, move);
-        int16_t node_value = -uo_search_quiesce(thread, -beta, -beta + 1, info);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -beta + 1);
         node_value = uo_score_adjust_for_mate(node_value);
         uo_position_unmake_move(position);
 
@@ -523,13 +466,9 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
           }
         }
 
-        if (value == alpha)
+        if (value == alpha && uo_engine_is_stopped())
         {
-          uo_search_stop_if_movetime_over(thread, info);
-          if (uo_engine_is_stopped())
-          {
-            return value;
-          }
+          return value;
         }
       }
     }
@@ -556,7 +495,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
     uo_move move = position->movelist.head[i];
 
     uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -beta + 1, info);
+    int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -beta + 1);
     node_value = uo_score_adjust_for_mate(node_value);
     uo_position_unmake_move(position);
 
@@ -572,13 +511,9 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
       }
     }
 
-    if (value == alpha)
+    if (value == alpha && uo_engine_is_stopped())
     {
-      uo_search_stop_if_movetime_over(thread, info);
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
+      return value;
     }
   }
 
@@ -587,8 +522,9 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
 
 // see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
 // see: https://en.wikipedia.org/wiki/Principal_variation_search
-static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_search_info *info)
+static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta)
 {
+  uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
 
   if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
@@ -651,7 +587,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_position_make_null_move(position);
     // depth * 3/4
     size_t depth_nmp = depth * 3 >> 2;
-    int16_t pass_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, info);
+    int16_t pass_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1);
     uo_position_unmake_null_move(position);
 
     if (pass_value >= beta)
@@ -661,7 +597,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  uo_search_sort_and_prune_moves(thread, info);
+  uo_search_sort_and_prune_moves(thread);
 
   if (depth == 0)
   {
@@ -700,7 +636,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         is_quiescent = false;
 
         uo_position_make_move(position, move);
-        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, info);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
         node_value = uo_score_adjust_for_mate(node_value);
         uo_position_unmake_move(position);
 
@@ -721,13 +657,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           }
         }
 
-        if (value == alpha)
+        if (value == alpha && uo_engine_is_stopped())
         {
-          uo_search_stop_if_movetime_over(thread, info);
-          if (uo_engine_is_stopped())
-          {
-            return value;
-          }
+          return value;
         }
       }
     }
@@ -735,7 +667,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (is_quiescent)
     {
       uo_engine_ttable_store(entry, position, 0, static_evaluation, 0, uo_tentry_type__exact);
-      return value;
+      return static_evaluation;
     }
 
     uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound);
@@ -748,7 +680,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   uo_position_make_move(position, bestmove);
   // search first move with full alpha/beta window
-  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, info);
+  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha);
   value = uo_score_adjust_for_mate(value);
   uo_position_unmake_move(position);
 
@@ -784,13 +716,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_position_make_move(position, move);
 
     // search with null window
-    int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -alpha, info);
+    int16_t node_value = -uo_search_zero_window(thread, depth_lmr - 1, -alpha);
     node_value = uo_score_adjust_for_mate(node_value);
 
     if (node_value > alpha)
     {
       // failed high, do a full re-search
-      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha, info);
+      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha);
       node_value = uo_score_adjust_for_mate(node_value);
     }
 
@@ -822,13 +754,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
     }
 
-    if (value == alpha)
+    if (value == alpha && uo_engine_is_stopped())
     {
-      uo_search_stop_if_movetime_over(thread, info);
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
+      return value;
     }
   }
 
@@ -942,26 +870,40 @@ static void uo_search_info_currmove_print(uo_search_info *info, uo_move currmove
   uo_engine_unlock_stdout();
 }
 
+void *uo_engine_thread_start_timer(void *arg)
+{
+  uo_engine_thread_work *work = arg;
+  uo_engine_thread *thread = work->data;
+
+  while (!uo_engine_is_stopped())
+  {
+    uo_sleep_msec(100);
+    uo_search_stop_if_movetime_over(thread);
+  }
+
+  return NULL;
+}
+
 void *uo_engine_thread_run_principal_variation_search(void *arg)
 {
   uo_engine_thread_work *work = arg;
   uo_engine_thread *thread = work->thread;
   uo_position *position = &thread->position;
-  uo_search_params *params = work->data;
+  uo_search_params *params = &engine.search_params;
 
-  uo_search_info info = {
+  thread->info = (uo_search_info){
     .thread = thread,
     .depth = 1,
     .multipv = engine_options.multipv,
-    .nodes = 0,
-    .params = params
+    .nodes = 0
   };
 
-  uo_time_now(&info.time_start);
+  uo_time_now(&thread->info.time_start);
+  uo_engine_queue_work(uo_engine_thread_start_timer, thread);
 
   uo_engine_thread_load_position(thread);
 
-  int16_t score = uo_search_principal_variation(thread, 1, params->alpha, params->beta, &info);
+  int16_t score = uo_search_principal_variation(thread, 1, params->alpha, params->beta);
 
   const int16_t aspiration_window_initial = 40;
   const int16_t aspiration_window_fail_threshold = 2;
@@ -972,23 +914,23 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   uo_engine_lock_ttable();
   uo_tentry *pv_entry = uo_ttable_get(&engine.ttable, position);
-  info.bestmove = pv_entry->bestmove;
-  info.value = pv_entry->value;
+  thread->info.bestmove = pv_entry->bestmove;
+  thread->info.value = pv_entry->value;
   ++pv_entry->refcount;
   uo_engine_unlock_ttable();
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
-    if (info.nodes)
+    if (thread->info.nodes)
     {
-      uo_search_info_print(&info);
+      uo_search_info_print(&thread->info);
     }
 
-    info.nodes = 0;
+    thread->info.nodes = 0;
 
     while (!uo_engine_is_stopped())
     {
-      score = uo_search_principal_variation(thread, depth, alpha, beta, &info);
+      score = uo_search_principal_variation(thread, depth, alpha, beta);
       if (score <= alpha)
       {
         alpha = ++aspiration_fail_count >= aspiration_window_fail_threshold || score <= -UO_SCORE_MATE_IN_THRESHOLD
@@ -1010,19 +952,18 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       }
     }
 
-    uo_search_stop_if_movetime_over(thread, &info);
     if (uo_engine_is_stopped()) break;
 
-    info.depth = depth;
+    thread->info.depth = depth;
 
     uo_engine_lock_ttable();
-    info.bestmove = pv_entry->bestmove;
-    info.value = pv_entry->value;
+    thread->info.bestmove = pv_entry->bestmove;
+    thread->info.value = pv_entry->value;
     uo_engine_unlock_ttable();
   }
 
-  info.completed = true;
-  uo_search_info_print(&info);
+  thread->info.completed = true;
+  uo_search_info_print(&thread->info);
 
   uo_engine_lock_ttable();
   --pv_entry->refcount;
@@ -1038,8 +979,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   uo_engine_stop_search();
 
-  info.params = NULL;
-  free(params);
   return NULL;
 }
 
@@ -1048,17 +987,17 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   uo_engine_thread_work *work = arg;
   uo_engine_thread *thread = work->thread;
   uo_position *position = &thread->position;
-  uo_search_params *params = work->data;
+  uo_search_params *params = &engine.search_params;
 
-  uo_search_info info = {
+  thread->info = (uo_search_info){
     .thread = thread,
     .depth = 0,
     .multipv = engine_options.multipv,
-    .nodes = 0,
-    .params = params
+    .nodes = 0
   };
 
-  uo_time_now(&info.time_start);
+  uo_time_now(&thread->info.time_start);
+  uo_engine_queue_work(uo_engine_thread_start_timer, thread);
 
   uo_engine_thread_load_position(thread);
 
@@ -1122,7 +1061,7 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
         is_quiescent = false;
 
         uo_position_make_move(position, move);
-        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, &info);
+        int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha);
         node_value = uo_score_adjust_for_mate(node_value);
         uo_position_unmake_move(position);
 
@@ -1145,15 +1084,11 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
         }
       }
 
-      if (value == alpha)
+      if (value == alpha && uo_engine_is_stopped())
       {
-        uo_search_stop_if_movetime_over(thread, &info);
-        if (uo_engine_is_stopped())
-        {
-          entry_type = uo_tentry_type__upper_bound;
-          quiescence_value = alpha;
-          goto return_quiescence;
-        }
+        entry_type = uo_tentry_type__upper_bound;
+        quiescence_value = alpha;
+        goto return_quiescence;
       }
     }
 
@@ -1171,8 +1106,8 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
 
 return_quiescence:;
 
-  double time_msec = uo_time_elapsed_msec(&info.time_start);
-  uint64_t nps = info.nodes / time_msec * 1000.0;
+  double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
+  uint64_t nps = thread->info.nodes / time_msec * 1000.0;
 
   uo_engine_lock_ttable();
   uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
@@ -1181,7 +1116,7 @@ return_quiescence:;
   uo_engine_lock_stdout();
 
   printf("info qsearch ");
-  if (info.seldepth) printf("seldepth %d ", info.seldepth);
+  if (thread->info.seldepth) printf("seldepth %d ", thread->info.seldepth);
 
   int16_t score = quiescence_value;
 
@@ -1208,7 +1143,7 @@ return_quiescence:;
   }
 
   printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
-    info.nodes, nps, hashfull, info.tbhits, time_msec);
+    thread->info.nodes, nps, hashfull, thread->info.tbhits, time_msec);
 
   if (bestmove)
   {
@@ -1222,7 +1157,5 @@ return_quiescence:;
 
   uo_engine_stop_search();
 
-  info.params = NULL;
-  free(params);
   return NULL;
 }

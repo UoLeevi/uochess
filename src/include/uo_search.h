@@ -13,8 +13,14 @@ extern "C"
 #include <stdbool.h>
 #include <stdint.h>
 
+#define uo_seach_type__principal_variation 0
+#define uo_seach_type__quiescence 1
+
+  typedef struct uo_engine_thread uo_engine_thread;
+
   typedef struct uo_search_params
   {
+    uint8_t seach_type;
     uint8_t depth;
     uint64_t movetime;
     uint32_t time_own;
@@ -26,11 +32,9 @@ extern "C"
     uint16_t movestogo;
     bool ponder;
     uo_move *searchmoves;
-    uint16_t alpha;
-    uint16_t beta;
+    int16_t alpha;
+    int16_t beta;
   } uo_search_params;
-
-  typedef struct uo_engine_thread uo_engine_thread;
 
   typedef struct uo_search_info
   {
@@ -42,10 +46,11 @@ extern "C"
     uint8_t seldepth;
     uint8_t tbhits;
     bool completed;
-    uo_search_params *params;
     uo_move bestmove;
     int16_t value;
   } uo_search_info;
+
+  void *uo_engine_thread_start_timer(void *arg);
 
   void *uo_engine_thread_run_principal_variation_search(void *arg);
 

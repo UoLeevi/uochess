@@ -7,6 +7,12 @@ extern "C"
 #endif
 
 #include <time.h>
+#include <stdio.h>
+#include <stdint.h>
+
+#ifdef WIN32
+# include <Windows.h>
+#endif // WIN32
 
   typedef struct timespec uo_time;
 
@@ -28,6 +34,17 @@ extern "C"
     uo_time_now(&time_now);
     return uo_time_diff_msec(time, &time_now);
   }
+
+#ifdef WIN32
+# define uo_sleep_msec Sleep
+#else
+  static inline void uo_sleep_msec(uint64_t msec)
+  {
+    struct timespec rem;
+    struct timespec req = { .tv_sec = msec / 1000, tv_nsec = (msec % 1000) * 1000000 };
+    nanosleep(&req, &rem);
+  }
+#endif
 
 #ifdef __cplusplus
 }
