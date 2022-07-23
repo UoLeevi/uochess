@@ -116,9 +116,55 @@ extern "C"
     uo_engine_unlock_ttable();
   }
 
-  static inline void uo_engine_ttable_store(uo_tentry *entry, const uo_position *position,
-    uo_move bestmove, int16_t value, uint8_t depth, uint8_t type)
+  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_tentry **entry, uo_move *bestmove, int16_t *value, int16_t *alpha, int16_t *beta, uint8_t depth)
   {
+    uo_engine_lock_ttable();
+    uo_tentry *tte = *entry = uo_ttable_get(&engine.ttable, position);
+
+    if (!tte || tte->depth < depth)
+    {
+      uo_engine_unlock_ttable();
+      return false;
+    }
+
+    if (tte->type == uo_tentry_type__exact)
+    {
+      *bestmove = tte->bestmove;
+      *value = tte->value;
+      uo_engine_unlock_ttable();
+      return true;
+    }
+
+    if (tte->type == uo_tentry_type__lower_bound && tte->value > *alpha)
+    {
+      *alpha = tte->value;
+    }
+    else if (tte->type == uo_tentry_type__upper_bound && tte->value < *beta)
+    {
+      *bestmove = tte->bestmove;
+      *beta = tte->value;
+    }
+
+    if (*alpha >= *beta)
+    {
+      *value = tte->value;
+      uo_engine_unlock_ttable();
+      return true;
+    }
+
+    uo_engine_unlock_ttable();
+    return false;
+  }
+
+  static inline void uo_engine_store_entry(const uo_position *position, uo_tentry *entry, uo_move bestmove, int16_t value, int16_t alpha, int16_t beta, uint8_t depth)
+  {
+    assert(bestmove);
+
+    uint8_t type =
+      value >= beta ? uo_tentry_type__lower_bound :
+      value <= alpha ? uo_tentry_type__upper_bound :
+      uo_tentry_type__exact;
+
     if (!entry)
     {
       uo_engine_lock_ttable();
@@ -128,20 +174,6 @@ extern "C"
       entry->value = value;
       entry->type = type;
       uo_engine_unlock_ttable();
-    }
-    else if (type & uo_tentry_type__quiesce)
-    {
-      if (position->ply <= uo_ttable_quiesce_max_ply) {
-        uo_engine_lock_ttable();
-        if (entry->type & uo_tentry_type__quiesce)
-        {
-          entry->depth = depth;
-          entry->bestmove = bestmove;
-          entry->value = value;
-          entry->type = type;
-        }
-        uo_engine_unlock_ttable();
-      }
     }
     else
     {

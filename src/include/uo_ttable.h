@@ -30,10 +30,6 @@ extern "C"
 #define uo_tentry_type__exact ((uint8_t)1)
 #define uo_tentry_type__upper_bound ((uint8_t)2)
 #define uo_tentry_type__lower_bound ((uint8_t)4)
-#define uo_tentry_type__quiesce ((uint8_t)8)
-#define uo_tentry_type__quiesce_exact ((uint8_t)9)
-#define uo_tentry_type__quiesce_upper_bound ((uint8_t)10)
-#define uo_tentry_type__quiesce_lower_bound ((uint8_t)12)
 
 #define uo_ttable_quiesce_max_ply 15
 #define uo_ttable_max_probe 3

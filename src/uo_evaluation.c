@@ -14,10 +14,10 @@ const int16_t uo_score_tempo = 20;
 
 // material
 const int16_t uo_score_P = 100;
-const int16_t uo_score_N = 300;
-const int16_t uo_score_B = 301;
-const int16_t uo_score_R = 500;
-const int16_t uo_score_Q = 1050;
+const int16_t uo_score_N = 450;
+const int16_t uo_score_B = 460;
+const int16_t uo_score_R = 800;
+const int16_t uo_score_Q = 1650;
 
 const int16_t uo_score_extra_piece = 100;
 

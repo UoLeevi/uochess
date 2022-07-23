@@ -218,38 +218,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return 0;
   }
 
-  uo_engine_lock_ttable();
-  uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
-
-  if (entry)
-  {
-    int16_t value = entry->value;
-
-    //if (entry->type & uo_tentry_type__exact)
-    //{
-    //  uo_engine_unlock_ttable();
-    //  return value;
-    //}
-
-    if ((entry->type & uo_tentry_type__lower_bound) && value > alpha)
-    {
-      alpha = value;
-    }
-    else if ((entry->type & uo_tentry_type__upper_bound) && value < beta)
-    {
-      beta = value;
-    }
-
-    if (alpha >= beta)
-    {
-      uo_engine_unlock_ttable();
-      return value;
-    }
-  }
-  else
-  {
-    ++info->nodes;
-  }
+  ++info->nodes;
 
   uo_engine_unlock_ttable();
 
@@ -310,7 +279,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         {
           if (value >= beta)
           {
-            uo_engine_ttable_store(entry, position, bestmove, value, 0, uo_tentry_type__quiesce_lower_bound);
             return value;
           }
 
@@ -327,11 +295,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   if (is_quiescent)
   {
-    uo_engine_ttable_store(entry, position, 0, static_evaluation, 0, uo_tentry_type__quiesce_exact);
     return static_evaluation;
   }
 
-  uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__quiesce_exact : uo_tentry_type__quiesce_upper_bound);
   return value;
 }
 
@@ -497,46 +463,21 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
+  uo_tentry *entry;
+  int16_t value;
+  uo_move bestmove = 0;
 
   if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
   {
     return 0;
   }
 
-  uo_engine_lock_ttable();
-  uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
-
-  if (entry && entry->depth >= depth)
+  if (uo_engine_lookup_entry(position, &entry, &bestmove, &value, &alpha, &beta, depth))
   {
-    int16_t value = entry->value;
-
-    //if (entry->type == uo_tentry_type__exact)
-    //{
-    //  uo_engine_unlock_ttable();
-    //  return value;
-    //}
-
-    if (entry->type == uo_tentry_type__lower_bound && value > alpha)
-    {
-      alpha = value;
-    }
-    else if (entry->type == uo_tentry_type__upper_bound && value < beta)
-    {
-      beta = value;
-    }
-
-    if (alpha >= beta)
-    {
-      uo_engine_unlock_ttable();
-      return value;
-    }
-  }
-  else
-  {
-    ++info->nodes;
+    return value;
   }
 
-  uo_engine_unlock_ttable();
+  ++info->nodes;
 
   if (uo_position_is_max_depth_reached(position))
   {
@@ -563,22 +504,23 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     if (pass_value >= beta)
     {
-      uo_engine_ttable_store(entry, position, 0, beta, depth_nmp, uo_tentry_type__lower_bound);
-      return beta;
+      return pass_value;
     }
   }
 
-  uo_search_sort_and_prune_moves(thread, entry ? entry->bestmove : 0);
+  uo_search_sort_and_prune_moves(thread, bestmove);
 
   if (depth == 0)
   {
+    // TODO: Create separate multi-level quiescence search functions
+
     // Search depth reached. Let's perform quiescence search.
 
     bool is_check = uo_position_is_check(position);
     bool is_quiescent = !is_check;
     int16_t static_evaluation;
     uo_move bestmove = 0;
-    int16_t value = -UO_SCORE_CHECKMATE;
+    value = -UO_SCORE_CHECKMATE;
 
     if (!is_check)
     {
@@ -588,7 +530,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       if (value >= beta)
       {
-        uo_engine_ttable_store(entry, position, 0, beta, 0, uo_tentry_type__lower_bound);
         return beta;
       }
 
@@ -619,7 +560,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           {
             if (value >= beta)
             {
-              uo_engine_ttable_store(entry, position, move, value, 0, uo_tentry_type__lower_bound);
               return value;
             }
 
@@ -636,21 +576,19 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     if (is_quiescent)
     {
-      uo_engine_ttable_store(entry, position, 0, static_evaluation, 0, uo_tentry_type__exact);
       return static_evaluation;
     }
 
-    uo_engine_ttable_store(entry, position, bestmove, value, 0, value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound);
     return value;
   }
 
-  uo_move bestmove = position->movelist.head[0];
+  bestmove = position->movelist.head[0];
   uint8_t bestmove_depth = depth;
   ++position->bftable[uo_color(position->flags)][bestmove & 0xFFF];
 
   uo_position_make_move(position, bestmove);
   // search first move with full alpha/beta window
-  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha);
+  value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha);
   value = uo_score_adjust_for_mate(value);
   uo_position_unmake_move(position);
 
@@ -666,7 +604,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         position->stack->search.killers[0] = bestmove;
       }
 
-      uo_engine_ttable_store(entry, position, bestmove, value, depth, uo_tentry_type__lower_bound);
+      uo_engine_store_entry(position, entry, bestmove, value, alpha, beta, depth);
       return value;
     }
 
@@ -717,7 +655,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             position->stack->search.killers[0] = move;
           }
 
-          uo_engine_ttable_store(entry, position, bestmove, value, bestmove_depth, uo_tentry_type__lower_bound);
+          uo_engine_store_entry(position, entry, bestmove, value, alpha, beta, bestmove_depth);
           return value;
         }
 
@@ -731,7 +669,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  uo_engine_ttable_store(entry, position, bestmove, value, bestmove_depth, value == alpha ? uo_tentry_type__exact : uo_tentry_type__upper_bound);
+  uo_engine_store_entry(position, entry, bestmove, value, alpha, beta, bestmove_depth);
   return value;
 }
 
@@ -932,6 +870,82 @@ void *uo_engine_thread_start_timer(void *arg)
   return NULL;
 }
 
+static inline bool uo_search_adjust_alpha_beta(int16_t score, int16_t *alpha, int16_t *beta, size_t *fail_count)
+{
+  const int16_t aspiration_window_fail_threshold = 2;
+  const int16_t aspiration_window_minimum = 40;
+  const float aspiration_window_factor = 1.5;
+  const int16_t aspiration_window_mate = (UO_SCORE_CHECKMATE - 1) / aspiration_window_factor;
+
+  int16_t score_abs = score > 0 ? score : -score;
+  int16_t aspiration_window = (float)score_abs * aspiration_window_factor;
+
+  if (aspiration_window < aspiration_window_minimum)
+  {
+    aspiration_window = aspiration_window_minimum;
+  }
+
+  if (score <= *alpha)
+  {
+    *fail_count++;
+
+    if (*fail_count >= aspiration_window_fail_threshold)
+    {
+      *alpha = -UO_SCORE_CHECKMATE;
+      return false;
+    }
+
+    if (score < -aspiration_window_mate)
+    {
+      *alpha = -UO_SCORE_CHECKMATE;
+      return false;
+    }
+
+    *alpha = score - aspiration_window;
+    return false;
+  }
+
+  if (score >= *beta)
+  {
+    *fail_count++;
+
+    if (*fail_count >= aspiration_window_fail_threshold)
+    {
+      *beta = UO_SCORE_CHECKMATE;
+      return false;
+    }
+
+    if (score > aspiration_window_mate)
+    {
+      *beta = UO_SCORE_CHECKMATE;
+      return false;
+    }
+
+    *beta = score + aspiration_window;
+    return false;
+  }
+
+  *fail_count = 0;
+
+  if (score < -aspiration_window_mate)
+  {
+    *alpha = -UO_SCORE_CHECKMATE;
+    *beta = -aspiration_window_mate;
+    return true;
+  }
+
+  if (score > aspiration_window_mate)
+  {
+    *alpha = aspiration_window_mate;
+    *beta = UO_SCORE_CHECKMATE;
+    return true;
+  }
+
+  *alpha = score - aspiration_window;
+  *beta = score + aspiration_window;
+  return true;
+}
+
 void *uo_engine_thread_run_principal_variation_search(void *arg)
 {
   uo_engine_thread_work *work = arg;
@@ -950,15 +964,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   uo_engine_thread_load_position(thread);
   uo_engine_queue_work(uo_engine_thread_start_timer, thread);
 
-  int16_t score = uo_search_principal_variation(thread, 1, params->alpha, params->beta);
-  uo_engine_thread_update_pv(thread);
-
-  const int16_t aspiration_window_initial = 40;
-  const int16_t aspiration_window_fail_threshold = 2;
+  int16_t alpha = params->alpha;
+  int16_t beta = params->beta;
   size_t aspiration_fail_count = 0;
-  int16_t aspiration_window = aspiration_window_initial;
-  int16_t alpha = score - aspiration_window;
-  int16_t beta = score + aspiration_window;
+
+  int16_t score = uo_search_principal_variation(thread, 1, alpha, beta);
+  uo_engine_thread_update_pv(thread);
+  uo_search_adjust_alpha_beta(score, &alpha, &beta, &aspiration_fail_count);
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
@@ -972,24 +984,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     while (!uo_engine_is_stopped())
     {
       score = uo_search_principal_variation(thread, depth, alpha, beta);
-      if (score <= alpha)
-      {
-        alpha = ++aspiration_fail_count >= aspiration_window_fail_threshold || score <= -UO_SCORE_MATE_IN_THRESHOLD
-          ? -UO_SCORE_CHECKMATE
-          : (alpha - aspiration_window_initial);
-      }
-      else if (score >= beta)
-      {
-        beta = ++aspiration_fail_count >= aspiration_window_fail_threshold || score >= UO_SCORE_MATE_IN_THRESHOLD
-          ? UO_SCORE_CHECKMATE
-          : (beta + aspiration_window_initial);
-      }
-      else
+
+      if (uo_search_adjust_alpha_beta(score, &alpha, &beta, &aspiration_fail_count))
       {
         uo_engine_thread_update_pv(thread);
-        alpha = score - aspiration_window;
-        beta = score + aspiration_window;
-        aspiration_fail_count = 0;
         break;
       }
     }
