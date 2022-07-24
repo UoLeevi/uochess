@@ -64,6 +64,12 @@ extern "C"
     return move & 0x8000;
   }
 
+  // promotion or capture
+  static inline bool uo_move_is_tactical(uo_move move)
+  {
+    return move & 0xC000;
+  }
+
   static inline uo_move uo_move_encode(uo_square from, uo_square to, uo_move_type type)
   {
     return (uo_move)from | ((uo_move)to << 6) | ((uo_move)type << 12);

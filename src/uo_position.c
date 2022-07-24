@@ -13,6 +13,17 @@
 #include <assert.h>
 #include <immintrin.h>
 
+typedef struct uo_movegenlist
+{
+  uo_move *root;
+  size_t tactical_move_count_guess;
+  struct
+  {
+    uo_move *tactical;
+    uo_move *non_tactical;
+  } moves;
+} uo_movegenlist;
+
 bool uo_position_is_ok(const uo_position *position)
 {
   if (position->movelist.head - position->movelist.moves > UO_MAX_PLY * UO_BRANCING_FACTOR)
@@ -1090,12 +1101,53 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
   return false;
 }
 
+static inline void uo_movegenlist_init(uo_movegenlist *movegenlist, uo_move *root, size_t tactical_move_count_guess)
+{
+  movegenlist->root = root;
+  movegenlist->moves.tactical = root;
+  movegenlist->moves.non_tactical = root + tactical_move_count_guess;
+  movegenlist->tactical_move_count_guess = tactical_move_count_guess;
+}
+
+static inline void uo_movegenlist_insert_non_tactical_move(uo_movegenlist *movegenlist, uo_move move)
+{
+  *movegenlist->moves.non_tactical++ = move;
+}
+
+static inline void uo_movegenlist_insert_tactical_move(uo_movegenlist *movegenlist, uo_move move)
+{
+  if (movegenlist->root + movegenlist->tactical_move_count_guess <= movegenlist->moves.tactical)
+  {
+    uo_movegenlist_insert_non_tactical_move(movegenlist, *movegenlist->moves.tactical);
+  }
+
+  *movegenlist->moves.tactical++ = move;
+}
+
+static inline size_t uo_movegenlist_count_and_pack_generated_moves(uo_movegenlist *movegenlist, uo_move_history *stack)
+{
+  ptrdiff_t gap = movegenlist->root + movegenlist->tactical_move_count_guess - movegenlist->moves.tactical;
+
+  while (--gap >= 0)
+  {
+    *movegenlist->moves.tactical++ = *--movegenlist->moves.non_tactical;
+  }
+
+  stack->moves_generated = true;
+  size_t move_count = stack->move_count = movegenlist->moves.non_tactical - movegenlist->root;
+  size_t tactical_move_count = stack->tactical_move_count = movegenlist->moves.tactical - movegenlist->root;
+  return move_count;
+}
+
 size_t uo_position_generate_moves(uo_position *position)
 {
   assert(uo_position_is_ok(position));
 
+  // Generated moves are initially order so that captures and promotions appear first in the move list
+
   uo_move_history *stack = position->stack;
-  uo_move *moves = position->movelist.head;
+  uo_movegenlist movegenlist;
+
   uo_square square_from;
   uo_square square_to;
 
@@ -1153,6 +1205,8 @@ size_t uo_position_generate_moves(uo_position *position)
 
   if (enemy_checks)
   {
+    uo_movegenlist_init(&movegenlist, position->movelist.head, 1);
+
     uo_square square_enemy_checker = uo_tzcnt(enemy_checks);
 
     if (uo_popcnt(enemy_checks) == 2)
@@ -1173,16 +1227,21 @@ size_t uo_position_generate_moves(uo_position *position)
           continue;
 
         uo_piece piece_captured = board[square_to];
-        uo_move_type move_type = piece_captured > 1 ? uo_move_type__x : uo_move_type__quiet;
-
-        *moves++ = uo_move_encode(square_own_K, square_to, move_type);
+        if (piece_captured > 1)
+        {
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__x));
+        }
+        else
+        {
+          uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__quiet));
+        }
       }
 
-      position->stack->moves_generated = true;
+      stack->moves_generated = true;
 
-      uint8_t move_count = moves - position->movelist.head;
+      size_t move_count = uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
       stack->move_count = move_count;
-      return move_count;
+      return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
     }
 
     // Only one piece is giving a check
@@ -1196,28 +1255,28 @@ size_t uo_position_generate_moves(uo_position *position)
     while (attack_checker_B)
     {
       square_from = uo_bitboard_next_square(&attack_checker_B);
-      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__x));
     }
 
     uo_bitboard attack_checker_R = uo_andn(pins_to_own_K, own_R & attack_checker_lines);
     while (attack_checker_R)
     {
       square_from = uo_bitboard_next_square(&attack_checker_R);
-      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__x));
     }
 
     uo_bitboard attack_checker_Q = uo_andn(pins_to_own_K, own_Q & (attack_checker_diagonals | attack_checker_lines));
     while (attack_checker_Q)
     {
       square_from = uo_bitboard_next_square(&attack_checker_Q);
-      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__x));
     }
 
     uo_bitboard attack_checker_N = uo_andn(pins_to_own_K, own_N & uo_bitboard_attacks_N(square_enemy_checker));
     while (attack_checker_N)
     {
       square_from = uo_bitboard_next_square(&attack_checker_N);
-      *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__x));
     }
 
     uo_bitboard attack_checker_P = uo_andn(pins_to_own_K, own_P & uo_bitboard_attacks_P(square_enemy_checker, uo_black));
@@ -1228,14 +1287,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (own_P & bitboard_from & uo_bitboard_rank_seventh)
       {
-        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx);
-        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx);
-        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx);
-        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Qx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Nx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Bx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__promo_Rx));
       }
       else
       {
-        *moves++ = uo_move_encode(square_from, square_enemy_checker, uo_move_type__x);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_enemy_checker, uo_move_type__x));
       }
     }
 
@@ -1246,12 +1305,12 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (enpassant_file > 1 && (non_pinned_P & (position->checks.by_P >> 1)))
       {
-        *moves++ = uo_move_encode(square_enemy_checker - 1, square_enemy_checker + 8, uo_move_type__enpassant);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_enemy_checker - 1, square_enemy_checker + 8, uo_move_type__enpassant));
       }
 
       if (enpassant_file < 8 && (non_pinned_P & (position->checks.by_P << 1)))
       {
-        *moves++ = uo_move_encode(square_enemy_checker + 1, square_enemy_checker + 8, uo_move_type__enpassant);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_enemy_checker + 1, square_enemy_checker + 8, uo_move_type__enpassant));
       }
     }
 
@@ -1277,28 +1336,28 @@ size_t uo_position_generate_moves(uo_position *position)
       while (block_B)
       {
         square_from = uo_bitboard_next_square(&block_B);
-        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__quiet));
       }
 
       uo_bitboard block_R = uo_andn(pins_to_own_K, own_R & block_lines);
       while (block_R)
       {
         square_from = uo_bitboard_next_square(&block_R);
-        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__quiet));
       }
 
       uo_bitboard block_Q = uo_andn(pins_to_own_K, own_Q & (block_diagonals | block_lines));
       while (block_Q)
       {
         square_from = uo_bitboard_next_square(&block_Q);
-        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__quiet));
       }
 
       uo_bitboard block_N = uo_andn(pins_to_own_K, own_N & uo_bitboard_moves_N(square_between, mask_enemy, mask_own));
       while (block_N)
       {
         square_from = uo_bitboard_next_square(&block_N);
-        *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__quiet));
       }
 
       uo_bitboard block_P = own_P & uo_square_bitboard(square_between - 8);
@@ -1316,18 +1375,18 @@ size_t uo_position_generate_moves(uo_position *position)
 
         if (bitboard_from & uo_bitboard_rank_seventh)
         {
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_Q);
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_N);
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_B);
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__promo_R);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__promo_Q));
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__promo_N));
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__promo_B));
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__promo_R));
         }
         else if ((bitboard_from & uo_bitboard_rank_second) && (bitboard_square_between & uo_bitboard_rank_fourth))
         {
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__P_double_push);
+          uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__P_double_push));
         }
         else
         {
-          *moves++ = uo_move_encode(square_from, square_between, uo_move_type__quiet);
+          uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_between, uo_move_type__quiet));
         }
       }
     }
@@ -1348,17 +1407,20 @@ size_t uo_position_generate_moves(uo_position *position)
         continue;
 
       uo_piece piece_captured = board[square_to];
-      uo_move_type move_type = piece_captured > 1 ? uo_move_type__x : uo_move_type__quiet;
-
-      *moves++ = uo_move_encode(square_own_K, square_to, move_type);
+      if (piece_captured > 1)
+      {
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__x));
+      }
+      else
+      {
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__quiet));
+      }
     }
 
-    position->stack->moves_generated = true;
-
-    uint8_t move_count = moves - position->movelist.head;
-    stack->move_count = move_count;
-    return move_count;
+    return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
   }
+
+  uo_movegenlist_init(&movegenlist, position->movelist.head, uo_popcnt(position->enemy) >> 2);
 
   // King is not in check. Let's list moves by piece type
 
@@ -1375,14 +1437,14 @@ size_t uo_position_generate_moves(uo_position *position)
     while (captures_N)
     {
       square_to = uo_bitboard_next_square(&captures_N);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
 
     uo_bitboard quiets_N = moves_N & empty;
     while (quiets_N)
     {
       square_to = uo_bitboard_next_square(&quiets_N);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
     }
   }
 
@@ -1397,14 +1459,14 @@ size_t uo_position_generate_moves(uo_position *position)
     while (captures_B)
     {
       square_to = uo_bitboard_next_square(&captures_B);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
 
     uo_bitboard quiets_B = moves_B & empty;
     while (quiets_B)
     {
       square_to = uo_bitboard_next_square(&quiets_B);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
     }
   }
 
@@ -1419,14 +1481,14 @@ size_t uo_position_generate_moves(uo_position *position)
     while (captures_R)
     {
       square_to = uo_bitboard_next_square(&captures_R);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
 
     uo_bitboard quiets_R = moves_R & empty;
     while (quiets_R)
     {
       square_to = uo_bitboard_next_square(&quiets_R);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
     }
   }
 
@@ -1441,14 +1503,14 @@ size_t uo_position_generate_moves(uo_position *position)
     while (captures_Q)
     {
       square_to = uo_bitboard_next_square(&captures_Q);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
 
     uo_bitboard quiets_Q = moves_Q & empty;
     while (quiets_Q)
     {
       square_to = uo_bitboard_next_square(&quiets_Q);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
     }
   }
 
@@ -1465,14 +1527,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Q));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_N));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_B));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_R));
     }
     else
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
     }
   }
 
@@ -1483,7 +1545,7 @@ size_t uo_position_generate_moves(uo_position *position)
   {
     square_to = uo_bitboard_next_square(&non_pinned_double_push_P);
     square_from = square_to - 16;
-    *moves++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
+    uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__P_double_push));
   }
 
   // Captures to right
@@ -1496,14 +1558,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Bx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Rx));
     }
     else
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
   }
 
@@ -1517,14 +1579,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
     if (uo_square_bitboard(square_to) & uo_bitboard_rank_last)
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Bx));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Rx));
     }
     else
     {
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
     }
   }
 
@@ -1536,12 +1598,12 @@ size_t uo_position_generate_moves(uo_position *position)
 
     if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
     {
-      *moves++ = uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant));
     }
 
     if (enpassant_file < 8 && (non_pinned_P & (enpassant << 1)))
     {
-      *moves++ = uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant);
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant));
     }
   }
 
@@ -1561,14 +1623,14 @@ size_t uo_position_generate_moves(uo_position *position)
       while (captures_BQ)
       {
         square_to = uo_bitboard_next_square(&captures_BQ);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
       }
 
       uo_bitboard quiets_BQ = moves_BQ & empty;
       while (quiets_BQ)
       {
         square_to = uo_bitboard_next_square(&quiets_BQ);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
       }
     }
 
@@ -1583,14 +1645,14 @@ size_t uo_position_generate_moves(uo_position *position)
       while (captures_RQ)
       {
         square_to = uo_bitboard_next_square(&captures_RQ);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
       }
 
       uo_bitboard quiets_RQ = moves_RQ & empty;
       while (quiets_RQ)
       {
         square_to = uo_bitboard_next_square(&quiets_RQ);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
       }
     }
 
@@ -1607,14 +1669,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (bitboard_to & uo_bitboard_rank_last)
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Q);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_N);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_B);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_R);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Q));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_N));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_B));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_R));
       }
       else
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__quiet);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__quiet));
       }
     }
 
@@ -1624,7 +1686,7 @@ size_t uo_position_generate_moves(uo_position *position)
     {
       square_to = uo_bitboard_next_square(&pinned_double_push_P);
       square_from = square_to - 16;
-      *moves++ = uo_move_encode(square_from, square_to, uo_move_type__P_double_push);
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__P_double_push));
     }
 
     // Captures by pinned pawns
@@ -1640,14 +1702,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (bitboard_to & uo_bitboard_rank_last)
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Bx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Rx));
       }
       else
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
       }
     }
 
@@ -1661,14 +1723,14 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (bitboard_to & uo_bitboard_rank_last)
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Qx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Nx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Bx);
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__promo_Rx);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Bx));
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Rx));
       }
       else
       {
-        *moves++ = uo_move_encode(square_from, square_to, uo_move_type__x);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
       }
     }
 
@@ -1685,12 +1747,12 @@ size_t uo_position_generate_moves(uo_position *position)
       {
         if (enpassant_file > 1 && (pinned_diag_P & (enpassant >> 1)))
         {
-          *moves++ = uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant));
         }
 
         if (enpassant_file < 8 && (pinned_diag_P & (enpassant << 1)))
         {
-          *moves++ = uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant));
         }
       }
     }
@@ -1720,7 +1782,7 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (!enemy_checks)
       {
-        *moves++ = uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_own_K, uo_square__g1, uo_move_type__OO));
       }
     }
   }
@@ -1745,7 +1807,7 @@ size_t uo_position_generate_moves(uo_position *position)
 
       if (!enemy_checks)
       {
-        *moves++ = uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO);
+        uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_own_K, uo_square__c1, uo_move_type__OOO));
       }
     }
   }
@@ -1766,15 +1828,17 @@ size_t uo_position_generate_moves(uo_position *position)
       continue;
 
     uo_piece piece_captured = board[square_to];
-    uo_move_type move_type = piece_captured > 1 ? uo_move_type__x : uo_move_type__quiet;
-    *moves++ = uo_move_encode(square_own_K, square_to, move_type);
+    if (piece_captured > 1)
+    {
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__x));
+    }
+    else
+    {
+      uo_movegenlist_insert_non_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__quiet));
+    }
   }
 
-  position->stack->moves_generated = true;
-
-  uint8_t move_count = moves - position->movelist.head;
-  stack->move_count = move_count;
-  return move_count;
+  return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
 }
 
 // Only direct checks, does not take into account discoveries

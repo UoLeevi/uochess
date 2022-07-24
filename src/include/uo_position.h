@@ -40,6 +40,7 @@ extern "C"
     uo_move move;
     uo_position_flags flags;
     uint8_t move_count;
+    uint8_t tactical_move_count;
     bool moves_generated;
     uint8_t repetitions;
     struct
