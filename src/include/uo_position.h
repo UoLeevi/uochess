@@ -563,6 +563,190 @@ extern "C"
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
   }
 
+
+  static inline uint16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move)
+  {
+    if (uo_position_is_killer_move(position, move))
+    {
+      return 1000;
+    }
+
+    // relative history heuristic
+    uint8_t color = uo_color(position->flags);
+    uint16_t index = move & 0xFFF;
+    uint32_t hhscore = position->hhtable[color][index] << 4;
+    uint32_t bfscore = position->bftable[color][index] + 1;
+    return hhscore / bfscore;
+  }
+
+  static inline uint16_t uo_position_calculate_tactical_move_score(uo_position *position, uo_move move)
+  {
+    uo_square move_type = uo_move_get_type(move);
+
+    if (move_type == uo_move_type__enpassant)
+    {
+      return 3000;
+    }
+
+    if (move_type & uo_move_type__promo)
+    {
+      return 3000;
+    }
+
+    if (move_type & uo_move_type__x)
+    {
+      uo_square square_from = uo_move_square_from(move);
+      uo_square square_to = uo_move_square_to(move);
+      uo_piece piece = position->board[square_from];
+      uo_piece piece_captured = position->board[square_to];
+      return 2000 + up_piece_value(piece_captured) - up_piece_value(piece) / 10;
+    }
+
+    return 0;
+  }
+
+  static inline int uo_position_partition_moves(uo_position *position, uo_move *movelist, int lo, int hi)
+  {
+    int16_t *move_scores = position->movelist.move_scores;
+    int mid = (lo + hi) >> 1;
+    uo_move temp_move;
+    int16_t temp_score;
+
+    if (move_scores[mid] > move_scores[lo])
+    {
+      temp_move = movelist[mid];
+      movelist[mid] = movelist[lo];
+      movelist[lo] = temp_move;
+
+      temp_score = move_scores[mid];
+      move_scores[mid] = move_scores[lo];
+      move_scores[lo] = temp_score;
+    }
+
+    if (move_scores[hi] > move_scores[lo])
+    {
+      temp_move = movelist[hi];
+      movelist[hi] = movelist[lo];
+      movelist[lo] = temp_move;
+
+      temp_score = move_scores[hi];
+      move_scores[hi] = move_scores[lo];
+      move_scores[lo] = temp_score;
+    }
+
+    if (move_scores[mid] > move_scores[hi])
+    {
+      temp_move = movelist[mid];
+      movelist[mid] = movelist[hi];
+      movelist[hi] = temp_move;
+
+      temp_score = move_scores[mid];
+      move_scores[mid] = move_scores[hi];
+      move_scores[hi] = temp_score;
+    }
+
+    int8_t pivot = move_scores[hi];
+
+    for (int j = lo; j < hi - 1; ++j)
+    {
+      if (move_scores[j] > pivot)
+      {
+
+        temp_move = movelist[lo];
+        movelist[lo] = movelist[j];
+        movelist[j] = temp_move;
+
+        temp_score = move_scores[lo];
+        move_scores[lo] = move_scores[j];
+        move_scores[j] = temp_score;
+
+        ++lo;
+      }
+    }
+
+    temp_move = movelist[lo];
+    movelist[lo] = movelist[hi];
+    movelist[hi] = temp_move;
+
+    temp_score = move_scores[lo];
+    move_scores[lo] = move_scores[hi];
+    move_scores[hi] = temp_score;
+
+    return lo;
+  }
+
+  // Limited quicksort which prioritizes ordering beginning of movelist
+  static inline void uo_position_quicksort_moves(uo_position *position, uo_move *movelist, int lo, int hi, int depth)
+  {
+    if (lo >= hi || depth <= 0)
+    {
+      return;
+    }
+
+    int p = uo_position_partition_moves(position, movelist, lo, hi);
+    uo_position_quicksort_moves(position, movelist, lo, p - 1, depth - 1);
+    uo_position_quicksort_moves(position, movelist, p + 1, hi, depth - 2);
+  }
+
+  static inline void uo_position_sort_tactical_moves(uo_position *position)
+  {
+    uo_move *movelist = position->movelist.head;
+    size_t tactical_move_count = position->stack->tactical_move_count;
+    size_t i = 0;
+
+    while (i < tactical_move_count)
+    {
+      uo_move move = movelist[i];
+      uint16_t score = uo_position_calculate_tactical_move_score(position, move);
+      position->movelist.move_scores[i] = score;
+      ++i;
+    }
+
+    const size_t quicksort_depth = 4; // arbitrary
+    uo_position_quicksort_moves(position, movelist, 0, tactical_move_count - 1, quicksort_depth);
+  }
+
+  static inline void uo_position_sort_non_tactical_moves(uo_position *position)
+  {
+    uo_move *movelist = position->movelist.head;
+    size_t tactical_move_count = position->stack->tactical_move_count;
+    size_t move_count = position->stack->move_count;
+    size_t i = tactical_move_count;
+
+    while (i < move_count)
+    {
+      uo_move move = movelist[i];
+      uint16_t score = uo_position_calculate_tactical_move_score(position, move);
+      position->movelist.move_scores[i] = score;
+      ++i;
+    }
+
+    const size_t quicksort_depth = 4; // arbitrary
+    uo_position_quicksort_moves(position, movelist, tactical_move_count, move_count - 1, quicksort_depth);
+  }
+
+  static inline void uo_position_sort_moves(uo_position *position, uo_move bestmove)
+  {
+    uo_move *movelist = position->movelist.head;
+    size_t move_count = position->stack->move_count;
+    uo_position_sort_tactical_moves(position);
+    uo_position_sort_non_tactical_moves(position);
+
+    // set bestmove as first
+    if (bestmove && movelist[0] != bestmove)
+    {
+      for (size_t i = 1; i < move_count; ++i)
+      {
+        if (movelist[i] == bestmove)
+        {
+          movelist[i] = movelist[0];
+          movelist[0] = bestmove;
+          break;
+        }
+      }
+    }
+  }
+
   static inline bool uo_position_is_quiescent(uo_position *position)
   {
     if (!position->stack->moves_generated)
@@ -602,7 +786,7 @@ extern "C"
   size_t uo_position_perft(uo_position *position, size_t depth);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

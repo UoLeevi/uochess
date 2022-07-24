@@ -52,6 +52,11 @@ extern "C"
       uo_move bestmove;
       uo_move pv[UO_MAX_PLY];
     };
+    union
+    {
+      uo_move bestmove;
+      uo_move pv[UO_MAX_PLY];
+    } *secondary_pvs;
   } uo_search_info;
 
   void *uo_engine_thread_start_timer(void *arg);

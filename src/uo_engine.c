@@ -71,6 +71,12 @@ void uo_engine_init()
   {
     uo_engine_thread *thread = engine.threads + i;
     thread->info.thread = thread;
+
+    if (engine_options.multipv)
+    {
+      thread->info.secondary_pvs = calloc(engine_options.multipv, sizeof * thread->info.secondary_pvs);
+    }
+
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 

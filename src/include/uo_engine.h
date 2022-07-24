@@ -116,6 +116,11 @@ extern "C"
     uo_engine_unlock_ttable();
   }
 
+  static inline bool uo_engine_is_stopped()
+  {
+    return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
+  }
+
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_tentry **entry, uo_move *bestmove, int16_t *value, int16_t *alpha, int16_t *beta, uint8_t depth)
   {
     uo_engine_lock_ttable();
@@ -127,9 +132,10 @@ extern "C"
       return false;
     }
 
+    *bestmove = tte->bestmove;
+
     if (tte->type == uo_tentry_type__exact)
     {
-      *bestmove = tte->bestmove;
       *value = tte->value;
       uo_engine_unlock_ttable();
       return true;
@@ -141,7 +147,6 @@ extern "C"
     }
     else if (tte->type == uo_tentry_type__upper_bound && tte->value < *beta)
     {
-      *bestmove = tte->bestmove;
       *beta = tte->value;
     }
 
@@ -160,9 +165,11 @@ extern "C"
   {
     assert(bestmove);
 
+    if (uo_engine_is_stopped()) return;
+
     uint8_t type =
       value >= beta ? uo_tentry_type__lower_bound :
-      value <= alpha ? uo_tentry_type__upper_bound :
+      value < alpha ? uo_tentry_type__upper_bound :
       uo_tentry_type__exact;
 
     if (!entry)
@@ -191,11 +198,6 @@ extern "C"
 
   void uo_engine_start_search();
 
-  static inline bool uo_engine_is_stopped()
-  {
-    return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
-  }
-
   static inline void uo_engine_reset_search_params(uint8_t seach_type)
   {
     assert(uo_engine_is_stopped());
@@ -215,7 +217,7 @@ extern "C"
   void uo_engine_queue_work(uo_thread_function *function, void *data);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

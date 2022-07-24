@@ -15,12 +15,18 @@
 
 typedef struct uo_movegenlist
 {
-  uo_move *root;
-  size_t tactical_move_count_guess;
   struct
   {
-    uo_move *tactical;
-    uo_move *non_tactical;
+    struct
+    {
+      uo_move *root;
+      uo_move *head;
+    }tactical;
+    struct
+    {
+      uo_move *root;
+      uo_move *head;
+    }non_tactical;
   } moves;
 } uo_movegenlist;
 
@@ -1103,39 +1109,40 @@ bool uo_position_is_legal_move(uo_position *position, uo_move move)
 
 static inline void uo_movegenlist_init(uo_movegenlist *movegenlist, uo_move *root, size_t tactical_move_count_guess)
 {
-  movegenlist->root = root;
-  movegenlist->moves.tactical = root;
-  movegenlist->moves.non_tactical = root + tactical_move_count_guess;
-  movegenlist->tactical_move_count_guess = tactical_move_count_guess;
+  movegenlist->moves.tactical.head = movegenlist->moves.tactical.root = root;
+  movegenlist->moves.non_tactical.head = movegenlist->moves.non_tactical.root = root + tactical_move_count_guess;
 }
 
 static inline void uo_movegenlist_insert_non_tactical_move(uo_movegenlist *movegenlist, uo_move move)
 {
-  *movegenlist->moves.non_tactical++ = move;
+  *movegenlist->moves.non_tactical.head++ = move;
 }
 
 static inline void uo_movegenlist_insert_tactical_move(uo_movegenlist *movegenlist, uo_move move)
 {
-  if (movegenlist->root + movegenlist->tactical_move_count_guess <= movegenlist->moves.tactical)
+  if (movegenlist->moves.tactical.head == movegenlist->moves.non_tactical.root)
   {
-    uo_movegenlist_insert_non_tactical_move(movegenlist, *movegenlist->moves.tactical);
+    *movegenlist->moves.non_tactical.head++ = *movegenlist->moves.non_tactical.root++;
   }
 
-  *movegenlist->moves.tactical++ = move;
+  *movegenlist->moves.tactical.head++ = move;
 }
 
 static inline size_t uo_movegenlist_count_and_pack_generated_moves(uo_movegenlist *movegenlist, uo_move_history *stack)
 {
-  ptrdiff_t gap = movegenlist->root + movegenlist->tactical_move_count_guess - movegenlist->moves.tactical;
+  stack->moves_generated = true;
+  size_t tactical_move_count = stack->tactical_move_count = movegenlist->moves.tactical.head - movegenlist->moves.tactical.root;
+  size_t non_tactical_move_count = movegenlist->moves.non_tactical.head - movegenlist->moves.non_tactical.root;
+  size_t move_count = stack->move_count = tactical_move_count + non_tactical_move_count;
 
-  while (--gap >= 0)
+  size_t gap = movegenlist->moves.non_tactical.root - movegenlist->moves.tactical.head;
+
+  if (gap > 0)
   {
-    *movegenlist->moves.tactical++ = *--movegenlist->moves.non_tactical;
+    size_t displaced_move_count = gap > non_tactical_move_count ? non_tactical_move_count : gap;
+    memmove(movegenlist->moves.tactical.head, movegenlist->moves.non_tactical.head - displaced_move_count, displaced_move_count * sizeof(uo_move));
   }
 
-  stack->moves_generated = true;
-  size_t move_count = stack->move_count = movegenlist->moves.non_tactical - movegenlist->root;
-  size_t tactical_move_count = stack->tactical_move_count = movegenlist->moves.tactical - movegenlist->root;
   return move_count;
 }
 
@@ -1420,7 +1427,10 @@ size_t uo_position_generate_moves(uo_position *position)
     return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
   }
 
-  uo_movegenlist_init(&movegenlist, position->movelist.head, uo_popcnt(position->enemy) >> 2);
+  size_t centralized_piece_count = uo_popcnt(uo_bitboard_big_center & (mask_own | mask_enemy));
+  size_t tactical_move_count_guess = centralized_piece_count << 1;
+
+  uo_movegenlist_init(&movegenlist, position->movelist.head, tactical_move_count_guess);
 
   // King is not in check. Let's list moves by piece type
 
@@ -1841,42 +1851,12 @@ size_t uo_position_generate_moves(uo_position *position)
   return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
 }
 
-// Only direct checks, does not take into account discoveries
-bool uo_position_is_check_move(uo_position *const position, uo_move move)
+bool uo_position_is_check_move(uo_position *position, uo_move move)
 {
-  uo_square square_from = uo_move_square_from(move);
-  uo_piece piece = position->board[square_from];
-  uo_square square_to = uo_move_square_to(move);
-  uint8_t color = uo_color(piece);
-
-  uo_bitboard enemy_K = position->enemy & position->K;
-
-  switch (uo_piece_type(piece))
-  {
-    case uo_piece__P:
-      return enemy_K & uo_bitboard_attacks_P(square_to, color);
-
-    case uo_piece__N:
-      return enemy_K & uo_bitboard_attacks_N(square_to);
-  }
-
-  uo_bitboard occupied = position->own | position->enemy;
-
-  switch (uo_piece_type(piece))
-  {
-    case uo_piece__B:
-      return enemy_K & uo_bitboard_attacks_B(square_to, occupied);
-
-    case uo_piece__R:
-      return enemy_K & uo_bitboard_attacks_R(square_to, occupied);
-
-    case uo_piece__Q:
-      return enemy_K & (
-        uo_bitboard_attacks_B(square_to, occupied) |
-        uo_bitboard_attacks_R(square_to, occupied));
-  }
-
-  return false;
+  uo_position_make_move(position, move);
+  bool is_check = uo_position_is_check(position);
+  uo_position_unmake_move(position);
+  return is_check;
 }
 
 uo_move uo_position_parse_move(uo_position *const position, char str[5])
