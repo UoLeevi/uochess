@@ -109,10 +109,6 @@ extern "C"
   {
     uo_engine_lock_ttable();
     uo_ttable_clear(&engine.ttable);
-    uo_engine_lock_position();
-    engine.position.stack->moves_generated = false;
-    engine.position.update_status.checks_and_pins = false;
-    uo_engine_unlock_position();
     uo_engine_unlock_ttable();
   }
 
@@ -121,79 +117,106 @@ extern "C"
     return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
   }
 
-  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_tentry **entry, uo_move *bestmove, int16_t *value, int16_t *alpha, int16_t *beta, uint8_t depth)
+  typedef struct uo_abtentry
+  {
+    const int16_t alpha;
+    const int16_t beta;
+    int8_t depth;
+    uo_move bestmove;
+    int16_t value;
+    uo_tentry *entry;
+    int16_t hardalpha;
+    int16_t hardbeta;
+  } uo_abtentry;
+
+  // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
+  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
   {
     uo_engine_lock_ttable();
-    uo_tentry *tte = *entry = uo_ttable_get(&engine.ttable, position);
+    abtentry->entry = uo_ttable_get(&engine.ttable, position);
 
-    if (!tte || tte->depth < depth)
+    if (!abtentry->entry || abtentry->entry->depth < abtentry->depth)
     {
+      abtentry->hardalpha = -UO_SCORE_CHECKMATE;
+      abtentry->hardbeta = UO_SCORE_CHECKMATE;
       uo_engine_unlock_ttable();
       return false;
     }
 
-    *bestmove = tte->bestmove;
+    abtentry->bestmove = abtentry->entry->bestmove;
 
-    if (tte->type == uo_tentry_type__exact)
+    if (abtentry->entry->type == uo_tentry_type__exact)
     {
-      *value = tte->value;
+      abtentry->value = abtentry->entry->value;
       uo_engine_unlock_ttable();
       return true;
     }
 
-    if (tte->type == uo_tentry_type__lower_bound && tte->value > *alpha)
+    if (abtentry->entry->type == uo_tentry_type__lower_bound)
     {
-      *alpha = tte->value;
-    }
-    else if (tte->type == uo_tentry_type__upper_bound && tte->value < *beta)
-    {
-      *beta = tte->value;
-    }
+      if (abtentry->entry->value >= abtentry->beta)
+      {
+        abtentry->value = abtentry->entry->value;
+        uo_engine_unlock_ttable();
+        return true;
+      }
 
-    if (*alpha >= *beta)
+      abtentry->hardalpha = abtentry->entry->value;
+      abtentry->hardbeta = UO_SCORE_CHECKMATE;
+    }
+    else // if (abtentry->entry->type == uo_tentry_type__upper_bound)
     {
-      *value = tte->value;
-      uo_engine_unlock_ttable();
-      return true;
+      if (abtentry->entry->value <= abtentry->alpha)
+      {
+        abtentry->value = abtentry->entry->value;
+        uo_engine_unlock_ttable();
+        return true;
+      }
+
+      abtentry->hardalpha = -UO_SCORE_CHECKMATE;
+      abtentry->hardbeta = abtentry->entry->value;
     }
 
     uo_engine_unlock_ttable();
     return false;
   }
 
-  static inline void uo_engine_store_entry(const uo_position *position, uo_tentry *entry, uo_move bestmove, int16_t value, int16_t alpha, int16_t beta, uint8_t depth)
+  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    assert(bestmove);
+    if (abtentry->value < abtentry->hardalpha) abtentry->value = abtentry->hardalpha;
+    if (abtentry->value > abtentry->hardbeta) abtentry->value = abtentry->hardbeta;
 
-    if (uo_engine_is_stopped()) return;
+    if (uo_engine_is_stopped()) return abtentry->value;
 
     uint8_t type =
-      value >= beta ? uo_tentry_type__lower_bound :
-      value < alpha ? uo_tentry_type__upper_bound :
+      abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
+      abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
       uo_tentry_type__exact;
 
-    if (!entry)
+    if (!abtentry->entry)
     {
       uo_engine_lock_ttable();
-      entry = uo_ttable_set(&engine.ttable, position);
-      entry->depth = depth;
-      entry->bestmove = bestmove;
-      entry->value = value;
-      entry->type = type;
+      abtentry->entry = uo_ttable_set(&engine.ttable, position);
+      abtentry->entry->depth = abtentry->depth;
+      abtentry->entry->bestmove = abtentry->bestmove;
+      abtentry->entry->value = abtentry->value;
+      abtentry->entry->type = type;
       uo_engine_unlock_ttable();
     }
     else
     {
       uo_engine_lock_ttable();
-      if (entry->depth <= depth)
+      if (abtentry->entry->depth <= abtentry->depth)
       {
-        entry->depth = depth;
-        entry->bestmove = bestmove;
-        entry->value = value;
-        entry->type = type;
+        abtentry->entry->depth = abtentry->depth;
+        abtentry->entry->bestmove = abtentry->bestmove;
+        abtentry->entry->value = abtentry->value;
+        abtentry->entry->type = type;
       }
       uo_engine_unlock_ttable();
     }
+
+    return abtentry->value;
   }
 
   void uo_engine_start_search();
@@ -217,7 +240,7 @@ extern "C"
   void uo_engine_queue_work(uo_thread_function *function, void *data);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

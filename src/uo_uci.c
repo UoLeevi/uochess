@@ -820,10 +820,12 @@ static void uo_uci_process_input__ready(void)
       for (size_t i = 0; i < move_count; ++i)
       {
         uo_move move = engine.position.movelist.head[i];
-        if (uo_move_is_capture(move))
+        int16_t gain = uo_position_move_sse(&engine.position, move);
+
+        if (gain != 0 || uo_move_is_capture(move))
         {
           uo_position_print_move(&engine.position, move, buf);
-          int16_t gain = uo_position_capture_gain(&engine.position, move);
+          
           printf("%s: %d\n", buf, gain);
         }
       }
