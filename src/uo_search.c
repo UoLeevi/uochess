@@ -46,15 +46,16 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
 
 typedef uint8_t uo_search_quiesce_flags;
 
-#define uo_search_quiesce_flags__promotions ((uint8_t)1)
-#define uo_search_quiesce_flags__winning_sse ((uint8_t)2)
-#define uo_search_quiesce_flags__non_losing_sse ((uint8_t)6)
-#define uo_search_quiesce_flags__all_captures ((uint8_t)14)
-#define uo_search_quiesce_flags__checks ((uint8_t)16)
+#define uo_search_quiesce_flags__checks ((uint8_t)1)
+#define uo_search_quiesce_flags__positive_sse ((uint8_t)2)
+#define uo_search_quiesce_flags__non_negative_sse ((uint8_t)6)
+#define uo_search_quiesce_flags__any_sse ((uint8_t)14)
 #define uo_search_quiesce_flags__all_moves ((uint8_t)-1)
 
-#define uo_search_quiesce_flags__root (uo_search_quiesce_flags__all_captures | uo_search_quiesce_flags__promotions)
-#define uo_search_quiesce_flags__subsequent (uo_search_quiesce_flags__winning_sse | uo_search_quiesce_flags__promotions)
+#define uo_search_quiesce_flags__root (uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_sse)
+#define uo_search_quiesce_flags__subsequent uo_search_quiesce_flags__root
+#define uo_search_quiesce_flags__deep uo_search_quiesce_flags__positive_sse
+#define uo_search_quiesce__deep_threshold 6
 
 static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
 {
@@ -63,34 +64,20 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
     return true;
   }
 
-  if ((flags & uo_search_quiesce_flags__promotions) == uo_search_quiesce_flags__promotions
-    && uo_move_is_promotion(move))
+  int16_t sse = (flags & uo_search_quiesce_flags__any_sse) == uo_search_quiesce_flags__any_sse
+    ? 1
+    : uo_position_move_sse(&thread->position, move);
+
+  bool sufficient_sse = sse > 0
+    || (sse == 0 && ((flags & uo_search_quiesce_flags__non_negative_sse) == uo_search_quiesce_flags__non_negative_sse));
+
+  if (sufficient_sse)
   {
-    return true;
+    return false;
   }
 
-  if (uo_move_is_capture(move))
-  {
-    if ((flags & uo_search_quiesce_flags__all_captures) == uo_search_quiesce_flags__all_captures)
-    {
-      return true;
-    }
-
-    if ((flags & uo_search_quiesce_flags__winning_sse))
-    {
-      int16_t gain = uo_position_move_sse(&thread->position, move);
-      if (gain > 0)
-      {
-        return true;
-      }
-
-      if (gain == 0 && (flags & uo_search_quiesce_flags__non_losing_sse) == uo_search_quiesce_flags__non_losing_sse)
-      {
-        return true;
-      }
-    }
-  }
-
+  if (uo_move_is_promotion(move)) return true;
+  if (uo_move_is_capture(move)) return true;
 
   if ((flags & uo_search_quiesce_flags__checks) == uo_search_quiesce_flags__checks
     && uo_position_is_check_move(&thread->position, move))
@@ -101,7 +88,7 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
   return false;
 }
 
-static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uo_search_quiesce_flags flags)
+static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uo_search_quiesce_flags flags, uint8_t depth)
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
@@ -169,6 +156,10 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     uo_position_sort_tactical_moves(&thread->position);
   }
 
+  uo_search_quiesce_flags flags_next = depth >= uo_search_quiesce__deep_threshold
+    ? uo_search_quiesce_flags__deep
+    : uo_search_quiesce_flags__subsequent;
+
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
@@ -178,7 +169,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       is_quiescent = false;
 
       uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, uo_search_quiesce_flags__subsequent);
+      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, flags_next, depth + 1);
       node_value = uo_score_adjust_for_mate(node_value);
       uo_position_unmake_move(position);
 
@@ -229,7 +220,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   if (depth == 0)
   {
-    entry.value = uo_search_quiesce(thread, alpha, beta, uo_search_quiesce_flags__root);
+    entry.value = uo_search_quiesce(thread, alpha, beta, uo_search_quiesce_flags__root, 0);
     return uo_engine_store_entry(position, &entry);
   }
 
@@ -303,15 +294,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     // search later moves for reduced depth
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
-    size_t depth_lmr = depth;
-
-    if (depth > 3)
-    {
-      if (i > 5 && (i << 1) > move_count)
-      {
-        depth_lmr = depth - 1;
-      }
-    }
+    size_t depth_lmr = depth > 3 ? depth - 1 : depth;
 
     // search with null window
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha);
@@ -716,7 +699,7 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
 
   int16_t alpha = params->alpha;
   int16_t beta = params->beta;
-  int16_t value = uo_search_quiesce(thread, alpha, beta, uo_search_quiesce_flags__root);
+  int16_t value = uo_search_quiesce(thread, alpha, beta, uo_search_quiesce_flags__root, 0);
 
   double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
   uint64_t nps = thread->info.nodes / time_msec * 1000.0;

@@ -1851,14 +1851,6 @@ size_t uo_position_generate_moves(uo_position *position)
   return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
 }
 
-bool uo_position_is_check_move(uo_position *position, uo_move move)
-{
-  uo_position_make_move(position, move);
-  bool is_check = uo_position_is_check(position);
-  uo_position_unmake_move(position);
-  return is_check;
-}
-
 uo_move uo_position_parse_move(uo_position *const position, char str[5])
 {
   if (!str)

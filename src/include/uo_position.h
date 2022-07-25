@@ -285,7 +285,159 @@ extern "C"
 
   size_t uo_position_generate_moves(uo_position *position);
 
-  bool uo_position_is_check_move(uo_position *position, uo_move move);
+  static inline bool uo_position_is_check_move(const uo_position *position, uo_move move)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    const uo_piece *board = position->board;
+    uo_piece piece = board[square_from];
+
+    assert(uo_color(piece) == uo_color_own);
+
+    uo_bitboard mask_enemy = position->enemy;
+    uo_bitboard enemy_K = mask_enemy & position->K;
+
+    // 1. Direct checks
+
+    if (piece == uo_piece__P && (uo_bitboard_attacks_P(square_to, uo_color_own) & enemy_K)) return true;
+    if (piece == uo_piece__N && (uo_bitboard_attacks_N(square_to) & enemy_K)) return true;
+
+    uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+    uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
+    uo_bitboard occupied = mask_own | mask_enemy | bitboard_to;
+
+    switch (piece)
+    {
+      case uo_piece__B:
+        if (uo_bitboard_attacks_B(square_to, occupied) & enemy_K) return true;
+        break;
+
+      case uo_piece__R:
+        if (uo_bitboard_attacks_R(square_to, occupied) & enemy_K) return true;
+        break;
+
+      case uo_piece__Q:
+        if (uo_bitboard_attacks_Q(square_to, occupied) & enemy_K) return true;
+        break;
+    }
+
+    // 2. Discovered checks
+
+    uo_square square_enemy_K = uo_tzcnt(mask_enemy & position->K);
+
+    uo_bitboard bitboard_file = uo_square_bitboard_file[square_enemy_K];
+    if (bitboard_from & bitboard_file)
+    {
+      if (square_from < square_enemy_K)
+      {
+        for (int i = square_enemy_K - 8; i >= 0; i -= 8)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
+          }
+        }
+      }
+      else
+      {
+        for (int i = square_enemy_K + 8; i < 64; i += 8)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    uo_bitboard bitboard_rank = uo_square_bitboard_rank[square_enemy_K];
+    if (bitboard_from & bitboard_rank)
+    {
+      if (square_from < square_enemy_K)
+      {
+        for (int i = square_enemy_K - 1; uo_square_file(i) != 7; --i)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
+          }
+        }
+      }
+      else
+      {
+        for (int i = square_enemy_K + 1; uo_square_file(i) != 0; ++i)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    uint8_t diagonal = uo_square_diagonal[diagonal];
+    uo_bitboard bitboard_diagonal = uo_bitboard_diagonal[diagonal];
+    if (bitboard_from & bitboard_diagonal)
+    {
+      if (square_from < square_enemy_K)
+      {
+        for (int i = square_enemy_K - 9; i >= 0 && uo_square_diagonal[i] == diagonal; i -= 9)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
+          }
+        }
+      }
+      else
+      {
+        for (int i = square_enemy_K + 9; i < 64 && uo_square_diagonal[i] == diagonal; i += 9)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    uint8_t antidiagonal = uo_square_antidiagonal[antidiagonal];
+    uo_bitboard bitboard_antidiagonal = uo_bitboard_antidiagonal[antidiagonal];
+    if (bitboard_from & bitboard_antidiagonal)
+    {
+      if (square_from < square_enemy_K)
+      {
+        for (int i = square_enemy_K - 7; i >= 0 && uo_square_antidiagonal[i] == antidiagonal; i -= 7)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
+          }
+        }
+      }
+      else
+      {
+        for (int i = square_enemy_K + 7; i < 64 && uo_square_antidiagonal[i] == antidiagonal; i += 7)
+        {
+          if (board[i] > 1)
+          {
+            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    return false;
+  }
 
   static inline bool uo_position_is_rule50_draw(const uo_position *position)
   {
@@ -345,11 +497,11 @@ extern "C"
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
-  static inline int16_t uo_position_move_sse(uo_position *position, uo_move move)
+  static inline int16_t uo_position_move_sse(const uo_position *position, uo_move move)
   {
     uo_square square_from = uo_move_square_from(move);
     uo_square square_to = uo_move_square_to(move);
-    uo_piece *board = position->board;
+    const uo_piece *board = position->board;
     uo_piece piece = board[square_from];
     uo_piece piece_captured = board[square_to];
 
@@ -562,7 +714,6 @@ extern "C"
 
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
   }
-
 
   static inline uint16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move)
   {
@@ -786,7 +937,7 @@ extern "C"
   size_t uo_position_perft(uo_position *position, size_t depth);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif
