@@ -49,7 +49,8 @@ typedef const struct uo_uci_tokens
     eval,
     qsearch,
     alpha,
-    beta;
+    beta,
+    checks;
 
   struct
   {
@@ -111,6 +112,7 @@ uo_uci_tokens tokens = {
   .qsearch = 31,
   .alpha = 32,
   .beta = 33,
+  .checks = 34,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -368,6 +370,12 @@ static void uo_uci_read_token(void)
     return;
   }
 
+  if (streq(ptr, "checks"))
+  {
+    token = tokens.checks;
+    return;
+  }
+
   token = tokens.unknown;
   return;
 
@@ -384,6 +392,22 @@ static void uo_uci__d(void)
   printf("\n");
   printf("Fen: %s\n", buf);
   printf("Key: %" PRIu64 "\n", engine.position.key);
+  printf("Checkers:");
+
+  uo_bitboard checks = engine.position.checks.by_P | engine.position.checks.by_N | engine.position.checks.by_BQ | engine.position.checks.by_RQ;
+  while (checks)
+  {
+    uo_square square = uo_bitboard_next_square(&checks);
+    if (uo_color(engine.position.flags) == uo_black)
+    {
+      square ^= 56;
+    }
+
+    printf(" %c%c", 'a' + uo_square_file(square), '1' + uo_square_rank(square));
+  }
+
+  printf("\n");
+
   uo_engine_unlock_stdout();
   uo_engine_unlock_position();
 }
@@ -834,6 +858,35 @@ static void uo_uci_process_input__ready(void)
       fflush(stdout);
       uo_engine_unlock_position();
       uo_engine_unlock_stdout();
+
+      return;
+    }
+
+    if (uo_uci_match(tokens.checks))
+    {
+      uo_engine_lock_stdout();
+      uo_engine_lock_position();
+
+      size_t move_count = uo_position_generate_moves(&engine.position);
+
+      for (size_t i = 0; i < move_count; ++i)
+      {
+        uo_move move = engine.position.movelist.head[i];
+
+        if (uo_position_is_check_move(&engine.position, move))
+        {
+          uo_position_print_move(&engine.position, move, buf);
+          
+          printf("%s\n", buf);
+        }
+      }
+
+      printf("\n");
+      fflush(stdout);
+      uo_engine_unlock_position();
+      uo_engine_unlock_stdout();
+
+      return;
     }
 
     if (uo_uci_match(tokens.qsearch))

@@ -53,9 +53,9 @@ typedef uint8_t uo_search_quiesce_flags;
 #define uo_search_quiesce_flags__all_moves ((uint8_t)-1)
 
 #define uo_search_quiesce_flags__root (uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_sse)
-#define uo_search_quiesce_flags__subsequent uo_search_quiesce_flags__root
+#define uo_search_quiesce_flags__subsequent uo_search_quiesce_flags__non_negative_sse
 #define uo_search_quiesce_flags__deep uo_search_quiesce_flags__positive_sse
-#define uo_search_quiesce__deep_threshold 6
+#define uo_search_quiesce__deep_threshold 4
 
 static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
 {
@@ -294,7 +294,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     // search later moves for reduced depth
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
-    size_t depth_lmr = depth > 3 ? depth - 1 : depth;
+    size_t depth_lmr = depth <= 3 ? depth :
+      depth <= 6 || i < 6 ? depth - 1 :
+      depth - 2;
 
     // search with null window
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha);

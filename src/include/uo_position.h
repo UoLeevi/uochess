@@ -360,7 +360,7 @@ extern "C"
       {
         for (int i = square_enemy_K - 1; uo_square_file(i) != 7; --i)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__R || board[i] == uo_piece__Q;
           }
@@ -370,7 +370,7 @@ extern "C"
       {
         for (int i = square_enemy_K + 1; uo_square_file(i) != 0; ++i)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__R || board[i] == uo_piece__Q;
           }
@@ -380,7 +380,7 @@ extern "C"
       return false;
     }
 
-    uint8_t diagonal = uo_square_diagonal[diagonal];
+    uint8_t diagonal = uo_square_diagonal[square_enemy_K];
     uo_bitboard bitboard_diagonal = uo_bitboard_diagonal[diagonal];
     if (bitboard_from & bitboard_diagonal)
     {
@@ -388,7 +388,7 @@ extern "C"
       {
         for (int i = square_enemy_K - 9; i >= 0 && uo_square_diagonal[i] == diagonal; i -= 9)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__B || board[i] == uo_piece__Q;
           }
@@ -398,7 +398,7 @@ extern "C"
       {
         for (int i = square_enemy_K + 9; i < 64 && uo_square_diagonal[i] == diagonal; i += 9)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__B || board[i] == uo_piece__Q;
           }
@@ -408,7 +408,7 @@ extern "C"
       return false;
     }
 
-    uint8_t antidiagonal = uo_square_antidiagonal[antidiagonal];
+    uint8_t antidiagonal = uo_square_antidiagonal[square_enemy_K];
     uo_bitboard bitboard_antidiagonal = uo_bitboard_antidiagonal[antidiagonal];
     if (bitboard_from & bitboard_antidiagonal)
     {
@@ -416,7 +416,7 @@ extern "C"
       {
         for (int i = square_enemy_K - 7; i >= 0 && uo_square_antidiagonal[i] == antidiagonal; i -= 7)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__B || board[i] == uo_piece__Q;
           }
@@ -426,7 +426,7 @@ extern "C"
       {
         for (int i = square_enemy_K + 7; i < 64 && uo_square_antidiagonal[i] == antidiagonal; i += 7)
         {
-          if (board[i] > 1)
+          if (i != square_from && board[i] > 1)
           {
             return board[i] == uo_piece__B || board[i] == uo_piece__Q;
           }
