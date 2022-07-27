@@ -874,12 +874,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
   stack->move = move;
   stack->key = position->key;
 
-  if (stack[1].checks == uo_move_history__checks_unknown)
-  {
-    uo_bitboard checks = uo_position_move_checks(position, move);
-    uo_position_update_next_move_checks(position, checks);
-  }
-
   uint8_t rule50 = uo_position_flags_rule50(flags);
   flags = uo_position_flags_update_rule50(flags, rule50 + 1);
   flags = uo_position_flags_update_enpassant_file(flags, 0);
@@ -1238,6 +1232,16 @@ size_t uo_position_generate_moves(uo_position *position)
     position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
     position->pins.updated = true;
+  }
+
+  if (stack->checks == uo_move_history__checks_unknown)
+  {
+    uo_bitboard checks = (enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied))
+      | (enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied))
+      | (enemy_N & uo_bitboard_attacks_N(square_own_K))
+      | (enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own));
+
+    stack->checks = checks ? checks : uo_move_history__checks_none;
   }
 
   uo_bitboard moves_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);

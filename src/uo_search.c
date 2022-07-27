@@ -24,7 +24,15 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   // TODO: make better decisions about how much time to use
   if (!movetime && params->time_own)
   {
-    movetime = 3000 + (params->time_own - params->time_enemy) / 2;
+    uo_engine_lock_ttable();
+    size_t bestmove = thread->entry->bestmove;
+    size_t pv_depth = thread->entry->depth;
+    uo_engine_unlock_ttable();
+
+    if (pv_depth < 9) return;
+    if (bestmove != info->bestmove) return;
+
+    movetime = 2500 + (params->time_own - params->time_enemy) / 2;
 
     if (movetime > params->time_own / 8)
     {
@@ -44,6 +52,135 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   }
 }
 
+static void uo_engine_thread_update_pv(uo_engine_thread *thread)
+{
+  uo_position *position = &thread->position;
+  uo_tentry *pv_entry = thread->entry;
+  uo_move *pv = thread->info.pv;
+
+  // TODO: better handling for repetitions
+  size_t max_depth = thread->info.depth;
+  if (thread->info.seldepth > max_depth) max_depth = thread->info.seldepth;
+  if (max_depth >= UO_MAX_PLY) max_depth = UO_MAX_PLY - 1;
+
+  uo_engine_lock_ttable();
+
+  // 1. Get entry if not set
+  if (!pv_entry)
+  {
+    thread->entry = pv_entry = uo_ttable_get(&engine.ttable, position);
+    ++pv_entry->refcount;
+  }
+
+  assert(pv_entry->key == (uint32_t)position->key);
+
+  // 2. Release obsolete pv entries
+  size_t i = 0;
+  while (pv[i + 1])
+  {
+    uo_position_make_move(position, pv[i++]);
+    uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
+    if (entry) --entry->refcount;
+  }
+
+  while (i)
+  {
+    pv[--i] = 0;
+    uo_position_unmake_move(position);
+  }
+
+  // 3. Save current pv
+  pv[i++] = pv_entry->bestmove;
+  uo_position_make_move(position, pv_entry->bestmove);
+  pv_entry = uo_ttable_get(&engine.ttable, position);
+
+  while (pv_entry && pv_entry->bestmove && i <= max_depth)
+  {
+    ++pv_entry->refcount;
+    pv[i++] = pv_entry->bestmove;
+    uo_position_make_move(position, pv_entry->bestmove);
+    pv_entry = uo_ttable_get(&engine.ttable, position);
+  }
+
+  pv[i] = 0;
+
+  while (i--)
+  {
+    uo_position_unmake_move(position);
+  }
+
+  uo_engine_unlock_ttable();
+}
+
+static void uo_search_info_print(uo_search_info *info)
+{
+  uo_engine_thread *thread = info->thread;
+  uo_position *position = &thread->position;
+
+  double time_msec = uo_time_elapsed_msec(&info->time_start);
+  uint64_t nps = info->nodes / time_msec * 1000.0;
+
+  uo_engine_lock_ttable();
+  uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
+  uo_engine_unlock_ttable();
+
+  uo_engine_lock_stdout();
+
+  for (int i = 0; i < info->multipv; ++i)
+  {
+    printf("info depth %d ", info->depth);
+    if (info->seldepth) printf("seldepth %d ", info->seldepth);
+    printf("multipv %d ", info->multipv);
+
+    int16_t score = info->value;
+
+    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
+    }
+    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    {
+      printf("score mate %d ", -((UO_SCORE_CHECKMATE + score + 1) >> 1));
+    }
+    else
+    {
+      printf("score cp %d ", score);
+    }
+
+    printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
+      info->nodes, nps, hashfull, info->tbhits, time_msec);
+
+    size_t i = 0;
+    uo_move move = info->bestmove;
+
+    uint8_t color = uo_color(position->flags);
+    uint16_t side_xor = 0;
+
+    if (move)
+    {
+      printf(" pv");
+      while (move)
+      {
+        uo_position_print_move(position, move ^ side_xor, buf);
+        side_xor ^= 0xE38;
+        printf(" %s", buf);
+        move = info->pv[++i];
+      }
+    }
+
+    printf("\n");
+
+    if (info->completed && info->multipv == 1)
+    {
+      uo_position_print_move(position, info->bestmove, buf);
+      printf("bestmove %s\n", buf);
+    }
+  }
+
+  uo_engine_unlock_stdout();
+}
+
+
 typedef uint8_t uo_search_quiesce_flags;
 
 #define uo_search_quiesce_flags__checks ((uint8_t)1)
@@ -53,7 +190,7 @@ typedef uint8_t uo_search_quiesce_flags;
 #define uo_search_quiesce_flags__all_moves ((uint8_t)-1)
 
 #define uo_search_quiesce_flags__root (uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_sse)
-#define uo_search_quiesce_flags__subsequent uo_search_quiesce_flags__non_negative_sse
+#define uo_search_quiesce_flags__subsequent uo_search_quiesce_flags__positive_sse
 #define uo_search_quiesce_flags__deep uo_search_quiesce_flags__positive_sse
 #define uo_search_quiesce__deep_threshold 4
 
@@ -64,6 +201,11 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
     return true;
   }
 
+  if ((flags & uo_search_quiesce_flags__any_sse) == uo_search_quiesce_flags__positive_sse && !uo_move_is_capture(move))
+  {
+    return false;
+  }
+
   int16_t sse = (flags & uo_search_quiesce_flags__any_sse) == uo_search_quiesce_flags__any_sse
     ? 1
     : uo_position_move_sse(&thread->position, move);
@@ -71,7 +213,7 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
   bool sufficient_sse = sse > 0
     || (sse == 0 && ((flags & uo_search_quiesce_flags__non_negative_sse) == uo_search_quiesce_flags__non_negative_sse));
 
-  if (sufficient_sse)
+  if (!sufficient_sse)
   {
     return false;
   }
@@ -122,10 +264,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return is_check ? -UO_SCORE_CHECKMATE : 0;
   }
 
-  bool is_quiescent = !is_check;
-  int16_t static_evaluation;
   int16_t value;
-  uo_move bestmove = 0;
 
   if (is_check)
   {
@@ -145,8 +284,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     // delta pruning
     if (position->Q)
     {
-      int16_t delta = 1000;
-      if (alpha - delta > value)
+      int16_t delta = 600;
+      if (alpha > value + delta)
       {
         return alpha;
       }
@@ -170,8 +309,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     if (uo_search_quiesce_should_examine_move(thread, move, flags))
     {
-      is_quiescent = false;
-
       uo_position_make_move(position, move);
       int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, flags_next, depth + 1);
       node_value = uo_score_adjust_for_mate(node_value);
@@ -180,7 +317,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       if (node_value > value)
       {
         value = node_value;
-        bestmove = move;
 
         if (value > alpha)
         {
@@ -298,9 +434,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     // search later moves for reduced depth
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
-    size_t depth_lmr = depth <= 3 ? depth :
-      depth <= 6 || i < 6 ? depth - 1 :
-      depth - 2;
+    size_t depth_lmr = depth <= 3 ? depth : depth - 1;
 
     // search with null window
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha);
@@ -336,6 +470,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           return uo_engine_store_entry(position, &entry);
         }
 
+        if (depth > 8 && position->ply == 0)
+        {
+          // update and report pv
+          uo_engine_store_entry(position, &entry);
+          uo_engine_thread_update_pv(thread);
+          uo_search_info_print(&thread->info);
+        }
+
         alpha = entry.value;
       }
     }
@@ -347,76 +489,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   return uo_engine_store_entry(position, &entry);
-}
-
-static void uo_search_info_print(uo_search_info *info)
-{
-  uo_engine_thread *thread = info->thread;
-  uo_position *position = &thread->position;
-
-  double time_msec = uo_time_elapsed_msec(&info->time_start);
-  uint64_t nps = info->nodes / time_msec * 1000.0;
-
-  uo_engine_lock_ttable();
-  uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
-  uo_engine_unlock_ttable();
-
-  uo_engine_lock_stdout();
-
-  for (int i = 0; i < info->multipv; ++i)
-  {
-    printf("info depth %d ", info->depth);
-    if (info->seldepth) printf("seldepth %d ", info->seldepth);
-    printf("multipv %d ", info->multipv);
-
-    int16_t score = info->value;
-
-    if (score > UO_SCORE_MATE_IN_THRESHOLD)
-    {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
-    }
-    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
-    {
-      printf("score mate %d ", -((UO_SCORE_CHECKMATE + score + 1) >> 1));
-    }
-    else
-    {
-      printf("score cp %d ", score);
-    }
-
-    printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
-      info->nodes, nps, hashfull, info->tbhits, time_msec);
-
-    size_t pv_len = 1;
-
-    size_t i = 0;
-    uo_move move = info->bestmove;
-
-    uint8_t color = uo_color(position->flags);
-    uint16_t side_xor = 0;
-
-    if (move)
-    {
-      printf(" pv");
-      while (move)
-      {
-        uo_position_print_move(position, move ^ side_xor, buf);
-        side_xor ^= 0xE38;
-        printf(" %s", buf);
-        move = info->pv[++i];
-      }
-    }
-
-    printf("\n");
-
-    if (info->completed && info->multipv == 1)
-    {
-      uo_position_print_move(position, info->bestmove, buf);
-      printf("bestmove %s\n", buf);
-    }
-  }
-
-  uo_engine_unlock_stdout();
 }
 
 static void uo_search_info_currmove_print(uo_search_info *info, uo_move currmove, size_t currmovenumber)
@@ -460,66 +532,6 @@ static void uo_engine_thread_release_pv(uo_engine_thread *thread)
   uo_engine_unlock_ttable();
 
   thread->entry = NULL;
-}
-
-static void uo_engine_thread_update_pv(uo_engine_thread *thread)
-{
-  uo_position *position = &thread->position;
-  uo_tentry *pv_entry = thread->entry;
-  uo_move *pv = thread->info.pv;
-
-  // TODO: better handling for repetitions
-  size_t max_depth = thread->info.depth;
-  if (thread->info.seldepth > max_depth) max_depth = thread->info.seldepth;
-  if (max_depth >= UO_MAX_PLY) max_depth = UO_MAX_PLY - 1;
-
-  uo_engine_lock_ttable();
-
-  // 1. Get entry if not set
-  if (!pv_entry)
-  {
-    thread->entry = pv_entry = uo_ttable_get(&engine.ttable, position);
-    ++pv_entry->refcount;
-  }
-
-  assert(pv_entry->key == (uint32_t)position->key);
-
-  // 2. Release obsolete pv entries
-  size_t i = 0;
-  while (pv[i + 1])
-  {
-    uo_position_make_move(position, pv[i++]);
-    uo_tentry *entry = uo_ttable_get(&engine.ttable, position);
-    if (entry) --entry->refcount;
-  }
-
-  while (i)
-  {
-    pv[--i] = 0;
-    uo_position_unmake_move(position);
-  }
-
-  // 3. Save current pv
-  pv[i++] = pv_entry->bestmove;
-  uo_position_make_move(position, pv_entry->bestmove);
-  pv_entry = uo_ttable_get(&engine.ttable, position);
-
-  while (pv_entry && pv_entry->bestmove && i <= max_depth)
-  {
-    ++pv_entry->refcount;
-    pv[i++] = pv_entry->bestmove;
-    uo_position_make_move(position, pv_entry->bestmove);
-    pv_entry = uo_ttable_get(&engine.ttable, position);
-  }
-
-  pv[i] = 0;
-
-  while (i--)
-  {
-    uo_position_unmake_move(position);
-  }
-
-  uo_engine_unlock_ttable();
 }
 
 static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
