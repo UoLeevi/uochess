@@ -394,7 +394,7 @@ static void uo_uci__d(void)
   printf("Key: %" PRIu64 "\n", engine.position.key);
   printf("Checkers:");
 
-  uo_bitboard checks = engine.position.checks.by_P | engine.position.checks.by_N | engine.position.checks.by_BQ | engine.position.checks.by_RQ;
+  uo_bitboard checks = uo_position_checks(&engine.position);
   while (checks)
   {
     uo_square square = uo_bitboard_next_square(&checks);
@@ -873,7 +873,7 @@ static void uo_uci_process_input__ready(void)
       {
         uo_move move = engine.position.movelist.head[i];
 
-        if (uo_position_is_check_move(&engine.position, move))
+        if (uo_position_move_checks(&engine.position, move))
         {
           uo_position_print_move(&engine.position, move, buf);
           

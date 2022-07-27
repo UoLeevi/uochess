@@ -34,10 +34,14 @@ extern "C"
       8 q - a8
   */
 
+#define uo_move_history__checks_none uo_bitboard_all
+#define uo_move_history__checks_unknown 0
+
   typedef struct uo_move_history
   {
     uint64_t key;
     uo_move move;
+    uo_bitboard checks;
     uo_position_flags flags;
     uint8_t move_count;
     uint8_t tactical_move_count;
@@ -78,22 +82,10 @@ extern "C"
 
     struct
     {
-      uo_bitboard by_BQ;
-      uo_bitboard by_RQ;
-      uo_bitboard by_N;
-      uo_bitboard by_P;
-    } checks;
-
-    struct
-    {
+      bool updated;
       uo_bitboard by_BQ;
       uo_bitboard by_RQ;
     } pins;
-
-    struct
-    {
-      bool checks_and_pins;
-    } update_status;
 
     uo_move_history *stack;
     uo_move_history history[UO_MAX_PLY + 100];
@@ -258,8 +250,11 @@ extern "C"
       memmove(position->history, position->stack - relevant_history_count, relevant_history_count * sizeof * position->stack);
     }
 
+    uo_bitboard checks = position->stack->checks;
     position->stack = position->history + relevant_history_count;
-    position->stack->moves_generated = false;
+    memset(position->stack, 0, (sizeof position->history / sizeof * position->history - relevant_history_count) * sizeof * position->stack);
+
+    position->stack->checks = checks;
     position->root_ply += position->ply;
     position->ply = 0;
   }
@@ -285,7 +280,7 @@ extern "C"
 
   size_t uo_position_generate_moves(uo_position *position);
 
-  static inline bool uo_position_is_check_move(const uo_position *position, uo_move move)
+  static inline uo_bitboard uo_position_move_checks(const uo_position *position, uo_move move)
   {
     uo_square square_from = uo_move_square_from(move);
     uo_square square_to = uo_move_square_to(move);
@@ -294,149 +289,95 @@ extern "C"
 
     assert(uo_color(piece) == uo_color_own);
 
-    uo_bitboard mask_enemy = position->enemy;
-    uo_bitboard enemy_K = mask_enemy & position->K;
-
-    // 1. Direct checks
-
-    if (piece == uo_piece__P && (uo_bitboard_attacks_P(square_to, uo_color_own) & enemy_K)) return true;
-    if (piece == uo_piece__N && (uo_bitboard_attacks_N(square_to) & enemy_K)) return true;
 
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
     uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
+    uo_bitboard mask_enemy = position->enemy;
+    uo_bitboard own_BQ = mask_own & (position->B | position->Q);
+    uo_bitboard own_RQ = mask_own & (position->R | position->Q);
     uo_bitboard occupied = mask_own | mask_enemy | bitboard_to;
-
-    switch (piece)
-    {
-      case uo_piece__B:
-        if (uo_bitboard_attacks_B(square_to, occupied) & enemy_K) return true;
-        break;
-
-      case uo_piece__R:
-        if (uo_bitboard_attacks_R(square_to, occupied) & enemy_K) return true;
-        break;
-
-      case uo_piece__Q:
-        if (uo_bitboard_attacks_Q(square_to, occupied) & enemy_K) return true;
-        break;
-    }
-
-    // 2. Discovered checks
 
     uo_square square_enemy_K = uo_tzcnt(mask_enemy & position->K);
 
-    uo_bitboard bitboard_file = uo_square_bitboard_file[square_enemy_K];
-    if (bitboard_from & bitboard_file)
-    {
-      if (square_from < square_enemy_K)
-      {
-        for (int i = square_enemy_K - 8; i >= 0; i -= 8)
-        {
-          if (board[i] > 1)
-          {
-            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
-          }
-        }
-      }
-      else
-      {
-        for (int i = square_enemy_K + 8; i < 64; i += 8)
-        {
-          if (board[i] > 1)
-          {
-            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
-          }
-        }
-      }
+    uo_bitboard checks = 0;
 
-      return false;
+    switch (piece)
+    {
+      case uo_piece__P:
+        if (uo_move_is_enpassant(move))
+        {
+          occupied = uo_andn(uo_square_bitboard(square_to - 8), occupied);
+          checks |= uo_bitboard_attacks_P(square_enemy_K, uo_color_enemy) & bitboard_to;
+        }
+        else if (uo_move_is_promotion(move))
+        {
+          switch (uo_move_get_type(move) & uo_move_type__promo_Q)
+          {
+            case uo_move_type__promo_N:
+              checks |= uo_bitboard_attacks_N(square_enemy_K) & bitboard_to;
+              break;
+
+            case uo_move_type__promo_B:
+              own_BQ |= bitboard_to;
+              break;
+
+            case uo_move_type__promo_R:
+              own_RQ |= bitboard_to;
+              break;
+
+            case uo_move_type__promo_Q:
+              own_BQ |= bitboard_to;
+              own_RQ |= bitboard_to;
+              break;
+          }
+        }
+        else
+        {
+          checks |= uo_bitboard_attacks_P(square_enemy_K, uo_color_enemy) & bitboard_to;
+        }
+
+        break;
+
+      case uo_piece__N:
+        checks |= uo_bitboard_attacks_N(square_enemy_K) & bitboard_to;
+        break;
+
+      case uo_piece__B:
+        own_BQ |= bitboard_to;
+        break;
+
+      case uo_piece__R:
+        own_RQ |= bitboard_to;
+        break;
+
+      case uo_piece__Q:
+        own_BQ |= bitboard_to;
+        own_RQ |= bitboard_to;
+        break;
+
+      case uo_piece__K:
+        switch (uo_move_get_type(move))
+        {
+          case uo_move_type__OO:
+            own_RQ |= uo_square_bitboard(uo_square__f1);
+            break;
+
+          case uo_move_type__OOO:
+            own_RQ |= uo_square_bitboard(uo_square__d1);
+            break;
+        }
     }
 
-    uo_bitboard bitboard_rank = uo_square_bitboard_rank[square_enemy_K];
-    if (bitboard_from & bitboard_rank)
-    {
-      if (square_from < square_enemy_K)
-      {
-        for (int i = square_enemy_K - 1; uo_square_file(i) != 7; --i)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
-          }
-        }
-      }
-      else
-      {
-        for (int i = square_enemy_K + 1; uo_square_file(i) != 0; ++i)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__R || board[i] == uo_piece__Q;
-          }
-        }
-      }
+    checks |= uo_bitboard_attacks_B(square_enemy_K, occupied) & own_BQ;
+    checks |= uo_bitboard_attacks_R(square_enemy_K, occupied) & own_RQ;
 
-      return false;
-    }
+    return checks;
+  }
 
-    uint8_t diagonal = uo_square_diagonal[square_enemy_K];
-    uo_bitboard bitboard_diagonal = uo_bitboard_diagonal[diagonal];
-    if (bitboard_from & bitboard_diagonal)
-    {
-      if (square_from < square_enemy_K)
-      {
-        for (int i = square_enemy_K - 9; i >= 0 && uo_square_diagonal[i] == diagonal; i -= 9)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
-          }
-        }
-      }
-      else
-      {
-        for (int i = square_enemy_K + 9; i < 64 && uo_square_diagonal[i] == diagonal; i += 9)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
-          }
-        }
-      }
-
-      return false;
-    }
-
-    uint8_t antidiagonal = uo_square_antidiagonal[square_enemy_K];
-    uo_bitboard bitboard_antidiagonal = uo_bitboard_antidiagonal[antidiagonal];
-    if (bitboard_from & bitboard_antidiagonal)
-    {
-      if (square_from < square_enemy_K)
-      {
-        for (int i = square_enemy_K - 7; i >= 0 && uo_square_antidiagonal[i] == antidiagonal; i -= 7)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
-          }
-        }
-      }
-      else
-      {
-        for (int i = square_enemy_K + 7; i < 64 && uo_square_antidiagonal[i] == antidiagonal; i += 7)
-        {
-          if (i != square_from && board[i] > 1)
-          {
-            return board[i] == uo_piece__B || board[i] == uo_piece__Q;
-          }
-        }
-      }
-
-      return false;
-    }
-
-    return false;
+  static inline void uo_position_update_next_move_checks(uo_position *position, uo_bitboard checks)
+  {
+    position->stack[1].checks = checks ? uo_bswap(checks) : uo_move_history__checks_none;
   }
 
   static inline bool uo_position_is_rule50_draw(const uo_position *position)
@@ -454,39 +395,31 @@ extern "C"
     return position->ply >= UO_MAX_PLY;
   }
 
-  static inline void uo_position_update_checks_and_pins(uo_position *position)
+  static inline void uo_position_update_pins(uo_position *position)
   {
     uo_bitboard mask_own = position->own;
     uo_bitboard mask_enemy = position->enemy;
     uo_bitboard occupied = mask_own | mask_enemy;
 
-    uo_bitboard enemy_P = mask_enemy & position->P;
-    uo_bitboard enemy_N = mask_enemy & position->N;
     uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
     uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
 
     uo_bitboard own_K = mask_own & position->K;
     uo_square square_own_K = uo_tzcnt(own_K);
 
-    position->checks.by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
-    position->checks.by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
-    position->checks.by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
-    position->checks.by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
-
+    position->pins.updated = true;
     position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
-
-    position->update_status.checks_and_pins = true;
   }
 
-  static inline bool uo_position_is_check(uo_position *position)
+  static inline bool uo_position_is_check(const uo_position *position)
   {
-    if (!position->update_status.checks_and_pins)
-    {
-      uo_position_update_checks_and_pins(position);
-    }
+    return position->stack->checks != uo_move_history__checks_none;
+  }
 
-    return position->checks.by_P | position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ;
+  static inline uo_bitboard uo_position_checks(const uo_position *position)
+  {
+    return position->stack->checks != uo_move_history__checks_none ? position->stack->checks : 0;
   }
 
   static inline bool uo_position_is_null_move_allowed(uo_position *position)

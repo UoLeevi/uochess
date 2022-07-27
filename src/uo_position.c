@@ -37,6 +37,11 @@ bool uo_position_is_ok(const uo_position *position)
     return false;
   }
 
+  if (position->stack->checks == 0)
+  {
+    return false;
+  }
+
   if (uo_popcnt(position->K) != 2)
   {
     return false;
@@ -172,38 +177,6 @@ bool uo_position_is_move_ok(const uo_position *position, uo_move move)
   return true;
 }
 
-bool uo_position_is_checks_and_pins_ok(const uo_position *position)
-{
-  uo_bitboard mask_own = position->own;
-  uo_bitboard mask_enemy = position->enemy;
-  uo_bitboard occupied = mask_own | mask_enemy;
-
-  uo_bitboard enemy_P = mask_enemy & position->P;
-  uo_bitboard enemy_N = mask_enemy & position->N;
-  uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
-  uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
-
-  uo_bitboard own_K = mask_own & position->K;
-  uo_square square_own_K = uo_tzcnt(own_K);
-
-  uo_bitboard checks_by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
-  uo_bitboard checks_by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
-  uo_bitboard checks_by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
-  uo_bitboard checks_by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
-
-  uo_bitboard pins_by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
-  uo_bitboard pins_by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
-
-  if (position->checks.by_BQ != checks_by_BQ) return false;
-  if (position->checks.by_RQ != checks_by_RQ) return false;
-  if (position->checks.by_N != checks_by_N) return false;
-  if (position->checks.by_P != checks_by_P) return false;
-  if (position->pins.by_BQ != pins_by_BQ) return false;
-  if (position->pins.by_RQ != pins_by_RQ) return false;
-
-  return true;
-}
-
 uint64_t uo_position_calculate_key(uo_position *const position)
 {
   uint64_t key = 0;
@@ -301,7 +274,7 @@ static inline void uo_position_set_flags(uo_position *position, uo_position_flag
 static inline void uo_position_do_switch_turn(uo_position *position, uo_position_flags flags)
 {
   uo_position_set_flags(position, flags);
-  position->update_status.checks_and_pins = false;
+  position->pins.updated = false;
   position->movelist.head += position->stack->move_count;
   position->flags ^= 1;
   ++position->ply;
@@ -313,8 +286,10 @@ static inline void uo_position_undo_switch_turn(uo_position *position)
   --position->ply;
   --position->stack;
   uo_move_history *stack = position->stack;
+
+  stack[1].checks = uo_move_history__checks_unknown;
   position->movelist.head -= stack->move_count;
-  position->update_status.checks_and_pins = false;
+  position->pins.updated = false;
   uo_position_set_flags(position, stack->flags);
 
   if (uo_move_is_capture(stack->move))
@@ -516,6 +491,59 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   position->enemy |= bitboard_to;
 }
 
+static inline void uo_position_update_checks(uo_position *position)
+{
+  size_t i = 0;
+
+  uo_bitboard mask_own = position->own;
+  uo_bitboard mask_enemy = position->enemy;
+
+  uo_bitboard own_K = mask_own & position->K;
+  uo_square square_own_K = uo_tzcnt(own_K);
+
+  uo_bitboard *checks = &position->stack->checks;
+  *checks = 0;
+
+  uo_bitboard enemy_P = mask_enemy & position->P;
+  uo_bitboard checks_by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
+  if (checks_by_P)
+  {
+    ++i;
+    *checks = checks_by_P;
+  }
+
+  uo_bitboard enemy_N = mask_enemy & position->N;
+  uo_bitboard checks_by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
+  if (checks_by_N)
+  {
+    *checks |= checks_by_N;
+    if (++i == 2) return;
+  }
+
+  uo_bitboard occupied = mask_own | mask_enemy;
+
+  uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
+  uo_bitboard checks_by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
+  while (checks_by_BQ)
+  {
+    *checks |= checks_by_BQ;
+    if (++i == 2) return;
+  }
+
+  uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
+  uo_bitboard checks_by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
+  while (checks_by_RQ)
+  {
+    *checks |= checks_by_RQ;
+    if (++i == 2) return;
+  }
+
+  if (!*checks)
+  {
+    *checks = uo_move_history__checks_none;
+  }
+}
+
 // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 uo_position *uo_position_from_fen(uo_position *position, char *fen)
@@ -673,7 +701,8 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
     uo_position_flip_board(position);
   }
 
-  uo_position_update_checks_and_pins(position);
+  uo_position_update_checks(position);
+  uo_position_update_pins(position);
 
   return position;
 }
@@ -734,21 +763,28 @@ size_t uo_position_print_fen(uo_position *const position, char fen[90])
 
   uint8_t castling = uo_position_flags_castling(flags);
 
+  if (color_to_move == uo_black)
+  {
+    castling = (castling << 2) | (castling >> 2);
+  }
+
   if (castling)
   {
-    uint8_t castling_K = uo_position_flags_castling_OO(flags);
+    uo_position_flags castling_flags = castling << 12;
+
+    bool castling_K = uo_position_flags_castling_OO(castling_flags);
     if (castling_K)
       ptr += sprintf(ptr, "%c", 'K');
 
-    uint8_t castling_Q = uo_position_flags_castling_OOO(flags);
+    bool castling_Q = uo_position_flags_castling_OOO(castling_flags);
     if (castling_Q)
       ptr += sprintf(ptr, "%c", 'Q');
 
-    uint8_t castling_k = uo_position_flags_castling_enemy_OO(flags);
+    bool castling_k = uo_position_flags_castling_enemy_OO(castling_flags);
     if (castling_k)
       ptr += sprintf(ptr, "%c", 'k');
 
-    uint8_t castling_q = uo_position_flags_castling_enemy_OOO(flags);
+    bool castling_q = uo_position_flags_castling_enemy_OOO(castling_flags);
     if (castling_q)
       ptr += sprintf(ptr, "%c", 'q');
 
@@ -837,6 +873,12 @@ void uo_position_make_move(uo_position *position, uo_move move)
   stack->flags = flags;
   stack->move = move;
   stack->key = position->key;
+
+  if (stack[1].checks == uo_move_history__checks_unknown)
+  {
+    uo_bitboard checks = uo_position_move_checks(position, move);
+    uo_position_update_next_move_checks(position, checks);
+  }
 
   uint8_t rule50 = uo_position_flags_rule50(flags);
   flags = uo_position_flags_update_rule50(flags, rule50 + 1);
@@ -1068,6 +1110,7 @@ void uo_position_make_null_move(uo_position *position)
   stack->flags = flags;
   stack->move = 0;
   stack->repetitions = 0;
+  stack[1].checks = uo_move_history__checks_none;
 
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
@@ -1190,30 +1233,25 @@ size_t uo_position_generate_moves(uo_position *position)
 
   uo_square square_own_K = uo_tzcnt(own_K);
 
-  if (!position->update_status.checks_and_pins)
+  if (!position->pins.updated)
   {
-    position->checks.by_BQ = enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied);
-    position->checks.by_RQ = enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied);
-    position->checks.by_N = enemy_N & uo_bitboard_attacks_N(square_own_K);
-    position->checks.by_P = enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own);
-
     position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
-    position->update_status.checks_and_pins = true;
+    position->pins.updated = true;
   }
 
   uo_bitboard moves_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);
   moves_K = uo_andn(attacks_enemy_P, moves_K);
 
-  uo_bitboard enemy_checks = position->checks.by_N | position->checks.by_BQ | position->checks.by_RQ | position->checks.by_P;
   uo_bitboard pins_to_own_K_by_BQ = position->pins.by_BQ;
   uo_bitboard pins_to_own_K_by_RQ = position->pins.by_RQ;
   uo_bitboard pins_to_own_K = position->pins.by_BQ | position->pins.by_RQ;
 
-  if (enemy_checks)
+  if (uo_position_is_check(position))
   {
     uo_movegenlist_init(&movegenlist, position->movelist.head, 1);
 
+    uo_bitboard enemy_checks = position->stack->checks;
     uo_square square_enemy_checker = uo_tzcnt(enemy_checks);
 
     if (uo_popcnt(enemy_checks) == 2)
@@ -1306,16 +1344,18 @@ size_t uo_position_generate_moves(uo_position *position)
     }
 
     // Let's still check for en passant captures
-    if (position->checks.by_P && enpassant_file)
+    uo_bitboard checks_by_P = enemy_checks & enemy_P;
+
+    if (checks_by_P && enpassant_file)
     {
       uo_bitboard non_pinned_P = uo_andn(pins_to_own_K, own_P);
 
-      if (enpassant_file > 1 && (non_pinned_P & (position->checks.by_P >> 1)))
+      if (enpassant_file > 1 && (non_pinned_P & (checks_by_P >> 1)))
       {
         uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_enemy_checker - 1, square_enemy_checker + 8, uo_move_type__enpassant));
       }
 
-      if (enpassant_file < 8 && (non_pinned_P & (position->checks.by_P << 1)))
+      if (enpassant_file < 8 && (non_pinned_P & (checks_by_P << 1)))
       {
         uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_enemy_checker + 1, square_enemy_checker + 8, uo_move_type__enpassant));
       }

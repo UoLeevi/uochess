@@ -79,10 +79,14 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
   if (uo_move_is_promotion(move)) return true;
   if (uo_move_is_capture(move)) return true;
 
-  if ((flags & uo_search_quiesce_flags__checks) == uo_search_quiesce_flags__checks
-    && uo_position_is_check_move(&thread->position, move))
+  if ((flags & uo_search_quiesce_flags__checks) == uo_search_quiesce_flags__checks)
   {
-    return true;
+    uo_bitboard checks = uo_position_move_checks(&thread->position, move);
+    if (checks)
+    {
+      uo_position_update_next_move_checks(&thread->position, checks);
+      return true;
+    }
   }
 
   return false;
