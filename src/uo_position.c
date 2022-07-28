@@ -37,11 +37,6 @@ bool uo_position_is_ok(const uo_position *position)
     return false;
   }
 
-  if (position->stack->checks == 0)
-  {
-    return false;
-  }
-
   if (uo_popcnt(position->K) != 2)
   {
     return false;

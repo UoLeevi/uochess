@@ -27,8 +27,8 @@ extern "C"
 
   typedef struct uo_engine_thread
   {
+    uint8_t id;
     uo_thread *thread;
-    uo_tentry *entry;
     uo_position position;
     uo_search_info info;
   } uo_engine_thread;
@@ -135,7 +135,19 @@ extern "C"
     uo_engine_lock_ttable();
     abtentry->entry = uo_ttable_get(&engine.ttable, position);
 
-    if (!abtentry->entry || abtentry->entry->depth < abtentry->depth)
+    if (abtentry->entry)
+    {
+      abtentry->bestmove = abtentry->entry->bestmove;
+
+      if (abtentry->entry->depth < abtentry->depth)
+      {
+        abtentry->hardalpha = -UO_SCORE_CHECKMATE;
+        abtentry->hardbeta = UO_SCORE_CHECKMATE;
+        uo_engine_unlock_ttable();
+        return false;
+      }
+    }
+    else
     {
       abtentry->hardalpha = -UO_SCORE_CHECKMATE;
       abtentry->hardbeta = UO_SCORE_CHECKMATE;
@@ -143,7 +155,7 @@ extern "C"
       return false;
     }
 
-    abtentry->bestmove = abtentry->entry->bestmove;
+
 
     if (abtentry->entry->type == uo_tentry_type__exact)
     {
@@ -186,32 +198,34 @@ extern "C"
     if (abtentry->value < abtentry->hardalpha) abtentry->value = abtentry->hardalpha;
     if (abtentry->value > abtentry->hardbeta) abtentry->value = abtentry->hardbeta;
 
-    if (uo_engine_is_stopped()) return abtentry->value;
+    if (!abtentry->bestmove || uo_engine_is_stopped()) return abtentry->value;
 
     uint8_t type =
       abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
       abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
       uo_tentry_type__exact;
 
-    if (!abtentry->entry)
+    uo_tentry *entry = abtentry->entry;
+
+    if (!entry)
     {
       uo_engine_lock_ttable();
-      abtentry->entry = uo_ttable_set(&engine.ttable, position);
-      abtentry->entry->depth = abtentry->depth;
-      abtentry->entry->bestmove = abtentry->bestmove;
-      abtentry->entry->value = abtentry->value;
-      abtentry->entry->type = type;
+      entry = abtentry->entry = uo_ttable_set(&engine.ttable, position);
+      entry->depth = abtentry->depth;
+      entry->bestmove = abtentry->bestmove;
+      entry->value = abtentry->value;
+      entry->type = type;
       uo_engine_unlock_ttable();
     }
     else
     {
       uo_engine_lock_ttable();
-      if (abtentry->entry->depth <= abtentry->depth)
+      if (entry->depth <= abtentry->depth)
       {
-        abtentry->entry->depth = abtentry->depth;
-        abtentry->entry->bestmove = abtentry->bestmove;
-        abtentry->entry->value = abtentry->value;
-        abtentry->entry->type = type;
+        entry->depth = abtentry->depth;
+        entry->bestmove = abtentry->bestmove;
+        entry->value = abtentry->value;
+        entry->type = type;
       }
       uo_engine_unlock_ttable();
     }

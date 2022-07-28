@@ -38,7 +38,6 @@ extern "C"
 
   typedef struct uo_search_info
   {
-    uo_engine_thread *thread;
     uint64_t nodes;
     uo_time time_start;
     uint16_t multipv;

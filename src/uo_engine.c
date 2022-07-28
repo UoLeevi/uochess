@@ -70,7 +70,7 @@ void uo_engine_init()
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
-    thread->info.thread = thread;
+    thread->id = i + 1;
 
     if (engine_options.multipv)
     {

@@ -414,6 +414,7 @@ extern "C"
 
   static inline bool uo_position_is_check(const uo_position *position)
   {
+    assert(position->stack->checks != uo_move_history__checks_unknown);
     return position->stack->checks != uo_move_history__checks_none;
   }
 

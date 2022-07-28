@@ -513,7 +513,7 @@ static void uo_uci_process_input__init(void)
     printf("id name uochess\n");
     printf("id author Leevi Uotinen\n\n");
     printf("option name Debug Log File type string default\n");
-    printf("option name Threads type spin default 1 min 1 max 512\n");
+    printf("option name Threads type spin default 1 min 1 max 254\n");
     printf("option name Hash type spin default 16 min 1 max 33554432\n");
     printf("option name Clear Hash type button\n");
     printf("option name Ponder type check default false\n");
