@@ -73,6 +73,7 @@ extern "C"
 
   void uo_engine_load_default_options();
   void uo_engine_init();
+  void uo_engine_reconfigure();
 
   static inline void uo_engine_lock_position()
   {
@@ -154,8 +155,6 @@ extern "C"
       uo_engine_unlock_ttable();
       return false;
     }
-
-
 
     if (abtentry->entry->type == uo_tentry_type__exact)
     {

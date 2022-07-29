@@ -11,10 +11,14 @@ extern "C"
 
 #if defined(_MSC_VER)
 
-# include <intrin.h>
-# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
+#include <Windows.h>
 
-  static unsigned long temp;
+#define uo_alloca _alloca
+
+//# include <intrin.h>
+//# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
+
+  //static unsigned long temp;
 
   //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
   //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
@@ -38,6 +42,15 @@ extern "C"
 # endif
 
 #else
+
+# ifndef uo_alloca
+
+# include <alloca.h>
+#define uo_alloca alloca
+
+#endif // !uo_alloca
+
+
 
   //uint8_t uo_popcnt(uint64_t u64);
   //int8_t uo_lsb(uint64_t u64);

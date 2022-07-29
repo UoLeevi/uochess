@@ -91,6 +91,14 @@ void uo_engine_init()
   uo_position_from_fen(&engine.position, uo_fen_startpos);
 }
 
+void uo_engine_reconfigure()
+{
+  // hash table
+  uo_ttable_free(&engine.ttable);
+  size_t capacity = engine_options.hash_size / sizeof * engine.ttable.entries;
+  uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
+}
+
 static uo_thread_function *uo_search_thread_run_function[] = {
   [uo_seach_type__principal_variation] = uo_engine_thread_run_principal_variation_search,
   [uo_seach_type__quiescence] = uo_engine_thread_run_quiescence_search

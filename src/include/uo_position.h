@@ -72,6 +72,7 @@ extern "C"
     uo_piece board[64];
 
     uo_piece captures[30];
+    uint16_t material;
 
     uo_position_flags flags;
     uint16_t ply;
@@ -259,9 +260,9 @@ extern "C"
     position->ply = 0;
   }
 
-  size_t uo_position_print_fen(uo_position *const position, char fen[90]);
+  size_t uo_position_print_fen(const uo_position *position, char fen[90]);
 
-  size_t uo_position_print_diagram(uo_position *const position, char diagram[663]);
+  size_t uo_position_print_diagram(const uo_position *position, char diagram[663]);
 
   void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src);
 
@@ -273,12 +274,17 @@ extern "C"
 
   void uo_position_unmake_null_move(uo_position *position);
 
-  static inline uo_move uo_position_previous_move(uo_position *position)
+  static inline uo_move uo_position_previous_move(const uo_position *position)
   {
     return position->ply > 0 ? position->stack[-1].move : 0;
   }
 
   size_t uo_position_generate_moves(uo_position *position);
+
+  static inline uint8_t uo_position_material_percentage(const uo_position *position)
+  {
+    return (uint32_t)100 * (uint32_t)position->material / (uint32_t)uo_score_material_max;
+  }
 
   static inline uo_bitboard uo_position_move_checks(const uo_position *position, uo_move move)
   {
@@ -465,14 +471,14 @@ extern "C"
     int16_t gain[32];
     size_t depth = 0;
 
-    gain[depth] = up_piece_value(piece_captured);
+    gain[depth] = uo_piece_value(piece_captured);
 
     while (true)
     {
       depth++;
 
       // speculative store, if defended
-      gain[depth] = up_piece_value(piece) - gain[depth - 1];
+      gain[depth] = uo_piece_value(piece) - gain[depth - 1];
 
       if (gain[depth - 1] > 0 && gain[depth] < 0)
       {
@@ -684,7 +690,7 @@ extern "C"
       uo_square square_to = uo_move_square_to(move);
       uo_piece piece = position->board[square_from];
       uo_piece piece_captured = position->board[square_to];
-      return 2000 + up_piece_value(piece_captured) - up_piece_value(piece) / 10;
+      return 2000 + uo_piece_value(piece_captured) - uo_piece_value(piece) / 10;
     }
 
     return 0;
@@ -862,11 +868,11 @@ extern "C"
     return true;
   }
 
-  uo_move uo_position_parse_move(uo_position *const position, char str[5]);
+  uo_move uo_position_parse_move(const uo_position *position, char str[5]);
 
   uo_move uo_position_parse_png_move(uo_position *position, char *png);
 
-  size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6]);
+  size_t uo_position_print_move(const uo_position *position, uo_move move, char str[6]);
 
   size_t uo_position_perft(uo_position *position, size_t depth);
 

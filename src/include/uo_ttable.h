@@ -23,7 +23,7 @@ extern "C"
     int16_t value;
     uint8_t depth;
     uint8_t type;
-    uint8_t thread_id;
+    //uint8_t thread_id;
     uint8_t expiry_ply;
   } uo_tentry;
 
@@ -101,7 +101,7 @@ extern "C"
     i = (i - 1) & mask;
     entry = ttable->entries + i;
 
-    while (entry->key && !entry->thread_id && entry->expiry_ply < root_ply)
+    while (entry->key && /*!entry->thread_id &&*/ entry->expiry_ply < root_ply)
     {
       memset(entry, 0, sizeof * entry);
       --ttable->count;
@@ -114,7 +114,7 @@ extern "C"
 
     if (ttable->count > ((mask + 1) * 3) >> 2)
     {
-      while (entry->key && !entry->thread_id)
+      while (entry->key /*&& !entry->thread_id*/)
       {
         memset(entry, 0, sizeof * entry);
         --ttable->count;
@@ -167,7 +167,7 @@ extern "C"
         return entry;
       }
 
-      if (!entry->thread_id && entry->expiry_ply < root_ply)
+      if (/*!entry->thread_id && */entry->expiry_ply < root_ply)
       {
         memset(entry, 0, sizeof * entry);
         entry->key = key;
@@ -179,7 +179,7 @@ extern "C"
       entry = ttable->entries + i;
     }
 
-    while (entry->key && entry->thread_id)
+    while (entry->key/* && entry->thread_id*/)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;

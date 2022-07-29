@@ -603,6 +603,15 @@ static void uo_uci_process_input__ready(void)
       {
         uo_engine_clear_hash();
       }
+
+      // Hash
+      if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
+      {
+        size_t capacity = spin * (size_t)1000000 / sizeof * engine.ttable.entries;
+        engine_options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * engine.ttable.entries;
+        uo_engine_reconfigure();
+      }
+
       return;
     }
   }
@@ -849,7 +858,7 @@ static void uo_uci_process_input__ready(void)
         if (gain != 0 || uo_move_is_capture(move))
         {
           uo_position_print_move(&engine.position, move, buf);
-          
+
           printf("%s: %d\n", buf, gain);
         }
       }
@@ -876,7 +885,7 @@ static void uo_uci_process_input__ready(void)
         if (uo_position_move_checks(&engine.position, move))
         {
           uo_position_print_move(&engine.position, move, buf);
-          
+
           printf("%s\n", buf);
         }
       }

@@ -172,7 +172,7 @@ bool uo_position_is_move_ok(const uo_position *position, uo_move move)
   return true;
 }
 
-uint64_t uo_position_calculate_key(uo_position *const position)
+uint64_t uo_position_calculate_key(const uo_position *position)
 {
   uint64_t key = 0;
 
@@ -699,10 +699,17 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   uo_position_update_checks(position);
   uo_position_update_pins(position);
 
+  position->material = (
+    uo_score_P * uo_popcnt(position->P) +
+    uo_score_N * uo_popcnt(position->N) +
+    uo_score_B * uo_popcnt(position->B) +
+    uo_score_R * uo_popcnt(position->R) +
+    uo_score_Q * uo_popcnt(position->Q));
+
   return position;
 }
 
-size_t uo_position_print_fen(uo_position *const position, char fen[90])
+size_t uo_position_print_fen(const uo_position *position, char fen[90])
 {
   if (uo_color(position->flags) == uo_black)
   {
@@ -808,7 +815,7 @@ size_t uo_position_print_fen(uo_position *const position, char fen[90])
   return ptr - fen;
 }
 
-size_t uo_position_print_diagram(uo_position *const position, char diagram[663])
+size_t uo_position_print_diagram(const uo_position *position, char diagram[663])
 {
   char *ptr = diagram;
 
@@ -923,12 +930,14 @@ void uo_position_make_move(uo_position *position, uo_move move)
     case uo_move_type__x:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_piece_value(piece_captured);
       uo_position_do_capture(position, square_from, square_to);
       break;
 
     case uo_move_type__enpassant:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_score_P;
       uo_position_do_enpassant(position, square_from, square_to);
       break;
 
@@ -943,42 +952,50 @@ void uo_position_make_move(uo_position *position, uo_move move)
       break;
 
     case uo_move_type__promo_N:
+      position->material -= uo_score_P - uo_score_N;
       uo_position_do_promo(position, square_from, uo_piece__N);
       break;
 
     case uo_move_type__promo_B:
+      position->material -= uo_score_P - uo_score_B;
       uo_position_do_promo(position, square_from, uo_piece__B);
       break;
 
     case uo_move_type__promo_R:
+      position->material -= uo_score_P - uo_score_R;
       uo_position_do_promo(position, square_from, uo_piece__R);
       break;
 
     case uo_move_type__promo_Q:
+      position->material -= uo_score_P - uo_score_Q;
       uo_position_do_promo(position, square_from, uo_piece__Q);
       break;
 
     case uo_move_type__promo_Nx:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_piece_value(piece_captured) + uo_score_P - uo_score_N;
       uo_position_do_promo_capture(position, square_from, square_to, uo_piece__N);
       break;
 
     case uo_move_type__promo_Bx:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_piece_value(piece_captured) + uo_score_P - uo_score_B;
       uo_position_do_promo_capture(position, square_from, square_to, uo_piece__B);
       break;
 
     case uo_move_type__promo_Rx:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_piece_value(piece_captured) + uo_score_P - uo_score_R;
       uo_position_do_promo_capture(position, square_from, square_to, uo_piece__R);
       break;
 
     case uo_move_type__promo_Qx:
       piece_captured = board[square_to];
       *position->piece_captured++ = piece_captured;
+      position->material -= uo_piece_value(piece_captured) + uo_score_P - uo_score_Q;
       uo_position_do_promo_capture(position, square_from, square_to, uo_piece__Q);
       break;
   }
@@ -1043,6 +1060,7 @@ void uo_position_unmake_move(uo_position *position)
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
   uo_move_type move_type = uo_move_get_type(move);
+  uo_piece piece_captured;
 
   switch (move_type)
   {
@@ -1051,11 +1069,14 @@ void uo_position_unmake_move(uo_position *position)
       uo_position_undo_move(position, square_from, square_to);
       break;
 
-    case uo_move_type__x:
-      uo_position_undo_capture(position, square_from, square_to, position->piece_captured[-1]);
+    case uo_move_type__x:;
+      piece_captured = position->piece_captured[-1];
+      position->material += uo_piece_value(piece_captured);
+      uo_position_undo_capture(position, square_from, square_to, piece_captured);
       break;
 
     case uo_move_type__enpassant:
+      position->material += uo_score_P;
       uo_position_undo_enpassant(position, square_from, square_to);
       break;
 
@@ -1070,17 +1091,47 @@ void uo_position_unmake_move(uo_position *position)
       break;
 
     case uo_move_type__promo_N:
-    case uo_move_type__promo_B:
-    case uo_move_type__promo_R:
-    case uo_move_type__promo_Q:
+      position->material += uo_score_P - uo_score_N;
       uo_position_undo_promo(position, square_from);
       break;
 
-    case uo_move_type__promo_Nx:
-    case uo_move_type__promo_Bx:
-    case uo_move_type__promo_Rx:
-    case uo_move_type__promo_Qx:
-      uo_position_undo_promo_capture(position, square_from, square_to, position->piece_captured[-1]);
+    case uo_move_type__promo_B:
+      position->material += uo_score_P - uo_score_B;
+      uo_position_undo_promo(position, square_from);
+      break;
+
+    case uo_move_type__promo_R:
+      position->material += uo_score_P - uo_score_R;
+      uo_position_undo_promo(position, square_from);
+      break;
+
+    case uo_move_type__promo_Q:
+      position->material += uo_score_P - uo_score_Q;
+      uo_position_undo_promo(position, square_from);
+      break;
+
+    case uo_move_type__promo_Nx:;
+      piece_captured = position->piece_captured[-1];
+      position->material += uo_score_P - uo_score_N + uo_piece_value(piece_captured); 
+      uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
+      break;
+
+    case uo_move_type__promo_Bx:;
+      piece_captured = position->piece_captured[-1];
+      position->material += uo_score_P - uo_score_B + uo_piece_value(piece_captured); 
+      uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
+      break;
+
+    case uo_move_type__promo_Rx:;
+      piece_captured = position->piece_captured[-1];
+      position->material += uo_score_P - uo_score_R + uo_piece_value(piece_captured); 
+      uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
+      break;
+
+    case uo_move_type__promo_Qx:;
+      piece_captured = position->piece_captured[-1];
+      position->material += uo_score_P - uo_score_Q + uo_piece_value(piece_captured); 
+      uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
       break;
   }
 
@@ -1890,7 +1941,7 @@ size_t uo_position_generate_moves(uo_position *position)
   return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
 }
 
-uo_move uo_position_parse_move(uo_position *const position, char str[5])
+uo_move uo_position_parse_move(const uo_position *position, char str[5])
 {
   if (!str)
     return (uo_move) { 0 };
@@ -1976,7 +2027,7 @@ uo_move uo_position_parse_move(uo_position *const position, char str[5])
   return uo_move_encode(square_from, square_to, move_type);
 }
 
-size_t uo_position_print_move(uo_position *const position, uo_move move, char str[6])
+size_t uo_position_print_move(const uo_position *position, uo_move move, char str[6])
 {
   if (uo_color(position->flags) == uo_black)
   {

@@ -27,6 +27,14 @@ extern "C"
 
 #define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
 
+  extern const int16_t uo_score_P;
+  extern const int16_t uo_score_N;
+  extern const int16_t uo_score_B;
+  extern const int16_t uo_score_R;
+  extern const int16_t uo_score_Q;
+
+  extern const int16_t uo_score_material_max;
+
   static inline char uo_piece_to_char(uo_piece piece)
   {
     switch (piece)
@@ -67,29 +75,29 @@ extern "C"
     }
   };
 
-  static inline int16_t up_piece_value(uo_piece piece)
+  static inline int16_t uo_piece_value(uo_piece piece)
   {
     switch (piece)
     {
       case uo_piece__P:
       case uo_piece__p:
-        return 100;
+        return uo_score_P;
 
       case uo_piece__n:
       case uo_piece__N:
-        return 300;
+        return uo_score_N;
 
       case uo_piece__B:
       case uo_piece__b:
-        return 301;
+        return uo_score_B;
 
       case uo_piece__R:
       case uo_piece__r:
-        return 500;
+        return uo_score_R;
 
       case uo_piece__Q:
       case uo_piece__q:
-        return 1050;
+        return uo_score_Q;
 
       case uo_piece__K:
       case uo_piece__k:
