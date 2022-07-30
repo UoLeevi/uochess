@@ -260,9 +260,9 @@ extern "C"
     position->ply = 0;
   }
 
-  size_t uo_position_print_fen(const uo_position *position, char fen[90]);
+  size_t uo_position_print_fen(uo_position *position, char fen[90]);
 
-  size_t uo_position_print_diagram(const uo_position *position, char diagram[663]);
+  size_t uo_position_print_diagram(uo_position *position, char diagram[663]);
 
   void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src);
 

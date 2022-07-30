@@ -30,7 +30,7 @@ typedef struct uo_movegenlist
   } moves;
 } uo_movegenlist;
 
-bool uo_position_is_ok(const uo_position *position)
+bool uo_position_is_ok(uo_position *position)
 {
   if (position->movelist.head - position->movelist.moves > UO_MAX_PLY * UO_BRANCING_FACTOR)
   {
@@ -709,7 +709,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
   return position;
 }
 
-size_t uo_position_print_fen(const uo_position *position, char fen[90])
+size_t uo_position_print_fen(uo_position *position, char fen[90])
 {
   if (uo_color(position->flags) == uo_black)
   {
@@ -815,7 +815,7 @@ size_t uo_position_print_fen(const uo_position *position, char fen[90])
   return ptr - fen;
 }
 
-size_t uo_position_print_diagram(const uo_position *position, char diagram[663])
+size_t uo_position_print_diagram(uo_position *position, char diagram[663])
 {
   char *ptr = diagram;
 

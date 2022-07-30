@@ -61,6 +61,10 @@ extern "C"
 
   void uo_atomic_store(volatile uo_atomic_int *target, int value);
 
+  int uo_atomic_increment(volatile uo_atomic_int *target);
+
+  int uo_atomic_decrement(volatile uo_atomic_int *target);
+
   // busy wait
   static inline void uo_atomic_compare_exchange_wait(volatile uo_atomic_int *target, int expected, int value)
   {

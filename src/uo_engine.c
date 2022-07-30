@@ -21,6 +21,7 @@ void uo_engine_queue_work(uo_thread_function *function, void *data)
   uo_mutex_lock(work_queue->mutex);
   work_queue->work[work_queue->head] = (uo_engine_thread_work){ .function = function, .data = data };
   work_queue->head = (work_queue->head + 1) % uo_engine_work_queue_max_count;
+  uo_atomic_decrement(&engine.available_thread_count);
   uo_mutex_unlock(work_queue->mutex);
   uo_semaphore_release(work_queue->semaphore);
 }
@@ -33,6 +34,7 @@ void *uo_engine_thread_run(void *arg)
 
   while (!engine.exit)
   {
+    uo_atomic_increment(&engine.available_thread_count);
     uo_semaphore_wait(work_queue->semaphore);
     uo_mutex_lock(work_queue->mutex);
     uo_engine_thread_work work = work_queue->work[work_queue->tail];
@@ -65,11 +67,14 @@ void uo_engine_init()
 
   // threads
   engine.thread_count = engine_options.threads + 1; // one additional thread for timer
+  uo_atomic_init(&engine.available_thread_count, 0);
   engine.threads = calloc(engine.thread_count, sizeof * engine.threads);
 
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
+    uo_atomic_init(&thread->busy, 1);
+    uo_atomic_init(&thread->pending_thread_count, 0);
     thread->id = i + 1;
 
     if (engine_options.multipv)

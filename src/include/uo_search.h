@@ -60,6 +60,8 @@ extern "C"
 
   void *uo_engine_thread_start_timer(void *arg);
 
+  void *uo_engine_thread_run_parallel_principal_variation_search(void *arg);
+
   void *uo_engine_thread_run_principal_variation_search(void *arg);
 
   void *uo_engine_thread_run_quiescence_search(void *arg);

@@ -31,6 +31,8 @@ extern "C"
     uo_thread *thread;
     uo_position position;
     uo_search_info info;
+    volatile uo_atomic_int busy;
+    volatile uo_atomic_int pending_thread_count;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_work
@@ -59,6 +61,7 @@ extern "C"
     uo_tentry *pv;
     uo_engine_thread *threads;
     size_t thread_count;
+    volatile uo_atomic_int available_thread_count;
     uo_engine_work_queue work_queue;
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
@@ -232,6 +235,16 @@ extern "C"
     return abtentry->value;
   }
 
+  static inline void uo_engine_thread_lock(uo_engine_thread *thread)
+  {
+    uo_atomic_compare_exchange_wait(&thread->busy, 0, 1);
+  }
+
+  static inline void uo_engine_thread_unlock(uo_engine_thread *thread)
+  {
+    uo_atomic_store(&thread->busy, 0);
+  }
+
   void uo_engine_start_search();
 
   static inline void uo_engine_reset_search_params(uint8_t seach_type)
@@ -251,6 +264,19 @@ extern "C"
   }
 
   void uo_engine_queue_work(uo_thread_function *function, void *data);
+
+  static inline bool uo_engine_queue_work_if_thread_available(uo_thread_function *function, void *data)
+  {
+    bool available = uo_atomic_decrement(&engine.available_thread_count) >= 0;
+
+    if (available)
+    {
+      uo_engine_queue_work(function, data);
+    }
+
+    uo_atomic_increment(&engine.available_thread_count);
+    return available;
+  }
 
 #ifdef __cplusplus
 }

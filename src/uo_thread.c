@@ -143,6 +143,16 @@ void uo_atomic_store(volatile uo_atomic_int *target, int value)
   InterlockedExchange(target, value);
 }
 
+int uo_atomic_increment(volatile uo_atomic_int *target)
+{
+  return InterlockedIncrement(target);
+}
+
+int uo_atomic_decrement(volatile uo_atomic_int *target)
+{
+  return InterlockedDecrement(target);
+}
+
 #else
 
 #include <semaphore.h>
@@ -250,6 +260,16 @@ bool uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, in
 void uo_atomic_store(volatile uo_atomic_int *target, int value)
 {
   atomic_store(target, value);
+}
+
+int uo_atomic_increment(volatile uo_atomic_int *target)
+{
+  return atomic_fetch_add(target, 1) + 1;
+}
+
+int uo_atomic_decrement(volatile uo_atomic_int *target)
+{
+  return atomic_fetch_sub(target, 1) - 1;
 }
 
 #endif
