@@ -57,9 +57,11 @@ extern "C"
 
   void uo_atomic_init(volatile uo_atomic_int *target, int value);
 
-  bool uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value);
+  int uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value);
 
   void uo_atomic_store(volatile uo_atomic_int *target, int value);
+
+  int uo_atomic_load(volatile uo_atomic_int *target);
 
   int uo_atomic_increment(volatile uo_atomic_int *target);
 
@@ -68,7 +70,23 @@ extern "C"
   // busy wait
   static inline void uo_atomic_compare_exchange_wait(volatile uo_atomic_int *target, int expected, int value)
   {
-    while (!uo_atomic_compare_exchange(target, expected, value))
+    while (uo_atomic_compare_exchange(target, expected, value) != expected)
+    {
+      // noop
+    }
+  }
+
+  static inline void uo_atomic_wait_until(volatile uo_atomic_int *target, int expected)
+  {
+    while (uo_atomic_compare_exchange(target, expected, expected) != expected)
+    {
+      // noop
+    }
+  }
+
+  static inline void uo_atomic_wait_until_lte(volatile uo_atomic_int *target, int expected)
+  {
+    while (uo_atomic_compare_exchange(target, expected, expected) > expected)
     {
       // noop
     }

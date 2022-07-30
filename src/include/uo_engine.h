@@ -29,8 +29,10 @@ extern "C"
   {
     uint8_t id;
     uo_thread *thread;
+    uo_engine_thread *owner;
     uo_position position;
     uo_search_info info;
+    volatile uo_atomic_int cutoff;
     volatile uo_atomic_int busy;
     volatile uo_atomic_int pending_thread_count;
   } uo_engine_thread;
@@ -118,7 +120,7 @@ extern "C"
 
   static inline bool uo_engine_is_stopped()
   {
-    return uo_atomic_compare_exchange(&engine.stopped, 1, 1);
+    return uo_atomic_load(&engine.stopped) == 1;
   }
 
   typedef struct uo_abtentry

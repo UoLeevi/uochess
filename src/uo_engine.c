@@ -75,6 +75,7 @@ void uo_engine_init()
     uo_engine_thread *thread = engine.threads + i;
     uo_atomic_init(&thread->busy, 1);
     uo_atomic_init(&thread->pending_thread_count, 0);
+    uo_atomic_init(&thread->cutoff, 0);
     thread->id = i + 1;
 
     if (engine_options.multipv)

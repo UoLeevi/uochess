@@ -26,6 +26,8 @@ typedef struct uo_parallel_search_params
   {
     uo_move move;
     int16_t value;
+    size_t nodes;
+    bool completed;
   } children[UO_PARALLEL_MAX_COUNT];
 } uo_parallel_search_params;
 
@@ -40,26 +42,19 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   {
     movetime = 2500 + (params->time_own - params->time_enemy) / 2;
 
-    size_t pv_minlen = 6;
+    size_t min_depth = 9;
 
     if (movetime > params->time_own / 8)
     {
       movetime = params->time_own / 8 + 1;
-      pv_minlen = 4;
+      min_depth = 7;
     }
 
     uint16_t score_abs = info->value < 0 ? -info->value : info->value;
 
     if (score_abs < UO_SCORE_MATE_IN_THRESHOLD - uo_piece__Q)
     {
-      size_t pv_len = 0;
-
-      while (info->pv[pv_len])
-      {
-        ++pv_len;
-      }
-
-      if (pv_len <= pv_minlen) return;
+      if (info->depth <= min_depth) return;
     }
   }
 
@@ -372,6 +367,11 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       {
         return value;
       }
+
+      if (thread->owner && uo_atomic_load(&thread->cutoff))
+      {
+        return value;
+      }
     }
 
     return value;
@@ -429,6 +429,11 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       }
 
       if (uo_engine_is_stopped())
+      {
+        return value;
+      }
+
+      if (thread->owner && uo_atomic_load(&thread->cutoff))
       {
         return value;
       }
@@ -543,11 +548,21 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //}
   }
 
+  if (uo_engine_is_stopped())
+  {
+    return entry.value;
+  }
+
+  if (thread->owner && uo_atomic_load(&thread->cutoff))
+  {
+    return entry.value;
+  }
+
   uo_parallel_search_params params = {
     .thread = thread,
     .alpha = alpha,
     .beta = beta,
-
+    .children = {0}
   };
 
   for (size_t i = 1; i < move_count; ++i)
@@ -561,8 +576,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
     size_t depth_lmr = params.depth = depth <= 3 ? depth : depth - 1;
 
-    bool delegated = depth >= UO_PARALLEL_MIN_DEPTH && params.index < UO_PARALLEL_MAX_COUNT
-      &&uo_engine_queue_work_if_thread_available(uo_engine_thread_run_parallel_principal_variation_search, &params);
+    bool delegated = depth >= UO_PARALLEL_MIN_DEPTH && params.index < UO_PARALLEL_MAX_COUNT &&
+      uo_engine_queue_work_if_thread_available(uo_engine_thread_run_parallel_principal_variation_search, &params);
 
     if (delegated)
     {
@@ -604,6 +619,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             position->stack->search.killers[0] = move;
           }
 
+          if (params.index)
+          {
+            uo_atomic_store(&thread->cutoff, 1);
+            uo_atomic_wait_until(&thread->pending_thread_count, 0);
+            while (params.index--)
+            {
+              thread->info.nodes += params.children[params.index].nodes;
+            }
+            uo_atomic_store(&thread->cutoff, 0);
+          }
+
           return uo_engine_store_entry(position, &entry);
         }
 
@@ -628,54 +654,83 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     {
       return entry.value;
     }
+
+    if (thread->owner && uo_atomic_load(&thread->cutoff))
+    {
+      return entry.value;
+    }
   }
 
   if (depth >= UO_PARALLEL_MIN_DEPTH)
   {
-    uo_atomic_compare_exchange_wait(&thread->pending_thread_count, 0, 0);
-
     while (params.index--)
     {
-      uo_move move = params.children[params.index].move;
-      int16_t node_value = params.children[params.index].value;
-      size_t depth_lmr = params.depth;
+      uo_atomic_wait_until_lte(&thread->pending_thread_count, params.index);
 
-      if (node_value > entry.value)
+      for (size_t i = 0; i <= params.index; ++i)
       {
-        entry.value = node_value;
-        entry.bestmove = move;
-        entry.depth = depth_lmr;
-
-        if (entry.value > alpha)
+        if (!params.children[i].completed)
         {
-          position->hhtable[uo_color(position->flags)][move & 0xFFF] += 2 << depth_lmr;
+          continue;
+        }
 
-          if (entry.value >= beta)
+        params.children[i].completed = false;
+
+        size_t depth_lmr = params.depth;
+        uo_move move = params.children[i].move;
+        int16_t node_value = params.children[i].value;
+        thread->info.nodes += params.children[i].nodes;
+
+        if (node_value > entry.value)
+        {
+          entry.value = node_value;
+          entry.bestmove = move;
+          entry.depth = depth_lmr;
+
+          if (entry.value > alpha)
           {
-            if (!uo_move_is_capture(move))
+            position->hhtable[uo_color(position->flags)][move & 0xFFF] += 2 << depth_lmr;
+
+            if (entry.value >= beta)
             {
-              position->stack->search.killers[1] = position->stack->search.killers[0];
-              position->stack->search.killers[0] = move;
+              if (!uo_move_is_capture(move))
+              {
+                position->stack->search.killers[1] = position->stack->search.killers[0];
+                position->stack->search.killers[0] = move;
+              }
+
+              if (params.index)
+              {
+                uo_atomic_store(&thread->cutoff, 1);
+                uo_atomic_wait_until(&thread->pending_thread_count, 0);
+                while (params.index--)
+                {
+                  thread->info.nodes += params.children[params.index].nodes;
+                }
+                uo_atomic_store(&thread->cutoff, 0);
+              }
+
+              return uo_engine_store_entry(position, &entry);
             }
 
-            return uo_engine_store_entry(position, &entry);
-          }
+            alpha = params.alpha = entry.value;
+            pline[0] = entry.bestmove;
+            pline[1] = 0;
 
-          alpha = params.alpha = entry.value;
-          pline[0] = entry.bestmove;
-          pline[1] = 0;
-
-          if (pv)
-          {
-            //uo_engine_store_entry(position, &entry);
-            //uo_engine_thread_update_pv(thread);
-
-            if (depth > 8 && position->ply == 0)
+            if (pv)
             {
-              uo_search_print_info(thread);
+              //uo_engine_store_entry(position, &entry);
+              //uo_engine_thread_update_pv(thread);
+
+              if (depth > 8 && position->ply == 0)
+              {
+                uo_search_print_info(thread);
+              }
             }
           }
         }
+
+        break;
       }
     }
   }
@@ -792,7 +847,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_engine_thread *thread = work->thread;
   uo_position *position = &thread->position;
   uo_parallel_search_params *params = work->data;
-  uo_engine_thread *owner = params->thread;
+  uo_engine_thread *owner = thread->owner = params->thread;
   uint8_t index = params->index;
   size_t depth = params->depth;
   int16_t alpha = params->alpha;
@@ -800,6 +855,12 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
 
   uo_position_copy(&thread->position, &owner->position);
   uo_atomic_store(&owner->busy, 0);
+
+  thread->info = (uo_search_info){
+    .depth = depth,
+    .multipv = engine_options.multipv,
+    .nodes = 0
+  };
 
   uo_move *line = uo_alloca(depth * sizeof * line);
   line[0] = 0;
@@ -815,9 +876,12 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
     value = uo_score_adjust_for_mate(value);
   }
 
+  params->children[index].nodes = thread->info.nodes;
   params->children[index].value = value;
-
+  params->children[index].completed = true;
   uo_atomic_decrement(&owner->pending_thread_count);
+
+  thread->owner = NULL;
 
   return NULL;
 }
@@ -851,6 +915,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
+    thread->info.depth = depth;
+
     if (thread->info.nodes)
     {
       uo_search_print_info(thread);
@@ -870,8 +936,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
 
     if (uo_engine_is_stopped()) break;
-
-    thread->info.depth = depth;
   }
 
   thread->info.completed = true;

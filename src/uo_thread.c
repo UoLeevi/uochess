@@ -133,9 +133,14 @@ void uo_atomic_init(volatile uo_atomic_int *target, int value)
   InterlockedExchange(target, value);
 }
 
-bool uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value)
+int uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value)
 {
-  return InterlockedCompareExchange(target, value, expected) == expected;
+  return InterlockedCompareExchange(target, value, expected);
+}
+
+int uo_atomic_load(volatile uo_atomic_int *target)
+{
+  return InterlockedCompareExchange(target, 0, 0);
 }
 
 void uo_atomic_store(volatile uo_atomic_int *target, int value)
@@ -252,9 +257,14 @@ void uo_atomic_init(volatile uo_atomic_int *target, int value)
   atomic_init(target, value);
 }
 
-bool uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value)
+int uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int value)
 {
-  return atomic_compare_exchange_strong(target, &expected, value);
+  return atomic_compare_exchange_strong(target, &expected, value) ? expected : atomic_load(target);
+}
+
+int uo_atomic_load(volatile uo_atomic_int *target)
+{
+  return atomic_load(target);
 }
 
 void uo_atomic_store(volatile uo_atomic_int *target, int value)
