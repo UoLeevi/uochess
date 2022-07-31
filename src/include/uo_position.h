@@ -868,6 +868,25 @@ extern "C"
     return true;
   }
 
+  static inline void uo_position_update_killers(uo_position *position, uo_move move)
+  {
+    if (!uo_move_is_capture(move))
+    {
+      position->stack->search.killers[1] = position->stack->search.killers[0];
+      position->stack->search.killers[0] = move;
+    }
+  }
+
+  static inline void uo_position_update_history_heuristic(uo_position *position, uo_move move, size_t depth)
+  {
+    position->hhtable[uo_color(position->flags)][move & 0xFFF] += 2 << depth;
+  }
+
+    static inline void uo_position_update_butterfly_heuristic(uo_position *position, uo_move move)
+  {
+    ++position->bftable[uo_color(position->flags)][move & 0xFFF];
+  }
+
   uo_move uo_position_parse_move(const uo_position *position, char str[5]);
 
   uo_move uo_position_parse_png_move(uo_position *position, char *png);

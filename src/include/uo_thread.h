@@ -92,9 +92,26 @@ extern "C"
     }
   }
 
+  static inline void uo_atomic_wait_until_gte(volatile uo_atomic_int *target, int expected)
+  {
+    while (uo_atomic_compare_exchange(target, expected, expected) < expected)
+    {
+      // noop
+    }
+  }
+
+  static inline void uo_atomic_lock(volatile uo_atomic_int *target)
+  {
+    uo_atomic_compare_exchange_wait(target, 0, 1);
+  }
+
+  static inline void uo_atomic_unlock(volatile uo_atomic_int *target)
+  {
+    uo_atomic_store(target, 0);
+  }
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

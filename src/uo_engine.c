@@ -15,34 +15,130 @@ void uo_engine_load_default_options()
   engine_options.hash_size = capacity * sizeof * engine.ttable.entries;
 }
 
-void uo_engine_queue_work(uo_thread_function *function, void *data)
+void uo_search_queue_init(uo_search_queue *queue)
 {
-  uo_engine_work_queue *work_queue = &engine.work_queue;
-  uo_mutex_lock(work_queue->mutex);
-  work_queue->work[work_queue->head] = (uo_engine_thread_work){ .function = function, .data = data };
-  work_queue->head = (work_queue->head + 1) % uo_engine_work_queue_max_count;
-  uo_atomic_decrement(&engine.available_thread_count);
-  uo_mutex_unlock(work_queue->mutex);
-  uo_semaphore_release(work_queue->semaphore);
+  if (queue->init) return;
+  queue->init = true;
+  uo_atomic_init(&queue->busy, 0);
+  uo_atomic_init(&queue->pending_count, 0);
+  uo_atomic_init(&queue->count, 0);
+  queue->head = 0;
+  queue->tail = 0;
+}
+
+void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result)
+{
+  uo_atomic_lock(&queue->busy);
+  queue->items[queue->head] = *result;
+  queue->head = (queue->head + 1) % UO_PARALLEL_MAX_COUNT;
+  uo_atomic_unlock(&queue->busy);
+  uo_atomic_increment(&queue->count);
+  uo_atomic_decrement(&queue->pending_count);
+}
+
+bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result)
+{
+  int pending_count = uo_atomic_load(&queue->pending_count);
+  int count = uo_atomic_decrement(&queue->count);
+
+  if (pending_count == 0 && count == -1)
+  {
+    uo_atomic_increment(&queue->count);
+    return false;
+  }
+
+  if (count == -1)
+  {
+    uo_atomic_wait_until_gte(&queue->count, 0);
+  }
+
+  uo_atomic_lock(&queue->busy);
+  *result = queue->items[queue->tail];
+  queue->tail = (queue->tail + 1) % UO_PARALLEL_MAX_COUNT;
+  uo_atomic_unlock(&queue->busy);
+
+  return true;
+}
+
+bool uo_search_queue_try_get_result(uo_search_queue *queue, uo_search_queue_item *result)
+{
+  int pending_count = uo_atomic_load(&queue->pending_count);
+  int count = uo_atomic_decrement(&queue->count);
+
+  if (pending_count == 0 && count == -1)
+  {
+    uo_atomic_increment(&queue->count);
+    return false;
+  }
+
+  if (count == -1)
+  {
+    uo_atomic_increment(&queue->count);
+    return false;
+  }
+
+  uo_atomic_lock(&queue->busy);
+  *result = queue->items[queue->tail];
+  queue->tail = (queue->tail + 1) % UO_PARALLEL_MAX_COUNT;
+  uo_atomic_unlock(&queue->busy);
+
+  return true;
+}
+
+uo_engine_thread *uo_engine_run_thread(uo_thread_function *function, void *data)
+{
+  uo_engine_thread_queue *queue = &engine.thread_queue;
+  uo_atomic_decrement(&queue->count);
+  uo_atomic_wait_until_gte(&queue->count, 0);
+  uo_atomic_lock(&queue->busy);
+  uo_engine_thread *thread = queue->threads[queue->tail];
+  queue->tail = (queue->tail + 1) % engine.thread_count;
+  uo_atomic_unlock(&queue->busy);
+  thread->function = function;
+  thread->data = data;
+  uo_atomic_lock(&thread->busy);
+  uo_semaphore_release(thread->semaphore);
+  return thread;
+}
+
+uo_engine_thread *uo_engine_run_thread_if_available(uo_thread_function *function, void *data)
+{
+  uo_engine_thread_queue *queue = &engine.thread_queue;
+  bool available = uo_atomic_decrement(&queue->count) >= 0;
+
+  if (!available)
+  {
+    uo_atomic_increment(&queue->count);
+    return NULL;
+  }
+
+  uo_atomic_lock(&queue->busy);
+  uo_engine_thread *thread = queue->threads[queue->tail];
+  queue->tail = (queue->tail + 1) % engine.thread_count;
+  uo_atomic_unlock(&queue->busy);
+  thread->function = function;
+  thread->data = data;
+  uo_atomic_lock(&thread->busy);
+  uo_semaphore_release(thread->semaphore);
+
+  return thread;
 }
 
 void *uo_engine_thread_run(void *arg)
 {
   uo_engine_thread *thread = arg;
-  uo_engine_work_queue *work_queue = &engine.work_queue;
+  uo_engine_thread_queue *queue = &engine.thread_queue;
   void *thread_return = NULL;
 
   while (!engine.exit)
   {
-    uo_atomic_increment(&engine.available_thread_count);
-    uo_semaphore_wait(work_queue->semaphore);
-    uo_mutex_lock(work_queue->mutex);
-    uo_engine_thread_work work = work_queue->work[work_queue->tail];
-    work_queue->tail = (work_queue->tail + 1) % uo_engine_work_queue_max_count;
-    uo_mutex_unlock(work_queue->mutex);
-    uo_thread_function *function = work.function;
-    work.thread = thread;
-    thread_return = function(&work);
+    uo_atomic_lock(&queue->busy);
+    queue->threads[queue->head] = thread;
+    queue->head = (queue->head + 1) % engine.thread_count;
+    uo_atomic_unlock(&queue->busy);
+    uo_atomic_increment(&queue->count);
+    uo_semaphore_wait(thread->semaphore);
+    thread_return = thread->function(thread);
   }
 
   return thread_return;
@@ -59,22 +155,22 @@ void uo_engine_init()
   // stdout_mutex
   engine.stdout_mutex = uo_mutex_create();
 
-  // work_queue
-  engine.work_queue.semaphore = uo_semaphore_create(0);
-  engine.work_queue.mutex = uo_mutex_create();
-  engine.work_queue.head = 0;
-  engine.work_queue.tail = 0;
-
   // threads
   engine.thread_count = engine_options.threads + 1; // one additional thread for timer
-  uo_atomic_init(&engine.available_thread_count, 0);
-  engine.threads = calloc(engine.thread_count, sizeof * engine.threads);
+  engine.threads = calloc(engine.thread_count, sizeof(uo_engine_thread));
+
+  // thread_queue
+  engine.thread_queue.head = 0;
+  engine.thread_queue.tail = 0;
+  uo_atomic_init(&engine.thread_queue.busy, 0);
+  uo_atomic_init(&engine.thread_queue.count, 0);
+  engine.thread_queue.threads = malloc(engine.thread_count * sizeof(uo_engine_thread *));
 
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
-    uo_atomic_init(&thread->busy, 1);
-    uo_atomic_init(&thread->pending_thread_count, 0);
+    thread->semaphore = uo_semaphore_create(0);
+    uo_atomic_init(&thread->busy, 0);
     uo_atomic_init(&thread->cutoff, 0);
     thread->id = i + 1;
 
@@ -113,5 +209,5 @@ static uo_thread_function *uo_search_thread_run_function[] = {
 void uo_engine_start_search()
 {
   uo_atomic_store(&engine.stopped, 0);
-  uo_engine_queue_work(uo_search_thread_run_function[engine.search_params.seach_type], NULL);
+  uo_engine_run_thread(uo_search_thread_run_function[engine.search_params.seach_type], NULL);
 }

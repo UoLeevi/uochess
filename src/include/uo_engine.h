@@ -25,37 +25,47 @@ extern "C"
     size_t hash_size;
   } uo_engine_options;
 
+  typedef struct uo_search_queue_item
+  {
+    uo_engine_thread *thread;
+    uo_move move;
+    int16_t value;
+    size_t nodes;
+    size_t depth;
+  } uo_search_queue_item;
+
+  typedef struct uo_search_queue {
+    volatile uo_atomic_int busy;
+    volatile uo_atomic_int pending_count;
+    volatile uo_atomic_int count;
+    int head;
+    int tail;
+    bool init;
+    uo_search_queue_item items[UO_PARALLEL_MAX_COUNT];
+    uo_engine_thread *threads[UO_PARALLEL_MAX_COUNT];
+  } uo_search_queue;
+
   typedef struct uo_engine_thread
   {
     uint8_t id;
     uo_thread *thread;
     uo_engine_thread *owner;
+    uo_semaphore *semaphore;
+    uo_thread_function *function;
+    void *data;
     uo_position position;
     uo_search_info info;
-    volatile uo_atomic_int cutoff;
     volatile uo_atomic_int busy;
-    volatile uo_atomic_int pending_thread_count;
+    volatile uo_atomic_int cutoff;
   } uo_engine_thread;
 
-  typedef struct uo_engine_thread_work
-  {
-    union
-    {
-      uo_engine_thread *thread;
-      uo_thread_function *function;
-    };
-    void *data;
-  } uo_engine_thread_work;
-
-#define uo_engine_work_queue_max_count 0x100
-
-  typedef struct uo_engine_work_queue {
-    uo_semaphore *semaphore;
-    uo_mutex *mutex;
+  typedef struct uo_engine_thread_queue {
+    volatile uo_atomic_int count;
+    volatile uo_atomic_int busy;
     int head;
     int tail;
-    uo_engine_thread_work work[uo_engine_work_queue_max_count];
-  } uo_engine_work_queue;
+    uo_engine_thread **threads;
+  } uo_engine_thread_queue;
 
   typedef struct uo_engine
   {
@@ -63,8 +73,7 @@ extern "C"
     uo_tentry *pv;
     uo_engine_thread *threads;
     size_t thread_count;
-    volatile uo_atomic_int available_thread_count;
-    uo_engine_work_queue work_queue;
+    uo_engine_thread_queue thread_queue;
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
@@ -79,6 +88,9 @@ extern "C"
   void uo_engine_load_default_options();
   void uo_engine_init();
   void uo_engine_reconfigure();
+
+  void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result);
+  bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result);
 
   static inline void uo_engine_lock_position()
   {
@@ -260,25 +272,22 @@ extern "C"
     };
   }
 
+  void uo_search_queue_init(uo_search_queue *queue);
+
+  void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result);
+
+  bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result);
+
+  bool uo_search_queue_try_get_result(uo_search_queue *queue, uo_search_queue_item *result);
+
   static inline void uo_engine_stop_search()
   {
     uo_atomic_store(&engine.stopped, 1);
   }
 
-  void uo_engine_queue_work(uo_thread_function *function, void *data);
+  uo_engine_thread *uo_engine_run_thread(uo_thread_function *function, void *data);
 
-  static inline bool uo_engine_queue_work_if_thread_available(uo_thread_function *function, void *data)
-  {
-    bool available = uo_atomic_decrement(&engine.available_thread_count) >= 0;
-
-    if (available)
-    {
-      uo_engine_queue_work(function, data);
-    }
-
-    uo_atomic_increment(&engine.available_thread_count);
-    return available;
-  }
+  uo_engine_thread *uo_engine_run_thread_if_available(uo_thread_function *function, void *data);
 
 #ifdef __cplusplus
 }
