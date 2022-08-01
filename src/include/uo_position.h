@@ -429,6 +429,66 @@ extern "C"
     return position->stack->checks != uo_move_history__checks_none ? position->stack->checks : 0;
   }
 
+  static inline uo_bitboard uo_position_attacks_own_NBRQ(const uo_position *position)
+  {
+    uo_bitboard attacks = 0;
+    uo_bitboard mask_own = position->own;
+    uo_bitboard occupied = mask_own | position->enemy;
+
+    uo_bitboard own_N = mask_own & position->N;
+    while (own_N)
+    {
+      uo_square square = uo_bitboard_next_square(&own_N);
+      attacks |= uo_bitboard_attacks_N(square);
+    }
+
+    uo_bitboard own_RQ = mask_own & (position->R | position->Q);
+    while (own_RQ)
+    {
+      uo_square square = uo_bitboard_next_square(&own_RQ);
+      attacks |= uo_bitboard_attacks_R(square, occupied);
+    }
+
+    uo_bitboard own_BQ = mask_own & (position->B | position->Q);
+    while (own_BQ)
+    {
+      uo_square square = uo_bitboard_next_square(&own_BQ);
+      attacks |= uo_bitboard_attacks_B(square, occupied);
+    }
+
+    return attacks;
+  }
+
+  static inline uo_bitboard uo_position_attacks_enemy_NBRQ(const uo_position *position)
+  {
+    uo_bitboard attacks = 0;
+    uo_bitboard mask_enemy = position->enemy;
+    uo_bitboard occupied = mask_enemy | position->own;
+
+    uo_bitboard enemy_N = mask_enemy & position->N;
+    while (enemy_N)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_N);
+      attacks |= uo_bitboard_attacks_N(square);
+    }
+
+    uo_bitboard enemy_RQ = mask_enemy & (position->R | position->Q);
+    while (enemy_RQ)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_RQ);
+      attacks |= uo_bitboard_attacks_R(square, occupied);
+    }
+
+    uo_bitboard enemy_BQ = mask_enemy & (position->B | position->Q);
+    while (enemy_BQ)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_BQ);
+      attacks |= uo_bitboard_attacks_B(square, occupied);
+    }
+
+    return attacks;
+  }
+
   static inline bool uo_position_is_null_move_allowed(uo_position *position)
   {
     return !uo_position_is_check(position)
@@ -863,10 +923,10 @@ extern "C"
       {
         return false;
       }
-    }
+      }
 
     return true;
-  }
+    }
 
   static inline void uo_position_update_killers(uo_position *position, uo_move move)
   {
@@ -882,7 +942,7 @@ extern "C"
     position->hhtable[uo_color(position->flags)][move & 0xFFF] += 2 << depth;
   }
 
-    static inline void uo_position_update_butterfly_heuristic(uo_position *position, uo_move move)
+  static inline void uo_position_update_butterfly_heuristic(uo_position *position, uo_move move)
   {
     ++position->bftable[uo_color(position->flags)][move & 0xFFF];
   }
@@ -896,7 +956,7 @@ extern "C"
   size_t uo_position_perft(uo_position *position, size_t depth);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

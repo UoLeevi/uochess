@@ -36,7 +36,7 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   {
     movetime = 2500 + (params->time_own - params->time_enemy) / 2;
 
-    size_t min_depth = 9;
+    size_t min_depth = 7;
 
     if (movetime > params->time_own / 8)
     {
@@ -226,7 +226,15 @@ static void uo_search_print_info(uo_engine_thread *thread)
     if (info->completed && info->multipv == 1)
     {
       uo_position_print_move(position, info->bestmove, buf);
-      printf("bestmove %s\n", buf);
+      printf("bestmove %s", buf);
+
+      if (info->pv[1])
+      {
+        uo_position_print_move(position, info->pv[1] ^ 0xE38, buf);
+        printf(" ponder %s", buf);
+      }
+
+      printf("\n");
     }
   }
 
@@ -245,11 +253,12 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
 {
   uo_position *position = &thread->position;
   uo_search_quiesce_flags flags = uo_search_quiesce_flags__positive_sse;
+
   uint8_t material_percentage = uo_position_material_percentage(position);
 
   // In endgame, let's examine more checks and captures.
   // The less material is on the board, the more checks should be examined.
-  size_t material_weighted_depth = depth * (material_percentage * material_percentage) / 1000;
+  size_t material_weighted_depth = depth * material_percentage / 100;
 
   if (material_weighted_depth < 5)
   {
@@ -503,6 +512,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //  uo_engine_thread_update_pv(thread);
     //}
 
+    pline[0] = entry.bestmove;
     return entry.value;
   }
 
@@ -606,6 +616,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     .queue = {.init = 0 },
     .alpha = alpha,
     .beta = beta,
+    .depth = depth
   };
 
   for (size_t i = 1; i < move_count; ++i)
@@ -615,26 +626,43 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     // search later moves for reduced depth
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
-    size_t depth_lmr = params.depth = depth <= 3 ? depth : depth - 1;
-
-    bool can_delegate = (depth_lmr >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
-
-    if (can_delegate && uo_search_try_delegate_parallel_search(thread, &params))
-    {
-      ++parallel_search_count;
-      continue;
-    }
+    size_t depth_reduction = depth > 3 && !pv && !uo_position_is_check(position) ? 1 : 0;
 
     uo_position_make_move(position, move);
 
-    // search with null window
+    if (depth_reduction)
+    {
+      if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
+      {
+        ++depth_reduction;
+      }
+
+      if (uo_position_is_check(position))
+      {
+        --depth_reduction;
+      }
+    }
+
+    size_t depth_lmr = depth - depth_reduction;
+
+    // search with null window for reduced depth
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false);
     node_value = uo_score_adjust_for_mate(node_value);
 
     if (node_value > alpha && node_value < beta)
     {
       // failed high, do a full re-search
-      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha, line, false);
+
+      bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
+
+      if (can_delegate && uo_search_try_delegate_parallel_search(thread, &params))
+      {
+        uo_position_unmake_move(position);
+        ++parallel_search_count;
+        continue;
+      }
+
+      node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
       node_value = uo_score_adjust_for_mate(node_value);
     }
 
@@ -961,8 +989,6 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_position_copy(&thread->position, &owner->position);
   uo_atomic_unlock(&thread->busy);
 
-  uo_position_make_move(&thread->position, move);
-
   thread->info = (uo_search_info){
     .depth = depth,
     .multipv = engine_options.multipv,
@@ -972,16 +998,8 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_move *line = uo_alloca(depth * sizeof * line);
   line[0] = 0;
 
-  // search with null window
-  int16_t value = -uo_search_principal_variation(thread, depth - 1, -alpha - 1, -alpha, line, false);
+  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
   value = uo_score_adjust_for_mate(value);
-
-  if (value > alpha && value < beta)
-  {
-    // failed high, do a full re-search
-    value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
-    value = uo_score_adjust_for_mate(value);
-  }
 
   uo_search_queue_item result = {
     .thread = thread,
@@ -1030,9 +1048,39 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   int16_t beta = params->beta;
   size_t aspiration_fail_count = 0;
 
-  int16_t value = uo_search_principal_variation(thread, 1, alpha, beta, line, true);
+  int16_t value;
+  uo_move bestmove = 0;
+
+  if (engine.ponder.key)
+  {
+    value = engine.ponder.value;
+
+    if (position->stack[-1].key == engine.ponder.key)
+    {
+      int16_t window = (position->stack[-1].move == engine.ponder.move) ? 40 : 200;
+
+      alpha = value > -UO_SCORE_CHECKMATE + window ? value - window : -UO_SCORE_CHECKMATE;
+      beta = value < UO_SCORE_CHECKMATE - window ? value - window : -UO_SCORE_CHECKMATE;
+    }
+  }
+
+  value = uo_search_principal_variation(thread, 1, alpha, beta, line, true);
   uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count);
-  thread->info.value = value;
+  bestmove = thread->info.bestmove;
+
+  if (bestmove)
+  {
+    uo_position_make_move(position, bestmove);
+    engine.ponder.key = position->key;
+    engine.ponder.value = thread->info.value = value;
+    engine.ponder.move = thread->info.pv[1];
+    uo_position_unmake_move(position);
+  }
+  else
+  {
+    engine.ponder.key = 0;
+  }
+
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
@@ -1051,7 +1099,21 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
       {
-        thread->info.value = value;
+        bestmove = thread->info.bestmove;
+
+        if (bestmove)
+        {
+          uo_position_make_move(position, bestmove);
+          engine.ponder.key = position->key;
+          engine.ponder.value = thread->info.value = value;
+          engine.ponder.move = thread->info.pv[1];
+          uo_position_unmake_move(position);
+        }
+        else
+        {
+          engine.ponder.key = 0;
+        }
+
         break;
       }
     }

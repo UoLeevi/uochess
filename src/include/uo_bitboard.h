@@ -27,6 +27,7 @@ extern "C"
 #define uo_bitboard_edge ((uo_bitboard)0xFF818181818181FFull)
 #define uo_bitboard_center ((uo_bitboard)0x0000001818000000ull)
 #define uo_bitboard_big_center ((uo_bitboard)0x00003C3C3C3C0000ull)
+#define uo_bitboard_corners ((uo_bitboard)0x8100000000000081ull)
 
 #define uo_bitboard_rank_first   ((uo_bitboard)0x00000000000000FFull)
 #define uo_bitboard_rank_second  ((uo_bitboard)0x000000000000FF00ull)

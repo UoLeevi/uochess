@@ -10,6 +10,7 @@ extern "C"
 #include "uo_ttable.h"
 #include "uo_thread.h"
 #include "uo_search.h"
+#include "uo_evaluation.h"
 #include "uo_def.h"
 
 #include <stdbool.h>
@@ -78,6 +79,12 @@ extern "C"
     uo_mutex *position_mutex;
     uo_position position;
     uo_search_params search_params;
+    struct
+    {
+      uint64_t key;
+      int16_t value;
+      uo_move move;
+    } ponder;
     volatile uo_atomic_int stopped;
     bool exit;
   } uo_engine;
@@ -153,8 +160,11 @@ extern "C"
     uo_engine_lock_ttable();
     abtentry->entry = uo_ttable_get(&engine.ttable, position);
 
+    int16_t value;
+
     if (abtentry->entry)
     {
+      value = uo_score_adjust_for_mate_from_ttable(position, abtentry->entry->value);
       abtentry->bestmove = abtentry->entry->bestmove;
 
       if (abtentry->entry->depth < abtentry->depth)
@@ -175,34 +185,34 @@ extern "C"
 
     if (abtentry->entry->type == uo_tentry_type__exact)
     {
-      abtentry->value = abtentry->entry->value;
+      abtentry->value = value;
       uo_engine_unlock_ttable();
       return true;
     }
 
     if (abtentry->entry->type == uo_tentry_type__lower_bound)
     {
-      if (abtentry->entry->value >= abtentry->beta)
+      if (value >= abtentry->beta)
       {
-        abtentry->value = abtentry->entry->value;
+        abtentry->value = value;
         uo_engine_unlock_ttable();
         return true;
       }
 
-      abtentry->hardalpha = abtentry->entry->value;
+      abtentry->hardalpha = value;
       abtentry->hardbeta = UO_SCORE_CHECKMATE;
     }
     else // if (abtentry->entry->type == uo_tentry_type__upper_bound)
     {
-      if (abtentry->entry->value <= abtentry->alpha)
+      if (value <= abtentry->alpha)
       {
-        abtentry->value = abtentry->entry->value;
+        abtentry->value = value;
         uo_engine_unlock_ttable();
         return true;
       }
 
       abtentry->hardalpha = -UO_SCORE_CHECKMATE;
-      abtentry->hardbeta = abtentry->entry->value;
+      abtentry->hardbeta = value;
     }
 
     uo_engine_unlock_ttable();
@@ -211,8 +221,8 @@ extern "C"
 
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    if (abtentry->value < abtentry->hardalpha) abtentry->value = abtentry->hardalpha;
-    if (abtentry->value > abtentry->hardbeta) abtentry->value = abtentry->hardbeta;
+    //if (abtentry->value < abtentry->hardalpha) abtentry->value = abtentry->hardalpha;
+    //if (abtentry->value > abtentry->hardbeta) abtentry->value = abtentry->hardbeta;
 
     if (!abtentry->bestmove || uo_engine_is_stopped()) return abtentry->value;
 
@@ -229,7 +239,7 @@ extern "C"
       entry = abtentry->entry = uo_ttable_set(&engine.ttable, position);
       entry->depth = abtentry->depth;
       entry->bestmove = abtentry->bestmove;
-      entry->value = abtentry->value;
+      entry->value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
       entry->type = type;
       uo_engine_unlock_ttable();
     }
@@ -240,7 +250,7 @@ extern "C"
       {
         entry->depth = abtentry->depth;
         entry->bestmove = abtentry->bestmove;
-        entry->value = abtentry->value;
+        entry->value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
         entry->type = type;
       }
       uo_engine_unlock_ttable();
