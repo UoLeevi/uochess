@@ -998,7 +998,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_move *line = uo_alloca(depth * sizeof * line);
   line[0] = 0;
 
-  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
+  int16_t value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, true);
   value = uo_score_adjust_for_mate(value);
 
   uo_search_queue_item result = {

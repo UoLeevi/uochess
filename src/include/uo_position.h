@@ -923,10 +923,10 @@ extern "C"
       {
         return false;
       }
-      }
+    }
 
     return true;
-    }
+  }
 
   static inline void uo_position_update_killers(uo_position *position, uo_move move)
   {
