@@ -78,7 +78,7 @@ const int16_t uo_score_castled_king = 40;
 const int16_t uo_score_king_cover_pawn = 30;
 const int16_t uo_score_king_next_to_open_file = -90;
 
-int16_t uo_position_evaluate(const uo_position *position)
+int16_t uo_position_evaluate2(const uo_position *position)
 {
   int16_t score = uo_score_tempo;
 
@@ -258,7 +258,7 @@ int16_t uo_position_evaluate(const uo_position *position)
   return score;
 }
 
-int16_t uo_position_evaluate_old(const uo_position *position)
+int16_t uo_position_evaluate(const uo_position *position)
 {
   int16_t score = uo_score_tempo;
 

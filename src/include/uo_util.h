@@ -15,13 +15,13 @@ extern "C"
 
 #define uo_alloca _alloca
 
-//# include <intrin.h>
-//# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
+  //# include <intrin.h>
+  //# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
 
-  //static unsigned long temp;
+    //static unsigned long temp;
 
-  //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
-  //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
+    //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
+    //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
 
 #elif defined(__has_builtin)
 
@@ -117,6 +117,146 @@ extern "C"
 
 #endif
 
+#pragma region uo_min
+
+  static inline double _uo_min_lf(double x, double y)
+  {
+    return x > y ? y : x;
+  }
+  static inline float _uo_min_f(float x, float y)
+  {
+    return x > y ? y : x;
+  }
+  static inline char _uo_min_c(char x, char y)
+  {
+    return x > y ? y : x;
+  }
+  static inline unsigned char _uo_min_uc(unsigned char x, unsigned char y)
+  {
+    return x > y ? y : x;
+  }
+  static inline short _uo_min_s(short x, short y)
+  {
+    return x > y ? y : x;
+  }
+  static inline unsigned short _uo_min_us(unsigned short x, unsigned short y)
+  {
+    return x > y ? y : x;
+  }
+  static inline int _uo_min_i(int x, int y)
+  {
+    return x > y ? y : x;
+  }
+  static inline unsigned int _uo_min_u(unsigned int x, unsigned int y)
+  {
+    return x > y ? y : x;
+  }
+  static inline long _uo_min_l(long x, long y)
+  {
+    return x > y ? y : x;
+  }
+  static inline unsigned long _uo_min_ul(unsigned long x, unsigned long y)
+  {
+    return x > y ? y : x;
+  }
+  static inline long long _uo_min_ll(long long x, long long y)
+  {
+    return x > y ? y : x;
+  }
+  static inline unsigned long long _uo_min_ull(unsigned long long x, unsigned long long y)
+  {
+    return x > y ? y : x;
+  }
+
+
+#define uo_min(x, y) \
+  _Generic(((x + y)), \
+                double: _uo_min_lf,  \
+                 float: _uo_min_f,   \
+                  char: _uo_min_c,   \
+         unsigned char: _uo_min_uc,  \
+                 short: _uo_min_s,   \
+        unsigned short: _uo_min_us,  \
+                   int: _uo_min_i,   \
+          unsigned int: _uo_min_u,   \
+                  long: _uo_min_l,   \
+         unsigned long: _uo_min_ul,  \
+             long long: _uo_min_ll,  \
+    unsigned long long: _uo_min_ull  \
+  )(x, y)
+
+#pragma endregion
+
+#pragma region uo_max
+
+  static inline double _uo_max_lf(double x, double y)
+  {
+    return x < y ? y : x;
+  }
+  static inline float _uo_max_f(float x, float y)
+  {
+    return x < y ? y : x;
+  }
+  static inline char _uo_max_c(char x, char y)
+  {
+    return x < y ? y : x;
+  }
+  static inline unsigned char _uo_max_uc(unsigned char x, unsigned char y)
+  {
+    return x < y ? y : x;
+  }
+  static inline short _uo_max_s(short x, short y)
+  {
+    return x < y ? y : x;
+  }
+  static inline unsigned short _uo_max_us(unsigned short x, unsigned short y)
+  {
+    return x < y ? y : x;
+  }
+  static inline int _uo_max_i(int x, int y)
+  {
+    return x < y ? y : x;
+  }
+  static inline unsigned int _uo_max_u(unsigned int x, unsigned int y)
+  {
+    return x < y ? y : x;
+  }
+  static inline long _uo_max_l(long x, long y)
+  {
+    return x < y ? y : x;
+  }
+  static inline unsigned long _uo_max_ul(unsigned long x, unsigned long y)
+  {
+    return x < y ? y : x;
+  }
+  static inline long long _uo_max_ll(long long x, long long y)
+  {
+    return x < y ? y : x;
+  }
+  static inline unsigned long long _uo_max_ull(unsigned long long x, unsigned long long y)
+  {
+    return x < y ? y : x;
+  }
+
+
+#define uo_max(x, y) \
+  _Generic(((x + y)), \
+                double: _uo_max_lf,  \
+                 float: _uo_max_f,   \
+                  char: _uo_max_c,   \
+         unsigned char: _uo_max_uc,  \
+                 short: _uo_max_s,   \
+        unsigned short: _uo_max_us,  \
+                   int: _uo_max_i,   \
+          unsigned int: _uo_max_u,   \
+                  long: _uo_max_l,   \
+         unsigned long: _uo_max_ul,  \
+             long long: _uo_max_ll,  \
+    unsigned long long: _uo_max_ull  \
+  )(x, y)
+
+#pragma endregion
+
   static inline uint64_t uo_rand()
   {
     uint64_t r = 0;
@@ -135,7 +275,7 @@ extern "C"
   }
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

@@ -26,6 +26,36 @@ void uo_search_queue_init(uo_search_queue *queue)
   queue->tail = 0;
 }
 
+bool uo_search_queue_try_enqueue(uo_search_queue *queue, uo_thread_function function, void *data)
+{
+  uo_search_queue_init(queue);
+
+  uo_engine_thread *thread = uo_engine_run_thread_if_available(function, data);
+
+  if (!thread)
+  {
+    return false;
+  }
+
+  uo_atomic_increment(&queue->pending_count);
+
+  uo_atomic_lock(&queue->busy);
+  for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
+  {
+    if (!queue->threads[i])
+    {
+      queue->threads[i] = thread;
+      break;
+    }
+  }
+  uo_atomic_unlock(&queue->busy);
+
+  uo_atomic_lock(&thread->busy);
+  uo_atomic_unlock(&thread->busy);
+
+  return true;
+}
+
 void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result)
 {
   uo_atomic_lock(&queue->busy);
@@ -55,6 +85,16 @@ bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *re
   uo_atomic_lock(&queue->busy);
   *result = queue->items[queue->tail];
   queue->tail = (queue->tail + 1) % UO_PARALLEL_MAX_COUNT;
+
+  for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
+  {
+    if (queue->threads[i] == result->thread)
+    {
+      queue->threads[i] = NULL;
+      break;
+    }
+  }
+
   uo_atomic_unlock(&queue->busy);
 
   return true;
@@ -80,6 +120,16 @@ bool uo_search_queue_try_get_result(uo_search_queue *queue, uo_search_queue_item
   uo_atomic_lock(&queue->busy);
   *result = queue->items[queue->tail];
   queue->tail = (queue->tail + 1) % UO_PARALLEL_MAX_COUNT;
+
+  for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
+  {
+    if (queue->threads[i] == result->thread)
+    {
+      queue->threads[i] = NULL;
+      break;
+    }
+  }
+
   uo_atomic_unlock(&queue->busy);
 
   return true;

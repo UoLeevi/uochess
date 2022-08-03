@@ -96,9 +96,6 @@ extern "C"
   void uo_engine_init();
   void uo_engine_reconfigure();
 
-  void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result);
-  bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result);
-
   static inline void uo_engine_lock_position()
   {
     uo_mutex_lock(engine.position_mutex);
@@ -283,6 +280,8 @@ extern "C"
   }
 
   void uo_search_queue_init(uo_search_queue *queue);
+
+  bool uo_search_queue_try_enqueue(uo_search_queue *queue, uo_thread_function function, void *data);
 
   void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result);
 

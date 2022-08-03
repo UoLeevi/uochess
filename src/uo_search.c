@@ -15,6 +15,10 @@
 #include <inttypes.h>
 #include <assert.h>
 
+typedef struct uo_parallel_search_params uo_parallel_search_params;
+
+typedef void uo_parallel_search_callback(uo_engine_thread *thread);
+
 typedef struct uo_parallel_search_params
 {
   uo_engine_thread *thread;
@@ -23,6 +27,7 @@ typedef struct uo_parallel_search_params
   int16_t alpha;
   int16_t beta;
   uo_move move;
+  uo_parallel_search_callback *callback;
 } uo_parallel_search_params;
 
 static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
@@ -465,32 +470,9 @@ static inline void uo_search_cutoff_parallel_search(const uo_engine_thread *thre
   }
 }
 
-static inline bool uo_search_try_delegate_parallel_search(uo_engine_thread *thread, uo_parallel_search_params *params)
+static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_params *params)
 {
-  uo_search_queue_init(&params->queue);
-
-  uo_engine_thread *parallel_thread = uo_engine_run_thread_if_available(uo_engine_thread_run_parallel_principal_variation_search, params);
-
-  if (!parallel_thread)
-  {
-    return false;
-  }
-
-  uo_atomic_increment(&params->queue.pending_count);
-
-  for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
-  {
-    if (!params->queue.threads[i])
-    {
-      params->queue.threads[i] = parallel_thread;
-      break;
-    }
-  }
-
-  uo_atomic_lock(&parallel_thread->busy);
-  uo_atomic_unlock(&parallel_thread->busy);
-
-  return true;
+  return uo_search_queue_try_enqueue(&params->queue, uo_engine_thread_run_parallel_principal_variation_search, params);
 }
 
 // see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
@@ -628,8 +610,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
     size_t depth_reduction = depth > 3 && !pv && !uo_position_is_check(position) ? 1 : 0;
 
-    uo_position_make_move(position, move);
-
     if (depth_reduction)
     {
       if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
@@ -637,11 +617,16 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         ++depth_reduction;
       }
 
-      if (uo_position_is_check(position))
+      uo_bitboard checks = uo_position_move_checks(position, move);
+
+      if (checks)
       {
+        uo_position_update_next_move_checks(position, checks);
         --depth_reduction;
       }
     }
+
+    uo_position_make_move(position, move);
 
     size_t depth_lmr = depth - depth_reduction;
 
@@ -655,7 +640,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
 
-      if (can_delegate && uo_search_try_delegate_parallel_search(thread, &params))
+      if (can_delegate && uo_search_try_delegate_parallel_search(&params))
       {
         uo_position_unmake_move(position);
         ++parallel_search_count;
@@ -807,15 +792,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     while (uo_search_queue_get_result(&params.queue, &result))
     {
       --parallel_search_count;
-
-      for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
-      {
-        if (params.queue.threads[i] == result.thread)
-        {
-          params.queue.threads[i] = NULL;
-          break;
-        }
-      }
 
       size_t depth_lmr = result.depth;
       uo_move move = result.move;
@@ -985,6 +961,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   int16_t alpha = params->alpha;
   int16_t beta = params->beta;
   uo_move move = params->move;
+  uo_parallel_search_callback *callback = params->callback;
 
   uo_position_copy(&thread->position, &owner->position);
   uo_atomic_unlock(&thread->busy);
@@ -1018,8 +995,12 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
 
   thread->owner = NULL;
   uo_atomic_unlock(&thread->busy);
-
   uo_atomic_store(&thread->cutoff, 0);
+
+  if (callback)
+  {
+    callback(thread);
+  }
 
   return NULL;
 }
@@ -1081,10 +1062,18 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     engine.ponder.key = 0;
   }
 
+  size_t lazy_smp_count = 0;
+  size_t lazy_smp_max_count = uo_min(UO_PARALLEL_MAX_COUNT, engine.thread_count - 1 - UO_LAZY_SMP_FREE_THREAD_COUNT);
+  uo_parallel_search_params lazy_smp_params = {
+    .thread = thread,
+    .queue = {.init = 0 },
+    .alpha = alpha,
+    .beta = beta
+  };
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
-    thread->info.depth = depth;
+    thread->info.depth = lazy_smp_params.depth = depth;
 
     if (thread->info.nodes)
     {
@@ -1092,6 +1081,25 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
 
     thread->info.nodes = 0;
+
+    bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
+
+    if (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
+    {
+      ++lazy_smp_count;
+      continue;
+    }
+
+    if (lazy_smp_count > 0)
+    {
+      uo_search_queue_item result;
+
+      while (uo_search_queue_try_get_result(&lazy_smp_params.queue, &result))
+      {
+        --lazy_smp_count;
+      }
+    }
+
 
     while (!uo_engine_is_stopped())
     {
