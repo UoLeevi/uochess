@@ -1,4 +1,4 @@
-﻿#include "uo_search.h"
+#include "uo_search.h"
 #include "uo_position.h"
 #include "uo_evaluation.h"
 #include "uo_thread.h"
@@ -15,10 +15,6 @@
 #include <inttypes.h>
 #include <assert.h>
 
-typedef struct uo_parallel_search_params uo_parallel_search_params;
-
-typedef void uo_parallel_search_callback(uo_engine_thread *thread);
-
 typedef struct uo_parallel_search_params
 {
   uo_engine_thread *thread;
@@ -27,7 +23,6 @@ typedef struct uo_parallel_search_params
   int16_t alpha;
   int16_t beta;
   uo_move move;
-  uo_parallel_search_callback *callback;
 } uo_parallel_search_params;
 
 static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
@@ -584,12 +579,12 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   if (uo_engine_is_stopped())
   {
-    return entry.value;
+    return uo_engine_store_entry(position, &entry);
   }
 
   if (thread->owner && uo_atomic_load(&thread->cutoff))
   {
-    return entry.value;
+    return uo_engine_store_entry(position, &entry);
   }
 
   size_t parallel_search_count = 0;
@@ -699,7 +694,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         uo_search_cutoff_parallel_search(thread, &params.queue);
       }
 
-      return entry.value;
+      return uo_engine_store_entry(position, &entry);
     }
 
     if (thread->owner && uo_atomic_load(&thread->cutoff))
@@ -716,7 +711,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         }
       }
 
-      return entry.value;
+      return uo_engine_store_entry(position, &entry);
     }
 
     if (parallel_search_count > 0)
@@ -961,7 +956,6 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   int16_t alpha = params->alpha;
   int16_t beta = params->beta;
   uo_move move = params->move;
-  uo_parallel_search_callback *callback = params->callback;
 
   uo_position_copy(&thread->position, &owner->position);
   uo_atomic_unlock(&thread->busy);
@@ -986,21 +980,12 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
     .move = move
   };
 
-  uo_atomic_lock(&thread->busy);
-
-  if (!uo_atomic_load(&thread->cutoff))
-  {
     uo_search_queue_post_result(queue, &result);
-  }
 
+  uo_atomic_lock(&thread->busy);
   thread->owner = NULL;
   uo_atomic_unlock(&thread->busy);
   uo_atomic_store(&thread->cutoff, 0);
-
-  if (callback)
-  {
-    callback(thread);
-  }
 
   return NULL;
 }
@@ -1082,28 +1067,30 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     thread->info.nodes = 0;
 
+    while (!uo_engine_is_stopped())
+    {
     bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
 
-    if (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
+      while (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
     {
-      ++lazy_smp_count;
-      continue;
+        can_delegate = ++lazy_smp_count < lazy_smp_max_count;
     }
+
+      value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
 
     if (lazy_smp_count > 0)
     {
+        uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
+
       uo_search_queue_item result;
 
-      while (uo_search_queue_try_get_result(&lazy_smp_params.queue, &result))
+        while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
       {
-        --lazy_smp_count;
-      }
+          thread->info.nodes += result.nodes;
     }
 
-
-    while (!uo_engine_is_stopped())
-    {
-      value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
+        lazy_smp_count = 0;
+      }
 
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
       {
@@ -1127,6 +1114,20 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
 
     if (uo_engine_is_stopped()) break;
+  }
+
+  if (lazy_smp_count > 0)
+  {
+    uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
+
+    uo_search_queue_item result;
+
+    while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
+    {
+      thread->info.nodes += result.nodes;
+    }
+
+    lazy_smp_count = 0;
   }
 
   thread->info.completed = true;

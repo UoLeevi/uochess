@@ -8,9 +8,11 @@ uo_engine engine;
 void uo_engine_load_default_options()
 {
   engine_options.multipv = 1;
-  engine_options.threads = 1;
+  engine_options.threads = 4;
 
-  size_t capacity = (size_t)16000000 / sizeof * engine.ttable.entries;
+  const size_t mb = 1000000;
+
+  size_t capacity = (size_t)265 * mb / sizeof * engine.ttable.entries;
   capacity = (size_t)1 << uo_msb(capacity);
   engine_options.hash_size = capacity * sizeof * engine.ttable.entries;
 }
