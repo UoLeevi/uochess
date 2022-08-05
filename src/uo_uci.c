@@ -583,9 +583,7 @@ static void uo_uci_process_input__ready(void)
 
   if (uo_uci_match(tokens.ucinewgame))
   {
-    uo_engine_lock_ttable();
     uo_ttable_clear(&engine.ttable);
-    uo_engine_unlock_ttable();
     return;
   }
 

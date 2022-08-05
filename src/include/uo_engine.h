@@ -36,9 +36,9 @@ extern "C"
   } uo_search_queue_item;
 
   typedef struct uo_search_queue {
-    volatile uo_atomic_int busy;
-    volatile uo_atomic_int pending_count;
-    volatile uo_atomic_int count;
+    uo_atomic_flag busy;
+    uo_atomic_int pending_count;
+    uo_atomic_int count;
     int head;
     int tail;
     bool init;
@@ -56,13 +56,13 @@ extern "C"
     void *data;
     uo_position position;
     uo_search_info info;
-    volatile uo_atomic_int busy;
-    volatile uo_atomic_int cutoff;
+    uo_atomic_flag busy;
+    uo_atomic_int cutoff;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {
-    volatile uo_atomic_int count;
-    volatile uo_atomic_int busy;
+    uo_atomic_int count;
+    uo_atomic_flag busy;
     int head;
     int tail;
     uo_engine_thread **threads;
@@ -117,21 +117,9 @@ extern "C"
     uo_mutex_unlock(engine.stdout_mutex);
   }
 
-  static inline void uo_engine_lock_ttable()
-  {
-    uo_ttable_lock(&engine.ttable);
-  }
-
-  static inline void uo_engine_unlock_ttable()
-  {
-    uo_ttable_unlock(&engine.ttable);
-  }
-
   static inline void uo_engine_clear_hash()
   {
-    uo_engine_lock_ttable();
     uo_ttable_clear(&engine.ttable);
-    uo_engine_unlock_ttable();
   }
 
   static inline bool uo_engine_is_stopped()
@@ -144,9 +132,9 @@ extern "C"
     const int16_t alpha;
     const int16_t beta;
     int8_t depth;
+    uo_tdata data;
     uo_move bestmove;
     int16_t value;
-    uo_tentry *entry;
     int16_t hardalpha;
     int16_t hardbeta;
   } uo_abtentry;
@@ -154,21 +142,21 @@ extern "C"
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    uo_engine_lock_ttable();
-    abtentry->entry = uo_ttable_get(&engine.ttable, position);
+    uo_tdata data;
+
+    bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
     int16_t value;
 
-    if (abtentry->entry)
+    if (found)
     {
-      value = uo_score_adjust_for_mate_from_ttable(position, abtentry->entry->value);
-      abtentry->bestmove = abtentry->entry->bestmove;
+      value = uo_score_adjust_for_mate_from_ttable(position, abtentry->data.value);
+      abtentry->bestmove = abtentry->data.bestmove;
 
-      if (abtentry->entry->depth < abtentry->depth)
+      if (abtentry->data.depth < abtentry->depth)
       {
         abtentry->hardalpha = -UO_SCORE_CHECKMATE;
         abtentry->hardbeta = UO_SCORE_CHECKMATE;
-        uo_engine_unlock_ttable();
         return false;
       }
     }
@@ -176,35 +164,31 @@ extern "C"
     {
       abtentry->hardalpha = -UO_SCORE_CHECKMATE;
       abtentry->hardbeta = UO_SCORE_CHECKMATE;
-      uo_engine_unlock_ttable();
       return false;
     }
 
-    if (abtentry->entry->type == uo_tentry_type__exact)
+    if (abtentry->data.type == uo_tentry_type__exact)
     {
       abtentry->value = value;
-      uo_engine_unlock_ttable();
       return true;
     }
 
-    if (abtentry->entry->type == uo_tentry_type__lower_bound)
+    if (abtentry->data.type == uo_tentry_type__lower_bound)
     {
       if (value >= abtentry->beta)
       {
         abtentry->value = value;
-        uo_engine_unlock_ttable();
         return true;
       }
 
       abtentry->hardalpha = value;
       abtentry->hardbeta = UO_SCORE_CHECKMATE;
     }
-    else // if (abtentry->entry->type == uo_tentry_type__upper_bound)
+    else // if (abtentry->data.type == uo_tentry_type__upper_bound)
     {
       if (value <= abtentry->alpha)
       {
         abtentry->value = value;
-        uo_engine_unlock_ttable();
         return true;
       }
 
@@ -212,45 +196,39 @@ extern "C"
       abtentry->hardbeta = value;
     }
 
-    uo_engine_unlock_ttable();
     return false;
   }
 
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    //if (abtentry->value < abtentry->hardalpha) abtentry->value = abtentry->hardalpha;
-    //if (abtentry->value > abtentry->hardbeta) abtentry->value = abtentry->hardbeta;
-
-    if (!abtentry->bestmove || uo_engine_is_stopped()) return abtentry->value;
-
-    uint8_t type =
-      abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
-      abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
-      uo_tentry_type__exact;
-
-    uo_tentry *entry = abtentry->entry;
-
-    if (!entry)
+    if (abtentry->value < abtentry->hardalpha)
     {
-      uo_engine_lock_ttable();
-      entry = abtentry->entry = uo_ttable_set(&engine.ttable, position);
-      entry->depth = abtentry->depth;
-      entry->bestmove = abtentry->bestmove;
-      entry->value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
-      entry->type = type;
-      uo_engine_unlock_ttable();
+      abtentry->bestmove = 0;
+      abtentry->value = abtentry->hardalpha;
     }
-    else
+
+    if (abtentry->value > abtentry->hardbeta)
     {
-      uo_engine_lock_ttable();
-      if (entry->depth <= abtentry->depth)
+      abtentry->bestmove = 0;
+      abtentry->value = abtentry->hardbeta;
+    }
+
+    if (!uo_engine_is_stopped())
+    {
+      // Let's only store entries to transposition table when search is not terminated early        
+
+      if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type == uo_tentry_type__lower_bound))
       {
-        entry->depth = abtentry->depth;
-        entry->bestmove = abtentry->bestmove;
-        entry->value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
-        entry->type = type;
+        abtentry->data.depth = abtentry->depth;
+        abtentry->data.bestmove = abtentry->bestmove;
+        abtentry->data.value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
+        abtentry->data.type = !abtentry->bestmove ? uo_tentry_type__lower_bound :
+          abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
+          abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
+          uo_tentry_type__exact;
+
+        uo_ttable_set(&engine.ttable, position, &abtentry->data);
       }
-      uo_engine_unlock_ttable();
     }
 
     return abtentry->value;
@@ -258,12 +236,12 @@ extern "C"
 
   static inline void uo_engine_thread_lock(uo_engine_thread *thread)
   {
-    uo_atomic_compare_exchange_wait(&thread->busy, 0, 1);
+    uo_atomic_lock(&thread->busy);
   }
 
   static inline void uo_engine_thread_unlock(uo_engine_thread *thread)
   {
-    uo_atomic_store(&thread->busy, 0);
+    uo_atomic_flag_clear(&thread->busy);
   }
 
   void uo_engine_start_search();

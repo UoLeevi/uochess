@@ -7,7 +7,7 @@ extern "C"
 #endif
 
 #include <stdbool.h>
-
+#include <stdatomic.h>
 
   // threads
 
@@ -49,9 +49,11 @@ extern "C"
 
 #ifdef WIN32
 #include <Windows.h>
+
 # define uo_atomic_int LONG
 #else
-# include <stdatomic.h>
+#include <stdatomic.h>
+
 # define uo_atomic_int atomic_int
 #endif // WIN32 
 
@@ -66,6 +68,13 @@ extern "C"
   int uo_atomic_increment(volatile uo_atomic_int *target);
 
   int uo_atomic_decrement(volatile uo_atomic_int *target);
+
+# define uo_atomic_flag atomic_flag
+
+# define uo_atomic_flag_clear atomic_flag_clear
+# define uo_atomic_flag_test_and_set atomic_flag_test_and_set
+
+# define uo_atomic_flag_init uo_atomic_flag_clear
 
   // busy wait
   static inline void uo_atomic_compare_exchange_wait(volatile uo_atomic_int *target, int expected, int value)
@@ -100,18 +109,18 @@ extern "C"
     }
   }
 
-  static inline void uo_atomic_lock(volatile uo_atomic_int *target)
+  static inline void uo_atomic_lock(uo_atomic_flag *target)
   {
-    uo_atomic_compare_exchange_wait(target, 0, 1);
+    while (uo_atomic_flag_test_and_set(target))
+    {
+      // noop
+    }
   }
 
-  static inline void uo_atomic_unlock(volatile uo_atomic_int *target)
-  {
-    uo_atomic_store(target, 0);
-  }
+# define uo_atomic_unlock uo_atomic_flag_clear
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

@@ -21,7 +21,7 @@ void uo_search_queue_init(uo_search_queue *queue)
 {
   if (queue->init) return;
   queue->init = true;
-  uo_atomic_init(&queue->busy, 0);
+  uo_atomic_flag_init(&queue->busy);
   uo_atomic_init(&queue->pending_count, 0);
   uo_atomic_init(&queue->count, 0);
   queue->head = 0;
@@ -214,7 +214,7 @@ void uo_engine_init()
   // thread_queue
   engine.thread_queue.head = 0;
   engine.thread_queue.tail = 0;
-  uo_atomic_init(&engine.thread_queue.busy, 0);
+  uo_atomic_flag_init(&engine.thread_queue.busy);
   uo_atomic_init(&engine.thread_queue.count, 0);
   engine.thread_queue.threads = malloc(engine.thread_count * sizeof(uo_engine_thread *));
 
@@ -222,7 +222,7 @@ void uo_engine_init()
   {
     uo_engine_thread *thread = engine.threads + i;
     thread->semaphore = uo_semaphore_create(0);
-    uo_atomic_init(&thread->busy, 0);
+    uo_atomic_flag_init(&thread->busy);
     uo_atomic_init(&thread->cutoff, 0);
     thread->id = i + 1;
 

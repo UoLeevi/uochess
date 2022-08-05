@@ -1,4 +1,4 @@
-#include "uo_search.h"
+﻿#include "uo_search.h"
 #include "uo_position.h"
 #include "uo_evaluation.h"
 #include "uo_thread.h"
@@ -173,9 +173,8 @@ static void uo_search_print_info(uo_engine_thread *thread)
   double time_msec = uo_time_elapsed_msec(&info->time_start);
   uint64_t nps = info->nodes / time_msec * 1000.0;
 
-  uo_engine_lock_ttable();
-  uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
-  uo_engine_unlock_ttable();
+  size_t tentry_count = uo_atomic_load(&engine.ttable.count);
+  uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
 
   uo_engine_lock_stdout();
 
@@ -556,6 +555,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   entry.value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, pline + 1, pv);
   entry.value = uo_score_adjust_for_mate(entry.value);
   uo_position_unmake_move(position);
+
+  if (uo_engine_is_stopped())
+  {
+    return uo_engine_store_entry(position, &entry);
+  }
 
   if (entry.value > alpha)
   {
@@ -980,7 +984,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
     .move = move
   };
 
-    uo_search_queue_post_result(queue, &result);
+  uo_search_queue_post_result(queue, &result);
 
   uo_atomic_lock(&thread->busy);
   thread->owner = NULL;
@@ -1069,25 +1073,25 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     while (!uo_engine_is_stopped())
     {
-    bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
+      bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
 
       while (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
-    {
+      {
         can_delegate = ++lazy_smp_count < lazy_smp_max_count;
-    }
+      }
 
       value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
 
-    if (lazy_smp_count > 0)
-    {
+      if (lazy_smp_count > 0)
+      {
         uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
 
-      uo_search_queue_item result;
+        uo_search_queue_item result;
 
         while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
-      {
+        {
           thread->info.nodes += result.nodes;
-    }
+        }
 
         lazy_smp_count = 0;
       }
@@ -1172,9 +1176,8 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
   uint64_t nps = thread->info.nodes / time_msec * 1000.0;
 
-  uo_engine_lock_ttable();
-  uint64_t hashfull = (engine.ttable.count * 1000) / (engine.ttable.hash_mask + 1);
-  uo_engine_unlock_ttable();
+  size_t tentry_count = uo_atomic_load(&engine.ttable.count);
+  uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
 
   uo_engine_lock_stdout();
 
