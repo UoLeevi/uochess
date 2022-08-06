@@ -93,8 +93,8 @@ extern "C"
 
     // Relative history heuristic
     // see: https://www.researchgate.net/publication/220962554_The_Relative_History_Heuristic
-    uint32_t hhtable[2][64 * 64];
-    uint32_t bftable[2][64 * 64];
+    uint32_t hhtable[2 * 6 * 64];
+    uint32_t bftable[2 * 6 * 64];
 
     struct
     {
@@ -715,6 +715,18 @@ extern "C"
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
   }
 
+  static inline size_t uo_position_move_history_heuristic_index(const uo_position *position, uo_move move)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_piece piece = position->board[square_from];
+    size_t piece_type = (uo_piece_type(piece) >> 1) - 1;
+    size_t square_to = uo_move_square_to(move);
+    size_t color = uo_color(position->flags);
+    size_t index = color * 6 * 64 + piece_type * 64 + square_to;
+    assert(index < (sizeof position->bftable / sizeof *position->bftable));
+    return index;
+  }
+
   static inline uint16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move)
   {
     if (uo_position_is_killer_move(position, move))
@@ -723,10 +735,9 @@ extern "C"
     }
 
     // relative history heuristic
-    uint8_t color = uo_color(position->flags);
-    uint16_t index = move & 0xFFF;
-    uint32_t hhscore = position->hhtable[color][index] << 4;
-    uint32_t bfscore = position->bftable[color][index] + 1;
+    size_t index = uo_position_move_history_heuristic_index(position, move);
+    uint32_t hhscore = position->hhtable[index] << 4;
+    uint32_t bfscore = position->bftable[index] + 1;
     return hhscore / bfscore;
   }
 
@@ -939,12 +950,14 @@ extern "C"
 
   static inline void uo_position_update_history_heuristic(uo_position *position, uo_move move, size_t depth)
   {
-    position->hhtable[uo_color(position->flags)][move & 0xFFF] += 2 << depth;
+    size_t index = uo_position_move_history_heuristic_index(position, move);
+    position->hhtable[index] += 1 << depth;
   }
 
   static inline void uo_position_update_butterfly_heuristic(uo_position *position, uo_move move)
   {
-    ++position->bftable[uo_color(position->flags)][move & 0xFFF];
+    size_t index = uo_position_move_history_heuristic_index(position, move);
+    ++position->bftable[index];
   }
 
   uo_move uo_position_parse_move(const uo_position *position, char str[5]);

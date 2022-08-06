@@ -1106,10 +1106,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   uo_search_print_info(thread);
 
   uo_engine_lock_position();
-  for (size_t i = 0; i < 4096; ++i)
+  for (size_t i = 0; i < 768; ++i)
   {
-    engine.position.hhtable[0][i] = position->hhtable[0][i] >> 1;
-    engine.position.bftable[0][i] = position->bftable[0][i] >> 1;
+    engine.position.hhtable[i] = (position->hhtable[i] + 1) >> 1;
+    engine.position.bftable[i] = (position->bftable[i] + 1) >> 1;
   }
   uo_engine_unlock_position();
 
