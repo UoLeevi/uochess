@@ -18,6 +18,8 @@ extern "C"
 #define UO_LAZY_SMP_MIN_DEPTH 3
 #define UO_LAZY_SMP_FREE_THREAD_COUNT 1
 
+#define UO_TTABLE_LOCK_BITS 8 
+
 #define UO_SCORE_CHECKMATE ((int16_t)0x7FFF)
 #define UO_SCORE_MATE_IN_THRESHOLD ((int16_t)(0x7FFF - UO_MAX_PLY))
 

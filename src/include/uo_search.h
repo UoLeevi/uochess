@@ -46,6 +46,7 @@ extern "C"
     uint8_t tbhits;
     bool completed;
     int16_t value;
+    uint8_t bestmove_change_depth;
     union
     {
       uo_move bestmove;

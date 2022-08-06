@@ -70,17 +70,16 @@ void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *r
 
 bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result)
 {
-  int pending_count = uo_atomic_load(&queue->pending_count);
   int count = uo_atomic_decrement(&queue->count);
-
-  if (pending_count == 0 && count == -1)
-  {
-    uo_atomic_increment(&queue->count);
-    return false;
-  }
-
   if (count == -1)
   {
+    int pending_count = uo_atomic_load(&queue->pending_count);
+    if (pending_count == 0)
+    {
+      uo_atomic_increment(&queue->count);
+      return false;
+    }
+
     uo_atomic_wait_until_gte(&queue->count, 0);
   }
 
@@ -104,15 +103,7 @@ bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *re
 
 bool uo_search_queue_try_get_result(uo_search_queue *queue, uo_search_queue_item *result)
 {
-  int pending_count = uo_atomic_load(&queue->pending_count);
   int count = uo_atomic_decrement(&queue->count);
-
-  if (pending_count == 0 && count == -1)
-  {
-    uo_atomic_increment(&queue->count);
-    return false;
-  }
-
   if (count == -1)
   {
     uo_atomic_increment(&queue->count);

@@ -861,7 +861,6 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 void uo_position_make_move(uo_position *position, uo_move move)
 {
   assert(uo_position_is_move_ok(position, move));
-  assert(uo_position_is_ok(position));
 
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
@@ -1041,8 +1040,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
           break;
       }
   }
-
-  assert(uo_position_is_ok(position));
 
   uo_position_do_switch_turn(position, flags);
   uo_position_flip_board(position);

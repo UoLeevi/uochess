@@ -55,24 +55,39 @@ extern "C"
   typedef struct uo_ttable
   {
     uint64_t hash_mask;
+    uint64_t lock_mask;
     uo_atomic_int count;
     uo_tentry *entries;
-    //volatile uo_atomic_int busy;
+    uo_atomic_flag locks[1 << UO_TTABLE_LOCK_BITS];
   } uo_ttable;
 
   static inline void uo_ttable_init(uo_ttable *ttable, uint8_t hash_bits)
   {
     uint64_t capacity = (uint64_t)1 << (hash_bits - 1);
+    uint64_t lock_count = (uint64_t)1 << UO_TTABLE_LOCK_BITS;
+
     ttable->entries = calloc(capacity, sizeof * ttable->entries);
     ttable->hash_mask = capacity - 1;
+    ttable->lock_mask = lock_count - 1;
     uo_atomic_init(&ttable->count, 0);
-    //uo_atomic_init(&ttable->busy, 0);
+
+    for (size_t i = 0; i < lock_count; ++i)
+    {
+      uo_atomic_flag_init(&ttable->locks[i]);
+    }
   }
 
   static inline void uo_ttable_clear(uo_ttable *ttable)
   {
     memset(ttable->entries, 0, (ttable->hash_mask + 1) * sizeof * ttable->entries);
     uo_atomic_store(&ttable->count, 0);
+
+    uint64_t lock_count = (uint64_t)1 << UO_TTABLE_LOCK_BITS;
+
+    for (size_t i = 0; i < lock_count; ++i)
+    {
+      uo_atomic_flag_clear(&ttable->locks[i]);
+    }
   }
 
   static inline void uo_ttable_free(uo_ttable *ttable)
@@ -90,16 +105,6 @@ extern "C"
   //  uo_atomic_store(&ttable->busy, 0);
   //}
 
-  static inline bool uo_tentry_test_key(const uo_tentry *entry, uint32_t key)
-  {
-    return (entry->key ^ (uint32_t)entry->data) == key;
-  }
-
-  static inline uint32_t uo_tentry_create_key(const uo_tentry *entry, uint32_t key)
-  {
-    return key ^ (uint32_t)entry->data;
-  }
-
   static inline bool uo_ttable_get(uo_ttable *ttable, const uo_position *position, uo_tdata *data)
   {
     uint64_t mask = ttable->hash_mask;
@@ -110,7 +115,7 @@ extern "C"
 
     // 1. Look for matching key or stop on first empty key
 
-    while (entry->key && !uo_tentry_test_key(entry, key))
+    while (entry->key && entry->key != key)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;
@@ -120,7 +125,18 @@ extern "C"
 
     if (entry->key)
     {
+      uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+      uo_atomic_lock(lock);
+
+      if (entry->key != key)
+      {
+        uo_atomic_unlock(lock);
+        return uo_ttable_get(ttable, position, data);
+      }
+
       data->data = entry->data;
+
+      uo_atomic_unlock(lock);
       return true;
     }
 
@@ -130,29 +146,43 @@ extern "C"
     i = (i - 1) & mask;
     entry = ttable->entries + i;
 
-    while (entry->key && /*!entry->thread_id &&*/ entry->expiry_ply < root_ply)
+    uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+    uo_atomic_lock(lock);
+
+    while (entry->key && entry->expiry_ply < root_ply)
     {
       entry->key = 0;
       entry->data = 0;
       uo_atomic_decrement(&ttable->count);
 
+      if (lock != &ttable->locks[i & ttable->lock_mask]) break;
+
       i = (i - 1) & mask;
       entry = ttable->entries + i;
     }
+
+    uo_atomic_unlock(lock);
 
     // 4. If load factor is above 75 %, remove couple extra entries
 
     if (ttable->count > ((mask + 1) * 3) >> 2)
     {
-      while (entry->key /*&& !entry->thread_id*/)
+      uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+      uo_atomic_lock(lock);
+
+      while (entry->key)
       {
         entry->key = 0;
         entry->data = 0;
         uo_atomic_decrement(&ttable->count);
 
+        if (lock != &ttable->locks[i & ttable->lock_mask]) break;
+
         i = (i - 1) & mask;
         entry = ttable->entries + i;
       }
+
+      uo_atomic_unlock(lock);
     }
 
     return false;
@@ -168,7 +198,7 @@ extern "C"
 
     // 1. Look for matching key and stop on first empty key
 
-    while (entry->key && !uo_tentry_test_key(entry, key))
+    while (entry->key && entry->key != key)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;
@@ -178,7 +208,19 @@ extern "C"
 
     if (entry->key)
     {
+      uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+      uo_atomic_lock(lock);
+
+      if (entry->key != key)
+      {
+        uo_atomic_unlock(lock);
+        uo_ttable_set(ttable, position, data);
+        return;
+      }
+
       entry->data = data->data;
+
+      uo_atomic_unlock(lock);
       return;
     }
 
@@ -193,18 +235,35 @@ extern "C"
     {
       if (!entry->key)
       {
+        uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+        uo_atomic_lock(lock);
+
+        bool is_vacant = !entry->key;
+
         entry->data = data->data;
         entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
-        entry->key = uo_tentry_create_key(entry, key);
-        uo_atomic_increment(&ttable->count);
+        entry->key = key;
+
+        if (is_vacant) uo_atomic_increment(&ttable->count);
+
+        uo_atomic_unlock(lock);
         return;
       }
 
-      if (/*!entry->thread_id && */entry->expiry_ply < root_ply)
+      if (entry->expiry_ply < root_ply)
       {
+        uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+        uo_atomic_lock(lock);
+
+        bool is_vacant = !entry->key;
+
         entry->data = data->data;
         entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
-        entry->key = uo_tentry_create_key(entry, key);
+        entry->key = key;
+
+        if (is_vacant) uo_atomic_increment(&ttable->count);
+
+        uo_atomic_unlock(lock);
         return;
       }
 
@@ -212,7 +271,7 @@ extern "C"
       entry = ttable->entries + i;
     }
 
-    while (entry->key/* && entry->thread_id*/)
+    while (entry->key)
     {
       i = (i + 1) & mask;
       entry = ttable->entries + i;
@@ -220,16 +279,33 @@ extern "C"
 
     if (!entry->key)
     {
+      uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+      uo_atomic_lock(lock);
+
+      bool is_vacant = !entry->key;
+
       entry->data = data->data;
       entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
-      entry->key = uo_tentry_create_key(entry, key);
-      uo_atomic_increment(&ttable->count);
+      entry->key = key;
+
+      if (is_vacant) uo_atomic_increment(&ttable->count);
+
+      uo_atomic_unlock(lock);
       return;
     }
 
+    uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
+    uo_atomic_lock(lock);
+
+    bool is_vacant = !entry->key;
+
     entry->data = data->data;
     entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
-    entry->key = uo_tentry_create_key(entry, key);
+    entry->key = key;
+
+    if (is_vacant) uo_atomic_increment(&ttable->count);
+
+    uo_atomic_unlock(lock);
     return;
   }
 
