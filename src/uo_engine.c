@@ -80,7 +80,14 @@ bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *re
       return false;
     }
 
-    uo_atomic_wait_until_gte(&queue->count, 0);
+    uo_atomic_wait_until_lt(&queue->pending_count, pending_count);
+
+    int count = uo_atomic_load(&queue->count);
+    if (count == -1)
+    {
+      uo_atomic_increment(&queue->count);
+      return false;
+    }
   }
 
   uo_atomic_lock(&queue->busy);

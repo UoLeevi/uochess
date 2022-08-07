@@ -49,8 +49,8 @@ extern "C"
 #define uo_tentry_type__upper_bound ((uint8_t)1)
 #define uo_tentry_type__lower_bound ((uint8_t)2)
 
-#define uo_ttable_max_probe 3
-#define uo_ttable_expiry_ply 2
+#define uo_ttable_max_probe 5
+#define uo_ttable_expiry_ply 3
 
   typedef struct uo_ttable
   {

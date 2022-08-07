@@ -101,9 +101,25 @@ extern "C"
     }
   }
 
+  static inline void uo_atomic_wait_until_lt(volatile uo_atomic_int *target, int expected)
+  {
+    while (uo_atomic_compare_exchange(target, expected, expected) >= expected)
+    {
+      // noop
+    }
+  }
+
   static inline void uo_atomic_wait_until_gte(volatile uo_atomic_int *target, int expected)
   {
     while (uo_atomic_compare_exchange(target, expected, expected) < expected)
+    {
+      // noop
+    }
+  }
+
+    static inline void uo_atomic_wait_until_gt(volatile uo_atomic_int *target, int expected)
+  {
+    while (uo_atomic_compare_exchange(target, expected, expected) <= expected)
     {
       // noop
     }

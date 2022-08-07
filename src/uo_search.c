@@ -450,13 +450,6 @@ static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo
       uo_atomic_unlock(&parallel_thread->busy);
     }
   }
-
-  uo_search_queue_item result;
-
-  while (uo_search_queue_get_result(queue, &result))
-  {
-    thread->info.nodes += result.nodes;
-  }
 }
 
 static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_params *params)
@@ -603,8 +596,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_parallel_search_params params = {
     .thread = thread,
     .queue = {.init = 0 },
-    .alpha = alpha,
-    .beta = beta,
+    .alpha = -beta,
+    .beta = -alpha,
     .depth = depth - 1
   };
 
@@ -677,12 +670,25 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           if (parallel_search_count > 0)
           {
             uo_search_cutoff_parallel_search(thread, &params.queue);
+
+            uo_search_queue_item result;
+            while (uo_search_queue_get_result(&params.queue, &result))
+            {
+              thread->info.nodes += result.nodes;
+              node_value = -result.value;
+              if (result.move && node_value > entry.value)
+              {
+                entry.value = node_value;
+                entry.bestmove = result.move;
+              }
+            }
           }
 
           return uo_engine_store_entry(position, &entry);
         }
 
-        alpha = params.alpha = entry.value;
+        alpha = entry.value;
+        params.beta = -alpha;
         uo_pv_update(pline, entry.bestmove, line, depth_lmr);
 
         if (pv && position->ply == 0 && thread->owner == NULL)
@@ -702,6 +708,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       if (parallel_search_count > 0)
       {
         uo_search_cutoff_parallel_search(thread, &params.queue);
+        uo_search_queue_item result;
+        while (uo_search_queue_get_result(&params.queue, &result))
+        {
+          thread->info.nodes += result.nodes;
+          node_value = -result.value;
+          if (result.move && node_value > entry.value)
+          {
+            entry.value = node_value;
+            entry.bestmove = result.move;
+          }
+        }
       }
 
       return uo_engine_store_entry(position, &entry);
@@ -712,6 +729,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       if (parallel_search_count > 0)
       {
         uo_search_cutoff_parallel_search(thread, &params.queue);
+        uo_search_queue_item result;
+        while (uo_search_queue_get_result(&params.queue, &result))
+        {
+          thread->info.nodes += result.nodes;
+          node_value = -result.value;
+          if (result.move && node_value > entry.value)
+          {
+            entry.value = node_value;
+            entry.bestmove = result.move;
+          }
+        }
       }
 
       return uo_engine_store_entry(position, &entry);
@@ -736,7 +764,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
         size_t depth_lmr = result.depth;
         uo_move move = result.move;
-        int16_t node_value = result.value;
+        int16_t node_value = -result.value;
         thread->info.nodes += result.nodes;
 
         if (node_value > entry.value)
@@ -754,10 +782,23 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
               uo_position_update_killers(position, move);
 
               uo_search_cutoff_parallel_search(thread, &params.queue);
+              uo_search_queue_item result;
+              while (uo_search_queue_get_result(&params.queue, &result))
+              {
+                thread->info.nodes += result.nodes;
+                node_value = -result.value;
+                if (result.move && node_value > entry.value)
+                {
+                  entry.value = node_value;
+                  entry.bestmove = result.move;
+                }
+              }
+
               return uo_engine_store_entry(position, &entry);
             }
 
-            alpha = params.alpha = entry.value;
+            alpha = entry.value;
+            params.beta = -alpha;
             uo_pv_update(pline, entry.bestmove, NULL, 0);
 
             if (pv && position->ply == 0 && thread->owner == NULL)
@@ -785,7 +826,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       size_t depth_lmr = result.depth;
       uo_move move = result.move;
-      int16_t node_value = result.value;
+      int16_t node_value = -result.value;
       thread->info.nodes += result.nodes;
 
       if (node_value > entry.value)
@@ -803,10 +844,22 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             uo_position_update_killers(position, move);
 
             uo_search_cutoff_parallel_search(thread, &params.queue);
+            uo_search_queue_item result;
+            while (uo_search_queue_get_result(&params.queue, &result))
+            {
+              thread->info.nodes += result.nodes;
+              node_value = -result.value;
+              if (result.move && node_value > entry.value)
+              {
+                entry.value = node_value;
+                entry.bestmove = result.move;
+              }
+            }
             return uo_engine_store_entry(position, &entry);
           }
 
-          alpha = params.alpha = entry.value;
+          alpha = entry.value;
+          params.beta = -alpha;
           pline[0] = entry.bestmove;
           pline[1] = 0;
 
@@ -957,7 +1010,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_move *line = uo_allocate_line(depth);
   line[0] = 0;
 
-  int16_t value = -uo_search_principal_variation(thread, depth, -beta, -alpha, line, true);
+  int16_t value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
   value = uo_score_adjust_for_mate(value);
 
   uo_search_queue_item result = {
@@ -965,7 +1018,7 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
     .nodes = thread->info.nodes,
     .depth = depth,
     .value = value,
-    .move = move
+    .move = move ? move : line[0]
   };
 
   uo_search_queue_post_result(queue, &result);
@@ -1068,8 +1121,19 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
       if (lazy_smp_count > 0)
       {
-        uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
         lazy_smp_count = 0;
+        uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
+        uo_search_queue_item result;
+        while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
+        {
+          thread->info.nodes += result.nodes;
+          if (result.move && result.value > value)
+          {
+            value = result.value;
+            line[0] = result.move;
+            line[1] = 0;
+          }
+        }
       }
 
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
@@ -1098,8 +1162,19 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   if (lazy_smp_count > 0)
   {
-    uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
     lazy_smp_count = 0;
+    uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
+    uo_search_queue_item result;
+    while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
+    {
+      thread->info.nodes += result.nodes;
+      if (result.move && result.value > value)
+      {
+        value = result.value;
+        line[0] = result.move;
+        line[1] = 0;
+      }
+    }
   }
 
   thread->info.completed = true;
