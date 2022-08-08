@@ -16,6 +16,25 @@ extern "C"
 #define uo_seach_type__principal_variation 0
 #define uo_seach_type__quiescence 1
 
+  typedef struct uo_alphabeta
+  {
+    int16_t alpha;
+    int16_t beta;
+    int16_t value;
+    uint8_t type;
+    size_t depth;
+    uo_move ttmove;
+    uo_move *line;
+    bool pv;
+  } uo_alphabeta;
+
+#define uo_alphabeta_type__incomplete 0
+#define uo_alphabeta_type__mate_in 1
+#define uo_alphabeta_type__draw 2
+#define uo_alphabeta_type__exact 3
+#define uo_alphabeta_type__lower_bound 4
+#define uo_alphabeta_type__upper_bound 5
+
   typedef struct uo_engine_thread uo_engine_thread;
 
   typedef struct uo_search_params

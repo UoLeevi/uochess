@@ -244,6 +244,11 @@ extern "C"
     uo_atomic_flag_clear(&thread->busy);
   }
 
+  static inline bool uo_engine_thread_is_stopped(uo_engine_thread *thread)
+  {
+    return uo_engine_is_stopped() || (thread->owner && uo_atomic_load(&thread->cutoff));
+  }
+
   void uo_engine_start_search();
 
   static inline void uo_engine_reset_search_params(uint8_t seach_type)

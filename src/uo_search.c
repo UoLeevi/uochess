@@ -880,6 +880,265 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   return uo_engine_store_entry(position, &entry);
 }
 
+static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabeta *entry)
+{
+  uo_position *position = &thread->position;
+
+  // Step 1. Check for draw by 50 move rule or threefold repetition
+  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+  {
+    entry->value = 0;
+    entry->type = uo_alphabeta_type__draw;
+    return true;
+  }
+
+  // Step 2. Lookup position from transposition table and return if exact score for equal or higher depth is found
+
+  // TODO:
+  if (uo_engine_lookup_entry(position, &entry))
+  {
+    return true;
+  }
+
+  // Step 3. If search is stopped, return unknown value
+  if (uo_engine_thread_is_stopped(thread))
+  {
+    entry->value = 0;
+    entry->type = uo_alphabeta_type__incomplete;
+    return false;
+  }
+
+  // Step 4. Increment searched node count
+  ++thread->info.nodes;
+
+  // Step 5. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
+  if (entry->depth == 0)
+  {
+    // TODO:
+    bool completed = uo_search_quiesce2(thread, entry);
+    if (!completed)
+    {
+      entry->type = uo_alphabeta_type__incomplete;
+      return false;
+    }
+
+    // TODO:
+    uo_engine_store_entry(position, &entry);
+    return true;
+  }
+
+  // Step 6. If maximum search depth is reached return static evaluation
+  if (uo_position_is_max_depth_reached(position))
+  {
+    entry->value = uo_position_evaluate(position);
+    entry->type = uo_alphabeta_type__exact;
+    uo_engine_store_entry(position, &entry);
+    return true;
+  }
+
+  // Step 7. Generate legal moves
+  size_t move_count = position->stack->moves_generated
+    ? position->stack->move_count
+    : uo_position_generate_moves(position);
+
+  // Step 8. If there are no legal moves, return draw or checkmate
+  if (move_count == 0)
+  {
+    entry->value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+    entry->type = uo_alphabeta_type__exact;
+    uo_engine_store_entry(position, &entry);
+    return true;
+  }
+
+  // Step 9. Allocate search entry and principal variation line on the stack
+  uo_move *line = uo_allocate_line(entry->depth);
+  line[0] = 0;
+
+  uo_alphabeta move_entry = { .line = line };
+
+  // Step 10. Null move pruning
+  if (!entry->pv
+    && entry->depth > 3
+    && position->ply > 1
+    && uo_position_is_null_move_allowed(position)
+    && uo_position_evaluate(position) > entry->beta)
+  {
+    // depth * 3/4 - 1
+    move_entry.depth = (entry->depth * 3 >> 2) - 1;
+    move_entry.alpha = -entry->beta;
+    move_entry.beta = -entry->beta + 1;
+
+    uo_position_make_null_move(position);
+    bool completed = uo_search_principal_variation2(thread, &move_entry);
+    uo_position_unmake_null_move(position);
+
+    if (!completed)
+    {
+      entry->type = uo_alphabeta_type__incomplete;
+      return false;
+    }
+
+    if (-move_entry.value > entry->beta)
+    {
+      entry->value = -move_entry.value;
+      entry->type = uo_alphabeta_type__lower_bound;
+      uo_engine_store_entry(position, &entry);
+      return true;
+    }
+  }
+
+  // Step 11. Sort moves and place pv move or transposition table move as first
+  uo_move move = entry->line[0] ? entry->line[0] : entry->ttmove;
+  uo_position_sort_moves(&thread->position, move);
+
+
+  // Step 12. Perform full alpha-beta search for the first move
+  move = position->movelist.head[0];
+  move_entry.depth = entry->depth - 1;
+  move_entry.alpha = -entry->beta;
+  move_entry.beta = -entry->alpha;
+  move_entry.pv = entry->pv;
+
+  uo_position_make_move(position, move);
+  bool completed = uo_search_principal_variation2(thread, &move_entry);
+  uo_position_unmake_move(position);
+
+  if (!completed)
+  {
+    entry->type = uo_alphabeta_type__incomplete;
+    return false;
+  }
+
+  entry->value = uo_score_adjust_for_mate(-move_entry.value);
+  uo_position_update_butterfly_heuristic(position, move);
+
+  if (entry->value > entry->alpha)
+  {
+    uo_position_update_history_heuristic(position, move, move_entry.depth);
+
+    if (entry->value >= entry->beta)
+    {
+      entry->type = uo_alphabeta_type__lower_bound;
+      uo_engine_store_entry(position, &entry);
+      return true;
+    }
+
+    entry->alpha = entry->value;
+    uo_pv_update(entry->line, move, line, move_entry.depth);
+  }
+
+  // 13. Initialize parallel search parameters and result queue
+  size_t parallel_search_count = 0;
+  uo_parallel_search_params params = {
+    .thread = thread,
+    .queue = {.init = 0 },
+    .alpha = -entry->beta,
+    .beta = -entry->alpha
+  };
+
+  // 14. Search rest of the moves with null window and reduced depth unless they fail-high
+
+  move_entry.pv = false;
+
+  for (size_t i = 1; i < move_count; ++i)
+  {
+    uo_move move = params.move = position->movelist.head[i];
+
+    // 14.1 Determine search depth reduction
+    // see: https://en.wikipedia.org/wiki/Late_move_reductions
+
+    size_t depth_reduction =
+      // no reduction for shallow depth
+      entry->depth <= 3
+      // no reduction for expected pv nodes
+      || entry->pv
+      // no reduction if position is check
+      || uo_position_is_check(position)
+      ? 0 // no reduction
+      : 1; // default reduction is one ply
+
+    if (depth_reduction)
+    {
+      // increase reduction for captures with negative SSE
+      if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
+      {
+        depth_reduction += entry->depth > 4 ? 2 : 1;
+      }
+
+      // decrease reduction if move gives a check
+      uo_bitboard checks = uo_position_move_checks(position, move);
+      if (checks)
+      {
+        uo_position_update_next_move_checks(position, checks);
+        --depth_reduction;
+      }
+    }
+
+    // 14.2 Perform null window search for reduced depth
+    move_entry.depth = entry->depth - 1 - depth_reduction;
+    move_entry.alpha = -entry->alpha - 1;
+    move_entry.beta = -entry->alpha;
+
+    uo_position_make_move(position, move);
+    bool completed = uo_search_principal_variation2(thread, &move_entry);
+
+    if (!completed)
+    {
+      uo_position_unmake_move(position);
+      entry->type = uo_alphabeta_type__incomplete;
+      return false;
+    }
+
+    move_entry.value = uo_score_adjust_for_mate(move_entry.value);
+
+    // 14.3 If move failed high, perform full re-search
+    if (-move_entry.value > entry->alpha && -move_entry.value < entry->beta)
+    {
+      move_entry.depth = entry->depth - 1;
+      move_entry.alpha = -entry->beta;
+      move_entry.beta = -entry->alpha;
+
+      bool completed = uo_search_principal_variation2(thread, &move_entry);
+
+      if (!completed)
+      {
+        uo_position_unmake_move(position);
+        entry->type = uo_alphabeta_type__incomplete;
+        return false;
+      }
+
+      move_entry.value = uo_score_adjust_for_mate(move_entry.value);
+    }
+
+    uo_position_unmake_move(position);
+
+    uo_position_update_butterfly_heuristic(position, move);
+
+    if (-move_entry.value > entry->value)
+    {
+      entry->value = -move_entry.value;
+      if (entry->value > entry->alpha)
+      {
+        uo_position_update_history_heuristic(position, move, move_entry.depth);
+
+        if (entry->value >= entry->beta)
+        {
+          entry->type = uo_alphabeta_type__lower_bound;
+          uo_engine_store_entry(position, &entry);
+          return true;
+        }
+
+        entry->alpha = entry->value;
+        uo_pv_update(entry->line, move, line, move_entry.depth);
+      }
+    }
+  }
+
+  entry->type = entry->value == entry->alpha ? uo_alphabeta_type__exact : uo_alphabeta_type__upper_bound;
+  uo_engine_store_entry(position, &entry);
+  return true;
+}
+
 static void uo_search_print_currmove(uo_engine_thread *thread, uo_move currmove, size_t currmovenumber)
 {
   uo_position *position = &thread->position;
