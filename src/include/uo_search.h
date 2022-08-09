@@ -20,12 +20,13 @@ extern "C"
   {
     int16_t alpha;
     int16_t beta;
+    size_t depth;
     int16_t value;
     uint8_t type;
-    size_t depth;
     uo_move ttmove;
     uo_move *line;
     bool pv;
+    uo_tdata data;
   } uo_alphabeta;
 
 #define uo_alphabeta_type__incomplete 0

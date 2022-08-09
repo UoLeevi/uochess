@@ -31,6 +31,7 @@ extern "C"
     uo_engine_thread *thread;
     uo_move move;
     int16_t value;
+    uint8_t type;
     size_t nodes;
     size_t depth;
   } uo_search_queue_item;
@@ -140,98 +141,73 @@ extern "C"
   } uo_abtentry;
 
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
-  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
+  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_alphabeta *entry)
   {
     uo_tdata data;
 
-    bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
+    bool found = uo_ttable_get(&engine.ttable, position, &entry->data);
 
     int16_t value;
 
     if (found)
     {
-      value = uo_score_adjust_for_mate_from_ttable(position, abtentry->data.value);
-      abtentry->bestmove = abtentry->data.bestmove;
+      entry->ttmove = entry->data.bestmove;
 
-      if (abtentry->data.depth < abtentry->depth)
+      if (entry->data.depth < entry->depth)
       {
-        abtentry->hardalpha = -UO_SCORE_CHECKMATE;
-        abtentry->hardbeta = UO_SCORE_CHECKMATE;
         return false;
       }
+
+      value = uo_score_adjust_for_mate_from_ttable(position, entry->data.value);
     }
     else
     {
-      abtentry->hardalpha = -UO_SCORE_CHECKMATE;
-      abtentry->hardbeta = UO_SCORE_CHECKMATE;
       return false;
     }
 
-    if (abtentry->data.type == uo_tentry_type__exact)
+    if (entry->data.type == uo_tentry_type__exact)
     {
-      abtentry->value = value;
+      entry->value = value;
       return true;
     }
 
-    if (abtentry->data.type == uo_tentry_type__lower_bound)
+    if (entry->data.type == uo_tentry_type__lower_bound)
     {
-      if (value >= abtentry->beta)
+      if (value >= entry->beta)
       {
-        abtentry->value = value;
+        entry->value = value;
+        entry->type == uo_tentry_type__lower_bound;
         return true;
       }
 
-      abtentry->hardalpha = value;
-      abtentry->hardbeta = UO_SCORE_CHECKMATE;
+      entry->alpha = value;
     }
-    else // if (abtentry->data.type == uo_tentry_type__upper_bound)
+    else // if (entry->data.type == uo_tentry_type__upper_bound)
     {
-      if (value <= abtentry->alpha)
+      if (value <= entry->alpha)
       {
-        abtentry->value = value;
+        entry->value = value;
+        entry->type == uo_tentry_type__upper_bound;
         return true;
       }
 
-      abtentry->hardalpha = -UO_SCORE_CHECKMATE;
-      abtentry->hardbeta = value;
+      entry->beta = value;
     }
 
     return false;
   }
 
-  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
+  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_alphabeta *entry)
   {
-    if (abtentry->value < abtentry->hardalpha)
+    if (entry->data.depth < entry->depth || (entry->data.depth == entry->depth && entry->data.type == uo_tentry_type__lower_bound))
     {
-      abtentry->bestmove = 0;
-      abtentry->value = abtentry->hardalpha;
+      entry->data.depth = entry->depth;
+      entry->data.bestmove = entry->line[0];
+      entry->data.value = uo_score_adjust_for_mate_to_ttable(entry->value);
+      entry->data.type = entry->type;
+
+      uo_ttable_set(&engine.ttable, position, &entry->data);
     }
-
-    if (abtentry->value > abtentry->hardbeta)
-    {
-      abtentry->bestmove = 0;
-      abtentry->value = abtentry->hardbeta;
-    }
-
-    if (!uo_engine_is_stopped())
-    {
-      // Let's only store entries to transposition table when search is not terminated early        
-
-      if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type == uo_tentry_type__lower_bound))
-      {
-        abtentry->data.depth = abtentry->depth;
-        abtentry->data.bestmove = abtentry->bestmove;
-        abtentry->data.value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
-        abtentry->data.type = !abtentry->bestmove ? uo_tentry_type__lower_bound :
-          abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
-          abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
-          uo_tentry_type__exact;
-
-        uo_ttable_set(&engine.ttable, position, &abtentry->data);
-      }
-    }
-
-    return abtentry->value;
   }
 
   static inline void uo_engine_thread_lock(uo_engine_thread *thread)
