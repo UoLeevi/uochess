@@ -143,12 +143,9 @@ extern "C"
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_alphabeta *entry)
   {
-    uo_tdata data;
-
-    bool found = uo_ttable_get(&engine.ttable, position, &entry->data);
-
     int16_t value;
 
+    bool found = uo_ttable_get(&engine.ttable, position, &entry->data);
     if (found)
     {
       entry->ttmove = entry->data.bestmove;
@@ -199,7 +196,7 @@ extern "C"
 
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_alphabeta *entry)
   {
-    if (entry->data.depth < entry->depth || (entry->data.depth == entry->depth && entry->data.type == uo_tentry_type__lower_bound))
+    if (entry->data.depth <= entry->depth)
     {
       entry->data.depth = entry->depth;
       entry->data.bestmove = entry->line[0];

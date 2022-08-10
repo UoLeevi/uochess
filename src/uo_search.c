@@ -434,6 +434,180 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   return value;
 }
 
+static bool uo_search_quiesce2(uo_engine_thread *thread, uo_alphabeta *entry)
+{
+  uo_search_info *info = &thread->info;
+  uo_position *position = &thread->position;
+
+  // Step 1. Update searched node count and selective search depth information
+  ++info->nodes;
+  info->seldepth = uo_max(info->seldepth, position->ply);
+
+  // Next two steps can be skipped on the first quisence search node
+  if (entry->depth > 0)
+  {
+    // Step 2. Check for draw by 50 move rule or threefold repetition
+    if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+    {
+      entry->value = 0;
+      entry->type = uo_alphabeta_type__draw;
+      return true;
+    }
+
+    // Step 3. If search is stopped, return unknown value
+    if (uo_engine_thread_is_stopped(thread))
+    {
+      entry->value = 0;
+      entry->type = uo_alphabeta_type__incomplete;
+      return false;
+    }
+  }
+
+  // Step 4. If maximum search depth is reached return static evaluation
+  if (uo_position_is_max_depth_reached(position))
+  {
+    entry->value = uo_position_evaluate(position);
+    entry->type = uo_alphabeta_type__exact;
+    return true;
+  }
+
+  // Step 5. Generate legal moves
+  size_t move_count = position->stack->moves_generated
+    ? position->stack->move_count
+    : uo_position_generate_moves(position);
+
+  // Step 6. Determine if position is check
+  bool is_check = uo_position_is_check(position);
+
+  // Step 7. If there are no legal moves, return draw or checkmate
+  if (move_count == 0)
+  {
+    entry->value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+    entry->type = uo_alphabeta_type__exact;
+    return true;
+  }
+
+  // Step 8. Initialize child node entry
+  uo_alphabeta move_entry = {
+    .alpha = -entry->beta,
+    .beta = -entry->alpha,
+    .depth = entry->depth + 1
+  };
+
+  // Step 9. If position is check, perform quiesence search for all moves
+  if (is_check)
+  {
+    // Step 9.1. Initialize score to be checkmate
+    entry->value = -UO_SCORE_CHECKMATE;
+
+    // Step 9.2. Sort moves
+    uo_position_sort_moves(&thread->position, 0);
+
+    // Step 9.3. Search each move
+    for (size_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+      uo_position_make_move(position, move);
+      bool completed = uo_search_quiesce2(thread, &move_entry);
+      uo_position_unmake_move(position);
+
+      if (!completed)
+      {
+        entry->type = uo_alphabeta_type__incomplete;
+        return false;
+      }
+
+      move_entry.value = uo_score_adjust_for_mate(move_entry.value);
+
+      if (-move_entry.value > entry->value)
+      {
+        entry->value = -move_entry.value;
+        if (entry->value > entry->alpha)
+        {
+          if (entry->value >= entry->beta)
+          {
+            entry->type = uo_alphabeta_type__lower_bound;
+            return true;
+          }
+
+          entry->type = uo_alphabeta_type__exact;
+          entry->alpha = entry->value;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Step 10. Position is not check. Initialize score to static evaluation. "Stand pat"
+  entry->value = uo_position_evaluate(position);
+  entry->type = uo_alphabeta_type__lower_bound;
+
+  // Step 11. Cutoff if static evaluation is higher or equal to beta.
+  if (entry->value >= entry->beta)
+  {
+    return true;
+  }
+
+  // Step 12. Delta pruning
+  if (position->Q)
+  {
+    int16_t delta = uo_piece_value(uo_piece__Q);
+    if (entry->alpha > entry->value + delta)
+    {
+      return true;
+    }
+  }
+
+  // Step 13. Update alpha
+  entry->alpha = uo_max(entry->value, entry->alpha);
+
+  // Step 14. Determie which moves should be searched
+  uo_search_quiesce_flags flags = uo_search_quiesce_determine_flags(thread, entry->depth);
+
+  // Step 15. Sort tactical moves
+  uo_position_sort_tactical_moves(&thread->position);
+
+  // Step 16. Search interesting tactical moves and checks
+  for (size_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = position->movelist.head[i];
+
+    if (uo_search_quiesce_should_examine_move(thread, move, flags))
+    {
+      uo_position_make_move(position, move);
+      bool completed = uo_search_quiesce2(thread, &move_entry);
+      uo_position_unmake_move(position);
+
+      if (!completed)
+      {
+        entry->type = uo_alphabeta_type__incomplete;
+        return false;
+      }
+
+      move_entry.value = uo_score_adjust_for_mate(move_entry.value);
+
+      if (-move_entry.value > entry->value)
+      {
+        entry->value = -move_entry.value;
+        if (entry->value > entry->alpha)
+        {
+          if (entry->value >= entry->beta)
+          {
+            entry->type = uo_alphabeta_type__lower_bound;
+            return true;
+          }
+
+          entry->type = uo_alphabeta_type__exact;
+          entry->alpha = entry->value;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo_search_queue *queue)
 {
   for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
@@ -882,19 +1056,19 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
 static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabeta *entry)
 {
+  uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
 
   // Step 1. Check for draw by 50 move rule or threefold repetition
   if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
   {
+    ++info->nodes;
     entry->value = 0;
     entry->type = uo_alphabeta_type__draw;
     return true;
   }
 
   // Step 2. Lookup position from transposition table and return if exact score for equal or higher depth is found
-
-  // TODO:
   if (uo_engine_lookup_entry(position, &entry))
   {
     return true;
@@ -908,13 +1082,9 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     return false;
   }
 
-  // Step 4. Increment searched node count
-  ++thread->info.nodes;
-
-  // Step 5. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
+  // Step 4. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
   if (entry->depth == 0)
   {
-    // TODO:
     bool completed = uo_search_quiesce2(thread, entry);
     if (!completed)
     {
@@ -922,10 +1092,12 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
       return false;
     }
 
-    // TODO:
     uo_engine_store_entry(position, &entry);
     return true;
   }
+
+  // Step 5. Increment searched node count
+  ++info->nodes;
 
   // Step 6. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
@@ -999,6 +1171,9 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   move_entry.beta = -entry->alpha;
   move_entry.pv = entry->pv;
 
+  // set the default type for entry as upper bound
+  entry->type = uo_alphabeta_type__upper_bound;
+
   uo_position_make_move(position, move);
   bool completed = uo_search_principal_variation2(thread, &move_entry);
   uo_position_unmake_move(position);
@@ -1023,6 +1198,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
       return true;
     }
 
+    entry->type = uo_alphabeta_type__exact;
     entry->alpha = entry->value;
     uo_pv_update(entry->line, move, line, move_entry.depth);
   }
@@ -1128,13 +1304,13 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
           return true;
         }
 
+        entry->type = uo_alphabeta_type__exact;
         entry->alpha = entry->value;
         uo_pv_update(entry->line, move, line, move_entry.depth);
       }
     }
   }
 
-  entry->type = entry->value == entry->alpha ? uo_alphabeta_type__exact : uo_alphabeta_type__upper_bound;
   uo_engine_store_entry(position, &entry);
   return true;
 }
