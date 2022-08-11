@@ -16,6 +16,18 @@ extern "C"
 #define uo_seach_type__principal_variation 0
 #define uo_seach_type__quiescence 1
 
+  typedef union uo_tdata
+  {
+    uint64_t data;
+    struct
+    {
+      uo_move bestmove;
+      int16_t value;
+      uint8_t depth;
+      uint8_t type;
+    };
+  } uo_tdata;
+
   typedef struct uo_alphabeta
   {
     int16_t alpha;
@@ -88,7 +100,7 @@ extern "C"
   void *uo_engine_thread_run_quiescence_search(void *arg);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

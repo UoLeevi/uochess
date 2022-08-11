@@ -16,18 +16,6 @@ extern "C"
 #include <string.h>
 #include <stdbool.h>
 
-  typedef union uo_tdata
-  {
-    uint64_t data;
-    struct
-    {
-      uo_move bestmove;
-      int16_t value;
-      uint8_t depth;
-      uint8_t type;
-    };
-  } uo_tdata;
-
   typedef struct uo_tentry
   {
     uint32_t key;

@@ -295,146 +295,146 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
 
   return false;
 }
+//
+//static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth)
+//{
+//  uo_search_info *info = &thread->info;
+//  uo_position *position = &thread->position;
+//
+//  if (info->seldepth < position->ply)
+//  {
+//    info->seldepth = position->ply;
+//  }
+//
+//  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+//  {
+//    return 0;
+//  }
+//
+//  ++info->nodes;
+//
+//  if (uo_position_is_max_depth_reached(position))
+//  {
+//    return uo_position_evaluate(position);
+//  }
+//
+//  size_t move_count = uo_position_generate_moves(position);
+//  bool is_check = uo_position_is_check(position);
+//
+//  if (move_count == 0)
+//  {
+//    return is_check ? -UO_SCORE_CHECKMATE : 0;
+//  }
+//
+//  if (is_check)
+//  {
+//    int16_t value = -UO_SCORE_CHECKMATE;
+//    uo_position_sort_moves(&thread->position, 0);
+//
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      uo_move move = position->movelist.head[i];
+//      uo_position_make_move(position, move);
+//      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
+//      node_value = uo_score_adjust_for_mate(node_value);
+//      uo_position_unmake_move(position);
+//
+//      if (node_value > value)
+//      {
+//        value = node_value;
+//
+//        if (value > alpha)
+//        {
+//          if (value >= beta)
+//          {
+//            return value;
+//          }
+//
+//          alpha = value;
+//        }
+//      }
+//
+//      if (uo_engine_is_stopped())
+//      {
+//        return value;
+//      }
+//
+//      if (thread->owner && uo_atomic_load(&thread->cutoff))
+//      {
+//        return value;
+//      }
+//    }
+//
+//    return value;
+//  }
+//
+//  int16_t value = uo_position_evaluate(position);
+//
+//  if (value >= beta)
+//  {
+//    return value;
+//  }
+//
+//  // delta pruning
+//  if (position->Q)
+//  {
+//    int16_t delta = 600;
+//    if (alpha > value + delta)
+//    {
+//      return alpha;
+//    }
+//  }
+//
+//  if (value > alpha)
+//  {
+//    alpha = value;
+//  }
+//
+//  uo_search_quiesce_flags flags = uo_search_quiesce_determine_flags(thread, depth);
+//  uo_position_sort_tactical_moves(&thread->position);
+//
+//  for (size_t i = 0; i < move_count; ++i)
+//  {
+//    uo_move move = position->movelist.head[i];
+//
+//    if (uo_search_quiesce_should_examine_move(thread, move, flags))
+//    {
+//      uo_position_make_move(position, move);
+//      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
+//      node_value = uo_score_adjust_for_mate(node_value);
+//      uo_position_unmake_move(position);
+//
+//      if (node_value > value)
+//      {
+//        value = node_value;
+//
+//        if (value > alpha)
+//        {
+//          if (value >= beta)
+//          {
+//            return value;
+//          }
+//
+//          alpha = value;
+//        }
+//      }
+//
+//      if (uo_engine_is_stopped())
+//      {
+//        return value;
+//      }
+//
+//      if (thread->owner && uo_atomic_load(&thread->cutoff))
+//      {
+//        return value;
+//      }
+//    }
+//  }
+//
+//  return value;
+//}
 
-static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth)
-{
-  uo_search_info *info = &thread->info;
-  uo_position *position = &thread->position;
-
-  if (info->seldepth < position->ply)
-  {
-    info->seldepth = position->ply;
-  }
-
-  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
-  {
-    return 0;
-  }
-
-  ++info->nodes;
-
-  if (uo_position_is_max_depth_reached(position))
-  {
-    return uo_position_evaluate(position);
-  }
-
-  size_t move_count = uo_position_generate_moves(position);
-  bool is_check = uo_position_is_check(position);
-
-  if (move_count == 0)
-  {
-    return is_check ? -UO_SCORE_CHECKMATE : 0;
-  }
-
-  if (is_check)
-  {
-    int16_t value = -UO_SCORE_CHECKMATE;
-    uo_position_sort_moves(&thread->position, 0);
-
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      uo_move move = position->movelist.head[i];
-      uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
-      node_value = uo_score_adjust_for_mate(node_value);
-      uo_position_unmake_move(position);
-
-      if (node_value > value)
-      {
-        value = node_value;
-
-        if (value > alpha)
-        {
-          if (value >= beta)
-          {
-            return value;
-          }
-
-          alpha = value;
-        }
-      }
-
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
-
-      if (thread->owner && uo_atomic_load(&thread->cutoff))
-      {
-        return value;
-      }
-    }
-
-    return value;
-  }
-
-  int16_t value = uo_position_evaluate(position);
-
-  if (value >= beta)
-  {
-    return value;
-  }
-
-  // delta pruning
-  if (position->Q)
-  {
-    int16_t delta = 600;
-    if (alpha > value + delta)
-    {
-      return alpha;
-    }
-  }
-
-  if (value > alpha)
-  {
-    alpha = value;
-  }
-
-  uo_search_quiesce_flags flags = uo_search_quiesce_determine_flags(thread, depth);
-  uo_position_sort_tactical_moves(&thread->position);
-
-  for (size_t i = 0; i < move_count; ++i)
-  {
-    uo_move move = position->movelist.head[i];
-
-    if (uo_search_quiesce_should_examine_move(thread, move, flags))
-    {
-      uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
-      node_value = uo_score_adjust_for_mate(node_value);
-      uo_position_unmake_move(position);
-
-      if (node_value > value)
-      {
-        value = node_value;
-
-        if (value > alpha)
-        {
-          if (value >= beta)
-          {
-            return value;
-          }
-
-          alpha = value;
-        }
-      }
-
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
-
-      if (thread->owner && uo_atomic_load(&thread->cutoff))
-      {
-        return value;
-      }
-    }
-  }
-
-  return value;
-}
-
-static bool uo_search_quiesce2(uo_engine_thread *thread, uo_alphabeta *entry)
+static bool uo_search_quiesce(uo_engine_thread *thread, uo_alphabeta *entry)
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
@@ -508,7 +508,7 @@ static bool uo_search_quiesce2(uo_engine_thread *thread, uo_alphabeta *entry)
     {
       uo_move move = position->movelist.head[i];
       uo_position_make_move(position, move);
-      bool completed = uo_search_quiesce2(thread, &move_entry);
+      bool completed = uo_search_quiesce(thread, &move_entry);
       uo_position_unmake_move(position);
 
       if (!completed)
@@ -576,7 +576,7 @@ static bool uo_search_quiesce2(uo_engine_thread *thread, uo_alphabeta *entry)
     if (uo_search_quiesce_should_examine_move(thread, move, flags))
     {
       uo_position_make_move(position, move);
-      bool completed = uo_search_quiesce2(thread, &move_entry);
+      bool completed = uo_search_quiesce(thread, &move_entry);
       uo_position_unmake_move(position);
 
       if (!completed)
@@ -643,418 +643,418 @@ static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line,
     memcpy(pline + 1, line, move_count * sizeof * line);
   }
 }
-
-// see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
-// see: https://en.wikipedia.org/wiki/Principal_variation_search
-static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_move *pline, bool pv)
-{
-  uo_position *position = &thread->position;
-
-  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
-  {
-    return 0;
-  }
-
-  uo_abtentry entry = { alpha, beta, depth };
-  if (uo_engine_lookup_entry(position, &entry))
-  {
-    //if (pv && entry.value > alpha)
-    //{
-    //  uo_engine_thread_update_pv(thread);
-    //}
-
-    uo_pv_update(pline, entry.bestmove, NULL, 0);
-    return entry.value;
-  }
-
-  if (thread->owner && uo_atomic_load(&thread->cutoff))
-  {
-    return entry.value;
-  }
-
-  ++thread->info.nodes;
-
-  if (depth == 0)
-  {
-    entry.value = uo_search_quiesce(thread, alpha, beta, 0);
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  if (uo_position_is_max_depth_reached(position))
-  {
-    entry.value = uo_position_evaluate(position);
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  size_t move_count = position->stack->moves_generated
-    ? position->stack->move_count
-    : uo_position_generate_moves(position);
-
-  if (move_count == 0)
-  {
-    entry.value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  uo_move *line = uo_allocate_line(depth);
-  line[0] = 0;
-
-  // Null move pruning
-  if (!pv
-    && depth > 3
-    && position->ply > 1
-    && uo_position_is_null_move_allowed(position)
-    && uo_position_evaluate(position) > beta)
-  {
-    uo_position_make_null_move(position);
-    // depth * 3/4 - 1
-    size_t depth_nmp = (depth * 3 >> 2) - 1;
-    int16_t pass_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, line, false);
-    uo_position_unmake_null_move(position);
-
-    if (pass_value >= beta)
-    {
-      return pass_value;
-    }
-  }
-
-  uo_position_sort_moves(&thread->position, pline[0] ? pline[0] : entry.bestmove);
-
-  entry.bestmove = position->movelist.head[0];
-  entry.depth = depth;
-
-  uo_position_update_butterfly_heuristic(position, entry.bestmove);
-
-  uo_position_make_move(position, entry.bestmove);
-  // search first move with full alpha/beta window
-  entry.value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, pline + 1, pv);
-  entry.value = uo_score_adjust_for_mate(entry.value);
-  uo_position_unmake_move(position);
-
-  if (uo_engine_is_stopped())
-  {
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  if (entry.value > alpha)
-  {
-    uo_position_update_history_heuristic(position, entry.bestmove, depth);
-
-    if (entry.value >= beta)
-    {
-      uo_position_update_killers(position, entry.bestmove);
-      return uo_engine_store_entry(position, &entry);
-    }
-
-    alpha = entry.value;
-    uo_pv_update(pline, entry.bestmove, NULL, 0);
-
-    //if (pv)
-    //{
-    //  uo_engine_store_entry(position, &entry);
-    //  uo_engine_thread_update_pv(thread);
-    //}
-  }
-
-  if (uo_engine_is_stopped())
-  {
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  if (thread->owner && uo_atomic_load(&thread->cutoff))
-  {
-    return uo_engine_store_entry(position, &entry);
-  }
-
-  size_t parallel_search_count = 0;
-  uo_parallel_search_params params = {
-    .thread = thread,
-    .queue = {.init = 0 },
-    .alpha = -beta,
-    .beta = -alpha,
-    .depth = depth - 1
-  };
-
-  for (size_t i = 1; i < move_count; ++i)
-  {
-    uo_move move = params.move = position->movelist.head[i];
-    uo_position_update_butterfly_heuristic(position, move);
-
-    // search later moves for reduced depth
-    // see: https://en.wikipedia.org/wiki/Late_move_reductions
-    size_t depth_reduction = depth > 3 && !pv && !uo_position_is_check(position) ? 1 : 0;
-
-    if (depth_reduction)
-    {
-      if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
-      {
-        depth_reduction += depth > 4 ? 2 : 1;
-      }
-
-      uo_bitboard checks = uo_position_move_checks(position, move);
-
-      if (checks)
-      {
-        uo_position_update_next_move_checks(position, checks);
-        --depth_reduction;
-      }
-    }
-
-    uo_position_make_move(position, move);
-
-    size_t depth_lmr = depth - depth_reduction;
-
-    // search with null window for reduced depth
-    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false);
-    node_value = uo_score_adjust_for_mate(node_value);
-
-    if (node_value > alpha && node_value < beta)
-    {
-      // failed high, do a full re-search
-      bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
-
-      if (can_delegate && uo_search_try_delegate_parallel_search(&params))
-      {
-        uo_position_unmake_move(position);
-        ++parallel_search_count;
-        continue;
-      }
-
-      depth_lmr = depth;
-      node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
-      node_value = uo_score_adjust_for_mate(node_value);
-    }
-
-    uo_position_unmake_move(position);
-
-    if (node_value > entry.value)
-    {
-      entry.value = node_value;
-      entry.bestmove = move;
-      entry.depth = depth_lmr;
-
-      if (entry.value > alpha)
-      {
-        uo_position_update_history_heuristic(position, move, depth_lmr);
-
-        if (entry.value >= beta)
-        {
-          uo_position_update_killers(position, move);
-
-          if (parallel_search_count > 0)
-          {
-            uo_search_cutoff_parallel_search(thread, &params.queue);
-
-            uo_search_queue_item result;
-            while (uo_search_queue_get_result(&params.queue, &result))
-            {
-              thread->info.nodes += result.nodes;
-              node_value = -result.value;
-              if (result.move && node_value > entry.value)
-              {
-                entry.value = node_value;
-                entry.bestmove = result.move;
-              }
-            }
-          }
-
-          return uo_engine_store_entry(position, &entry);
-        }
-
-        alpha = entry.value;
-        params.beta = -alpha;
-        uo_pv_update(pline, entry.bestmove, line, depth_lmr);
-
-        if (pv && position->ply == 0 && thread->owner == NULL)
-        {
-          thread->info.bestmove_change_depth = depth_lmr;
-
-          if (depth_lmr > 8)
-          {
-            uo_search_print_info(thread);
-          }
-        }
-      }
-    }
-
-    if (uo_engine_is_stopped())
-    {
-      if (parallel_search_count > 0)
-      {
-        uo_search_cutoff_parallel_search(thread, &params.queue);
-        uo_search_queue_item result;
-        while (uo_search_queue_get_result(&params.queue, &result))
-        {
-          thread->info.nodes += result.nodes;
-          node_value = -result.value;
-          if (result.move && node_value > entry.value)
-          {
-            entry.value = node_value;
-            entry.bestmove = result.move;
-          }
-        }
-      }
-
-      return uo_engine_store_entry(position, &entry);
-    }
-
-    if (thread->owner && uo_atomic_load(&thread->cutoff))
-    {
-      if (parallel_search_count > 0)
-      {
-        uo_search_cutoff_parallel_search(thread, &params.queue);
-        uo_search_queue_item result;
-        while (uo_search_queue_get_result(&params.queue, &result))
-        {
-          thread->info.nodes += result.nodes;
-          node_value = -result.value;
-          if (result.move && node_value > entry.value)
-          {
-            entry.value = node_value;
-            entry.bestmove = result.move;
-          }
-        }
-      }
-
-      return uo_engine_store_entry(position, &entry);
-    }
-
-    if (parallel_search_count > 0)
-    {
-      uo_search_queue_item result;
-
-      while (uo_search_queue_try_get_result(&params.queue, &result))
-      {
-        --parallel_search_count;
-
-        for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
-        {
-          if (params.queue.threads[i] == result.thread)
-          {
-            params.queue.threads[i] = NULL;
-            break;
-          }
-        }
-
-        size_t depth_lmr = result.depth;
-        uo_move move = result.move;
-        int16_t node_value = -result.value;
-        thread->info.nodes += result.nodes;
-
-        if (node_value > entry.value)
-        {
-          entry.value = node_value;
-          entry.bestmove = move;
-          entry.depth = depth_lmr;
-
-          if (entry.value > alpha)
-          {
-            uo_position_update_history_heuristic(position, move, depth_lmr);
-
-            if (entry.value >= beta)
-            {
-              uo_position_update_killers(position, move);
-
-              uo_search_cutoff_parallel_search(thread, &params.queue);
-              uo_search_queue_item result;
-              while (uo_search_queue_get_result(&params.queue, &result))
-              {
-                thread->info.nodes += result.nodes;
-                node_value = -result.value;
-                if (result.move && node_value > entry.value)
-                {
-                  entry.value = node_value;
-                  entry.bestmove = result.move;
-                }
-              }
-
-              return uo_engine_store_entry(position, &entry);
-            }
-
-            alpha = entry.value;
-            params.beta = -alpha;
-            uo_pv_update(pline, entry.bestmove, NULL, 0);
-
-            if (pv && position->ply == 0 && thread->owner == NULL)
-            {
-              thread->info.bestmove_change_depth = depth_lmr;
-
-              if (depth_lmr > 8)
-              {
-                uo_search_print_info(thread);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (parallel_search_count > 0)
-  {
-    uo_search_queue_item result;
-
-    while (uo_search_queue_get_result(&params.queue, &result))
-    {
-      --parallel_search_count;
-
-      size_t depth_lmr = result.depth;
-      uo_move move = result.move;
-      int16_t node_value = -result.value;
-      thread->info.nodes += result.nodes;
-
-      if (node_value > entry.value)
-      {
-        entry.value = node_value;
-        entry.bestmove = move;
-        entry.depth = depth_lmr;
-
-        if (entry.value > alpha)
-        {
-          uo_position_update_history_heuristic(position, move, depth_lmr);
-
-          if (entry.value >= beta)
-          {
-            uo_position_update_killers(position, move);
-
-            uo_search_cutoff_parallel_search(thread, &params.queue);
-            uo_search_queue_item result;
-            while (uo_search_queue_get_result(&params.queue, &result))
-            {
-              thread->info.nodes += result.nodes;
-              node_value = -result.value;
-              if (result.move && node_value > entry.value)
-              {
-                entry.value = node_value;
-                entry.bestmove = result.move;
-              }
-            }
-            return uo_engine_store_entry(position, &entry);
-          }
-
-          alpha = entry.value;
-          params.beta = -alpha;
-          pline[0] = entry.bestmove;
-          pline[1] = 0;
-
-          if (pv && position->ply == 0 && thread->owner == NULL)
-          {
-            thread->info.bestmove_change_depth = depth_lmr;
-
-            if (depth_lmr > 8)
-            {
-              uo_search_print_info(thread);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return uo_engine_store_entry(position, &entry);
-}
-
-static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabeta *entry)
+//
+//// see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
+//// see: https://en.wikipedia.org/wiki/Principal_variation_search
+//static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_move *pline, bool pv)
+//{
+//  uo_position *position = &thread->position;
+//
+//  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+//  {
+//    return 0;
+//  }
+//
+//  uo_abtentry entry = { alpha, beta, depth };
+//  if (uo_engine_lookup_entry(position, &entry))
+//  {
+//    //if (pv && entry.value > alpha)
+//    //{
+//    //  uo_engine_thread_update_pv(thread);
+//    //}
+//
+//    uo_pv_update(pline, entry.bestmove, NULL, 0);
+//    return entry.value;
+//  }
+//
+//  if (thread->owner && uo_atomic_load(&thread->cutoff))
+//  {
+//    return entry.value;
+//  }
+//
+//  ++thread->info.nodes;
+//
+//  if (depth == 0)
+//  {
+//    entry.value = uo_search_quiesce(thread, alpha, beta, 0);
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  if (uo_position_is_max_depth_reached(position))
+//  {
+//    entry.value = uo_position_evaluate(position);
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  size_t move_count = position->stack->moves_generated
+//    ? position->stack->move_count
+//    : uo_position_generate_moves(position);
+//
+//  if (move_count == 0)
+//  {
+//    entry.value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  uo_move *line = uo_allocate_line(depth);
+//  line[0] = 0;
+//
+//  // Null move pruning
+//  if (!pv
+//    && depth > 3
+//    && position->ply > 1
+//    && uo_position_is_null_move_allowed(position)
+//    && uo_position_evaluate(position) > beta)
+//  {
+//    uo_position_make_null_move(position);
+//    // depth * 3/4 - 1
+//    size_t depth_nmp = (depth * 3 >> 2) - 1;
+//    int16_t pass_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, line, false);
+//    uo_position_unmake_null_move(position);
+//
+//    if (pass_value >= beta)
+//    {
+//      return pass_value;
+//    }
+//  }
+//
+//  uo_position_sort_moves(&thread->position, pline[0] ? pline[0] : entry.bestmove);
+//
+//  entry.bestmove = position->movelist.head[0];
+//  entry.depth = depth;
+//
+//  uo_position_update_butterfly_heuristic(position, entry.bestmove);
+//
+//  uo_position_make_move(position, entry.bestmove);
+//  // search first move with full alpha/beta window
+//  entry.value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, pline + 1, pv);
+//  entry.value = uo_score_adjust_for_mate(entry.value);
+//  uo_position_unmake_move(position);
+//
+//  if (uo_engine_is_stopped())
+//  {
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  if (entry.value > alpha)
+//  {
+//    uo_position_update_history_heuristic(position, entry.bestmove, depth);
+//
+//    if (entry.value >= beta)
+//    {
+//      uo_position_update_killers(position, entry.bestmove);
+//      return uo_engine_store_entry(position, &entry);
+//    }
+//
+//    alpha = entry.value;
+//    uo_pv_update(pline, entry.bestmove, NULL, 0);
+//
+//    //if (pv)
+//    //{
+//    //  uo_engine_store_entry(position, &entry);
+//    //  uo_engine_thread_update_pv(thread);
+//    //}
+//  }
+//
+//  if (uo_engine_is_stopped())
+//  {
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  if (thread->owner && uo_atomic_load(&thread->cutoff))
+//  {
+//    return uo_engine_store_entry(position, &entry);
+//  }
+//
+//  size_t parallel_search_count = 0;
+//  uo_parallel_search_params params = {
+//    .thread = thread,
+//    .queue = {.init = 0 },
+//    .alpha = -beta,
+//    .beta = -alpha,
+//    .depth = depth - 1
+//  };
+//
+//  for (size_t i = 1; i < move_count; ++i)
+//  {
+//    uo_move move = params.move = position->movelist.head[i];
+//    uo_position_update_butterfly_heuristic(position, move);
+//
+//    // search later moves for reduced depth
+//    // see: https://en.wikipedia.org/wiki/Late_move_reductions
+//    size_t depth_reduction = depth > 3 && !pv && !uo_position_is_check(position) ? 1 : 0;
+//
+//    if (depth_reduction)
+//    {
+//      if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
+//      {
+//        depth_reduction += depth > 4 ? 2 : 1;
+//      }
+//
+//      uo_bitboard checks = uo_position_move_checks(position, move);
+//
+//      if (checks)
+//      {
+//        uo_position_update_next_move_checks(position, checks);
+//        --depth_reduction;
+//      }
+//    }
+//
+//    uo_position_make_move(position, move);
+//
+//    size_t depth_lmr = depth - depth_reduction;
+//
+//    // search with null window for reduced depth
+//    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false);
+//    node_value = uo_score_adjust_for_mate(node_value);
+//
+//    if (node_value > alpha && node_value < beta)
+//    {
+//      // failed high, do a full re-search
+//      bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
+//
+//      if (can_delegate && uo_search_try_delegate_parallel_search(&params))
+//      {
+//        uo_position_unmake_move(position);
+//        ++parallel_search_count;
+//        continue;
+//      }
+//
+//      depth_lmr = depth;
+//      node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false);
+//      node_value = uo_score_adjust_for_mate(node_value);
+//    }
+//
+//    uo_position_unmake_move(position);
+//
+//    if (node_value > entry.value)
+//    {
+//      entry.value = node_value;
+//      entry.bestmove = move;
+//      entry.depth = depth_lmr;
+//
+//      if (entry.value > alpha)
+//      {
+//        uo_position_update_history_heuristic(position, move, depth_lmr);
+//
+//        if (entry.value >= beta)
+//        {
+//          uo_position_update_killers(position, move);
+//
+//          if (parallel_search_count > 0)
+//          {
+//            uo_search_cutoff_parallel_search(thread, &params.queue);
+//
+//            uo_search_queue_item result;
+//            while (uo_search_queue_get_result(&params.queue, &result))
+//            {
+//              thread->info.nodes += result.nodes;
+//              node_value = -result.value;
+//              if (result.move && node_value > entry.value)
+//              {
+//                entry.value = node_value;
+//                entry.bestmove = result.move;
+//              }
+//            }
+//          }
+//
+//          return uo_engine_store_entry(position, &entry);
+//        }
+//
+//        alpha = entry.value;
+//        params.beta = -alpha;
+//        uo_pv_update(pline, entry.bestmove, line, depth_lmr);
+//
+//        if (pv && position->ply == 0 && thread->owner == NULL)
+//        {
+//          thread->info.bestmove_change_depth = depth_lmr;
+//
+//          if (depth_lmr > 8)
+//          {
+//            uo_search_print_info(thread);
+//          }
+//        }
+//      }
+//    }
+//
+//    if (uo_engine_is_stopped())
+//    {
+//      if (parallel_search_count > 0)
+//      {
+//        uo_search_cutoff_parallel_search(thread, &params.queue);
+//        uo_search_queue_item result;
+//        while (uo_search_queue_get_result(&params.queue, &result))
+//        {
+//          thread->info.nodes += result.nodes;
+//          node_value = -result.value;
+//          if (result.move && node_value > entry.value)
+//          {
+//            entry.value = node_value;
+//            entry.bestmove = result.move;
+//          }
+//        }
+//      }
+//
+//      return uo_engine_store_entry(position, &entry);
+//    }
+//
+//    if (thread->owner && uo_atomic_load(&thread->cutoff))
+//    {
+//      if (parallel_search_count > 0)
+//      {
+//        uo_search_cutoff_parallel_search(thread, &params.queue);
+//        uo_search_queue_item result;
+//        while (uo_search_queue_get_result(&params.queue, &result))
+//        {
+//          thread->info.nodes += result.nodes;
+//          node_value = -result.value;
+//          if (result.move && node_value > entry.value)
+//          {
+//            entry.value = node_value;
+//            entry.bestmove = result.move;
+//          }
+//        }
+//      }
+//
+//      return uo_engine_store_entry(position, &entry);
+//    }
+//
+//    if (parallel_search_count > 0)
+//    {
+//      uo_search_queue_item result;
+//
+//      while (uo_search_queue_try_get_result(&params.queue, &result))
+//      {
+//        --parallel_search_count;
+//
+//        for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
+//        {
+//          if (params.queue.threads[i] == result.thread)
+//          {
+//            params.queue.threads[i] = NULL;
+//            break;
+//          }
+//        }
+//
+//        size_t depth_lmr = result.depth;
+//        uo_move move = result.move;
+//        int16_t node_value = -result.value;
+//        thread->info.nodes += result.nodes;
+//
+//        if (node_value > entry.value)
+//        {
+//          entry.value = node_value;
+//          entry.bestmove = move;
+//          entry.depth = depth_lmr;
+//
+//          if (entry.value > alpha)
+//          {
+//            uo_position_update_history_heuristic(position, move, depth_lmr);
+//
+//            if (entry.value >= beta)
+//            {
+//              uo_position_update_killers(position, move);
+//
+//              uo_search_cutoff_parallel_search(thread, &params.queue);
+//              uo_search_queue_item result;
+//              while (uo_search_queue_get_result(&params.queue, &result))
+//              {
+//                thread->info.nodes += result.nodes;
+//                node_value = -result.value;
+//                if (result.move && node_value > entry.value)
+//                {
+//                  entry.value = node_value;
+//                  entry.bestmove = result.move;
+//                }
+//              }
+//
+//              return uo_engine_store_entry(position, &entry);
+//            }
+//
+//            alpha = entry.value;
+//            params.beta = -alpha;
+//            uo_pv_update(pline, entry.bestmove, NULL, 0);
+//
+//            if (pv && position->ply == 0 && thread->owner == NULL)
+//            {
+//              thread->info.bestmove_change_depth = depth_lmr;
+//
+//              if (depth_lmr > 8)
+//              {
+//                uo_search_print_info(thread);
+//              }
+//            }
+//          }
+//        }
+//      }
+//    }
+//  }
+//
+//  if (parallel_search_count > 0)
+//  {
+//    uo_search_queue_item result;
+//
+//    while (uo_search_queue_get_result(&params.queue, &result))
+//    {
+//      --parallel_search_count;
+//
+//      size_t depth_lmr = result.depth;
+//      uo_move move = result.move;
+//      int16_t node_value = -result.value;
+//      thread->info.nodes += result.nodes;
+//
+//      if (node_value > entry.value)
+//      {
+//        entry.value = node_value;
+//        entry.bestmove = move;
+//        entry.depth = depth_lmr;
+//
+//        if (entry.value > alpha)
+//        {
+//          uo_position_update_history_heuristic(position, move, depth_lmr);
+//
+//          if (entry.value >= beta)
+//          {
+//            uo_position_update_killers(position, move);
+//
+//            uo_search_cutoff_parallel_search(thread, &params.queue);
+//            uo_search_queue_item result;
+//            while (uo_search_queue_get_result(&params.queue, &result))
+//            {
+//              thread->info.nodes += result.nodes;
+//              node_value = -result.value;
+//              if (result.move && node_value > entry.value)
+//              {
+//                entry.value = node_value;
+//                entry.bestmove = result.move;
+//              }
+//            }
+//            return uo_engine_store_entry(position, &entry);
+//          }
+//
+//          alpha = entry.value;
+//          params.beta = -alpha;
+//          pline[0] = entry.bestmove;
+//          pline[1] = 0;
+//
+//          if (pv && position->ply == 0 && thread->owner == NULL)
+//          {
+//            thread->info.bestmove_change_depth = depth_lmr;
+//
+//            if (depth_lmr > 8)
+//            {
+//              uo_search_print_info(thread);
+//            }
+//          }
+//        }
+//      }
+//    }
+//  }
+//
+//  return uo_engine_store_entry(position, &entry);
+//}
+
+static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta *entry)
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
@@ -1069,7 +1069,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   }
 
   // Step 2. Lookup position from transposition table and return if exact score for equal or higher depth is found
-  if (uo_engine_lookup_entry(position, &entry))
+  if (uo_engine_lookup_entry(position, entry))
   {
     return true;
   }
@@ -1085,14 +1085,14 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   // Step 4. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
   if (entry->depth == 0)
   {
-    bool completed = uo_search_quiesce2(thread, entry);
+    bool completed = uo_search_quiesce(thread, entry);
     if (!completed)
     {
       entry->type = uo_alphabeta_type__incomplete;
       return false;
     }
 
-    uo_engine_store_entry(position, &entry);
+    uo_engine_store_entry(position, entry);
     return true;
   }
 
@@ -1104,7 +1104,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   {
     entry->value = uo_position_evaluate(position);
     entry->type = uo_alphabeta_type__exact;
-    uo_engine_store_entry(position, &entry);
+    uo_engine_store_entry(position, entry);
     return true;
   }
 
@@ -1118,7 +1118,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   {
     entry->value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
     entry->type = uo_alphabeta_type__exact;
-    uo_engine_store_entry(position, &entry);
+    uo_engine_store_entry(position, entry);
     return true;
   }
 
@@ -1141,7 +1141,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     move_entry.beta = -entry->beta + 1;
 
     uo_position_make_null_move(position);
-    bool completed = uo_search_principal_variation2(thread, &move_entry);
+    bool completed = uo_search_principal_variation(thread, &move_entry);
     uo_position_unmake_null_move(position);
 
     if (!completed)
@@ -1154,7 +1154,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     {
       entry->value = -move_entry.value;
       entry->type = uo_alphabeta_type__lower_bound;
-      uo_engine_store_entry(position, &entry);
+      uo_engine_store_entry(position, entry);
       return true;
     }
   }
@@ -1175,7 +1175,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
   entry->type = uo_alphabeta_type__upper_bound;
 
   uo_position_make_move(position, move);
-  bool completed = uo_search_principal_variation2(thread, &move_entry);
+  bool completed = uo_search_principal_variation(thread, &move_entry);
   uo_position_unmake_move(position);
 
   if (!completed)
@@ -1194,7 +1194,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     if (entry->value >= entry->beta)
     {
       entry->type = uo_alphabeta_type__lower_bound;
-      uo_engine_store_entry(position, &entry);
+      uo_engine_store_entry(position, entry);
       return true;
     }
 
@@ -1256,7 +1256,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     move_entry.beta = -entry->alpha;
 
     uo_position_make_move(position, move);
-    bool completed = uo_search_principal_variation2(thread, &move_entry);
+    bool completed = uo_search_principal_variation(thread, &move_entry);
 
     if (!completed)
     {
@@ -1274,7 +1274,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
       move_entry.alpha = -entry->beta;
       move_entry.beta = -entry->alpha;
 
-      bool completed = uo_search_principal_variation2(thread, &move_entry);
+      bool completed = uo_search_principal_variation(thread, &move_entry);
 
       if (!completed)
       {
@@ -1300,7 +1300,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
         if (entry->value >= entry->beta)
         {
           entry->type = uo_alphabeta_type__lower_bound;
-          uo_engine_store_entry(position, &entry);
+          uo_engine_store_entry(position, entry);
           return true;
         }
 
@@ -1311,7 +1311,7 @@ static bool uo_search_principal_variation2(uo_engine_thread *thread, uo_alphabet
     }
   }
 
-  uo_engine_store_entry(position, &entry);
+  uo_engine_store_entry(position, entry);
   return true;
 }
 

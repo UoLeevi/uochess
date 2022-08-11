@@ -173,7 +173,7 @@ extern "C"
       if (value >= entry->beta)
       {
         entry->value = value;
-        entry->type == uo_tentry_type__lower_bound;
+        entry->type = uo_tentry_type__lower_bound;
         return true;
       }
 
@@ -184,7 +184,7 @@ extern "C"
       if (value <= entry->alpha)
       {
         entry->value = value;
-        entry->type == uo_tentry_type__upper_bound;
+        entry->type = uo_tentry_type__upper_bound;
         return true;
       }
 
