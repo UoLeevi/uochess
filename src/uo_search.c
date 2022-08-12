@@ -1480,14 +1480,18 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     .nodes = 0
   };
 
-  uo_move *line = thread->info.pv;
-
   uo_time_now(&thread->info.time_start);
   uo_engine_thread_load_position(thread);
   uo_engine_run_thread(uo_engine_thread_start_timer, thread);
 
-  int16_t alpha = params->alpha;
-  int16_t beta = params->beta;
+  uo_alphabeta entry = {
+    .alpha = params->alpha,
+    .beta = params->beta,
+    .line = thread->info.pv,
+    .depth = 1,
+    .pv = true
+  };
+
   size_t aspiration_fail_count = 0;
 
   int16_t value;
@@ -1501,13 +1505,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     {
       int16_t window = (position->stack[-1].move == engine.ponder.move) ? 40 : 200;
 
-      alpha = value > -UO_SCORE_CHECKMATE + window ? value - window : -UO_SCORE_CHECKMATE;
-      beta = value < UO_SCORE_CHECKMATE - window ? value - window : -UO_SCORE_CHECKMATE;
+      entry.alpha = value > -UO_SCORE_CHECKMATE + window ? value - window : -UO_SCORE_CHECKMATE;
+      entry.beta = value < UO_SCORE_CHECKMATE - window ? value - window : -UO_SCORE_CHECKMATE;
     }
   }
 
-  value = uo_search_principal_variation(thread, 1, alpha, beta, line, true);
-  uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count);
+  bool completed = uo_search_principal_variation(thread, &entry);
+  uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count);
   bestmove = thread->info.bestmove;
 
   if (bestmove)
@@ -1528,13 +1532,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   uo_parallel_search_params lazy_smp_params = {
     .thread = thread,
     .queue = {.init = 0 },
-    .alpha = alpha,
-    .beta = beta
+    .alpha = entry.alpha,
+    .beta = entry.beta
   };
 
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
-    thread->info.depth = lazy_smp_params.depth = depth;
+    thread->info.depth = lazy_smp_params.depth = entry.depth = depth;
 
     if (thread->info.nodes)
     {
@@ -1552,7 +1556,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         can_delegate = ++lazy_smp_count < lazy_smp_max_count;
       }
 
-      value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
+      value = uo_search_principal_variation(thread, &entry);
 
       if (lazy_smp_count > 0)
       {
@@ -1565,13 +1569,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
           if (result.move && result.value > value)
           {
             value = result.value;
-            line[0] = result.move;
-            line[1] = 0;
+            entry.line[0] = result.move;
+            entry.line[1] = 0;
           }
         }
       }
 
-      if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
+      if (uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count))
       {
         bestmove = thread->info.bestmove;
 
@@ -1606,8 +1610,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       if (result.move && result.value > value)
       {
         value = result.value;
-        line[0] = result.move;
-        line[1] = 0;
+        entry.line[0] = result.move;
+        entry.line[1] = 0;
       }
     }
   }
@@ -1647,9 +1651,12 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   uo_engine_thread_load_position(thread);
   uo_engine_run_thread(uo_engine_thread_start_timer, thread);
 
-  int16_t alpha = params->alpha;
-  int16_t beta = params->beta;
-  int16_t value = uo_search_quiesce(thread, alpha, beta, 0);
+  uo_alphabeta entry = {
+    .alpha = params->alpha,
+    .beta = params->beta
+  };
+
+  bool completed = uo_search_quiesce(thread, &entry);
 
   double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
   uint64_t nps = thread->info.nodes / time_msec * 1000.0;
@@ -1662,24 +1669,24 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   printf("info qsearch ");
   if (thread->info.seldepth) printf("seldepth %d ", thread->info.seldepth);
 
-  if (value > UO_SCORE_MATE_IN_THRESHOLD)
+  if (entry.value > UO_SCORE_MATE_IN_THRESHOLD)
   {
-    printf("score mate %d ", (UO_SCORE_CHECKMATE - value + 1) >> 1);
+    printf("score mate %d ", (UO_SCORE_CHECKMATE - entry.value + 1) >> 1);
   }
-  else if (value < -UO_SCORE_MATE_IN_THRESHOLD)
+  else if (entry.value < -UO_SCORE_MATE_IN_THRESHOLD)
   {
-    printf("score mate %d ", -((UO_SCORE_CHECKMATE + value + 1) >> 1));
+    printf("score mate %d ", -((UO_SCORE_CHECKMATE + entry.value + 1) >> 1));
   }
   else
   {
-    printf("score cp %d ", value);
+    printf("score cp %d ", entry.value);
   }
 
-  if (value >= beta)
+  if (entry.value >= entry.beta)
   {
     printf("lowerbound ");
   }
-  else if (value <= alpha)
+  else if (entry.value <= entry.alpha)
   {
     printf("upperbound ");
   }
