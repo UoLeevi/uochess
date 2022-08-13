@@ -1428,31 +1428,36 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   uo_parallel_search_params *params = thread->data;
   uo_engine_thread *owner = thread->owner = params->thread;
   uo_search_queue *queue = &params->queue;
-  size_t depth = params->depth;
-  int16_t alpha = params->alpha;
-  int16_t beta = params->beta;
   uo_move move = params->move;
+
+  uo_alphabeta entry = {
+    .alpha = params->alpha,
+    .beta = params->beta,
+    .line = thread->info.pv,
+    .depth = params->depth,
+    .pv = true
+  };
 
   uo_position_copy(&thread->position, &owner->position);
   uo_atomic_unlock(&thread->busy);
 
   thread->info = (uo_search_info){
-    .depth = depth,
+    .depth = entry.depth,
     .multipv = engine_options.multipv,
     .nodes = 0
   };
 
-  uo_move *line = uo_allocate_line(depth);
+  uo_move *line = entry.line = uo_allocate_line(entry.depth);
   line[0] = 0;
 
-  int16_t value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
-  value = uo_score_adjust_for_mate(value);
+  bool completed = uo_search_principal_variation(thread, &entry);
+  entry.value = uo_score_adjust_for_mate(entry.value);
 
   uo_search_queue_item result = {
     .thread = thread,
     .nodes = thread->info.nodes,
-    .depth = depth,
-    .value = value,
+    .depth = entry.depth,
+    .value = entry.value,
     .move = move ? move : line[0]
   };
 
