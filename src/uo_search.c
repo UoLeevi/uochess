@@ -1515,7 +1515,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
   }
 
-  bool completed = uo_search_principal_variation(thread, &entry);
+  uo_search_principal_variation(thread, &entry);
+  value = entry.value;
   uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count);
   bestmove = thread->info.bestmove;
 
@@ -1561,7 +1562,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         can_delegate = ++lazy_smp_count < lazy_smp_max_count;
       }
 
-      value = uo_search_principal_variation(thread, &entry);
+      bool completed = uo_search_principal_variation(thread, &entry);
 
       if (lazy_smp_count > 0)
       {
@@ -1571,14 +1572,16 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
         {
           thread->info.nodes += result.nodes;
-          if (result.move && result.value > value)
-          {
-            value = result.value;
-            entry.line[0] = result.move;
-            entry.line[1] = 0;
-          }
+          //if (result.move && result.value > value)
+          //{
+          //  value = result.value;
+          //  entry.line[0] = result.move;
+          //  entry.line[1] = 0;
+          //}
         }
       }
+
+      if (!completed) break;
 
       if (uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count))
       {
@@ -1612,12 +1615,12 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
     {
       thread->info.nodes += result.nodes;
-      if (result.move && result.value > value)
-      {
-        value = result.value;
-        entry.line[0] = result.move;
-        entry.line[1] = 0;
-      }
+      //if (result.move && result.value > value)
+      //{
+      //  value = result.value;
+      //  entry.line[0] = result.move;
+      //  entry.line[1] = 0;
+      //}
     }
   }
 

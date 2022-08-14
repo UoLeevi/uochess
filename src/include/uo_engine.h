@@ -194,7 +194,7 @@ extern "C"
     return false;
   }
 
-  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_alphabeta *entry)
+  static inline void uo_engine_store_entry(const uo_position *position, uo_alphabeta *entry)
   {
     if (entry->data.depth <= entry->depth)
     {
