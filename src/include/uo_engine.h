@@ -177,7 +177,7 @@ extern "C"
         return true;
       }
 
-      entry->alpha = value;
+      entry->alpha = uo_max(entry->alpha, value);
     }
     else // if (entry->data.type == uo_tentry_type__upper_bound)
     {
@@ -188,7 +188,7 @@ extern "C"
         return true;
       }
 
-      entry->beta = value;
+      entry->beta = uo_min(entry->beta, value);
     }
 
     return false;

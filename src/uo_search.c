@@ -1499,32 +1499,30 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   size_t aspiration_fail_count = 0;
 
-  int16_t value;
   uo_move bestmove = 0;
 
   if (engine.ponder.key)
   {
-    value = engine.ponder.value;
+    entry.value = engine.ponder.value;
 
     if (position->stack[-1].key == engine.ponder.key)
     {
       int16_t window = (position->stack[-1].move == engine.ponder.move) ? 40 : 200;
 
-      entry.alpha = value > -UO_SCORE_CHECKMATE + window ? value - window : -UO_SCORE_CHECKMATE;
-      entry.beta = value < UO_SCORE_CHECKMATE - window ? value - window : -UO_SCORE_CHECKMATE;
+      entry.alpha = entry.value > -UO_SCORE_CHECKMATE + window ? entry.value - window : -UO_SCORE_CHECKMATE;
+      entry.beta = entry.value < UO_SCORE_CHECKMATE - window ? entry.value - window : -UO_SCORE_CHECKMATE;
     }
   }
 
   uo_search_principal_variation(thread, &entry);
-  value = entry.value;
-  uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count);
+  uo_search_adjust_alpha_beta(entry.value, &entry.alpha, &entry.beta, &aspiration_fail_count);
   bestmove = thread->info.bestmove;
 
   if (bestmove)
   {
     uo_position_make_move(position, bestmove);
     engine.ponder.key = position->key;
-    engine.ponder.value = thread->info.value = value;
+    engine.ponder.value = thread->info.value = entry.value;
     engine.ponder.move = thread->info.pv[1];
     uo_position_unmake_move(position);
   }
@@ -1583,7 +1581,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
       if (!completed) break;
 
-      if (uo_search_adjust_alpha_beta(value, &entry.alpha, &entry.beta, &aspiration_fail_count))
+      if (uo_search_adjust_alpha_beta(entry.value, &entry.alpha, &entry.beta, &aspiration_fail_count))
       {
         bestmove = thread->info.bestmove;
 
@@ -1591,7 +1589,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         {
           uo_position_make_move(position, bestmove);
           engine.ponder.key = position->key;
-          engine.ponder.value = thread->info.value = value;
+          engine.ponder.value = thread->info.value = entry.value;
           engine.ponder.move = thread->info.pv[1];
           uo_position_unmake_move(position);
         }
