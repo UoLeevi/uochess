@@ -162,13 +162,13 @@ extern "C"
       return false;
     }
 
-    if (entry->data.type == uo_tentry_type__exact)
+    if (entry->data.type & uo_tentry_type__exact)
     {
       entry->value = value;
       return true;
     }
 
-    if (entry->data.type == uo_tentry_type__lower_bound)
+    if (entry->data.type & uo_tentry_type__lower_bound)
     {
       if (value >= entry->beta)
       {
@@ -179,7 +179,7 @@ extern "C"
 
       entry->alpha = uo_max(entry->alpha, value);
     }
-    else // if (entry->data.type == uo_tentry_type__upper_bound)
+    else // if (entry->data.type & uo_tentry_type__upper_bound)
     {
       if (value <= entry->alpha)
       {

@@ -46,7 +46,7 @@ extern "C"
 #define uo_alphabeta_type__draw 2
 #define uo_alphabeta_type__exact 3
 #define uo_alphabeta_type__lower_bound 4
-#define uo_alphabeta_type__upper_bound 5
+#define uo_alphabeta_type__upper_bound 8
 
   typedef struct uo_engine_thread uo_engine_thread;
 
