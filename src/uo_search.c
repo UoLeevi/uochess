@@ -174,13 +174,13 @@ static void uo_search_print_info(uo_engine_thread *thread)
 
     int16_t score = info->value;
 
-    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    if (score > uo_score_mate_in_threshold)
     {
-      printf("score mate %d ", (UO_SCORE_CHECKMATE - score + 1) >> 1);
+      printf("score mate %d ", (uo_score_checkmate - score + 1) >> 1);
     }
-    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    else if (score < -uo_score_mate_in_threshold)
     {
-      printf("score mate %d ", -((UO_SCORE_CHECKMATE + score + 1) >> 1));
+      printf("score mate %d ", -((uo_score_checkmate + score + 1) >> 1));
     }
     else
     {
@@ -482,7 +482,7 @@ static bool uo_search_quiesce(uo_engine_thread *thread, uo_alphabeta *entry)
   // Step 7. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
-    entry->value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+    entry->value = uo_position_is_check(position) ? -uo_score_checkmate : 0;
     entry->type = uo_alphabeta_type__exact;
     return true;
   }
@@ -498,7 +498,7 @@ static bool uo_search_quiesce(uo_engine_thread *thread, uo_alphabeta *entry)
   if (is_check)
   {
     // Step 9.1. Initialize score to be checkmate
-    entry->value = -UO_SCORE_CHECKMATE;
+    entry->value = -uo_score_checkmate;
 
     // Step 9.2. Sort moves
     uo_position_sort_moves(&thread->position, 0);
@@ -1116,7 +1116,7 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
   // Step 8. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
-    entry->value = uo_position_is_check(position) ? -UO_SCORE_CHECKMATE : 0;
+    entry->value = uo_position_is_check(position) ? -uo_score_checkmate : 0;
     entry->type = uo_alphabeta_type__exact;
     uo_engine_store_entry(position, entry);
     return true;
@@ -1353,7 +1353,7 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
   const int16_t aspiration_window_fail_threshold = 2;
   const int16_t aspiration_window_minimum = 40;
   const float aspiration_window_factor = 1.5;
-  const int16_t aspiration_window_mate = (UO_SCORE_CHECKMATE - 1) / aspiration_window_factor;
+  const int16_t aspiration_window_mate = (uo_score_checkmate - 1) / aspiration_window_factor;
 
   int16_t value_abs = value > 0 ? value : -value;
   int16_t aspiration_window = (float)value_abs * aspiration_window_factor;
@@ -1367,13 +1367,13 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
   {
     if ((*fail_count)++ >= aspiration_window_fail_threshold)
     {
-      *alpha = -UO_SCORE_CHECKMATE;
+      *alpha = -uo_score_checkmate;
       return false;
     }
 
     if (value < -aspiration_window_mate)
     {
-      *alpha = -UO_SCORE_CHECKMATE;
+      *alpha = -uo_score_checkmate;
       return false;
     }
 
@@ -1385,13 +1385,13 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
   {
     if ((*fail_count)++ >= aspiration_window_fail_threshold)
     {
-      *beta = UO_SCORE_CHECKMATE;
+      *beta = uo_score_checkmate;
       return false;
     }
 
     if (value > aspiration_window_mate)
     {
-      *beta = UO_SCORE_CHECKMATE;
+      *beta = uo_score_checkmate;
       return false;
     }
 
@@ -1403,7 +1403,7 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
 
   if (value < -aspiration_window_mate)
   {
-    *alpha = -UO_SCORE_CHECKMATE;
+    *alpha = -uo_score_checkmate;
     *beta = -aspiration_window_mate;
     return true;
   }
@@ -1411,7 +1411,7 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
   if (value > aspiration_window_mate)
   {
     *alpha = aspiration_window_mate;
-    *beta = UO_SCORE_CHECKMATE;
+    *beta = uo_score_checkmate;
     return true;
   }
 
@@ -1509,8 +1509,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     {
       int16_t window = (position->stack[-1].move == engine.ponder.move) ? 40 : 200;
 
-      entry.alpha = entry.value > -UO_SCORE_CHECKMATE + window ? entry.value - window : -UO_SCORE_CHECKMATE;
-      entry.beta = entry.value < UO_SCORE_CHECKMATE - window ? entry.value - window : -UO_SCORE_CHECKMATE;
+      entry.alpha = entry.value > -uo_score_checkmate + window ? entry.value - window : -uo_score_checkmate;
+      entry.beta = entry.value < uo_score_checkmate - window ? entry.value - window : -uo_score_checkmate;
     }
   }
 
@@ -1675,13 +1675,13 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   printf("info qsearch ");
   if (thread->info.seldepth) printf("seldepth %d ", thread->info.seldepth);
 
-  if (entry.value > UO_SCORE_MATE_IN_THRESHOLD)
+  if (entry.value > uo_score_mate_in_threshold)
   {
-    printf("score mate %d ", (UO_SCORE_CHECKMATE - entry.value + 1) >> 1);
+    printf("score mate %d ", (uo_score_checkmate - entry.value + 1) >> 1);
   }
-  else if (entry.value < -UO_SCORE_MATE_IN_THRESHOLD)
+  else if (entry.value < -uo_score_mate_in_threshold)
   {
-    printf("score mate %d ", -((UO_SCORE_CHECKMATE + entry.value + 1) >> 1));
+    printf("score mate %d ", -((uo_score_checkmate + entry.value + 1) >> 1));
   }
   else
   {

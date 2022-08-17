@@ -230,8 +230,8 @@ extern "C"
     engine.search_params = (uo_search_params){
       .seach_type = seach_type,
       .depth = UO_MAX_PLY,
-      .alpha = -UO_SCORE_CHECKMATE,
-      .beta = UO_SCORE_CHECKMATE
+      .alpha = -uo_score_checkmate,
+      .beta = uo_score_checkmate
     };
   }
 
