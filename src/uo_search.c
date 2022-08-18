@@ -1054,7 +1054,7 @@ static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line,
 //  return uo_engine_store_entry(position, &entry);
 //}
 
-static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta *entry)
+static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta *entry)
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
@@ -1071,7 +1071,7 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
   // Step 2. Lookup position from transposition table and return if exact score for equal or higher depth is found
   if (uo_engine_lookup_entry(position, entry))
   {
-    return true;
+    return entry->value;
   }
 
   // Step 3. If search is stopped, return unknown value
@@ -1079,7 +1079,7 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
   {
     entry->value = 0;
     entry->type = uo_alphabeta_type__incomplete;
-    return false;
+    return uo_score_unknown;
   }
 
   // Step 4. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
@@ -1128,6 +1128,8 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
 
   uo_alphabeta move_entry = { .line = line };
 
+  int16_t node_value;
+
   // Step 10. Null move pruning
   if (!entry->pv
     && entry->depth > 3
@@ -1141,14 +1143,9 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
     move_entry.beta = -entry->beta + 1;
 
     uo_position_make_null_move(position);
-    bool completed = uo_search_principal_variation(thread, &move_entry);
+    node_value = uo_search_principal_variation(thread, &move_entry);
     uo_position_unmake_null_move(position);
-
-    if (!completed)
-    {
-      entry->type = uo_alphabeta_type__incomplete;
-      return false;
-    }
+    if (node_value == uo_score_unknown) return node_value;
 
     if (-move_entry.value > entry->beta)
     {
@@ -1175,14 +1172,9 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
   entry->type = uo_alphabeta_type__upper_bound;
 
   uo_position_make_move(position, move);
-  bool completed = uo_search_principal_variation(thread, &move_entry);
-  uo_position_unmake_move(position);
-
-  if (!completed)
-  {
-    entry->type = uo_alphabeta_type__incomplete;
-    return false;
-  }
+  node_value = uo_search_principal_variation(thread, &move_entry);
+  uo_position_unmake_null_move(position);
+  if (node_value == uo_score_unknown) return node_value;
 
   entry->value = uo_score_adjust_for_mate(-move_entry.value);
   uo_position_update_butterfly_heuristic(position, move);
@@ -1256,13 +1248,12 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
     move_entry.beta = -entry->alpha;
 
     uo_position_make_move(position, move);
-    bool completed = uo_search_principal_variation(thread, &move_entry);
+    node_value = uo_search_principal_variation(thread, &move_entry);
 
-    if (!completed)
+    if (node_value == uo_score_unknown)
     {
-      uo_position_unmake_move(position);
-      entry->type = uo_alphabeta_type__incomplete;
-      return false;
+      uo_position_unmake_null_move(position);
+      return node_value;
     }
 
     move_entry.value = uo_score_adjust_for_mate(move_entry.value);
@@ -1274,13 +1265,12 @@ static bool uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta
       move_entry.alpha = -entry->beta;
       move_entry.beta = -entry->alpha;
 
-      bool completed = uo_search_principal_variation(thread, &move_entry);
+      node_value = uo_search_principal_variation(thread, &move_entry);
 
-      if (!completed)
+      if (node_value == uo_score_unknown)
       {
-        uo_position_unmake_move(position);
-        entry->type = uo_alphabeta_type__incomplete;
-        return false;
+        uo_position_unmake_null_move(position);
+        return node_value;
       }
 
       move_entry.value = uo_score_adjust_for_mate(move_entry.value);

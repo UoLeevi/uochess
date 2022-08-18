@@ -101,7 +101,7 @@ extern "C"
 
       case uo_piece__K:
       case uo_piece__k:
-        return UO_SCORE_MATE_IN_THRESHOLD;
+        return uo_score_mate_in_threshold;
 
       default: return 0;
     }

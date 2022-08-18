@@ -14,18 +14,18 @@ extern "C"
 
   static inline bool uo_score_is_checkmate(int16_t score)
   {
-    return score > UO_SCORE_MATE_IN_THRESHOLD || score < -UO_SCORE_MATE_IN_THRESHOLD;
+    return score > uo_score_mate_in_threshold || score < -uo_score_mate_in_threshold;
   }
 
   static inline int16_t uo_score_adjust_for_mate_to_ttable(int16_t score)
   {
-    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    if (score > uo_score_mate_in_threshold)
     {
-      return UO_SCORE_CHECKMATE;
+      return uo_score_checkmate;
     }
-    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    else if (score < -uo_score_mate_in_threshold)
     {
-      return UO_SCORE_CHECKMATE;
+      return uo_score_checkmate;
     }
 
     return score;
@@ -33,13 +33,13 @@ extern "C"
 
   static inline int16_t uo_score_adjust_for_mate_from_ttable(const uo_position *position, int16_t score)
   {
-    if (score == UO_SCORE_CHECKMATE)
+    if (score == uo_score_checkmate)
     {
-      return UO_SCORE_CHECKMATE - position->ply - 1;
+      return uo_score_checkmate - position->ply - 1;
     }
-    else if (score == -UO_SCORE_CHECKMATE)
+    else if (score == -uo_score_checkmate)
     {
-      return -UO_SCORE_CHECKMATE + position->ply + 1;
+      return -uo_score_checkmate + position->ply + 1;
     }
 
     return score;
@@ -47,11 +47,11 @@ extern "C"
 
   static inline int16_t uo_score_adjust_for_mate(int16_t score)
   {
-    if (score > UO_SCORE_MATE_IN_THRESHOLD)
+    if (score > uo_score_mate_in_threshold)
     {
       return score - 1;
     }
-    else if (score < -UO_SCORE_MATE_IN_THRESHOLD)
+    else if (score < -uo_score_mate_in_threshold)
     {
       return score + 1;
     }
