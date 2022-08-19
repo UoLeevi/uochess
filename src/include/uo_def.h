@@ -20,6 +20,7 @@ extern "C"
 
 #define UO_TTABLE_LOCK_BITS 8 
 
+#define uo_score_draw 0
 #define uo_score_unknown INT16_MIN
 #define uo_score_checkmate INT16_MAX
 #define uo_score_mate_in_threshold (uo_score_checkmate - UO_MAX_PLY)

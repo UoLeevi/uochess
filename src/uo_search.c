@@ -1058,14 +1058,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
+  int16_t node_value;
 
   // Step 1. Check for draw by 50 move rule or threefold repetition
   if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
   {
     ++info->nodes;
-    entry->value = 0;
-    entry->type = uo_alphabeta_type__draw;
-    return true;
+    return uo_score_draw;
   }
 
   // Step 2. Lookup position from transposition table and return if exact score for equal or higher depth is found
@@ -1077,23 +1076,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
   // Step 3. If search is stopped, return unknown value
   if (uo_engine_thread_is_stopped(thread))
   {
-    entry->value = 0;
-    entry->type = uo_alphabeta_type__incomplete;
     return uo_score_unknown;
   }
 
   // Step 4. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
   if (entry->depth == 0)
   {
-    bool completed = uo_search_quiesce(thread, entry);
-    if (!completed)
-    {
-      entry->type = uo_alphabeta_type__incomplete;
-      return false;
-    }
+    node_value = uo_search_quiesce(thread, entry);
+    if (node_value == uo_score_unknown) return uo_score_unknown;
 
     uo_engine_store_entry(position, entry);
-    return true;
+    return node_value;
   }
 
   // Step 5. Increment searched node count
@@ -1128,8 +1121,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
 
   uo_alphabeta move_entry = { .line = line };
 
-  int16_t node_value;
-
   // Step 10. Null move pruning
   if (!entry->pv
     && entry->depth > 3
@@ -1143,7 +1134,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
     move_entry.beta = -entry->beta + 1;
 
     uo_position_make_null_move(position);
-    node_value = uo_search_principal_variation(thread, &move_entry);
+    node_value = -uo_search_principal_variation(thread, &move_entry);
     uo_position_unmake_null_move(position);
     if (node_value == uo_score_unknown) return node_value;
 
