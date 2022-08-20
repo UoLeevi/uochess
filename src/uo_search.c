@@ -1054,7 +1054,7 @@ static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line,
 //  return uo_engine_store_entry(position, &entry);
 //}
 
-static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphabeta *entry)
+static int16_t uo_search_principal_variation(uo_engine_thread *thread, int16_t alpha, int16_t beta, size_t depth, bool pv)
 {
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
@@ -1080,7 +1080,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
   }
 
   // Step 4. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
-  if (entry->depth == 0)
+  if (depth == 0)
   {
     node_value = uo_search_quiesce(thread, entry);
     if (node_value == uo_score_unknown) return uo_score_unknown;
@@ -1116,29 +1116,29 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
   }
 
   // Step 9. Allocate search entry and principal variation line on the stack
-  uo_move *line = uo_allocate_line(entry->depth);
+  uo_move *line = uo_allocate_line(depth);
   line[0] = 0;
 
   uo_alphabeta move_entry = { .line = line };
 
   // Step 10. Null move pruning
-  if (!entry->pv
-    && entry->depth > 3
+  if (!pv
+    && depth > 3
     && position->ply > 1
     && uo_position_is_null_move_allowed(position)
-    && uo_position_evaluate(position) > entry->beta)
+    && uo_position_evaluate(position) > beta)
   {
     // depth * 3/4 - 1
-    move_entry.depth = (entry->depth * 3 >> 2) - 1;
-    move_entry.alpha = -entry->beta;
-    move_entry.beta = -entry->beta + 1;
+    move_entry.depth = (depth * 3 >> 2) - 1;
+    move_entry.alpha = -beta;
+    move_entry.beta = -beta + 1;
 
     uo_position_make_null_move(position);
     node_value = -uo_search_principal_variation(thread, &move_entry);
     uo_position_unmake_null_move(position);
     if (node_value == uo_score_unknown) return node_value;
 
-    if (-move_entry.value > entry->beta)
+    if (-move_entry.value > beta)
     {
       entry->value = -move_entry.value;
       entry->type = uo_alphabeta_type__lower_bound;
@@ -1154,10 +1154,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
 
   // Step 12. Perform full alpha-beta search for the first move
   move = position->movelist.head[0];
-  move_entry.depth = entry->depth - 1;
-  move_entry.alpha = -entry->beta;
-  move_entry.beta = -entry->alpha;
-  move_entry.pv = entry->pv;
+  move_entry.depth = depth - 1;
+  move_entry.alpha = -beta;
+  move_entry.beta = -alpha;
+  move_entry.pv = pv;
 
   // set the default type for entry as upper bound
   entry->type = uo_alphabeta_type__upper_bound;
@@ -1170,7 +1170,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
   entry->value = uo_score_adjust_for_mate(-move_entry.value);
   uo_position_update_butterfly_heuristic(position, move);
 
-  if (entry->value > entry->alpha)
+  if (entry->value > alpha)
   {
     uo_position_update_history_heuristic(position, move, move_entry.depth);
 
@@ -1182,7 +1182,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
     }
 
     entry->type = uo_alphabeta_type__exact;
-    entry->alpha = entry->value;
+    alpha = entry->value;
     uo_pv_update(entry->line, move, line, move_entry.depth);
   }
 
@@ -1191,8 +1191,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
   uo_parallel_search_params params = {
     .thread = thread,
     .queue = {.init = 0 },
-    .alpha = -entry->beta,
-    .beta = -entry->alpha
+    .alpha = -beta,
+    .beta = -alpha
   };
 
   // 14. Search rest of the moves with null window and reduced depth unless they fail-high
@@ -1208,9 +1208,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
 
     size_t depth_reduction =
       // no reduction for shallow depth
-      entry->depth <= 3
+      depth <= 3
       // no reduction for expected pv nodes
-      || entry->pv
+      || pv
       // no reduction if position is check
       || uo_position_is_check(position)
       ? 0 // no reduction
@@ -1221,7 +1221,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
       // increase reduction for captures with negative SSE
       if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
       {
-        depth_reduction += entry->depth > 4 ? 2 : 1;
+        depth_reduction += depth > 4 ? 2 : 1;
       }
 
       // decrease reduction if move gives a check
@@ -1234,9 +1234,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
     }
 
     // 14.2 Perform null window search for reduced depth
-    move_entry.depth = entry->depth - 1 - depth_reduction;
-    move_entry.alpha = -entry->alpha - 1;
-    move_entry.beta = -entry->alpha;
+    move_entry.depth = depth - 1 - depth_reduction;
+    move_entry.alpha = -alpha - 1;
+    move_entry.beta = -alpha;
 
     uo_position_make_move(position, move);
     node_value = uo_search_principal_variation(thread, &move_entry);
@@ -1250,11 +1250,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
     move_entry.value = uo_score_adjust_for_mate(move_entry.value);
 
     // 14.3 If move failed high, perform full re-search
-    if (-move_entry.value > entry->alpha && -move_entry.value < entry->beta)
+    if (-move_entry.value > alpha && -move_entry.value < beta)
     {
-      move_entry.depth = entry->depth - 1;
-      move_entry.alpha = -entry->beta;
-      move_entry.beta = -entry->alpha;
+      move_entry.depth = depth - 1;
+      move_entry.alpha = -beta;
+      move_entry.beta = -alpha;
 
       node_value = uo_search_principal_variation(thread, &move_entry);
 
@@ -1271,23 +1271,23 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, uo_alphab
 
     uo_position_update_butterfly_heuristic(position, move);
 
-    if (-move_entry.value > entry->value)
+    if (-move_entry.value > value)
     {
-      entry->value = -move_entry.value;
-      if (entry->value > entry->alpha)
+      value = -move_entry.value;
+      if (value > alpha)
       {
         uo_position_update_history_heuristic(position, move, move_entry.depth);
 
-        if (entry->value >= entry->beta)
+        if (value >= beta)
         {
-          entry->type = uo_alphabeta_type__lower_bound;
+          type = uo_alphabeta_type__lower_bound;
           uo_engine_store_entry(position, entry);
           return true;
         }
 
-        entry->type = uo_alphabeta_type__exact;
-        entry->alpha = entry->value;
-        uo_pv_update(entry->line, move, line, move_entry.depth);
+        type = uo_alphabeta_type__exact;
+        alpha = value;
+        uo_pv_update(line, move, line, move_entry.depth);
       }
     }
   }
