@@ -382,6 +382,12 @@ static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo
       uo_atomic_unlock(&parallel_thread->busy);
     }
   }
+
+  uo_search_queue_item result;
+  while (uo_search_queue_get_result(queue, &result))
+  {
+    thread->info.nodes += result.nodes;
+  }
 }
 
 static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_params *params)
@@ -580,23 +586,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (node_value == uo_score_unknown)
     {
       uo_position_unmake_move(position);
-
-      if (parallel_search_count > 0)
-      {
-        uo_search_cutoff_parallel_search(thread, &params.queue);
-        uo_search_queue_item result;
-        while (uo_search_queue_get_result(&params.queue, &result))
-        {
-          thread->info.nodes += result.nodes;
-          node_value = -result.value;
-          if (result.move && node_value > entry.value)
-          {
-            entry.value = node_value;
-            entry.bestmove = result.move;
-          }
-        }
-      }
-
+      if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
       return uo_score_unknown;
     }
 
@@ -620,23 +610,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       if (node_value == uo_score_unknown)
       {
         uo_position_unmake_move(position);
-
-        if (parallel_search_count > 0)
-        {
-          uo_search_cutoff_parallel_search(thread, &params.queue);
-          uo_search_queue_item result;
-          while (uo_search_queue_get_result(&params.queue, &result))
-          {
-            thread->info.nodes += result.nodes;
-            node_value = -result.value;
-            if (result.move && node_value > entry.value)
-            {
-              entry.value = node_value;
-              entry.bestmove = result.move;
-            }
-          }
-        }
-
+        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
         return uo_score_unknown;
       }
 
@@ -660,24 +634,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         if (entry.value >= beta)
         {
           uo_position_update_killers(position, move);
-
-          if (parallel_search_count > 0)
-          {
-            uo_search_cutoff_parallel_search(thread, &params.queue);
-
-            uo_search_queue_item result;
-            while (uo_search_queue_get_result(&params.queue, &result))
-            {
-              thread->info.nodes += result.nodes;
-              node_value = -result.value;
-              if (result.move && node_value > entry.value)
-              {
-                entry.value = node_value;
-                entry.bestmove = result.move;
-              }
-            }
-          }
-
+          if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
           return uo_engine_store_entry(position, &entry);
         }
 
@@ -732,20 +689,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             if (entry.value >= beta)
             {
               uo_position_update_killers(position, move);
-
               uo_search_cutoff_parallel_search(thread, &params.queue);
-              uo_search_queue_item result;
-              while (uo_search_queue_get_result(&params.queue, &result))
-              {
-                thread->info.nodes += result.nodes;
-                node_value = -result.value;
-                if (result.move && node_value > entry.value)
-                {
-                  entry.value = node_value;
-                  entry.bestmove = result.move;
-                }
-              }
-
               return uo_engine_store_entry(position, &entry);
             }
 
@@ -794,20 +738,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           if (entry.value >= beta)
           {
             uo_position_update_killers(position, move);
-
             uo_search_cutoff_parallel_search(thread, &params.queue);
-            uo_search_queue_item result;
-            while (uo_search_queue_get_result(&params.queue, &result))
-            {
-              thread->info.nodes += result.nodes;
-              node_value = -result.value;
-              if (result.move && node_value > entry.value)
-              {
-                entry.value = node_value;
-                entry.bestmove = result.move;
-              }
-            }
-
             return uo_engine_store_entry(position, &entry);
           }
 
@@ -1061,7 +992,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     thread->info.nodes = 0;
 
-    while (!uo_engine_is_stopped())
+    while (true)
     {
       bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
 
@@ -1076,17 +1007,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       {
         lazy_smp_count = 0;
         uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
-        uo_search_queue_item result;
-        while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
-        {
-          thread->info.nodes += result.nodes;
-          if (result.move && result.value > value)
-          {
-            value = result.value;
-            line[0] = result.move;
-            line[1] = 0;
-          }
-        }
+      }
+
+      if (value == uo_score_unknown)
+      {
+        break;
       }
 
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
@@ -1117,17 +1042,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   {
     lazy_smp_count = 0;
     uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
-    uo_search_queue_item result;
-    while (uo_search_queue_get_result(&lazy_smp_params.queue, &result))
-    {
-      thread->info.nodes += result.nodes;
-      if (result.move && result.value > value)
-      {
-        value = result.value;
-        line[0] = result.move;
-        line[1] = 0;
-      }
-    }
   }
 
   thread->info.completed = true;
