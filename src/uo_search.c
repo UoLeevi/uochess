@@ -165,9 +165,13 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
 
   if (material_weighted_depth < 5)
   {
-    flags = uo_search_quiesce_flags__non_negative_sse | uo_search_quiesce_flags__checks;
+    flags = uo_search_quiesce_flags__checks;
   }
   else if (material_weighted_depth < 10)
+  {
+    flags = uo_search_quiesce_flags__non_negative_sse | uo_search_quiesce_flags__checks;
+  }
+  else if (material_weighted_depth < 15)
   {
     flags = uo_search_quiesce_flags__non_negative_sse;
   }
@@ -483,16 +487,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     && uo_position_is_null_move_allowed(position)
     && uo_position_evaluate(position) > beta)
   {
-    uo_position_make_null_move(position);
     // depth * 3/4 - 1
     size_t depth_nmp = (depth * 3 >> 2) - 1;
+
+    uo_position_make_null_move(position);
     int16_t pass_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, line, false);
     uo_position_unmake_null_move(position);
-
-    if (pass_value >= beta)
-    {
-      return pass_value;
-    }
+    if (pass_value == uo_score_unknown) return uo_score_unknown;
+    if (pass_value >= beta) return pass_value;
   }
 
   // Step 11. Sort moves and place pv move or transposition table move as first
@@ -553,7 +555,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     size_t depth_reduction =
       // no reduction for shallow depth
-      depth <= 3
+      depth <= 4
       // no reduction for expected pv nodes
       || pv
       // no reduction if position is check
