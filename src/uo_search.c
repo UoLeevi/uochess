@@ -1013,7 +1013,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
       if (value == uo_score_unknown)
       {
-        break;
+        goto search_completed;
       }
 
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
@@ -1036,16 +1036,9 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         break;
       }
     }
-
-    if (uo_engine_is_stopped()) break;
   }
 
-  if (lazy_smp_count > 0)
-  {
-    lazy_smp_count = 0;
-    uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
-  }
-
+search_completed:
   thread->info.completed = true;
   uo_search_print_info(thread);
 
