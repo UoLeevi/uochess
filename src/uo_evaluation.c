@@ -10,7 +10,7 @@
 #define uo_bitboard_mask_developed_enemy_B ((uo_bitboard)0x00427E3C3C180000)
 
 // side to move
-const int16_t uo_score_tempo = 20;
+const int16_t uo_score_tempo = 50;
 
 // mobility
 const int16_t uo_score_square_access = 10;

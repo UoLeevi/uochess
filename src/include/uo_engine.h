@@ -33,6 +33,7 @@ extern "C"
     int16_t value;
     size_t nodes;
     size_t depth;
+    uo_move *line;
   } uo_search_queue_item;
 
   typedef struct uo_search_queue {
