@@ -82,8 +82,8 @@ const int16_t uo_score_attacker_to_K = 30;
 // king safety and castling
 const int16_t uo_score_casting_right = 10;
 const int16_t uo_score_king_in_the_center = -40;
-const int16_t uo_score_castled_king = 40;
-const int16_t uo_score_king_cover_pawn = 30;
+const int16_t uo_score_castled_king = 50;
+const int16_t uo_score_king_cover_pawn = 50;
 const int16_t uo_score_king_next_to_open_file = -90;
 
 int16_t uo_position_evaluate(const uo_position *position)

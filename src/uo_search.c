@@ -164,15 +164,15 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
   // The less material is on the board, the more checks should be examined.
   size_t material_weighted_depth = depth * material_percentage / 100;
 
-  if (material_weighted_depth < 5)
+  if (material_weighted_depth < 1)
   {
     flags = uo_search_quiesce_flags__checks;
   }
-  else if (material_weighted_depth < 10)
+  else if (material_weighted_depth < 5)
   {
     flags = uo_search_quiesce_flags__non_negative_sse | uo_search_quiesce_flags__checks;
   }
-  else if (material_weighted_depth < 15)
+  else if (material_weighted_depth < 10)
   {
     flags = uo_search_quiesce_flags__non_negative_sse;
   }
