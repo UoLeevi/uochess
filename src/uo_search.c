@@ -259,7 +259,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 7. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
-    return is_check ? -uo_score_checkmate : 0;
+    return is_check ? -uo_score_checkmate + position->ply : 0;
   }
 
   // Step 8. If position is check, perform quiesence search for all moves
@@ -279,7 +279,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
       uo_position_unmake_move(position);
       if (node_value == uo_score_unknown) return uo_score_unknown;
-      node_value = uo_score_adjust_for_mate(node_value);
 
       if (node_value > value)
       {
@@ -349,7 +348,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1);
       uo_position_unmake_move(position);
       if (node_value == uo_score_unknown) return uo_score_unknown;
-      node_value = uo_score_adjust_for_mate(node_value);
 
       if (node_value > value)
       {
@@ -431,12 +429,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_abtentry entry = { alpha, beta, depth };
   if (uo_engine_lookup_entry(position, &entry))
   {
-    //if (pv && entry.value > alpha)
-    //{
-    //  uo_engine_thread_update_pv(thread);
-    //}
+    if (entry.value > alpha)
+    {
+      uo_pv_update(pline, entry.bestmove, NULL, 0);
+    }
 
-    uo_pv_update(pline, entry.bestmove, NULL, 0);
     return entry.value;
   }
 
@@ -473,7 +470,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 8. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
-    entry.value = uo_position_is_check(position) ? -uo_score_checkmate : 0;
+    entry.value = uo_position_is_check(position) ? -uo_score_checkmate + position->ply : 0;
     return uo_engine_store_entry(position, &entry);
   }
 
@@ -513,7 +510,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   entry.value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, pv);
   uo_position_unmake_move(position);
   if (entry.value == uo_score_unknown) return uo_score_unknown;
-  entry.value = uo_score_adjust_for_mate(entry.value);
 
   if (entry.value > alpha)
   {
@@ -596,8 +592,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       return uo_score_unknown;
     }
 
-    node_value = uo_score_adjust_for_mate(node_value);
-
     // 14.3 If move failed high, perform full re-search
     if (node_value > alpha && node_value < beta)
     {
@@ -621,8 +615,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
         return uo_score_unknown;
       }
-
-      node_value = uo_score_adjust_for_mate(node_value);
     }
 
     uo_position_unmake_move(position);
@@ -900,7 +892,6 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
   };
 
   int16_t value = uo_search_principal_variation(thread, depth, alpha, beta, line, true);
-  value = uo_score_adjust_for_mate(value);
 
   uo_search_queue_item result = {
     .thread = thread,

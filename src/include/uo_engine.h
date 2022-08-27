@@ -143,8 +143,6 @@ extern "C"
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    uo_tdata data;
-
     bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
     int16_t value;
@@ -222,7 +220,7 @@ extern "C"
     {
         abtentry->data.depth = abtentry->depth;
         abtentry->data.bestmove = abtentry->bestmove;
-        abtentry->data.value = uo_score_adjust_for_mate_to_ttable(abtentry->value);
+        abtentry->data.value = uo_score_adjust_for_mate_to_ttable(position, abtentry->value);
         abtentry->data.type = !abtentry->bestmove ? uo_tentry_type__lower_bound :
           abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
           abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
