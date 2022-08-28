@@ -10,6 +10,8 @@ extern "C"
 
   typedef struct uo_nn uo_nn;
 
+  void uo_nn_load_position(uo_nn *nn, const uo_position *position);
+
 #ifdef __cplusplus
 }
 #endif

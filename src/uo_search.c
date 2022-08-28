@@ -164,7 +164,7 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
   // The less material is on the board, the more checks should be examined.
   size_t material_weighted_depth = depth * material_percentage / 100;
 
-  if (material_weighted_depth < 1)
+  if (material_weighted_depth < 2)
   {
     flags = uo_search_quiesce_flags__checks;
   }
@@ -294,16 +294,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
           alpha = value;
         }
       }
-
-      if (uo_engine_is_stopped())
-      {
-        return value;
-      }
-
-      if (thread->owner && uo_atomic_load(&thread->cutoff))
-      {
-        return value;
-      }
     }
 
     return value;
@@ -315,7 +305,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 10. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta)
   {
-    return value;
+    return beta;
   }
 
   // Step 11. Delta pruning
@@ -561,14 +551,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       // no reduction if position is check
       || uo_position_is_check(position)
       ? 0 // no reduction
-      : 1; // default reduction is one ply
+      : uo_max(1, depth / 3); // default reduction is one third of depth
 
     if (depth_reduction)
     {
       // increase reduction for captures with negative SSE
       if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
       {
-        depth_reduction += depth > 4 ? 2 : 1;
+        ++depth_reduction;
       }
 
       // decrease reduction if move gives a check
