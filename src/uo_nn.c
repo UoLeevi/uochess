@@ -1,17 +1,18 @@
 #include "uo_nn.h"
+#include "uo_math.h"
 
-#include <immintrin.h>
-#include <stdlib.h>
 #include <stdbool.h>
-
-typedef struct uo_nn_layer uo_nn_layer;
-
-#define uo_avx_float __m256
-#define uo_floats_per_avx_float (sizeof(uo_avx_float) / sizeof(float))
 
 #define uo_nn_learning_rate 0.01
 
 typedef uo_avx_float uo_nn_activation_function(uo_avx_float avx_float);
+
+typedef struct uo_nn_layer_param
+{
+  size_t size_output;
+  uo_nn_activation_function *activation_func;
+  uo_nn_activation_function *activation_func_d;
+} uo_nn_layer_param;
 
 typedef struct uo_nn_layer
 {
@@ -50,20 +51,17 @@ uo_avx_float uo_avx_float_relu_d(__m256 avx_float)
 {
   __m256 zeros = _mm256_setzero_ps();
   __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
-  __m256 ones = _mm256_set_ps(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+  __m256 ones = _mm256_set1_ps(1.0);
   return _mm256_max_ps(mask, ones);
 }
 
-void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, ...)
+void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, uo_nn_layer_param *layer_params)
 {
   nn->layer_count = layer_count;
   nn->layers = calloc(nn->layer_count, sizeof * nn->layers);
 
-  va_list args;
-  va_start(args, size_input);
-
   uo_nn_layer *layer = nn->layers;
-  size_t size_output = va_arg(args, size_t);
+  size_t size_output = layer_params->size_output;
   layer->size_input = size_input = uo_next_multiple_of(size_input, uo_floats_per_avx_float);
   layer->input = calloc(size_input / uo_floats_per_avx_float, sizeof(uo_avx_float));
   layer->size_output = size_output = uo_next_multiple_of(size_output, uo_floats_per_avx_float);
@@ -72,28 +70,28 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, ...)
   layer->weights = calloc((size_input + 1) * size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
   layer->biases = layer->weights + size_input * size_output / uo_floats_per_avx_float;
 
-  layer->activation_func = va_arg(args, uo_nn_activation_function *);
-  layer->activation_func_d = va_arg(args, uo_nn_activation_function *);
+  layer->activation_func = layer_params->activation_func;
+  layer->activation_func_d = layer_params->activation_func_d;
 
   for (size_t i = 1; i < layer_count; ++i)
   {
     uo_avx_float *input = layer->output;
     ++layer;
+    ++layer_params;
     layer->size_input = size_input = size_output;
     layer->input = input;
 
-    size_t size_output = va_arg(args, size_t);
+    size_t size_output = layer_params->size_output;
     layer->size_output = size_output = uo_next_multiple_of(size_output, uo_floats_per_avx_float);
     layer->output = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->delta = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->weights = calloc((size_input + 1) * size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->biases = layer->weights + size_input * size_output / uo_floats_per_avx_float;
 
-    layer->activation_func = va_arg(args, uo_nn_activation_function *);
-    layer->activation_func_d = va_arg(args, uo_nn_activation_function *);
+    layer->activation_func = layer_params->activation_func;
+    layer->activation_func_d = layer_params->activation_func_d;
   }
 
-  va_end(args);
   float r[uo_floats_per_avx_float];
 
   for (size_t i = 0; i < layer_count; ++i)
@@ -105,7 +103,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, ...)
     {
       for (size_t k = 0; k < uo_floats_per_avx_float; ++k)
       {
-        r[k] = (float)rand() / (float)RAND_MAX;
+        r[k] = (((float)rand() / (float)RAND_MAX) - 0.5) * 2;
       }
 
       layer->weights[j] = _mm256_loadu_ps(r);
@@ -191,27 +189,12 @@ void uo_nn_feed_forward(uo_nn *nn)
     uo_avx_float *biases = layer->biases;
     uo_avx_float *output = layer->output;
 
-    size_t input_block_count = size_input / uo_floats_per_avx_float;
-    size_t output_block_count = size_output / uo_floats_per_avx_float;
+    uo_mm256_matmul_ps(input, 1, size_input, weights, size_output, output);
+    uo_mm256_vecadd_ps(biases, output, output, size_output);
 
-    for (size_t i = 0; i < output_block_count; ++i)
+    if (layer->activation_func)
     {
-      uo_avx_float activation = biases[i];
-
-      for (size_t j = 0; j < input_block_count; ++j)
-      {
-        uo_avx_float value = input[j];
-        uo_avx_float weight = weights[i * output_block_count + j];
-        uo_avx_float mulres = _mm256_mul_ps(value, weight);
-        activation = _mm256_add_ps(activation, mulres);
-      }
-
-      if (layer->activation_func)
-      {
-        activation = layer->activation_func(activation);
-      }
-
-      output[i] = activation;
+      uo_mm256_vec_mapfunc_ps(output, size_output, layer->activation_func);
     }
   }
 }
@@ -222,12 +205,7 @@ void uo_nn_calculate_delta(uo_nn *nn, uo_avx_float *target)
   uo_avx_float *output = output_layer->output;
   uo_avx_float *delta = output_layer->delta;
   size_t size_output = output_layer->size_output;
-  size_t output_block_count = size_output / uo_floats_per_avx_float;
-
-  for (size_t i = 0; i < output_block_count; ++i)
-  {
-    delta[i] = _mm256_sub_ps(target[i], output[i]);
-  }
+  uo_mm256_vecsub_ps(target, output, delta, size_output);
 }
 
 void uo_nn_backprop(uo_nn *nn)
@@ -235,6 +213,9 @@ void uo_nn_backprop(uo_nn *nn)
   size_t layer_index = nn->layer_count;
   while (layer_index-- > 1)
   {
+    // TODO:
+
+
     uo_nn_layer *layer = nn->layers + layer_index;
     uo_avx_float *delta_out = layer->delta;
     uo_avx_float *delta_in = (layer - 1)->delta;
@@ -250,9 +231,8 @@ void uo_nn_backprop(uo_nn *nn)
       uo_avx_float error = _mm256_setzero_ps();
       for (size_t j = 0; j < output_block_count; ++j)
       {
-        uo_avx_float value = delta_out[j];
         uo_avx_float weight = layer->weights[i * input_block_count + j];
-        uo_avx_float mulres = _mm256_mul_ps(value, weight);
+        uo_avx_float mulres = _mm256_mul_ps(delta_out[j], weight);
         error = _mm256_add_ps(error, mulres);
       }
 
@@ -266,9 +246,13 @@ void uo_nn_backprop(uo_nn *nn)
   }
 
   // Update weights
+  uo_avx_float lr = _mm256_set1_ps(uo_nn_learning_rate);
+
   layer_index = nn->layer_count;
   while (layer_index--)
   {
+    // TODO:
+
     uo_nn_layer *layer = nn->layers + layer_index;
     size_t size_input = layer->size_input;
     size_t size_output = layer->size_output;
@@ -280,17 +264,14 @@ void uo_nn_backprop(uo_nn *nn)
     size_t input_block_count = size_input / uo_floats_per_avx_float;
     size_t output_block_count = size_output / uo_floats_per_avx_float;
 
-    __m256 lr = _mm256_set_ps(uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate, uo_nn_learning_rate);
-
     for (size_t i = 0; i < output_block_count; ++i)
     {
       biases[i] = _mm256_add_ps(biases[i], _mm256_mul_ps(delta[i], lr));
 
       for (size_t j = 0; j < input_block_count; ++j)
       {
-        uo_avx_float value = input[j];
         uo_avx_float weight = weights[i * output_block_count + j];
-        uo_avx_float mulres = _mm256_mul_ps(value, delta[i]);
+        uo_avx_float mulres = _mm256_mul_ps(input[j], delta[i]);
         weights[i * output_block_count + j] = _mm256_add_ps(weight, _mm256_mul_ps(mulres, lr));
       }
     }
@@ -300,23 +281,25 @@ void uo_nn_backprop(uo_nn *nn)
 void uo_nn_example()
 {
   uo_nn nn;
-  uo_nn_init(&nn, 3, 832,
-    64, uo_avx_float_relu, uo_avx_float_relu_d,
-    32, uo_avx_float_relu, uo_avx_float_relu_d,
-    1, NULL, NULL);
+  uo_nn_init(&nn, 3, 832, (uo_nn_layer_param[]) {
+    { 64, uo_avx_float_relu, uo_avx_float_relu_d },
+    { 32, uo_avx_float_relu, uo_avx_float_relu_d },
+    { 1 }
+  });
 }
 
 bool uo_test_nn_train()
 {
   uo_nn nn;
-  uo_nn_init(&nn, 2, 2,
-    2, uo_avx_float_relu, uo_avx_float_relu_d,
-    1, uo_avx_float_relu, uo_avx_float_relu_d);
+  uo_nn_init(&nn, 2, 2, (uo_nn_layer_param[]) {
+    { 2, uo_avx_float_relu, uo_avx_float_relu_d },
+    { 1, uo_avx_float_relu, uo_avx_float_relu_d }
+  });
 
-  for (size_t i = 0; i < 10000; ++i)
+  for (size_t i = 0; i < 1000000; ++i)
   {
-    float x0 = rand() > 0 ? 1.0 : 0.0;
-    float x1 = rand() > 0 ? 1.0 : 0.0;
+    float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
+    float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
     float y = (int)x0 ^ (int)x1;
 
     nn.layers->input[0] = _mm256_set_ps(x0, x1, 0, 0, 0, 0, 0, 0);
@@ -334,8 +317,8 @@ bool uo_test_nn_train()
 
   for (size_t i = 0; i < 10000; ++i)
   {
-    float x0 = rand() > 0 ? 1.0 : 0.0;
-    float x1 = rand() > 0 ? 1.0 : 0.0;
+    float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
+    float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
     float y = (int)x0 ^ (int)x1;
 
     nn.layers->input[0] = _mm256_set_ps(x0, x1, 0, 0, 0, 0, 0, 0);
