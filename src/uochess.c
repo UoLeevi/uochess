@@ -3,6 +3,7 @@
 #include "uo_zobrist.h"
 #include "uo_engine.h"
 #include "uo_uci.h"
+#include "uo_misc.h"
 #include "uo_test.h"
 
 #include <stdio.h>
@@ -19,13 +20,23 @@ static void uochess_init(void)
   uo_engine_load_default_options();
 }
 
-static int run_tests(char *test_data_dir)
+static int run_tests(char *test_data_dir, char *test_name)
 {
   bool passed = true;
 
   uo_engine_lock_position();
   uo_engine_lock_stdout();
-  passed &= uo_test_move_generation(&engine.position, test_data_dir);
+
+  if (test_name == NULL || strcmp(test_name, "move_generation") == 0)
+  {
+    passed &= uo_test_move_generation(&engine.position, test_data_dir);
+  }
+
+  if (test_name == NULL || strcmp(test_name, "nn_train") == 0)
+  {
+    passed &= uo_test_nn_train();
+  }
+
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();
 
@@ -34,42 +45,34 @@ static int run_tests(char *test_data_dir)
 
 static int process_args(int argc, char **argv, bool *exit)
 {
-  if (argc > 1 && strcmp(argv[1], "--test") == 0)
+  if (uo_arg_parse(argc, argv, "--test", 0))
   {
     *exit = true;
 
-    char *test_data_dir = NULL;
+    char *test_data_dir = uo_arg_parse(argc, argv, "--datadir", 1);
 
-    for (int i = 2; i < argc - 1; ++i)
+    if (test_data_dir)
     {
-      if (strcmp(argv[i], "--datadir") == 0)
-      {
-        test_data_dir = argv[i + 1];
-        struct stat info;
+      struct stat info;
 
-        if (stat(test_data_dir, &info) != 0)
-        {
-          printf("cannot access '%s'\n", test_data_dir);
-          fflush(stdout);
-          return 1;
-        }
-        else if (info.st_mode & S_IFDIR)
-        {
-          // directory exists
-          break;
-        }
-        else
-        {
-          printf("'%s' is no directory\n", test_data_dir);
-          fflush(stdout);
-          return 1;
-        }
+      if (stat(test_data_dir, &info) != 0)
+      {
+        printf("cannot access '%s'\n", test_data_dir);
+        fflush(stdout);
+        return 1;
       }
-      return 0;
+      else if (!(info.st_mode & S_IFDIR))
+      {
+        printf("'%s' is no directory\n", test_data_dir);
+        fflush(stdout);
+        return 1;
+      }
     }
 
+    char *test_name = uo_arg_parse(argc, argv, "--testname", 1);
+
     uo_engine_init();
-    return run_tests(test_data_dir);
+    return run_tests(test_data_dir, test_name);
   }
 
   *exit = false;

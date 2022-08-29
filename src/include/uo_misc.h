@@ -46,6 +46,20 @@ extern "C"
   }
 #endif
 
+  // helper for parsing named command line arguments
+  static inline char *uo_arg_parse(int argc, char **argv, const char *argname, int argvalue_index)
+  {
+    for (size_t i = 1; i < argc - argvalue_index; i++)
+    {
+      if (strcmp(argv[i], argname) == 0)
+      {
+        return argv[i + argvalue_index];
+      }
+    }
+
+    return NULL;
+  }
+
 #ifdef __cplusplus
 }
 #endif

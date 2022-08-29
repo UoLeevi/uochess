@@ -40,8 +40,14 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
-add_test(NAME uochess_test
+add_test(NAME "Test all"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
+
+add_test(NAME "Test move_generation"
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation)
+
+add_test(NAME "Test nn_train"
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train)
 
 install(DIRECTORY conf/
     DESTINATION bin)

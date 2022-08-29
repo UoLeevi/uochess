@@ -2,6 +2,7 @@
 
 #include <immintrin.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct uo_nn_layer uo_nn_layer;
 
@@ -81,12 +82,15 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, ...)
     layer->size_input = size_input = size_output;
     layer->input = input;
 
-    size_output = va_arg(args, size_t);
+    size_t size_output = va_arg(args, size_t);
     layer->size_output = size_output = uo_next_multiple_of(size_output, uo_floats_per_avx_float);
     layer->output = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->delta = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->weights = calloc((size_input + 1) * size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->biases = layer->weights + size_input * size_output / uo_floats_per_avx_float;
+
+    layer->activation_func = va_arg(args, uo_nn_activation_function *);
+    layer->activation_func_d = va_arg(args, uo_nn_activation_function *);
   }
 
   va_end(args);
@@ -300,4 +304,52 @@ void uo_nn_example()
     64, uo_avx_float_relu, uo_avx_float_relu_d,
     32, uo_avx_float_relu, uo_avx_float_relu_d,
     1, NULL, NULL);
+}
+
+bool uo_test_nn_train()
+{
+  uo_nn nn;
+  uo_nn_init(&nn, 2, 2,
+    2, uo_avx_float_relu, uo_avx_float_relu_d,
+    1, uo_avx_float_relu, uo_avx_float_relu_d);
+
+  for (size_t i = 0; i < 10000; ++i)
+  {
+    float x0 = rand() > 0 ? 1.0 : 0.0;
+    float x1 = rand() > 0 ? 1.0 : 0.0;
+    float y = (int)x0 ^ (int)x1;
+
+    nn.layers->input[0] = _mm256_set_ps(x0, x1, 0, 0, 0, 0, 0, 0);
+
+    uo_nn_feed_forward(&nn);
+
+    uo_avx_float target = _mm256_set_ps(y, 0, 0, 0, 0, 0, 0, 0);
+    uo_nn_calculate_delta(&nn, &target);
+    uo_nn_backprop(&nn);
+  }
+
+  bool passed = true;
+
+  float result[uo_floats_per_avx_float];
+
+  for (size_t i = 0; i < 10000; ++i)
+  {
+    float x0 = rand() > 0 ? 1.0 : 0.0;
+    float x1 = rand() > 0 ? 1.0 : 0.0;
+    float y = (int)x0 ^ (int)x1;
+
+    nn.layers->input[0] = _mm256_set_ps(x0, x1, 0, 0, 0, 0, 0, 0);
+
+    uo_nn_feed_forward(&nn);
+
+    uo_avx_float output = *(nn.layers + nn.layer_count - 1)->output;
+
+    _mm256_storeu_ps(result, output);
+
+    float delta = y - result[0];
+    delta = delta > 0.0 ? delta : -delta;
+    passed &= delta < 0.1;
+  }
+
+  return passed;
 }

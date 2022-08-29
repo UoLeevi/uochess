@@ -7,11 +7,11 @@ extern "C"
 #endif
 
 #include "uo_position.h"
+#include "uo_nn.h"
 
 #include <stdbool.h>
 
   bool uo_test_move_generation(uo_position *position, char *test_data_dir);
-
 
 #ifdef __cplusplus
 }

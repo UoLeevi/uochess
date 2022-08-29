@@ -12,6 +12,8 @@ extern "C"
 
   void uo_nn_load_position(uo_nn *nn, const uo_position *position);
 
+  bool uo_test_nn_train();
+
 #ifdef __cplusplus
 }
 #endif
