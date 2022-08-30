@@ -8,6 +8,7 @@ extern "C"
 
 #include "uo_position.h"
 #include "uo_nn.h"
+#include "uo_math.h"
 
 #include <stdbool.h>
 

@@ -10,6 +10,7 @@ extern "C"
 
 #include <immintrin.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define uo_avx_float __m256
 #define uo_floats_per_avx_float (sizeof(uo_avx_float) / sizeof(float))
@@ -39,6 +40,26 @@ extern "C"
     }
 
     return uo_mm256_hsum_ps(sum);
+  }
+
+  static inline void uo_mm256_load_ps(uo_avx_float *dst, float *src, size_t n)
+  {
+    size_t block_count = n / uo_floats_per_avx_float;
+
+    for (size_t i = 0; i < block_count; i++)
+    {
+      dst[i] = _mm256_loadu_ps(src + i * uo_floats_per_avx_float);
+    }
+  }
+
+  static inline void uo_mm256_store_ps(float *dst, uo_avx_float *src, size_t n)
+  {
+    size_t block_count = n / uo_floats_per_avx_float;
+
+    for (size_t i = 0; i < block_count; i++)
+    {
+      _mm256_storeu_ps(dst + i * uo_floats_per_avx_float, src[i]);
+    }
   }
 
   static inline void uo_mm256_vecadd_ps(uo_avx_float *a, uo_avx_float *b, uo_avx_float *c, size_t n)
@@ -85,12 +106,14 @@ extern "C"
         r[j] = uo_mm256_dotproduct_ps(At + A_n * i, B + A_n * j, A_n);
       }
 
-      for (size_t j = 0; j < block_count; ++j)
+      for (size_t k = 0; k < block_count; ++k)
       {
-        C[j] = _mm256_loadu_ps(r + j * uo_floats_per_avx_float);
+        C[k] = _mm256_loadu_ps(r + k * uo_floats_per_avx_float);
       }
     }
   }
+
+  bool uo_test_matmul();
 
 #ifdef __cplusplus
 }

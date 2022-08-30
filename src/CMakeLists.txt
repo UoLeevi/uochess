@@ -15,7 +15,8 @@ add_executable(uochess
     uo_uci.c
     uo_engine.c
     uo_nn.c
-    uo_test.c "include/uo_math.h")
+    uo_math.c
+    uo_test.c)
 
 target_include_directories(uochess
     PRIVATE
@@ -45,6 +46,9 @@ add_test(NAME "Test all"
 
 add_test(NAME "Test move_generation"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation)
+
+add_test(NAME "Test matmul"
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul)
 
 add_test(NAME "Test nn_train"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train)
