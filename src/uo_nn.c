@@ -33,14 +33,6 @@ typedef struct uo_nn
   uo_nn_layer *layers;
 } uo_nn;
 
-
-// see: https://stackoverflow.com/a/9194117
-size_t uo_next_multiple_of(size_t value, size_t multiple)
-{
-  assert(multiple && ((multiple & (multiple - 1)) == 0));
-  return (value + multiple - 1) & -multiple;
-}
-
 uo_avx_float uo_avx_float_relu(__m256 avx_float)
 {
   __m256 zeros = _mm256_setzero_ps();
@@ -62,9 +54,9 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, uo_nn_layer_pa
 
   uo_nn_layer *layer = nn->layers;
   size_t size_output = layer_params->size_output;
-  layer->size_input = size_input = uo_next_multiple_of(size_input, uo_floats_per_avx_float);
+  layer->size_input = size_input = uo_mm256_roundup_size(size_input);
   layer->input = calloc(size_input / uo_floats_per_avx_float, sizeof(uo_avx_float));
-  layer->size_output = size_output = uo_next_multiple_of(size_output, uo_floats_per_avx_float);
+  layer->size_output = size_output = uo_mm256_roundup_size(size_output);
   layer->output = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
   layer->delta = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
   layer->weights = calloc((size_input + 1) * size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
@@ -82,7 +74,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t size_input, uo_nn_layer_pa
     layer->input = input;
 
     size_t size_output = layer_params->size_output;
-    layer->size_output = size_output = uo_next_multiple_of(size_output, uo_floats_per_avx_float);
+    layer->size_output = size_output = uo_mm256_roundup_size(size_output);
     layer->output = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->delta = calloc(size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
     layer->weights = calloc((size_input + 1) * size_output / uo_floats_per_avx_float, sizeof(uo_avx_float));
