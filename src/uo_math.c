@@ -19,15 +19,31 @@ bool uo_test_matmul()
   }
 
   {
-    uo_avx_float mat1[128 / uo_floats_per_avx_float];
-    uo_avx_float mat2[128 / uo_floats_per_avx_float];
-    uo_avx_float matres[256 / uo_floats_per_avx_float];
+    uo_avx_float mat1_data[128 / uo_floats_per_avx_float];
+
+    uo_matrix mat1 = {
+      .size = { 16, 8 },
+      .data = mat1_data
+    };
+
+    uo_avx_float mat2_data[128 / uo_floats_per_avx_float];
+    uo_matrix mat2t = {
+      .size = { 16, 8 },
+      .data = mat2_data
+    };
+
+    uo_avx_float matres_data[256 / uo_floats_per_avx_float];
     float res[256];
 
-    uo_mm256_load_ps(mat1, testmat1, 128);
-    uo_mm256_load_ps(mat2, testmat2, 128);
-    uo_mm256_matmul_ps(mat1, 16, 8, mat2, 16, matres);
-    uo_mm256_store_ps(res, matres, 256);
+    uo_matrix matres = {
+      .size = { 16, 16 },
+      .data = matres_data
+    };
+
+    uo_mm256_load_ps(mat1_data, testmat1, 128);
+    uo_mm256_load_transpose_ps(mat2_data, testmat2, 128, mat2t.size.rows);
+    uo_mm256_matmul2_ps(mat1, mat2t, &matres);
+    uo_mm256_store_ps(res, matres.data, 256);
 
     for (size_t i = 0; i < 256; i++)
     {
