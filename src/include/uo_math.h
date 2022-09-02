@@ -49,7 +49,7 @@ extern "C"
     return uo_mm256_hsum_ps(sum);
   }
 
-  static inline void uo_add_ps(float *a, float *b, float *c, size_t n)
+  static inline void uo_vecadd_ps(float *a, float *b, float *c, size_t n)
   {
     size_t block_count = n / uo_floats_per_avx_float;
     uo_avx_float sum = _mm256_setzero_ps();
@@ -63,7 +63,7 @@ extern "C"
     }
   }
 
-  static inline void uo_sub_ps(float *a, float *b, float *c, size_t n)
+  static inline void uo_vecsub_ps(float *a, float *b, float *c, size_t n)
   {
     size_t block_count = n / uo_floats_per_avx_float;
     uo_avx_float sum = _mm256_setzero_ps();
@@ -77,7 +77,7 @@ extern "C"
     }
   }
 
-  static inline void uo__mapfunc_ps(float *v, size_t n, uo_mm256_ps_function *function)
+  static inline void uo_vec_mapfunc_ps(float *v, size_t n, uo_mm256_ps_function *function)
   {
     size_t block_count = n / uo_floats_per_avx_float;
 
@@ -89,20 +89,25 @@ extern "C"
     }
   }
 
-  static inline void uo_mm256_matmul_ps(float *A, float *B, float *C, size_t m, size_t n, size_t p)
+  static inline void uo_transpose_ps(const float *A, float *At, size_t m, size_t n)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
-
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < m; ++i)
     {
-      for (size_t j = 0; j < m; ++j)
+      for (size_t j = 0; j < n; ++j)
       {
-        uo_avx_float _a = _mm256_loadu_ps(A + j * n + i * uo_floats_per_avx_float);
+        At[j * m + i] = A[i * n + j];
+      }
+    }
+  }
 
-        for (size_t k = 0; k < p; ++k)
-        {
-
-        }
+  // C = AB, C is n x m matrix, k is "other" dimension
+  static inline void uo_matmul_ps(const float *A, const float *Bt, float *C, size_t m, size_t n, size_t k)
+  {
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        C[i * n + j] = uo_dotproduct_ps(A + i * k, Bt + j * k, k);
       }
     }
   }
