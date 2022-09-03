@@ -10,7 +10,7 @@ extern "C"
 
   typedef struct uo_nn uo_nn;
 
-  void uo_nn_load_position(uo_nn *nn, const uo_position *position);
+  void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index);
 
   bool uo_test_nn_train();
 
