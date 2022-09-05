@@ -34,7 +34,7 @@ static int run_tests(char *test_data_dir, char *test_name)
 
   if (test_name == NULL || strcmp(test_name, "matmul") == 0)
   {
-    passed &= uo_test_matmul();
+    passed &= uo_test_matmul(test_data_dir);
   }
 
   if (test_name == NULL || strcmp(test_name, "nn_train") == 0)

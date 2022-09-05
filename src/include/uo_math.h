@@ -154,7 +154,7 @@ extern "C"
     }
   }
 
-  bool uo_test_matmul();
+  bool uo_test_matmul(char *test_data_dir);
 
 #ifdef __cplusplus
     }

@@ -1,6 +1,8 @@
 #include "uo_math.h"
+#include "uo_global.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 
 bool uo_test_matmul_1_aligned_blocks(void)
 {
@@ -64,11 +66,51 @@ bool uo_test_matmul_1_aligned_blocks(void)
 #undef uo_approx_eq_ps
 }
 
-bool uo_test_matmul()
+bool uo_test_matmul(char *test_data_dir)
 {
   bool passed = true;
 
   passed &= uo_test_matmul_1_aligned_blocks();
+
+  return passed;
+
+  if (!test_data_dir) return false;
+
+  bool passed = true;
+
+  size_t test_count = 0;
+
+  char *filepath = buf;
+
+  strcpy(filepath, test_data_dir);
+  strcpy(filepath + strlen(test_data_dir), "/math.txt");
+
+  FILE *fp = fopen(filepath, "r");
+  if (!fp)
+  {
+    printf("Cannot open file '%s'", filepath);
+    return false;
+  }
+
+  while (fgets(buf, sizeof buf, fp))
+  {
+    char *ptr = buf;
+    ptr = strtok(ptr, "\n ");
+
+    if (!ptr)
+    {
+      printf("Error while reading test data\n");
+      fclose(fp);
+      return false;
+    }
+  }
+
+  fclose(fp);
+
+  if (passed)
+  {
+    printf("TEST 'math' PASSED.", test_count);
+  }
 
   return passed;
 }
