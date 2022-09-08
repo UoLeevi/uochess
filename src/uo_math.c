@@ -66,14 +66,13 @@ bool uo_test_matmul_1_aligned_blocks(void)
 #undef uo_approx_eq_ps
 }
 
+bool uo_fparse_matrix(FILE **fp, float **data, size_t *m, size_t *n)
+{
+
+}
+
 bool uo_test_matmul(char *test_data_dir)
 {
-  bool passed = true;
-
-  passed &= uo_test_matmul_1_aligned_blocks();
-
-  return passed;
-
   if (!test_data_dir) return false;
 
   bool passed = true;
@@ -103,13 +102,35 @@ bool uo_test_matmul(char *test_data_dir)
       fclose(fp);
       return false;
     }
+
+    if (strcmp(ptr, "test_matmul") == 0)
+    {
+      while (fgets(buf, sizeof buf, fp))
+      {
+        char *ptr = buf;
+        ptr = strtok(ptr, "\n ");
+
+        if (!ptr)
+        {
+          printf("Error while reading test data\n");
+          fclose(fp);
+          return false;
+        }
+
+        if (strncmp(ptr, "A = [", 6) == 0)
+        {
+          ptr = strtok(ptr, "\n ");
+        }
+      }
+
+    }
   }
 
   fclose(fp);
 
   if (passed)
   {
-    printf("TEST 'math' PASSED.", test_count);
+    printf("TEST 'math' PASSED.");
   }
 
   return passed;
