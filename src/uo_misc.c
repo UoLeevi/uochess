@@ -2,37 +2,94 @@
 
 #include <stddef.h>
 
-uo_file_stream *uo_file_stream_open_read(const char *filepath, size_t buf_size, char error_message[256])
-{
-  FILE *fp = fopen(filepath, "r");
-  if (!fp)
-  {
-    if (error_message)
-    {
-      sprintf(error_message, "Cannot open file.");
-    }
+#ifdef WIN32
 
+#include <Windows.h>
+
+typedef struct uo_file_mmap_handle
+{
+  HANDLE hFile;
+  HANDLE hMap;
+  LPVOID lpBasePtr;
+} uo_file_mmap_handle;
+
+uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
+{
+  HANDLE hFile;
+  HANDLE hMap;
+  LPVOID lpBasePtr;
+  LARGE_INTEGER liFileSize;
+
+  hFile = OpenFile(filepath,
+    GENERIC_READ,                          // dwDesiredAccess
+    0,                                     // dwShareMode
+    NULL,                                  // lpSecurityAttributes
+    OPEN_EXISTING,                         // dwCreationDisposition
+    FILE_ATTRIBUTE_NORMAL,                 // dwFlagsAndAttributes
+    0);                                    // hTemplateFile
+
+  if (hFile == INVALID_HANDLE_VALUE)
+  {
     return NULL;
   }
 
-  uo_file_stream *file_stream = NULL;
-
-  if (buf_size == 0)
+  if (!GetFileSizeEx(hFile, &liFileSize))
   {
-    // default buffer size
-    buf_size = 0x1000;
+    CloseHandle(hFile);
+    return NULL;
   }
 
-  file_stream = malloc(sizeof * file_stream + buf_size);
-  file_stream->buf = ((char *)(void *)file_stream) + sizeof * file_stream;
-  file_stream->buf_size = buf_size;
-  file_stream->fp = fp;
+  if (liFileSize.QuadPart == 0)
+  {
+    CloseHandle(hFile);
+    return NULL;
+  }
 
-  return file_stream;
+  hMap = CreateFileMapping(
+    hFile,
+    NULL,                          // Mapping attributes
+    PAGE_READONLY,                 // Protection flags
+    0,                             // MaximumSizeHigh
+    0,                             // MaximumSizeLow
+    NULL);                         // Name
+
+  if (hMap == 0)
+  {
+    CloseHandle(hFile);
+    return NULL;
+  }
+
+  lpBasePtr = MapViewOfFile(
+    hMap,
+    FILE_MAP_READ,         // dwDesiredAccess
+    0,                     // dwFileOffsetHigh
+    0,                     // dwFileOffsetLow
+    0);                    // dwNumberOfBytesToMap
+
+  if (lpBasePtr == NULL)
+  {
+    CloseHandle(hMap);
+    CloseHandle(hFile);
+    return NULL;
+  }
+
+  uo_file_mmap *file_mmap = malloc(sizeof * file_mmap + sizeof * file_mmap->handle);
+  file_mmap->handle = ((char *)(void *)file_mmap) + sizeof * file_mmap;
+  file_mmap->size = liFileSize.QuadPart;
+  file_mmap->ptr = lpBasePtr;
+  file_mmap->handle->hFile = hFile;
+  file_mmap->handle->hMap = hMap;
+  file_mmap->handle->lpBasePtr = lpBasePtr;
+
+  return file_mmap;
 }
 
-void uo_file_stream_close(uo_file_stream *file_stream)
+void uo_file_mmap_close(uo_file_mmap *file_mmap)
 {
-  fclose(file_stream->fp);
-  free(file_stream);
+  UnmapViewOfFile(file_mmap->handle->lpBasePtr);
+  CloseHandle(file_mmap->handle->hMap);
+  CloseHandle(file_mmap->handle->hFile);
+  free(file_mmap);
 }
+
+#endif

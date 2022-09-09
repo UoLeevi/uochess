@@ -9,10 +9,13 @@ extern "C"
 #include <time.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef WIN32
 # include <Windows.h>
 #endif // WIN32
+
+  // Time functions
 
   typedef struct timespec uo_time;
 
@@ -46,6 +49,8 @@ extern "C"
   }
 #endif
 
+  // Command line argument parsing
+
   // helper for parsing named command line arguments
   static inline char *uo_arg_parse(int argc, char **argv, const char *argname, int argvalue_index)
   {
@@ -59,6 +64,20 @@ extern "C"
 
     return NULL;
   }
+
+  // Memory-Mapped Files
+  // see: https://docs.microsoft.com/en-us/previous-versions/ms810613(v=msdn.10)
+
+  typedef struct uo_file_mmap_handle uo_file_mmap_handle;
+  typedef struct uo_file_mmap
+  {
+    uo_file_mmap_handle *handle;
+    char *ptr;
+    size_t size;
+  } uo_file_mmap;
+
+  uo_file_mmap *uo_file_mmap_open_read(const char *filepath);
+  void uo_file_mmap_close(uo_file_mmap *file_mmap);
 
 #ifdef __cplusplus
 }
