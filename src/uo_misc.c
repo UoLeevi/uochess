@@ -20,7 +20,7 @@ uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
   LPVOID lpBasePtr;
   LARGE_INTEGER liFileSize;
 
-  hFile = OpenFile(filepath,
+  hFile = CreateFile(filepath,
     GENERIC_READ,                          // dwDesiredAccess
     0,                                     // dwShareMode
     NULL,                                  // lpSecurityAttributes
@@ -61,10 +61,10 @@ uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
 
   lpBasePtr = MapViewOfFile(
     hMap,
-    FILE_MAP_READ,         // dwDesiredAccess
-    0,                     // dwFileOffsetHigh
-    0,                     // dwFileOffsetLow
-    0);                    // dwNumberOfBytesToMap
+    FILE_MAP_READ | FILE_MAP_COPY, // dwDesiredAccess
+    0,                             // dwFileOffsetHigh
+    0,                             // dwFileOffsetLow
+    0);                            // dwNumberOfBytesToMap
 
   if (lpBasePtr == NULL)
   {
@@ -74,7 +74,7 @@ uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
   }
 
   uo_file_mmap *file_mmap = malloc(sizeof * file_mmap + sizeof * file_mmap->handle);
-  file_mmap->handle = ((char *)(void *)file_mmap) + sizeof * file_mmap;
+  file_mmap->handle = (void *)(((char *)(void *)file_mmap) + sizeof * file_mmap);
   file_mmap->size = liFileSize.QuadPart;
   file_mmap->ptr = lpBasePtr;
   file_mmap->handle->hFile = hFile;

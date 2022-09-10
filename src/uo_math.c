@@ -1,5 +1,6 @@
 #include "uo_math.h"
 #include "uo_global.h"
+#include "uo_misc.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -84,49 +85,24 @@ bool uo_test_matmul(char *test_data_dir)
   strcpy(filepath, test_data_dir);
   strcpy(filepath + strlen(test_data_dir), "/math.txt");
 
-  FILE *fp = fopen(filepath, "r");
-  if (!fp)
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+  if (!file_mmap)
   {
     printf("Cannot open file '%s'", filepath);
     return false;
   }
 
-  while (fgets(buf, sizeof buf, fp))
+  char *ptr = file_mmap->ptr;
+  ptr = strtok(ptr, "\n ");
+
+  if (!ptr)
   {
-    char *ptr = buf;
-    ptr = strtok(ptr, "\n ");
-
-    if (!ptr)
-    {
-      printf("Error while reading test data\n");
-      fclose(fp);
-      return false;
-    }
-
-    if (strcmp(ptr, "test_matmul") == 0)
-    {
-      while (fgets(buf, sizeof buf, fp))
-      {
-        char *ptr = buf;
-        ptr = strtok(ptr, "\n ");
-
-        if (!ptr)
-        {
-          printf("Error while reading test data\n");
-          fclose(fp);
-          return false;
-        }
-
-        if (strncmp(ptr, "A = [", 6) == 0)
-        {
-          ptr = strtok(ptr, "\n ");
-        }
-      }
-
-    }
+    printf("Error while reading test data\n");
+    uo_file_mmap_close(file_mmap);
+    return false;
   }
 
-  fclose(fp);
+  uo_file_mmap_close(file_mmap);
 
   if (passed)
   {
