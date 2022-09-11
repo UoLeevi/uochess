@@ -1,5 +1,7 @@
 #include "uo_test.h"
 #include "uo_global.h"
+#include "uo_util.h"
+#include "uo_misc.h"
 #include "uo_position.h"
 #include "uo_search.h"
 #include "uo_nn.h"
@@ -23,8 +25,8 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
   strcpy(filepath, test_data_dir);
   strcpy(filepath + strlen(test_data_dir), "/move_generation.txt");
 
-  FILE *fp = fopen(filepath, "r");
-  if (!fp)
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+  if (!file_mmap)
   {
     printf("Cannot open file '%s'", filepath);
     return false;
@@ -32,69 +34,73 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
   size_t move_count;
 
-  while (fgets(buf, sizeof buf, fp))
-  {
-    char *ptr = buf;
-    ptr = strtok(ptr, "\n ");
 
-    if (!ptr)
+  char *ptr = uo_file_mmap_readline(file_mmap);
+  char *token_context;
+
+  if (!ptr)
+  {
+    printf("Error while reading test data\n");
+    uo_file_mmap_close(file_mmap);
+    return false;
+  }
+
+  while (ptr)
+  {
+    if (strlen(ptr) == 0) continue;
+
+    ptr = uo_strtok(ptr, " ", &token_context);
+
+    if (strcmp(ptr, "ucinewgame") == 0)
     {
-      printf("Error while reading test data\n");
-      fclose(fp);
-      return false;
-    }
-    else if (strcmp(ptr, "ucinewgame") == 0)
-    {
-      if (!fgets(buf, sizeof buf, fp))
+      if (!(ptr = uo_file_mmap_readline(file_mmap)))
       {
         printf("Unexpected EOF while reading test data\n");
-        fclose(fp);
+        uo_file_mmap_close(file_mmap);
         return false;
       }
 
-      ptr = strtok(ptr, " ");
+      ptr = uo_strtok(ptr, " ", &token_context);
     }
 
     if (!ptr || strcmp(ptr, "position"))
     {
       printf("Expected to read 'position', instead read '%s'\n", ptr);
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
     }
 
-    ptr = strtok(NULL, " ");
+    ptr = uo_strtok(NULL, " ", &token_context);
 
     if (!ptr || strcmp(ptr, "fen"))
     {
       printf("Expected to read 'fen', instead read '%s'\n", ptr);
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
     }
 
-    char *fen = strtok(NULL, "\n");
-    ptr = fen + strlen(fen) + 1;
+    char *fen = uo_strtok(NULL, "\r\n", &token_context);
 
     if (!uo_position_from_fen(position, fen))
     {
       printf("Error while parsing fen '%s'\n", fen);
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
     }
 
-    if (!fgets(ptr, ptr - buf, fp))
+    if (!(ptr = uo_file_mmap_readline(file_mmap)))
     {
       printf("Unexpected EOF while reading test data\n");
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
     }
 
-    ptr = strtok(ptr, "\n");
     size_t depth;
 
     if (!ptr || sscanf(ptr, "go perft %zu", &depth) != 1 || depth < 1)
     {
       printf("Expected to read 'go perft', instead read '%s'\n", ptr);
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
     }
 
@@ -102,17 +108,17 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
     move_count = uo_position_generate_moves(position);
 
-    while (fgets(ptr, ptr - buf, fp))
+    while ((ptr = uo_file_mmap_readline(file_mmap)))
     {
-      char *move_str = strtok(ptr, ":\n");
+      if (strlen(ptr) == 0) break;
 
-      if (!move_str || strlen(move_str) == 0) break;
+      char *move_str = uo_strtok(ptr, ":\r\n", &token_context);
 
       uo_move move = uo_position_parse_move(position, move_str);
       if (!move)
       {
         printf("Error while parsing move '%s'", move_str);
-        fclose(fp);
+        uo_file_mmap_close(file_mmap);
         return false;
       }
 
@@ -122,12 +128,12 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
       size_t node_count_expected;
 
-      ptr = strtok(NULL, "\n");
+      ptr = uo_strtok(NULL, "\r\n", &token_context);
 
       if (sscanf(ptr, " %zu", &node_count_expected) != 1)
       {
-        printf("Error while node count for move\n");
-        fclose(fp);
+        printf("Error while node count for move\r\n");
+        uo_file_mmap_close(file_mmap);
         return false;
       }
 
@@ -152,11 +158,11 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
           {
             printf("TEST 'move_generation' FAILED: generated node count %zu for move '%s' did not match expected count %zu for fen '%s'\n", node_count, move_str, node_count_expected, fen);
             uo_position_print_diagram(position, buf);
-            printf("\n%s", buf);
+            printf("\r\n%s", buf);
             uo_position_print_fen(position, buf);
             printf("\nFen: %s\n", buf);
 
-            fclose(fp);
+            uo_file_mmap_close(file_mmap);
             return false;
           }
 
@@ -164,13 +170,13 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
           if (position->key != key)
           {
-            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\n", position->key, move_str, key, fen);
+            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\r\n", position->key, move_str, key, fen);
             uo_position_print_diagram(position, buf);
             printf("\n%s", buf);
             uo_position_print_fen(position, buf);
             printf("\nFen: %s\n", buf);
 
-            fclose(fp);
+            uo_file_mmap_close(file_mmap);
             return false;
           }
 
@@ -180,7 +186,7 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
       }
 
       printf("TEST 'move_generation' FAILED: move '%s' was not generated for fen '%s'", move_str, fen);
-      fclose(fp);
+      uo_file_mmap_close(file_mmap);
       return false;
 
     next_move:;
@@ -198,15 +204,16 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
           'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to),
           fen);
 
-        fclose(fp);
+        uo_file_mmap_close(file_mmap);
         return false;
       }
     }
 
     ++test_count;
+    ptr = uo_file_mmap_readline(file_mmap);
   }
 
-  fclose(fp);
+  uo_file_mmap_close(file_mmap);
 
   if (passed)
   {

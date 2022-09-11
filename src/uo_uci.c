@@ -448,7 +448,7 @@ static void uo_uci__position(void)
 
   if (uo_uci_match(tokens.moves))
   {
-    while (ptr = strtok(NULL, " \n"))
+    while ((ptr = strtok(NULL, " \n")))
     {
       if (strlen(ptr) < 4)
       {

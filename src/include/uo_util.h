@@ -15,46 +15,18 @@ extern "C"
 
 #define uo_alloca _alloca
 
-  //# include <intrin.h>
-  //# pragma intrinsic(_BitScanForward64, _BitScanReverse64)
-
-    //static unsigned long temp;
-
-    //# define uo_lsb(u64) ((int8_t)(_BitScanForward64(&temp, u64) ? temp : -1))
-    //# define uo_msb(u64) ((int8_t)(_BitScanReverse64(&temp, u64) ? temp : -1))
-
-#elif defined(__has_builtin)
-
-  // uo_popcnt
-# if __has_builtin(__builtin_popcountll)
-#   define uo_popcnt __builtin_popcountll
-# else
-  int uo_popcnt(uint64_t u64);
-# endif
-  // END - uo_popcnt
-
-  // uo_lsb && uo_lsb
-# if __has_builtin(__builtin_ffsll) && __has_builtin(__builtin_clzll)
-#   define uo_lsb(u64) ((int8_t)((int8_t)__builtin_ffsll(u64) - 1))
-#   define uo_msb(u64) ((int8_t)((u64) ? (63 - __builtin_clzll((uint64_t)(u64))) : -1))
-# else
-
-# endif
+#define uo_strtok strtok_s
 
 #else
 
 # ifndef uo_alloca
-
 # include <alloca.h>
 #define uo_alloca alloca
-
 #endif // !uo_alloca
 
+#include <string.h>
+#define uo_strtok strtok_r
 
-
-  //uint8_t uo_popcnt(uint64_t u64);
-  //int8_t uo_lsb(uint64_t u64);
-  //int8_t uo_msb(uint64_t u64);
 
 #endif
 

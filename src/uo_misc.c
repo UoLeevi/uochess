@@ -61,10 +61,10 @@ uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
 
   lpBasePtr = MapViewOfFile(
     hMap,
-    FILE_MAP_READ | FILE_MAP_COPY, // dwDesiredAccess
-    0,                             // dwFileOffsetHigh
-    0,                             // dwFileOffsetLow
-    0);                            // dwNumberOfBytesToMap
+    FILE_MAP_COPY, // dwDesiredAccess, see: https://stackoverflow.com/a/55020707
+    0,             // dwFileOffsetHigh
+    0,             // dwFileOffsetLow
+    0);            // dwNumberOfBytesToMap
 
   if (lpBasePtr == NULL)
   {
@@ -77,6 +77,7 @@ uo_file_mmap *uo_file_mmap_open_read(const char *filepath)
   file_mmap->handle = (void *)(((char *)(void *)file_mmap) + sizeof * file_mmap);
   file_mmap->size = liFileSize.QuadPart;
   file_mmap->ptr = lpBasePtr;
+  file_mmap->line = lpBasePtr;
   file_mmap->handle->hFile = hFile;
   file_mmap->handle->hMap = hMap;
   file_mmap->handle->lpBasePtr = lpBasePtr;
@@ -90,6 +91,35 @@ void uo_file_mmap_close(uo_file_mmap *file_mmap)
   CloseHandle(file_mmap->handle->hMap);
   CloseHandle(file_mmap->handle->hFile);
   free(file_mmap);
+}
+
+char *uo_file_mmap_readline(uo_file_mmap *file_mmap)
+{
+  if (!file_mmap->line) return NULL;
+
+  char *line = file_mmap->line;
+  char *brk = strpbrk(file_mmap->line, "\r\n");
+
+  if (brk)
+  {
+    if (*brk == '\r')
+    {
+      *brk++ = '\0';
+    }
+
+    if (*brk == '\n')
+    {
+      *brk++ = '\0';
+    }
+
+    file_mmap->line = brk;
+  }
+  else
+  {
+    file_mmap->line = NULL;
+  }
+
+  return line;
 }
 
 #endif

@@ -73,11 +73,15 @@ extern "C"
   {
     uo_file_mmap_handle *handle;
     char *ptr;
+    char *line;
     size_t size;
   } uo_file_mmap;
 
   uo_file_mmap *uo_file_mmap_open_read(const char *filepath);
+
   void uo_file_mmap_close(uo_file_mmap *file_mmap);
+
+  char *uo_file_mmap_readline(uo_file_mmap *file_mmap);
 
 #ifdef __cplusplus
 }
