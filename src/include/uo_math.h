@@ -35,11 +35,11 @@ extern "C"
 
   static inline float uo_dotproduct_ps(const float *a, const float *b, size_t n)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
+    size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
     uo_avx_float sum = _mm256_setzero_ps();
 
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < nb; ++i)
     {
       uo_avx_float _a = _mm256_loadu_ps(a + i * uo_floats_per_avx_float);
       uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
@@ -47,9 +47,9 @@ extern "C"
       sum = _mm256_add_ps(sum, mul);
     }
 
-    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7));
-    uo_avx_float _a = _mm256_maskload_ps(a + n * uo_floats_per_avx_float, mask);
-    uo_avx_float _b = _mm256_maskload_ps(b + n * uo_floats_per_avx_float, mask);
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    uo_avx_float _a = _mm256_maskload_ps(a + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
     uo_avx_float mul = _mm256_mul_ps(_a, _b);
     sum = _mm256_add_ps(sum, mul);
 
@@ -58,26 +58,26 @@ extern "C"
 
   static inline void uo_vecset1_ps(float *a, float value, size_t n)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
+    size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
     uo_avx_float _value = _mm256_set1_ps(value);
 
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < nb; ++i)
     {
       _mm256_storeu_ps(a + i * uo_floats_per_avx_float, _value);
     }
 
-    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7));
-    _mm256_maskstore_ps(a + n * uo_floats_per_avx_float, mask, _value);
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    _mm256_maskstore_ps(a + nb * uo_floats_per_avx_float, mask, _value);
   }
 
   static inline void uo_vecadd_ps(float *a, float *b, float *c, size_t n)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
+    size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
     uo_avx_float sum = _mm256_setzero_ps();
 
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < nb; ++i)
     {
       uo_avx_float _a = _mm256_loadu_ps(a + i * uo_floats_per_avx_float);
       uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
@@ -85,20 +85,20 @@ extern "C"
       _mm256_storeu_ps(c + i * uo_floats_per_avx_float, add);
     }
 
-    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7));
-    uo_avx_float _a = _mm256_maskload_ps(a + n * uo_floats_per_avx_float, mask);
-    uo_avx_float _b = _mm256_maskload_ps(b + n * uo_floats_per_avx_float, mask);
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    uo_avx_float _a = _mm256_maskload_ps(a + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
     uo_avx_float add = _mm256_add_ps(_a, _b);
-    _mm256_maskstore_ps(c + n * uo_floats_per_avx_float, mask, add);
+    _mm256_maskstore_ps(c + nb * uo_floats_per_avx_float, mask, add);
   }
 
   static inline void uo_vecsub_ps(float *a, float *b, float *c, size_t n)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
+    size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
     uo_avx_float sum = _mm256_setzero_ps();
 
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < nb; ++i)
     {
       uo_avx_float _a = _mm256_loadu_ps(a + i * uo_floats_per_avx_float);
       uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
@@ -106,29 +106,29 @@ extern "C"
       _mm256_storeu_ps(c + i * uo_floats_per_avx_float, sub);
     }
 
-    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7));
-    uo_avx_float _a = _mm256_maskload_ps(a + n * uo_floats_per_avx_float, mask);
-    uo_avx_float _b = _mm256_maskload_ps(b + n * uo_floats_per_avx_float, mask);
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    uo_avx_float _a = _mm256_maskload_ps(a + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
     uo_avx_float sub = _mm256_sub_ps(_a, _b);
-    _mm256_maskstore_ps(c + n * uo_floats_per_avx_float, mask, sub);
+    _mm256_maskstore_ps(c + nb * uo_floats_per_avx_float, mask, sub);
   }
 
   static inline void uo_vec_mapfunc_ps(float *v, size_t n, uo_mm256_ps_function *function)
   {
-    size_t block_count = n / uo_floats_per_avx_float;
+    size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
 
-    for (size_t i = 0; i < block_count; ++i)
+    for (size_t i = 0; i < nb; ++i)
     {
       uo_avx_float _v = _mm256_loadu_ps(v + i * uo_floats_per_avx_float);
       uo_avx_float res = function(_v);
       _mm256_storeu_ps(v + i * uo_floats_per_avx_float, res);
     }
 
-    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7));
-    uo_avx_float _v = _mm256_maskload_ps(v + n * uo_floats_per_avx_float, mask);
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    uo_avx_float _v = _mm256_maskload_ps(v + nb * uo_floats_per_avx_float, mask);
     uo_avx_float res = function(_v);
-    _mm256_maskstore_ps(v + n * uo_floats_per_avx_float, mask, res);
+    _mm256_maskstore_ps(v + nb * uo_floats_per_avx_float, mask, res);
   }
 
   static inline void uo_transpose_ps(const float *A, float *A_t, size_t m, size_t n)

@@ -22,29 +22,14 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
   bool passed = true;
 
-  // matrix transpose
   uo_transpose_ps(B, B_t, m_B, n_B);
+  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A);
 
-  // test dot product
+  // compare matrix multiplication results against expected results
+  for (size_t i = 0; i < m_C * n_C; i++)
   {
-    float res = uo_dotproduct_ps(A, B_t, n_A);
-    float d = C_expected[0] - res;
+    float d = C_expected[i] - C[i];
     passed &= uo_approx_eq_ps(d, 0);
-
-    res = uo_dotproduct_ps(A, B_t + n_A, n_A);
-    d = C_expected[1] - res;
-    passed &= uo_approx_eq_ps(d, 0);
-  }
-
-  // test matrix multiplication
-  {
-    uo_matmul_ps(A, B_t, C, m_C, n_C, n_A);
-
-    for (size_t i = 0; i < m_C * n_C; i++)
-    {
-      float d = C_expected[i] - C[i];
-      passed &= uo_approx_eq_ps(d, 0);
-    }
   }
 
   free(B_t);
