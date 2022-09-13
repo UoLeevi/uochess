@@ -7,7 +7,7 @@
 
 bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m, size_t n, size_t k)
 {
-#define uo_approx_eq_ps(lhs, rhs) (((lhs) < ((rhs) + 0.01)) && ((lhs) > ((rhs) - 0.01)))
+#define uo_approx_eq_ps(lhs, rhs) (((lhs) < ((rhs) + 0.055)) && ((lhs) > ((rhs) - 0.055)))
 
   size_t m_A = m;
   size_t n_A = k;
