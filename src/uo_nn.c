@@ -17,13 +17,15 @@ typedef struct uo_nn_layer_param
 
 typedef struct uo_nn_layer
 {
-  float *X;   // input matrix, batch_size x k
+  float *X;   // input matrix, batch_size x m
   float *X_t;
-  float *W;   // weights matrix, k x n
+  float *W;   // weights matrix, m x n
   float *W_t;
   float *A;   // output matrix, batch_size x n
   float *A_t;
-  float *G;   // gradient
+  float *dA;  // gradient of output, batch_size x n
+  float *dW;  // gradient of weights, m x n
+  float *dX;  // gradient of input, batch_size x m
   size_t m_W;   // weights row count
   size_t n_W;   // weights column count
   uo_nn_activation_function *activation_func;
