@@ -18,14 +18,11 @@ typedef struct uo_nn_layer_param
 typedef struct uo_nn_layer
 {
   float *X;   // input matrix, batch_size x m
-  float *X_t;
-  float *W;   // weights matrix, m x n
-  float *W_t;
-  float *A;   // output matrix, batch_size x n
-  float *A_t;
-  float *dA;  // gradient of output, batch_size x n
-  float *dW;  // gradient of weights, m x n
   float *dX;  // gradient of input, batch_size x m
+  float *W;   // weights matrix, m x n
+  float *dW;  // gradient of weights, m x n
+  float *A;   // output matrix, batch_size x n
+  float *dA;  // gradient of output, batch_size x n
   size_t m_W;   // weights row count
   size_t n_W;   // weights column count
   uo_nn_activation_function *activation_func;
@@ -39,6 +36,7 @@ typedef struct uo_nn
   size_t batch_size;
   size_t output_size;
   float *output;
+  float *temp;
 } uo_nn;
 
 uo_avx_float uo_avx_float_relu(__m256 avx_float)
@@ -68,23 +66,23 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   size_t size_input = batch_size * (m_W + 1);
   size_t size_weights = (m_W + 1) * n_W;
   size_t size_output = batch_size * (n_W + 1);
-  size_t size_total = size_input * 2 + size_output * 2 + size_weights * 3;
+  size_t size_total = size_input * 2 + size_output * 2 + size_weights * 2;
+  size_t size_max = uo_max(size_input, size_output);
+  size_max = uo_max(size_max, size_weights);
 
   float *mem = calloc(size_total, sizeof(float));
 
   input_layer->X = mem;
   mem += size_input;
-  input_layer->X_t = mem;
+  input_layer->dX = mem;
   mem += size_input;
   input_layer->A = mem;
   mem += size_output;
-  input_layer->A_t = mem;
+  input_layer->dA = mem;
   mem += size_output;
-  input_layer->G = mem;
-  mem += size_weights;
   input_layer->W = mem;
   mem += size_weights;
-  input_layer->W_t = mem;
+  input_layer->dW = mem;
 
   input_layer->activation_func = layer_params->f;
   input_layer->activation_func_d = layer_params->f_d;
@@ -101,24 +99,24 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
     size_t n_W = layer->n_W = layer_params->n_W;
 
     layer->X = input_layer->A;
-    layer->X_t = input_layer->A_t;
+    layer->dX = input_layer->dA;
     ++input_layer;
 
     size_t size_weights = (m_W + 1) * n_W;
+    size_max = uo_max(size_max, size_weights);
     size_t size_output = batch_size * (n_W + 1);
-    size_t size_total = size_output * 2 + size_weights * 3;
+    size_max = uo_max(size_max, size_output);
+    size_t size_total = size_output * 2 + size_weights * 2;
 
     float *mem = calloc(size_total, sizeof(float));
 
     layer->A = mem;
     mem += size_output;
-    layer->A_t = mem;
+    layer->dA = mem;
     mem += size_output;
-    layer->G = mem;
-    mem += size_weights;
     layer->W = mem;
     mem += size_weights;
-    layer->W_t = mem;
+    layer->dW = mem;
 
     layer->activation_func = layer_params->f;
     layer->activation_func_d = layer_params->f_d;
@@ -139,9 +137,10 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
     {
       layer->W[j] = (((float)rand() / (float)RAND_MAX) - 0.5) * 2;
     }
-
-    uo_transpose_ps(layer->W, layer->W_t, layer->m_W, layer->n_W);
   }
+
+  // Step 6. Allocate space for temp data
+  nn->temp = calloc(size_max * 2, sizeof(float));
 }
 
 void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
@@ -210,7 +209,9 @@ void uo_nn_feed_forward(uo_nn *nn)
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
     float *X = layer->X;
-    float *W_t = layer->W_t;
+    float *W = layer->W;
+    float *W_t = nn->temp;
+    uo_transpose_ps(W, W_t, m_W, n_W);
     float *A = layer->A;
 
     // Set bias input
@@ -301,7 +302,7 @@ void uo_nn_example()
 {
   uo_nn nn;
   uo_nn_init(&nn, 3, 1, (uo_nn_layer_param[]) {
-    { .m_W = 832, .n_W = 64, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
+    {.m_W = 832, .n_W = 64, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
     { .n_W = 32, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
     { .n_W = 1 }
   });
@@ -311,7 +312,7 @@ bool uo_test_nn_train()
 {
   uo_nn nn;
   uo_nn_init(&nn, 2, 1, (uo_nn_layer_param[]) {
-    { .m_W = 2, .n_W = 2, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
+    {.m_W = 2, .n_W = 2, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
     { .n_W = 1, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d }
   });
 
