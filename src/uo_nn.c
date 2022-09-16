@@ -5,14 +5,65 @@
 
 #define uo_nn_learning_rate 0.01
 
+typedef uo_avx_float uo_nn_loss_function(uo_avx_float y_true, uo_avx_float y_pred);
+
+typedef struct uo_nn_loss_function_param
+{
+  uo_nn_loss_function *f;
+  uo_nn_loss_function *df;
+} uo_nn_loss_function_param;
+
+uo_avx_float uo_nn_loss_function_mean_squared_error(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 sub = _mm256_sub_ps(y_true, y_pred);
+  __m256 mul = _mm256_mul_ps(sub, sub);
+  return mul;
+}
+
+uo_avx_float uo_nn_loss_function_mean_squared_error_d(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 sub = _mm256_sub_ps(y_true, y_pred);
+  __m256 n2 = _mm256_set1_ps(-2.0);
+  __m256 mul = _mm256_mul_ps(sub, n2);
+  return mul;
+}
+
+uo_nn_loss_function_param loss_mse = {
+  .f = uo_nn_loss_function_mean_squared_error,
+  .df = uo_nn_loss_function_mean_squared_error_d
+};
+
 typedef uo_avx_float uo_nn_activation_function(uo_avx_float avx_float);
+
+typedef struct uo_nn_activation_function_param
+{
+  uo_nn_activation_function *f;
+  uo_nn_activation_function *df;
+} uo_nn_activation_function_param;
+
+uo_avx_float uo_nn_activation_function_relu(__m256 avx_float)
+{
+  __m256 zeros = _mm256_setzero_ps();
+  return _mm256_max_ps(avx_float, zeros);
+}
+
+uo_avx_float uo_nn_activation_function_relu_d(__m256 avx_float)
+{
+  __m256 zeros = _mm256_setzero_ps();
+  __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
+  __m256 ones = _mm256_set1_ps(1.0);
+  return _mm256_max_ps(mask, ones);
+}
+
+uo_nn_activation_function_param activation_relu = {
+  .f = uo_nn_activation_function_relu,
+  .df = uo_nn_activation_function_relu_d
+};
 
 typedef struct uo_nn_layer_param
 {
-  size_t m_W;
-  size_t n_W;
-  uo_nn_activation_function *f;
-  uo_nn_activation_function *f_d;
+  size_t n;
+  uo_nn_activation_function_param activation_function;
 } uo_nn_layer_param;
 
 typedef struct uo_nn_layer
@@ -29,6 +80,8 @@ typedef struct uo_nn_layer
   uo_nn_activation_function *activation_func_d;
 } uo_nn_layer;
 
+#define uo_nn_temp_var_count 5
+
 typedef struct uo_nn
 {
   size_t layer_count;
@@ -36,37 +89,28 @@ typedef struct uo_nn
   size_t batch_size;
   size_t output_size;
   float *output;
-  float *temp0;
-  float *temp1;
+  uo_nn_loss_function *loss_func;
+  uo_nn_loss_function *loss_func_d;
+
+  // Some allocated memory to use in calculations
+  float *temp[uo_nn_temp_var_count];
 } uo_nn;
 
-uo_avx_float uo_avx_float_relu(__m256 avx_float)
+void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_param *layer_params, uo_nn_loss_function_param loss)
 {
-  __m256 zeros = _mm256_setzero_ps();
-  return _mm256_max_ps(avx_float, zeros);
-}
-
-uo_avx_float uo_avx_float_relu_d(__m256 avx_float)
-{
-  __m256 zeros = _mm256_setzero_ps();
-  __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
-  __m256 ones = _mm256_set1_ps(1.0);
-  return _mm256_max_ps(mask, ones);
-}
-
-void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_param *layer_params)
-{
-  // Step 1. Allocate layers array and set batch size
+  // Step 1. Allocate layers array and set options
+  nn->batch_size = batch_size;
+  nn->loss_func = loss.f;
+  nn->loss_func_d = loss.df;
   nn->layer_count = layer_count;
   nn->layers = calloc(nn->layer_count, sizeof * nn->layers);
-  nn->batch_size = batch_size;
   uo_nn_layer *input_layer = nn->layers;
 
   // Step 2. Allocate input layer
-  size_t m_W = input_layer->m_W = layer_params->m_W;
-  size_t n_W = input_layer->n_W = layer_params->n_W;
-  size_t size_input = batch_size * (m_W + 1);
-  size_t size_weights = (m_W + 1) * n_W;
+  size_t m_W = input_layer->m_W = layer_params[0].n + 1;
+  size_t n_W = input_layer->n_W = layer_params[1].n;
+  size_t size_input = batch_size * m_W;
+  size_t size_weights = m_W * n_W;
   size_t size_output = batch_size * n_W;
   size_t size_total = size_input * 2 + size_output * 2 + size_weights * 2;
   size_t size_max = uo_max(size_input, size_output);
@@ -86,25 +130,25 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   mem += size_weights;
   input_layer->dW = mem;
 
-  input_layer->activation_func = layer_params->f;
-  input_layer->activation_func_d = layer_params->f_d;
+  input_layer->activation_func = layer_params->activation_function.f;
+  input_layer->activation_func_d = layer_params->activation_function.df;
 
   // Step 3. Allocate layers 1..n
   uo_nn_layer *layer = input_layer;
 
-  for (size_t i = 1; i < layer_count; ++i)
+  for (size_t i = 2; i <= layer_count; ++i)
   {
     ++layer;
     ++layer_params;
 
-    size_t m_W = layer->m_W = input_layer->n_W;
-    size_t n_W = layer->n_W = layer_params->n_W;
+    size_t m_W = layer->m_W = input_layer->n_W + 1;
+    size_t n_W = layer->n_W = layer_params->n;
 
     layer->X = input_layer->A;
     layer->dX = input_layer->dA;
     ++input_layer;
 
-    size_t size_weights = (m_W + 1) * n_W;
+    size_t size_weights = m_W * n_W;
     size_max = uo_max(size_max, size_weights);
     size_t size_output = batch_size * n_W;
     size_max = uo_max(size_max, size_output);
@@ -120,8 +164,8 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
     mem += size_weights;
     layer->dW = mem;
 
-    layer->activation_func = layer_params->f;
-    layer->activation_func_d = layer_params->f_d;
+    layer->activation_func = layer_params->activation_function.f;
+    layer->activation_func_d = layer_params->activation_function.df;
   }
 
   // Step 4. Set output pointer
@@ -133,7 +177,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   for (size_t i = 0; i < layer_count; ++i)
   {
     uo_nn_layer *layer = nn->layers + i;
-    size_t count = (layer->m_W + 1) * layer->n_W;
+    size_t count = layer->m_W * layer->n_W;
 
     for (size_t j = 0; j < count; ++j)
     {
@@ -142,8 +186,11 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   }
 
   // Step 6. Allocate space for temp data
-  nn->temp0 = calloc(size_max * 2, sizeof(float));
-  nn->temp1 = nn->temp0 + size_max;
+  float *temp = calloc(size_max * uo_nn_temp_var_count, sizeof(float));
+  for (size_t i = 0; i < uo_nn_temp_var_count; ++i)
+  {
+    nn->temp[0] = temp + size_max * i;
+  }
 }
 
 void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
@@ -213,14 +260,14 @@ void uo_nn_feed_forward(uo_nn *nn)
     size_t n_W = layer->n_W;
     float *X = layer->X;
     float *W = layer->W;
-    float *W_t = nn->temp0;
-    uo_transpose_ps(W, W_t, m_W + 1, n_W);
+    float *W_t = nn->temp[0];
+    uo_transpose_ps(W, W_t, m_W, n_W);
     float *A = layer->A;
 
     // Set bias input
-    for (size_t i = 0; i < nn->batch_size; ++i)
+    for (size_t i = 1; i <= nn->batch_size; ++i)
     {
-      X[i * (m_W + 1) + m_W] = 1.0;
+      X[i * m_W - 1] = 1.0;
     }
 
     uo_matmul_ps(X, W_t, A, nn->batch_size, n_W, m_W + 1);
@@ -247,11 +294,11 @@ void uo_nn_backprop(uo_nn *nn)
     size_t n_W = layer->n_W;
 
     float *X = layer->X;
-    float *X_t = nn->temp0;
+    float *X_t = nn->temp[0];
     uo_transpose_ps(X, X_t, nn->batch_size, m_W + 1);
 
     float *W = layer->W;
-    float *W_t = nn->temp1;
+    float *W_t = nn->temp[1];
     uo_transpose_ps(W, W_t, m_W, n_W);
 
     float *dA = layer->A;
@@ -307,19 +354,21 @@ void uo_nn_example()
 {
   uo_nn nn;
   uo_nn_init(&nn, 3, 1, (uo_nn_layer_param[]) {
-    {.m_W = 832, .n_W = 64, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
-    { .n_W = 32, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
-    { .n_W = 1 }
-  });
+    { 832 },
+    { 64, activation_relu },
+    { 32, activation_relu },
+    { 1 }
+  }, loss_mse);
 }
 
 bool uo_test_nn_train()
 {
   uo_nn nn;
   uo_nn_init(&nn, 2, 1, (uo_nn_layer_param[]) {
-    {.m_W = 2, .n_W = 2, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d },
-    { .n_W = 1, .f = uo_avx_float_relu, .f_d = uo_avx_float_relu_d }
-  });
+    { 2 },
+    { 2, activation_relu },
+    { 1, activation_relu }
+  }, loss_mse);
 
   for (size_t i = 0; i < 1000000; ++i)
   {
