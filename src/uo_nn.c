@@ -7,7 +7,7 @@
 #include <time.h>
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
-#define uo_nn_adam_learning_rate 1e-3
+#define uo_nn_adam_learning_rate 1e-4
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
@@ -368,8 +368,8 @@ void uo_nn_backprop(uo_nn *nn, float *y_true)
       // Step 2. Derivative of activation wrt Z
       float *dAdZ = nn->temp[0];
       size_t n_A = layer->n_W + bias_offset;
-      float *A = layer->A;
-      uo_vec_mapfunc_ps(A, dAdZ, nn->batch_size * n_A, layer->activation_func_d);
+      float *Z = layer->Z;
+      uo_vec_mapfunc_ps(Z, dAdZ, nn->batch_size * n_A, layer->activation_func_d);
 
       // Step 3. Derivative of loss wrt Z
       float *dA = layer->dA;
@@ -452,13 +452,13 @@ bool uo_test_nn_train()
   uo_nn nn;
   uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
     { 2 },
-    { 2, activation_relu },
+    { 2, activation_sigmoid },
     { 1 }
   }, loss_mse);
 
   float *y_true = uo_alloca(batch_size * sizeof(float));
 
-  for (size_t i = 0; i < 100000; ++i)
+  for (size_t i = 0; i < 1000000; ++i)
   {
     for (size_t j = 0; j < batch_size; ++j)
     {
