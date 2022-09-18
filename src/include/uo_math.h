@@ -61,7 +61,7 @@ extern "C"
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
-    uo_avx_float reci = _mm256_set1_ps(1.0 / (float)n);
+    uo_avx_float reci = _mm256_set1_ps(1.0f / (float)n);
     uo_avx_float avg = _mm256_setzero_ps();
 
     for (size_t i = 0; i < nb; ++i)
@@ -79,7 +79,7 @@ extern "C"
     return uo_mm256_hsum_ps(avg);
   }
 
-  static inline void uo_vecset1_ps(float *a, float value, size_t n)
+  static inline void uo_vec_set1_ps(float *a, float value, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
@@ -94,7 +94,7 @@ extern "C"
     _mm256_maskstore_ps(a + nb * uo_floats_per_avx_float, mask, _value);
   }
 
-  static inline void uo_vecadd_ps(float *a, float *b, float *c, size_t n)
+  static inline void uo_vec_add_ps(float *a, float *b, float *c, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
@@ -114,7 +114,7 @@ extern "C"
     _mm256_maskstore_ps(c + nb * uo_floats_per_avx_float, mask, add);
   }
 
-  static inline void uo_vecsub_ps(float *a, float *b, float *c, size_t n)
+  static inline void uo_vec_sub_ps(float *a, float *b, float *c, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
@@ -134,7 +134,7 @@ extern "C"
     _mm256_maskstore_ps(c + nb * uo_floats_per_avx_float, mask, sub);
   }
 
-  static inline void uo_vecmul_ps(float *a, float *b, float *c, size_t n)
+  static inline void uo_vec_mul_ps(float *a, float *b, float *c, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
@@ -154,7 +154,7 @@ extern "C"
     _mm256_maskstore_ps(c + nb * uo_floats_per_avx_float, mask, mul);
   }
 
-  static inline void uo_vecmul1_ps(float *a, float scalar, float *c, size_t n)
+  static inline void uo_vec_mul1_ps(float *a, float scalar, float *c, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
     size_t reminder = n % uo_floats_per_avx_float;
@@ -223,18 +223,20 @@ extern "C"
   }
 
   // C = AB, C is n x m matrix, k is "other" dimension
-  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset)
+  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset_n_C, int offset_n_A, int offset_n_B)
   {
     for (size_t i = 0; i < m; ++i)
     {
       for (size_t j = 0; j < n; ++j)
       {
-        C[i * (n + offset) + j] = uo_dotproduct_ps(A + i * k, B_t + j * k, k);
+        C[i * (n + offset_n_C) + j] = uo_dotproduct_ps(A + i * (k + offset_n_A), B_t + j * (k + offset_n_B), k);
       }
     }
   }
 
   bool uo_test_matmul(char *test_data_dir);
+
+  void uo_print_matrix(float *A, size_t m, size_t n);
 
 #ifdef __cplusplus
     }

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 #define uo_nn_adam_learning_rate 1e-3
@@ -97,12 +98,12 @@ typedef struct uo_nn_layer_param
 
 typedef struct uo_nn_layer
 {
-  float *X;   // input matrix, batch_size x m
-  float *dX;  // gradient of input, batch_size x m
   float *W;   // weights matrix, m x n
-  float *dW;  // gradient of weights, m x n
+  float *dW;  // derivative of loss wrt weights, m x n
+  float *Z;   // output before activation matrix, batch_size x n
+  float *dZ;  // derivative of loss wrt output before activation, batch_size x n
   float *A;   // output matrix, batch_size x n
-  float *dA;  // gradient of output, batch_size x n
+  float *dA;  // derivative of loss wrt activation, batch_size x n
   size_t m_W;   // weights row count
   size_t n_W;   // weights column count
   uo_nn_activation_function *activation_func;
@@ -125,8 +126,10 @@ typedef struct uo_nn
   size_t layer_count;
   uo_nn_layer *layers;
   size_t batch_size;
-  size_t output_size;
-  float *output;
+  size_t n_X;
+  float *X;
+  size_t n_y;
+  float *y;
   uo_nn_loss_function *loss_func;
   uo_nn_loss_function *loss_func_d;
 
@@ -146,72 +149,64 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   nn->loss_func = loss.f;
   nn->loss_func_d = loss.df;
   nn->layer_count = layer_count;
-  nn->layers = calloc(nn->layer_count, sizeof * nn->layers);
-  uo_nn_layer *input_layer = nn->layers;
+  nn->layers = calloc(nn->layer_count + 1, sizeof * nn->layers);
+  nn->adam.t = 1;
 
   // Step 2. Allocate input layer
-  ++layer_params;
-  size_t m_W = input_layer->m_W = layer_params[-1].n + 1;
-  size_t n_W = input_layer->n_W = layer_params[0].n;
-  size_t size_input = batch_size * m_W;
-  size_t size_weights = m_W * n_W;
-  size_t size_output = batch_size * n_W;
-  size_t size_total = size_input * 2 + size_output * 2 + size_weights * 6;
-  size_t size_max = uo_max(size_input, size_output);
-  size_max = uo_max(size_max, size_weights);
+  uo_nn_layer *input_layer = nn->layers;
+  nn->n_X = layer_params[0].n + 1;
+  size_t size_input = batch_size * nn->n_X;
+  size_t size_max = size_input;
+  nn->X = input_layer->A = calloc(size_input, sizeof(float));
 
-  float *mem = calloc(size_total, sizeof(float));
-
-  input_layer->X = mem;
-  mem += size_input;
-  input_layer->dX = mem;
-  mem += size_input;
-  input_layer->A = mem;
-  mem += size_output;
-  input_layer->dA = mem;
-  mem += size_output;
-  input_layer->W = mem;
-  mem += size_weights;
-  input_layer->dW = mem;
-  mem += size_weights;
-  input_layer->adam.m = mem;
-  mem += size_weights;
-  input_layer->adam.v = mem;
-  mem += size_weights;
-  input_layer->adam.m_hat = mem;
-  mem += size_weights;
-  input_layer->adam.v_hat = mem;
-
-  input_layer->activation_func = layer_params->activation_function.f;
-  input_layer->activation_func_d = layer_params->activation_function.df;
-
-  // Step 3. Allocate layers 1..n
+  // Step 3. Allocate hidden layers and output layer
   uo_nn_layer *layer = input_layer;
 
-  for (size_t i = 2; i <= layer_count; ++i)
+  for (size_t layer_index = 1; layer_index <= layer_count; ++layer_index)
   {
     ++layer;
-    ++layer_params;
+    bool is_output_layer = layer_index == nn->layer_count;
+    // For hidden layers, let's leave room for bias terms when computing output matrix
+    int bias_offset = is_output_layer ? 0 : 1;
 
-    size_t m_W = layer->m_W = input_layer->n_W + 1;
-    size_t n_W = layer->n_W = layer_params->n;
-
-    layer->X = input_layer->A;
-    layer->dX = input_layer->dA;
-    ++input_layer;
-
+    size_t m_W = layer->m_W = layer_params[layer_index - 1].n + 1;
+    size_t n_W = layer->n_W = layer_params[layer_index].n;
     size_t size_weights = m_W * n_W;
     size_max = uo_max(size_max, size_weights);
-    size_t size_output = batch_size * n_W;
+    size_t n_A = n_W + bias_offset;
+    size_t size_output = batch_size * n_A;
     size_max = uo_max(size_max, size_output);
-    size_t size_total = size_output * 2 + size_weights * 6;
 
-    float *mem = calloc(size_total, sizeof(float));
+    float *mem;
 
-    layer->A = mem;
-    mem += size_output;
-    layer->dA = mem;
-    mem += size_output;
+    layer->activation_func = layer_params[layer_index].activation_function.f;
+
+    if (layer->activation_func)
+    {
+      layer->activation_func_d = layer_params[layer_index].activation_function.df;
+      size_t size_total = size_output * 4 + size_weights * 6;
+      mem = calloc(size_total, sizeof(float));
+
+      layer->Z = mem;
+      mem += size_output;
+      layer->dZ = mem;
+      mem += size_output;
+      layer->A = mem;
+      mem += size_output;
+      layer->dA = mem;
+      mem += size_output;
+    }
+    else
+    {
+      size_t size_total = size_output * 2 + size_weights * 6;
+      mem = calloc(size_total, sizeof(float));
+
+      layer->Z = layer->A = mem;
+      mem += size_output;
+      layer->dZ = layer->dA = mem;
+      mem += size_output;
+    }
+
     layer->W = mem;
     mem += size_weights;
     layer->dW = mem;
@@ -223,25 +218,22 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
     layer->adam.m_hat = mem;
     mem += size_weights;
     layer->adam.v_hat = mem;
-
-    layer->activation_func = layer_params->activation_function.f;
-    layer->activation_func_d = layer_params->activation_function.df;
   }
 
-  // Step 4. Set output pointer
-  uo_nn_layer *output_layer = nn->layers + layer_count - 1;
-  nn->output_size = output_layer->n_W;
-  nn->output = output_layer->A;
+  // Step 4. Set output layer
+  uo_nn_layer *output_layer = nn->layers + layer_count;
+  nn->n_y = output_layer->n_W;
+  nn->y = output_layer->A;
 
   // Step 5. Initialize weights to random values
-  for (size_t i = 0; i < layer_count; ++i)
+  for (size_t i = 1; i <= layer_count; ++i)
   {
     uo_nn_layer *layer = nn->layers + i;
     size_t count = layer->m_W * layer->n_W;
 
     for (size_t j = 0; j < count; ++j)
     {
-      layer->W[j] = (((float)rand() / (float)RAND_MAX) - 0.5) * 2;
+      layer->W[j] = (((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f;
     }
   }
 
@@ -255,9 +247,9 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
 void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
 {
-  size_t m_W = nn->layers->m_W;
-  float *input = nn->layers->X + m_W * index;
-  memset(input, 0, m_W * sizeof(float));
+  size_t n_X = nn->n_X;
+  float *input = nn->X + n_X * index;
+  memset(input, 0, n_X * sizeof(float));
 
   // Step 1. Piece locations
 
@@ -314,124 +306,130 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
 float uo_nn_calculate_loss(uo_nn *nn, float *y_true)
 {
   float *losses = nn->temp[0];
-  uo_vec_map2func_ps(y_true, nn->output, losses, nn->output_size * nn->batch_size, nn->loss_func);
-  float loss = uo_vec_mean_ps(losses, nn->output_size * nn->batch_size);
+  uo_vec_map2func_ps(y_true, nn->y, losses, nn->n_y * nn->batch_size, nn->loss_func);
+  float loss = uo_vec_mean_ps(losses, nn->n_y * nn->batch_size);
   return loss;
 }
 
 void uo_nn_feed_forward(uo_nn *nn)
 {
-  // Hidden layers
-  for (size_t layer_index = 0; layer_index < nn->layer_count - 1; ++layer_index)
+  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
   {
     uo_nn_layer *layer = nn->layers + layer_index;
+    bool is_output_layer = layer_index == nn->layer_count;
+    // For hidden layers, let's leave room for bias terms when computing output matrix
+    int bias_offset = is_output_layer ? 0 : 1;
+
+    // Step 1. Set bias input
+    size_t n_X = layer->m_W;
+    float *X = layer[-1].A;
+    for (size_t i = 1; i <= nn->batch_size; ++i)
+    {
+      X[i * n_X - 1] = 1.0f;
+    }
+
+    // Step 2. Calculate dot product Z = XW
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
-    float *X = layer->X;
     float *W = layer->W;
     float *W_t = nn->temp[0];
     uo_transpose_ps(W, W_t, m_W, n_W);
-    float *A = layer->A;
 
-    // Set bias input
-    for (size_t i = 1; i <= nn->batch_size; ++i)
-    {
-      X[i * m_W - 1] = 1.0;
-    }
+    float *Z = layer->Z;
+    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset, 0, 0);
 
-    uo_matmul_ps(X, W_t, A, nn->batch_size, n_W, m_W, 1);
-
+    // Step 3. Apply activation function A = f(Z)
     if (layer->activation_func)
     {
-      uo_vec_mapfunc_ps(A, A, nn->batch_size * n_W, layer->activation_func);
+      size_t n_A = n_W + bias_offset;
+      float *A = layer->A;
+      uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->activation_func);
     }
-  }
-
-  // Output layer
-  uo_nn_layer *layer = nn->layers + nn->layer_count - 1;
-  size_t m_W = layer->m_W;
-  size_t n_W = layer->n_W;
-  float *X = layer->X;
-  float *W = layer->W;
-  float *W_t = nn->temp[0];
-  uo_transpose_ps(W, W_t, m_W, n_W);
-  float *A = layer->A;
-
-  // Set bias input
-  for (size_t i = 1; i <= nn->batch_size; ++i)
-  {
-    X[i * m_W - 1] = 1.0;
-  }
-
-  uo_matmul_ps(X, W_t, A, nn->batch_size, n_W, m_W, 0);
-
-  if (layer->activation_func)
-  {
-    uo_vec_mapfunc_ps(A, A, nn->batch_size * n_W, layer->activation_func);
   }
 }
 
 void uo_nn_backprop(uo_nn *nn, float *y_true)
 {
-  // Derivative of loss wrt output
-  float *dA = nn->layers[nn->layer_count - 1].dA;
-  uo_vec_map2func_ps(y_true, nn->output, dA, nn->batch_size * nn->output_size, nn->loss_func_d);
+  // Step 1. Derivative of loss wrt output
+  float *dA = nn->layers[nn->layer_count].dA;
+  uo_vec_map2func_ps(y_true, nn->y, dA, nn->batch_size * nn->n_y, nn->loss_func_d);
 
-  size_t layer_index = nn->layer_count;
-  while (layer_index-- > 0)
+  for (size_t layer_index = nn->layer_count; layer_index > 0; --layer_index)
   {
     uo_nn_layer *layer = nn->layers + layer_index;
-    size_t m_W = layer->m_W;
-    size_t n_W = layer->n_W;
+    bool is_output_layer = layer_index == nn->layer_count;
+    // For hidden layers, ignore bias terms when computing derivatives
+    int bias_offset = is_output_layer ? 0 : 1;
 
-    float *dZ = layer->dA;
+    float *dZ = layer->dZ;
 
     if (layer->activation_func_d)
     {
-      // Derivative of output wrt Z
+      // Step 2. Derivative of activation wrt Z
       float *dAdZ = nn->temp[0];
+      size_t n_A = layer->n_W + bias_offset;
       float *A = layer->A;
-      uo_vec_mapfunc_ps(A, dAdZ, nn->batch_size * n_W, layer->activation_func_d);
+      uo_vec_mapfunc_ps(A, dAdZ, nn->batch_size * n_A, layer->activation_func_d);
 
-      // Derivative of loss wrt output (activation)
+      // Step 3. Derivative of loss wrt Z
       float *dA = layer->dA;
-      uo_vecmul_ps(dAdZ, dA, dZ, nn->batch_size * n_W);
+      uo_vec_mul_ps(dAdZ, dA, dZ, nn->batch_size * n_A);
     }
 
-    // Derivative of loss wrt weights
+    // Step 4. Derivative of loss wrt weights
+    size_t m_W = layer->m_W;
+    size_t n_W = layer->n_W;
     float *dW = layer->dW;
-    float *X = layer->X;
+
+    float *X = layer[-1].A;
     float *X_t = nn->temp[1];
     uo_transpose_ps(X, X_t, nn->batch_size, m_W);
-    uo_matmul_ps(X_t, dZ, dW, m_W, n_W, nn->batch_size, 0);
 
-    if (layer_index)
+    size_t n_dZ = n_W + bias_offset;
+    float *dZ_t = nn->temp[2];
+    uo_transpose_ps(dZ, dZ_t, nn->batch_size, n_dZ);
+
+    uo_matmul_ps(X_t, dZ_t, dW, m_W, n_W, nn->batch_size, 0, 0, 0);
+
+    if (layer_index > 1)
     {
-      // Derivative of loss wrt input
-      float *dX = layer->dX;
+      // Step 5. Derivative of loss wrt input
+      float *dX = layer[-1].dA;
       float *W = layer->W;
-      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, -1);
+      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_dZ - bias_offset, bias_offset, bias_offset, 0);
     }
 
-    // Update weights using Adam update
+    // Step 6. Update weights using Adam update
     float *W = layer->W;
     float *m = layer->adam.m;
     float *v = layer->adam.v;
     float *m_hat = layer->adam.m_hat;
     float *v_hat = layer->adam.v_hat;
+    float t = nn->adam.t;
 
     for (size_t i = 0; i < m_W * n_W; ++i)
     {
-      m[i] = uo_nn_adam_beta1 * m[i] + (1 - uo_nn_adam_beta1) * dW[i];
-      v[i] = uo_nn_adam_beta2 * v[i] + (1 - uo_nn_adam_beta2) * (dW[i] * dW[i]);
-      m_hat[i] = m[i] / (1 - powf(uo_nn_adam_beta1, (float)nn->adam.t));
-      v_hat[i] = v[i] / (1 - powf(uo_nn_adam_beta2, (float)nn->adam.t));
+      m[i] = uo_nn_adam_beta1 * m[i] + (1.0f - uo_nn_adam_beta1) * dW[i];
+      v[i] = uo_nn_adam_beta2 * v[i] + (1.0f - uo_nn_adam_beta2) * (dW[i] * dW[i]);
+      m_hat[i] = m[i] / (1.0f - powf(uo_nn_adam_beta1, t));
+      v_hat[i] = v[i] / (1.0f - powf(uo_nn_adam_beta2, t));
       W[i] -= uo_nn_adam_learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
     }
   }
 
-  // Increment timestep
+  // Step 7. Increment Adam update timestep
   nn->adam.t++;
+}
+
+void uo_print_nn(uo_nn *nn)
+{
+  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
+  {
+    uo_nn_layer *layer = nn->layers + layer_index;
+    printf("Layer %zu:\n", layer_index);
+    uo_print_matrix(layer->W, layer->m_W, layer->n_W);
+    printf("\n");
+  }
 }
 
 void uo_nn_example()
@@ -448,13 +446,13 @@ void uo_nn_example()
 bool uo_test_nn_train()
 {
   bool passed = false;
+  srand(time(NULL));
 
   size_t batch_size = 64;
   uo_nn nn;
-  uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
+  uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
     { 2 },
-    { 4, activation_relu },
-    { 4, activation_relu },
+    { 2, activation_relu },
     { 1 }
   }, loss_mse);
 
@@ -462,15 +460,14 @@ bool uo_test_nn_train()
 
   for (size_t i = 0; i < 100000; ++i)
   {
-    memset(nn.layers->X, 0, nn.batch_size * nn.layers->m_W * sizeof(float));
     for (size_t j = 0; j < batch_size; ++j)
     {
       float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
       float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
       float y = (int)x0 ^ (int)x1;
       y_true[j] = y;
-      nn.layers->X[j * nn.layers->m_W] = x0;
-      nn.layers->X[j * nn.layers->m_W + 1] = x1;
+      nn.X[j * nn.n_X] = x0;
+      nn.X[j * nn.n_X + 1] = x1;
     }
 
     uo_nn_feed_forward(&nn);
@@ -481,6 +478,11 @@ bool uo_test_nn_train()
     if (i % 1000 == 0)
     {
       printf("iteration %zu rmse: %f\n", i, rmse);
+
+      if (i % 10000 == 0)
+      {
+        uo_print_nn(&nn);
+      }
     }
 
     if (rmse < 0.001)
@@ -493,15 +495,14 @@ bool uo_test_nn_train()
 
   for (size_t i = 0; i < 1000; ++i)
   {
-    memset(nn.layers->X, 0, nn.batch_size * nn.layers->m_W * sizeof(float));
     for (size_t j = 0; j < batch_size; ++j)
     {
       float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
       float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
       float y = (int)x0 ^ (int)x1;
       y_true[j] = y;
-      nn.layers->X[j * nn.layers->m_W] = x0;
-      nn.layers->X[j * nn.layers->m_W + 1] = x1;
+      nn.X[j * nn.n_X] = x0;
+      nn.X[j * nn.n_X + 1] = x1;
     }
 
     uo_nn_feed_forward(&nn);
@@ -511,9 +512,12 @@ bool uo_test_nn_train()
 
     if (rmse > 0.001)
     {
+      uo_print_nn(&nn);
       return false;
     }
   }
+
+  uo_print_nn(&nn);
 
   return true;
 }
