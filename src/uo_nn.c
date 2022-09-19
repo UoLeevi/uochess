@@ -1,5 +1,7 @@
 #include "uo_nn.h"
 #include "uo_math.h"
+#include "uo_misc.h"
+#include "uo_global.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -336,7 +338,7 @@ void uo_nn_feed_forward(uo_nn *nn)
     uo_transpose_ps(W, W_t, m_W, n_W);
 
     float *Z = layer->Z;
-    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset, 0, 0);
+    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset);
 
     // Step 3. Apply activation function A = f(Z)
     if (layer->activation_func)
@@ -389,14 +391,14 @@ void uo_nn_backprop(uo_nn *nn, float *y_true)
     float *dZ_t = nn->temp[2];
     uo_transpose_ps(dZ, dZ_t, nn->batch_size, n_dZ);
 
-    uo_matmul_ps(X_t, dZ_t, dW, m_W, n_W, nn->batch_size, 0, 0, 0);
+    uo_matmul_ps(X_t, dZ_t, dW, m_W, n_W, nn->batch_size, 0);
 
     if (layer_index > 1)
     {
       // Step 5. Derivative of loss wrt input
       float *dX = layer[-1].dA;
       float *W = layer->W;
-      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_dZ - bias_offset, bias_offset, bias_offset, 0);
+      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, 0);
     }
 
     // Step 6. Update weights using Adam update
@@ -421,15 +423,33 @@ void uo_nn_backprop(uo_nn *nn, float *y_true)
   nn->adam.t++;
 }
 
-void uo_print_nn(uo_nn *nn)
+void uo_print_nn(FILE *const fp, uo_nn *nn)
 {
   for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
   {
     uo_nn_layer *layer = nn->layers + layer_index;
-    printf("Layer %zu:\n", layer_index);
-    uo_print_matrix(layer->W, layer->m_W, layer->n_W);
-    printf("\n");
+    size_t m_W = layer->m_W;
+    size_t n_W = layer->n_W;
+    fprintf(fp, "Layer %zu (%zu x %zu): ", layer_index, m_W, n_W);
+    uo_print_matrix(fp, layer->W, m_W, n_W);
+    fprintf(fp, "\n\n");
   }
+}
+
+void uo_nn_save_to_file(uo_nn *nn, char *filepath)
+{
+  FILE *fp = fopen(filepath, "w");
+  uo_print_nn(fp, nn);
+  fclose(fp);
+}
+
+uo_nn *uo_nn_read_from_file(char *filepath)
+{
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+
+
+
+  uo_file_mmap_close(file_mmap);
 }
 
 void uo_nn_example()
@@ -443,9 +463,19 @@ void uo_nn_example()
   }, loss_mse);
 }
 
-bool uo_test_nn_train()
+bool uo_test_nn_train(char *test_data_dir)
 {
+  if (!test_data_dir) return false;
+
   bool passed = false;
+
+  size_t test_count = 0;
+
+  char *filepath = buf;
+
+  strcpy(filepath, test_data_dir);
+  strcpy(filepath + strlen(test_data_dir), "/nn-test-xor.nnuo");
+
   srand(time(NULL));
 
   size_t batch_size = 64;
@@ -481,7 +511,7 @@ bool uo_test_nn_train()
 
       if (i % 10000 == 0)
       {
-        uo_print_nn(&nn);
+        uo_print_nn(stdout, &nn);
       }
     }
 
@@ -512,12 +542,12 @@ bool uo_test_nn_train()
 
     if (rmse > 0.001)
     {
-      uo_print_nn(&nn);
+      uo_print_nn(stdout, &nn);
       return false;
     }
   }
 
-  uo_print_nn(&nn);
-
+  uo_print_nn(stdout, &nn);
+  uo_nn_save_to_file(&nn, filepath);
   return true;
 }

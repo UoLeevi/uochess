@@ -23,7 +23,7 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
   bool passed = true;
 
   uo_transpose_ps(B, B_t, m_B, n_B);
-  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
+  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0);
 
   // compare matrix multiplication results against expected results
   for (size_t i = 0; i < m_C * n_C; i++)
@@ -244,17 +244,17 @@ failed_err_data:
   return false;
 }
 
-void uo_print_matrix(float *A, size_t m, size_t n)
+void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n)
 {
-  printf(" [ ");
+  fprintf(fp, "[\n");
 
   for (size_t i = 0; i < m; ++i)
   {
     for (size_t j = 0; j < n; ++j)
     {
-      printf(" %f ", A[i * n + j]);
+      fprintf(fp, " %12.6f ", A[i * n + j]);
     }
 
-    printf(i + 1 == m ? "]\n" : ";\n   ");
+    fprintf(fp, i + 1 == m ? "]" : ";\n");
   }
 }

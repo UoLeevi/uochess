@@ -11,6 +11,7 @@ extern "C"
 #include <immintrin.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define uo_avx_float __m256
 #define uo_floats_per_avx_float (sizeof(uo_avx_float) / sizeof(float))
@@ -223,20 +224,20 @@ extern "C"
   }
 
   // C = AB, C is n x m matrix, k is "other" dimension
-  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset_n_C, int offset_n_A, int offset_n_B)
+  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset)
   {
     for (size_t i = 0; i < m; ++i)
     {
       for (size_t j = 0; j < n; ++j)
       {
-        C[i * (n + offset_n_C) + j] = uo_dotproduct_ps(A + i * (k + offset_n_A), B_t + j * (k + offset_n_B), k);
+        C[i * (n + offset) + j] = uo_dotproduct_ps(A + i * k, B_t + j * k, k);
       }
     }
   }
 
   bool uo_test_matmul(char *test_data_dir);
 
-  void uo_print_matrix(float *A, size_t m, size_t n);
+  void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n);
 
 #ifdef __cplusplus
     }
