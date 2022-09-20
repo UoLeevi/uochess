@@ -92,6 +92,27 @@ uo_nn_activation_function_param activation_sigmoid = {
   .df = uo_nn_activation_function_sigmoid_d
 };
 
+uo_avx_float uo_nn_activation_function_swish(__m256 avx_float)
+{
+  __m256 sigmoid = uo_nn_activation_function_sigmoid(avx_float);
+  return _mm256_mul_ps(avx_float, sigmoid);
+}
+
+uo_avx_float uo_nn_activation_function_swish_d(__m256 avx_float)
+{
+  __m256 sigmoid = uo_nn_activation_function_sigmoid(avx_float);
+  __m256 swish = _mm256_mul_ps(avx_float, sigmoid);
+  __m256 ones = _mm256_set1_ps(1.0);
+  __m256 sub = _mm256_sub_ps(ones, swish);
+  __m256 mul = _mm256_mul_ps(swish, sub);
+  return _mm256_add_ps(swish, mul);
+}
+
+uo_nn_activation_function_param activation_swish = {
+  .f = uo_nn_activation_function_swish,
+  .df = uo_nn_activation_function_swish_d
+};
+
 typedef struct uo_nn_layer_param
 {
   size_t n;
@@ -482,7 +503,7 @@ bool uo_test_nn_train(char *test_data_dir)
   uo_nn nn;
   uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
     { 2 },
-    { 2, activation_sigmoid },
+    { 2, activation_swish },
     { 1 }
   }, loss_mse);
 
