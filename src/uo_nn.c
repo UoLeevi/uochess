@@ -9,18 +9,12 @@
 #include <time.h>
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
+// see: https://arxiv.org/pdf/1711.05101.pdf
 #define uo_nn_adam_learning_rate 1e-4
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
-
-typedef uo_avx_float uo_nn_loss_function(uo_avx_float y_true, uo_avx_float y_pred);
-
-typedef struct uo_nn_loss_function_param
-{
-  uo_nn_loss_function *f;
-  uo_nn_loss_function *df;
-} uo_nn_loss_function_param;
+#define uo_nn_adam_weight_decay 1e-2
 
 uo_avx_float uo_nn_loss_function_mean_squared_error(uo_avx_float y_true, uo_avx_float y_pred)
 {
@@ -39,84 +33,10 @@ uo_nn_loss_function_param loss_mse = {
   .df = uo_nn_loss_function_mean_squared_error_d
 };
 
-typedef uo_avx_float uo_nn_activation_function(uo_avx_float avx_float);
-
-typedef struct uo_nn_activation_function_param
-{
-  uo_nn_activation_function *f;
-  uo_nn_activation_function *df;
-} uo_nn_activation_function_param;
-
-uo_avx_float uo_nn_activation_function_relu(__m256 avx_float)
-{
-  __m256 zeros = _mm256_setzero_ps();
-  return _mm256_max_ps(avx_float, zeros);
-}
-
-uo_avx_float uo_nn_activation_function_relu_d(__m256 avx_float)
-{
-  __m256 zeros = _mm256_setzero_ps();
-  __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
-  __m256 ones = _mm256_set1_ps(1.0);
-  return _mm256_max_ps(mask, ones);
-}
-
-uo_nn_activation_function_param activation_relu = {
-  .f = uo_nn_activation_function_relu,
-  .df = uo_nn_activation_function_relu_d
-};
-
-uo_avx_float uo_nn_activation_function_sigmoid(__m256 avx_float)
-{
-  float f[uo_floats_per_avx_float];
-  _mm256_storeu_ps(f, avx_float);
-
-  for (size_t i = 0; i < uo_floats_per_avx_float; ++i)
-  {
-    f[i] = 1.0 / (1.0 + expf(-f[i]));
-  }
-
-  return _mm256_loadu_ps(f);
-}
-
-uo_avx_float uo_nn_activation_function_sigmoid_d(__m256 avx_float)
-{
-  __m256 sigmoid = uo_nn_activation_function_sigmoid(avx_float);
-  __m256 ones = _mm256_set1_ps(1.0);
-  __m256 sub = _mm256_sub_ps(ones, sigmoid);
-  return _mm256_mul_ps(sigmoid, sub);
-}
-
-uo_nn_activation_function_param activation_sigmoid = {
-  .f = uo_nn_activation_function_sigmoid,
-  .df = uo_nn_activation_function_sigmoid_d
-};
-
-uo_avx_float uo_nn_activation_function_swish(__m256 avx_float)
-{
-  __m256 sigmoid = uo_nn_activation_function_sigmoid(avx_float);
-  return _mm256_mul_ps(avx_float, sigmoid);
-}
-
-uo_avx_float uo_nn_activation_function_swish_d(__m256 avx_float)
-{
-  __m256 sigmoid = uo_nn_activation_function_sigmoid(avx_float);
-  __m256 swish = _mm256_mul_ps(avx_float, sigmoid);
-  __m256 ones = _mm256_set1_ps(1.0);
-  __m256 sub = _mm256_sub_ps(ones, swish);
-  __m256 mul = _mm256_mul_ps(swish, sub);
-  return _mm256_add_ps(swish, mul);
-}
-
-uo_nn_activation_function_param activation_swish = {
-  .f = uo_nn_activation_function_swish,
-  .df = uo_nn_activation_function_swish_d
-};
-
 typedef struct uo_nn_layer_param
 {
   size_t n;
-  uo_nn_activation_function_param activation_function;
+  char *activation_function;
 } uo_nn_layer_param;
 
 typedef struct uo_nn_layer
@@ -202,11 +122,13 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
     float *mem;
 
-    layer->activation_func = layer_params[layer_index].activation_function.f;
+    const uo_nn_activation_function_param *activation_function_param = uo_nn_get_activation_function_by_name(layer_params[layer_index].activation_function);
+
+    layer->activation_func = activation_function_param->f;
 
     if (layer->activation_func)
     {
-      layer->activation_func_d = layer_params[layer_index].activation_function.df;
+      layer->activation_func_d = activation_function_param->df;
       size_t size_total = size_output * 4 + size_weights * 6;
       mem = calloc(size_total, sizeof(float));
 
@@ -371,7 +293,7 @@ void uo_nn_feed_forward(uo_nn *nn)
   }
 }
 
-void uo_nn_backprop(uo_nn *nn, float *y_true)
+void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 {
   // Step 1. Derivative of loss wrt output
   float *dA = nn->layers[nn->layer_count].dA;
@@ -429,6 +351,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true)
     float *m_hat = layer->adam.m_hat;
     float *v_hat = layer->adam.v_hat;
     float t = nn->adam.t;
+    float learning_rate = lr_multiplier * uo_nn_adam_learning_rate;
 
     for (size_t i = 0; i < m_W * n_W; ++i)
     {
@@ -436,12 +359,66 @@ void uo_nn_backprop(uo_nn *nn, float *y_true)
       v[i] = uo_nn_adam_beta2 * v[i] + (1.0f - uo_nn_adam_beta2) * (dW[i] * dW[i]);
       m_hat[i] = m[i] / (1.0f - powf(uo_nn_adam_beta1, t));
       v_hat[i] = v[i] / (1.0f - powf(uo_nn_adam_beta2, t));
-      W[i] -= uo_nn_adam_learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
+      //W[i] -= (i + 1) % n_W == 0 ? 0.0f : (uo_nn_adam_weight_decay * uo_nn_adam_learning_rate * W[i]);
+      W[i] -= learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
     }
   }
 
   // Step 7. Increment Adam update timestep
   nn->adam.t++;
+}
+
+typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true);
+typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error);
+
+bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval)
+{
+  size_t counter = 0;
+  size_t output_size = nn->batch_size * nn->n_y;
+
+  float *y_true = malloc(output_size * sizeof(float));
+
+  for (size_t i = 0; i < max_iterations; ++i)
+  {
+    select_batch(nn, i, nn->X, y_true);
+
+    uo_nn_feed_forward(nn);
+
+    float loss = uo_nn_calculate_loss(nn, y_true);
+
+    if (isnan(loss))
+    {
+      free(y_true);
+      return false;
+    }
+
+    if (loss < error_threshold)
+    {
+      ++counter;
+
+      if (counter >= error_sample_size)
+      {
+        report(nn, i, loss);
+        free(y_true);
+        return true;
+      }
+    }
+    else
+    {
+      counter = 0;
+    }
+
+    if (i % report_interval == 0)
+    {
+      report(nn, i, loss);
+    }
+
+    float lr_multiplier = 1.0f - (float)i / (float)max_iterations;
+    uo_nn_backprop(nn, y_true, lr_multiplier);
+  }
+
+  free(y_true);
+  return false;
 }
 
 void uo_print_nn(FILE *const fp, uo_nn *nn)
@@ -451,7 +428,15 @@ void uo_print_nn(FILE *const fp, uo_nn *nn)
     uo_nn_layer *layer = nn->layers + layer_index;
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
-    fprintf(fp, "Layer %zu (%zu x %zu): ", layer_index, m_W, n_W);
+    const char *activation_function = uo_nn_get_activation_function_name(layer->activation_func);
+    fprintf(fp, "Layer %zu (%zu x %zu)", layer_index, m_W, n_W);
+
+    if (activation_function)
+    {
+      fprintf(fp, " - %s", activation_function);
+    }
+
+    fprintf(fp, ":");
     uo_print_matrix(fp, layer->W, m_W, n_W);
     fprintf(fp, "\n\n");
   }
@@ -478,17 +463,38 @@ void uo_nn_example()
   uo_nn nn;
   uo_nn_init(&nn, 3, 1, (uo_nn_layer_param[]) {
     { 832 },
-    { 64, activation_relu },
-    { 32, activation_relu },
+    { 64, "relu" },
+    { 32, "relu" },
     { 1 }
   }, loss_mse);
+}
+
+void uo_nn_select_batch_test(uo_nn *nn, size_t iteration, float *X, float *y_true)
+{
+  for (size_t j = 0; j < nn->batch_size; ++j)
+  {
+    float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
+    float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
+    float y = (int)x0 ^ (int)x1;
+    y_true[j] = y;
+    X[j * nn->n_X] = x0;
+    X[j * nn->n_X + 1] = x1;
+  }
+}
+
+void uo_nn_report_test(uo_nn *nn, size_t iteration, float error)
+{
+  printf("iteration %zu rmse: %f\n", iteration, sqrtf(error));
+
+  if (iteration % 10000 == 0)
+  {
+    uo_print_nn(stdout, nn);
+  }
 }
 
 bool uo_test_nn_train(char *test_data_dir)
 {
   if (!test_data_dir) return false;
-
-  bool passed = false;
 
   size_t test_count = 0;
 
@@ -499,63 +505,27 @@ bool uo_test_nn_train(char *test_data_dir)
 
   srand(time(NULL));
 
-  size_t batch_size = 64;
+  size_t batch_size = 256;
   uo_nn nn;
   uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
     { 2 },
-    { 2, activation_swish },
+    { 2, "swish" },
     { 1 }
   }, loss_mse);
 
-  float *y_true = uo_alloca(batch_size * sizeof(float));
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test, pow(1e-3, 2), 100, 100000, uo_nn_report_test, 1000);
 
-  for (size_t i = 0; i < 1000000; ++i)
+  if (!passed)
   {
-    for (size_t j = 0; j < batch_size; ++j)
-    {
-      float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
-      float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
-      float y = (int)x0 ^ (int)x1;
-      y_true[j] = y;
-      nn.X[j * nn.n_X] = x0;
-      nn.X[j * nn.n_X + 1] = x1;
-    }
-
-    uo_nn_feed_forward(&nn);
-
-    float mse = uo_nn_calculate_loss(&nn, y_true);
-    float rmse = sqrt(mse);
-
-    if (i % 1000 == 0)
-    {
-      printf("iteration %zu rmse: %f\n", i, rmse);
-
-      if (i % 10000 == 0)
-      {
-        uo_print_nn(stdout, &nn);
-      }
-    }
-
-    if (rmse < 0.001)
-    {
-      passed = true;
-    }
-
-    uo_nn_backprop(&nn, y_true);
+    uo_print_nn(stdout, &nn);
+    return false;
   }
+
+  float *y_true = uo_alloca(batch_size * sizeof(float));
 
   for (size_t i = 0; i < 1000; ++i)
   {
-    for (size_t j = 0; j < batch_size; ++j)
-    {
-      float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
-      float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
-      float y = (int)x0 ^ (int)x1;
-      y_true[j] = y;
-      nn.X[j * nn.n_X] = x0;
-      nn.X[j * nn.n_X + 1] = x1;
-    }
-
+    uo_nn_select_batch_test(&nn, i, nn.X, y_true);
     uo_nn_feed_forward(&nn);
 
     float mse = uo_nn_calculate_loss(&nn, y_true);

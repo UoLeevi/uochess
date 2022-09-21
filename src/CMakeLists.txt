@@ -15,6 +15,7 @@ add_executable(uochess
     uo_uci.c
     uo_engine.c
     uo_nn.c
+    uo_nn_activation_funcs.c
     uo_math.c
     uo_test.c)
 
