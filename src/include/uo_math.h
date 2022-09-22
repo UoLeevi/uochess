@@ -224,13 +224,13 @@ extern "C"
   }
 
   // C = AB, C is n x m matrix, k is "other" dimension
-  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset)
+  static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset_C, int offset_A, int offset_B)
   {
     for (size_t i = 0; i < m; ++i)
     {
       for (size_t j = 0; j < n; ++j)
       {
-        C[i * (n + offset) + j] = uo_dotproduct_ps(A + i * k, B_t + j * k, k);
+        C[i * (n + offset_C) + j] = uo_dotproduct_ps(A + i * (k + offset_A), B_t + j * (k + offset_B), k);
       }
     }
   }

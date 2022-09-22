@@ -23,7 +23,7 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
   bool passed = true;
 
   uo_transpose_ps(B, B_t, m_B, n_B);
-  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0);
+  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
 
   // compare matrix multiplication results against expected results
   for (size_t i = 0; i < m_C * n_C; i++)

@@ -41,8 +41,8 @@ typedef struct uo_nn_layer_param
 
 typedef struct uo_nn_layer
 {
-  float *W;   // weights matrix, m x n
-  float *dW;  // derivative of loss wrt weights, m x n
+  float *W_t;   // transpose of weights matrix, m x n
+  float *dW_t;  // transpose of derivative of loss wrt weights, m x n
   float *Z;   // output before activation matrix, batch_size x n
   float *dZ;  // derivative of loss wrt output before activation, batch_size x n
   float *A;   // output matrix, batch_size x n
@@ -152,9 +152,9 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
       mem += size_output;
     }
 
-    layer->W = mem;
+    layer->W_t = mem;
     mem += size_weights;
-    layer->dW = mem;
+    layer->dW_t = mem;
     mem += size_weights;
     layer->adam.m = mem;
     mem += size_weights;
@@ -178,7 +178,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
     for (size_t j = 0; j < count; ++j)
     {
-      layer->W[j] = (((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f;
+      layer->W_t[j] = (((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f;
     }
   }
 
@@ -273,15 +273,12 @@ void uo_nn_feed_forward(uo_nn *nn)
       X[i * n_X - 1] = 1.0f;
     }
 
-    // Step 2. Calculate dot product Z = XW
+    // Step 2. Matrix multiplication Z = XW
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
-    float *W = layer->W;
-    float *W_t = nn->temp[0];
-    uo_transpose_ps(W, W_t, m_W, n_W);
-
+    float *W_t = layer->W_t;
     float *Z = layer->Z;
-    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset);
+    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset, 0, 0);
 
     // Step 3. Apply activation function A = f(Z)
     if (layer->activation_func)
@@ -324,9 +321,9 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     // Step 4. Derivative of loss wrt weights
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
-    float *dW = layer->dW;
-
+    float *dW_t = layer->dW_t;
     float *X = layer[-1].A;
+
     float *X_t = nn->temp[1];
     uo_transpose_ps(X, X_t, nn->batch_size, m_W);
 
@@ -334,18 +331,20 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     float *dZ_t = nn->temp[2];
     uo_transpose_ps(dZ, dZ_t, nn->batch_size, n_dZ);
 
-    uo_matmul_ps(X_t, dZ_t, dW, m_W, n_W, nn->batch_size, 0);
+    uo_matmul_ps(dZ_t, X_t, dW_t, n_W, m_W, nn->batch_size, 0, 0, 0);
 
     if (layer_index > 1)
     {
       // Step 5. Derivative of loss wrt input
       float *dX = layer[-1].dA;
-      float *W = layer->W;
-      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, 0);
+      float *W_t = layer->W_t;
+      float *W = nn->temp[0];
+      uo_transpose_ps(W_t, W, n_W, m_W);
+      uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, 0, bias_offset, 0);
     }
 
     // Step 6. Update weights using Adam update
-    float *W = layer->W;
+    float *W_t = layer->W_t;
     float *m = layer->adam.m;
     float *v = layer->adam.v;
     float *m_hat = layer->adam.m_hat;
@@ -355,12 +354,12 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 
     for (size_t i = 0; i < m_W * n_W; ++i)
     {
-      m[i] = uo_nn_adam_beta1 * m[i] + (1.0f - uo_nn_adam_beta1) * dW[i];
-      v[i] = uo_nn_adam_beta2 * v[i] + (1.0f - uo_nn_adam_beta2) * (dW[i] * dW[i]);
+      m[i] = uo_nn_adam_beta1 * m[i] + (1.0f - uo_nn_adam_beta1) * dW_t[i];
+      v[i] = uo_nn_adam_beta2 * v[i] + (1.0f - uo_nn_adam_beta2) * (dW_t[i] * dW_t[i]);
       m_hat[i] = m[i] / (1.0f - powf(uo_nn_adam_beta1, t));
       v_hat[i] = v[i] / (1.0f - powf(uo_nn_adam_beta2, t));
-      //W[i] -= (i + 1) % n_W == 0 ? 0.0f : (uo_nn_adam_weight_decay * uo_nn_adam_learning_rate * W[i]);
-      W[i] -= learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
+      //W_t[i] -= (i + 1) % n_W_t == 0 ? 0.0f : (uo_nn_adam_weight_decay * uo_nn_adam_learning_rate * W_t[i]);
+      W_t[i] -= learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
     }
   }
 
@@ -437,7 +436,10 @@ void uo_print_nn(FILE *const fp, uo_nn *nn)
     }
 
     fprintf(fp, ":");
-    uo_print_matrix(fp, layer->W, m_W, n_W);
+    float *W_t = layer->W_t;
+    float *W = nn->temp[0];
+    uo_transpose_ps(W_t, W, n_W, m_W);
+    uo_print_matrix(fp, W, m_W, n_W);
     fprintf(fp, "\n\n");
   }
 }
@@ -507,13 +509,14 @@ bool uo_test_nn_train(char *test_data_dir)
 
   size_t batch_size = 256;
   uo_nn nn;
-  uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
+  uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
     { 2 },
     { 2, "swish" },
+    { 2, "sigmoid" },
     { 1 }
   }, loss_mse);
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test, pow(1e-3, 2), 100, 100000, uo_nn_report_test, 1000);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test, pow(1e-3, 2), 100, 400000, uo_nn_report_test, 1000);
 
   if (!passed)
   {
