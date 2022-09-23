@@ -212,6 +212,29 @@ extern "C"
     _mm256_maskstore_ps(dst + nb * uo_floats_per_avx_float, mask, res);
   }
 
+  static inline void uo_vec_mapfunc_mul_ps(float *a, float *b, float *dst, size_t n, uo_mm256_ps_function *function)
+  {
+    size_t nb = n / uo_floats_per_avx_float;
+    size_t reminder = n % uo_floats_per_avx_float;
+
+    for (size_t i = 0; i < nb; ++i)
+    {
+      uo_avx_float _a = _mm256_loadu_ps(a + i * uo_floats_per_avx_float);
+      uo_avx_float res = function(_a);
+      uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
+      uo_avx_float mul = _mm256_mul_ps(res, _b);
+      _mm256_storeu_ps(dst + i * uo_floats_per_avx_float, mul);
+    }
+
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    uo_avx_float _a = _mm256_maskload_ps(a + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float res = function(_a);
+    uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float mul = _mm256_mul_ps(res, _b);
+    _mm256_maskstore_ps(dst + nb * uo_floats_per_avx_float, mask, mul);
+  }
+
+
   static inline void uo_transpose_ps(const float *A, float *A_t, size_t m, size_t n)
   {
     for (size_t i = 0; i < m; ++i)
@@ -240,7 +263,7 @@ extern "C"
   void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n);
 
 #ifdef __cplusplus
-    }
+}
 #endif
 
 #endif

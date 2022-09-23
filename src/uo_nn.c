@@ -174,11 +174,14 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   for (size_t i = 1; i <= layer_count; ++i)
   {
     uo_nn_layer *layer = nn->layers + i;
-    size_t count = layer->m_W * layer->n_W;
+    size_t m_W = layer->m_W;
+    size_t n_W = layer->n_W;
+    size_t count = m_W * n_W;
+    float scale = 1.0f / sqrtf((float)(m_W - 1));
 
     for (size_t j = 0; j < count; ++j)
     {
-      layer->W_t[j] = (((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f;
+      layer->W_t[j] = scale * ((((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f);
     }
   }
 
@@ -307,18 +310,14 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 
     if (layer->activation_func_d)
     {
-      // Step 2. Derivative of activation wrt Z
-      float *dAdZ = nn->temp[0];
+      // Step 2. Derivative of loss wrt Z
       size_t n_A = layer->n_W + bias_offset;
       float *Z = layer->Z;
-      uo_vec_mapfunc_ps(Z, dAdZ, nn->batch_size * n_A, layer->activation_func_d);
-
-      // Step 3. Derivative of loss wrt Z
       float *dA = layer->dA;
-      uo_vec_mul_ps(dAdZ, dA, dZ, nn->batch_size * n_A);
+      uo_vec_mapfunc_mul_ps(Z, dA, dZ, nn->batch_size * n_A, layer->activation_func_d);
     }
 
-    // Step 4. Derivative of loss wrt weights
+    // Step 3. Derivative of loss wrt weights
     size_t m_W = layer->m_W;
     size_t n_W = layer->n_W;
     float *dW_t = layer->dW_t;
@@ -335,7 +334,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 
     if (layer_index > 1)
     {
-      // Step 5. Derivative of loss wrt input
+      // Step 4. Derivative of loss wrt input
       float *dX = layer[-1].dA;
       float *W_t = layer->W_t;
       float *W = nn->temp[0];
@@ -343,7 +342,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
       uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, 0, bias_offset, 0);
     }
 
-    // Step 6. Update weights using Adam update
+    // Step 5. Update weights using Adam update
     float *W_t = layer->W_t;
     float *m = layer->adam.m;
     float *v = layer->adam.v;
@@ -363,7 +362,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     }
   }
 
-  // Step 7. Increment Adam update timestep
+  // Step 6. Increment Adam update timestep
   nn->adam.t++;
 }
 
