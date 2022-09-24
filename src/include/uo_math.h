@@ -258,12 +258,50 @@ extern "C"
     }
   }
 
+  // C_t = B_t * A_t, C is n x m matrix, k is "other" dimension
+  static inline void uo_matmul_t_ps(const float *A_t, const float *B, float *C_t, size_t m, size_t n, size_t k)
+  {
+    memset(C_t, 0, m * n);
+
+    size_t mb = m / uo_floats_per_avx_float;
+    size_t reminder = m % uo_floats_per_avx_float;
+
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+
+    for (size_t _k = 0; _k < k; ++_k)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        uo_avx_float b = _mm256_set1_ps(B[j * k + _k]);
+
+        for (size_t ii = 0; ii < mb; ++ii)
+        {
+          uo_avx_float a = _mm256_loadu_ps(A_t + _k * k + ii * uo_floats_per_avx_float);
+          uo_avx_float mul = _mm256_mul_ps(a, b);
+
+          float *c = C_t + j * m + ii * uo_floats_per_avx_float;
+          uo_avx_float _c = _mm256_loadu_ps(c);
+          uo_avx_float add = _mm256_add_ps(_c, mul);
+          _mm256_storeu_ps(c, add);
+        }
+
+        uo_avx_float a = _mm256_maskload_ps(A_t + _k * k + mb * uo_floats_per_avx_float, mask);
+        uo_avx_float mul = _mm256_mul_ps(a, b);
+
+        float *c = C_t + j * m + mb * uo_floats_per_avx_float;
+        uo_avx_float _c = _mm256_maskload_ps(c, mask);
+        uo_avx_float add = _mm256_add_ps(_c, mul);
+        _mm256_maskstore_ps(c, mask, add);
+      }
+    }
+  }
+
   bool uo_test_matmul(char *test_data_dir);
 
   void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif
