@@ -32,8 +32,33 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
     passed &= uo_approx_eq_ps(d, 0);
   }
 
+  if (!passed)
+  {
+    free(B_t);
+    free(C);
+    return false;
+  }
+
+  float *A_t = malloc(m_A * n_A * sizeof(float));
+  uo_transpose_ps(A, A_t, m_A, n_A);
+
+  float *C_t = C;
+  float *C_t_expected = malloc(m_C * n_C * sizeof(float));
+  uo_transpose_ps(C_expected, C_t_expected, m_C, n_C);
+
+  uo_matmul_t_ps(A_t, B, C_t, m_C, n_C, n_A, 0, 0, 0);
+
+  // compare matrix multiplication results against expected results
+  for (size_t i = 0; i < m_C * n_C; i++)
+  {
+    float d = C_t_expected[i] - C_t[i];
+    passed &= uo_approx_eq_ps(d, 0);
+  }
+
   free(B_t);
   free(C);
+  free(A_t);
+  free(C_t_expected);
   return passed;
 
 #undef uo_approx_eq_ps

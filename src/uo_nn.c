@@ -322,15 +322,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     size_t n_W = layer->n_W;
     float *dW_t = layer->dW_t;
     float *X = layer[-1].A;
-
-    float *X_t = nn->temp[1];
-    uo_transpose_ps(X, X_t, nn->batch_size, m_W);
-
-    size_t n_dZ = n_W + bias_offset;
-    float *dZ_t = nn->temp[2];
-    uo_transpose_ps(dZ, dZ_t, nn->batch_size, n_dZ);
-
-    uo_matmul_ps(dZ_t, X_t, dW_t, n_W, m_W, nn->batch_size, 0, 0, 0);
+    uo_matmul_t_ps(X, dZ, dW_t, m_W, n_W, nn->batch_size, 0, 0, bias_offset);
 
     if (layer_index > 1)
     {

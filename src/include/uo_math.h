@@ -246,7 +246,7 @@ extern "C"
     }
   }
 
-  // C = AB, C is n x m matrix, k is "other" dimension
+  // C = AB, C is m x n matrix, k is "other" dimension
   static inline void uo_matmul_ps(const float *A, const float *B_t, float *C, size_t m, size_t n, size_t k, int offset_C, int offset_A, int offset_B)
   {
     for (size_t i = 0; i < m; ++i)
@@ -258,10 +258,10 @@ extern "C"
     }
   }
 
-  // C_t = B_t * A_t, C is n x m matrix, k is "other" dimension
-  static inline void uo_matmul_t_ps(const float *A_t, const float *B, float *C_t, size_t m, size_t n, size_t k)
+  // C_t = B_t * A_t, C is m x n matrix, k is "other" dimension
+  static inline void uo_matmul_t_ps(const float *A_t, const float *B, float *C_t, size_t m, size_t n, size_t k, int offset_C, int offset_A, int offset_B)
   {
-    memset(C_t, 0, m * n);
+    memset(C_t, 0, m * (n + offset_C) * sizeof(float));
 
     size_t mb = m / uo_floats_per_avx_float;
     size_t reminder = m % uo_floats_per_avx_float;
@@ -272,11 +272,11 @@ extern "C"
     {
       for (size_t j = 0; j < n; ++j)
       {
-        uo_avx_float b = _mm256_set1_ps(B[j * k + _k]);
+        uo_avx_float b = _mm256_set1_ps(B[_k * (n + offset_B) + j]);
 
         for (size_t ii = 0; ii < mb; ++ii)
         {
-          uo_avx_float a = _mm256_loadu_ps(A_t + _k * k + ii * uo_floats_per_avx_float);
+          uo_avx_float a = _mm256_loadu_ps(A_t + _k * (m + offset_A) + ii * uo_floats_per_avx_float);
           uo_avx_float mul = _mm256_mul_ps(a, b);
 
           float *c = C_t + j * m + ii * uo_floats_per_avx_float;
@@ -285,7 +285,7 @@ extern "C"
           _mm256_storeu_ps(c, add);
         }
 
-        uo_avx_float a = _mm256_maskload_ps(A_t + _k * k + mb * uo_floats_per_avx_float, mask);
+        uo_avx_float a = _mm256_maskload_ps(A_t + _k * (m + offset_A) + mb * uo_floats_per_avx_float, mask);
         uo_avx_float mul = _mm256_mul_ps(a, b);
 
         float *c = C_t + j * m + mb * uo_floats_per_avx_float;
@@ -301,7 +301,7 @@ extern "C"
   void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif
