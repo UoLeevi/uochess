@@ -37,9 +37,14 @@ static int run_tests(char *test_data_dir, char *test_name)
     passed &= uo_test_matmul(test_data_dir);
   }
 
-  if (test_name == NULL || strcmp(test_name, "nn_train") == 0)
+  if (test_name == NULL || strcmp(test_name, "nn_train_xor") == 0)
   {
-    passed &= uo_test_nn_train(test_data_dir);
+    passed &= uo_test_nn_train_xor(test_data_dir);
+  }
+  
+  if (test_name == NULL || strcmp(test_name, "nn_train_eval") == 0)
+  {
+    passed &= uo_test_nn_train_eval(test_data_dir);
   }
 
   uo_engine_unlock_position();

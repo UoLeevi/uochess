@@ -4,6 +4,7 @@
 #include "uo_evaluation.h"
 #include "uo_def.h"
 #include "uo_global.h"
+#include "uo_nn.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -50,7 +51,8 @@ typedef const struct uo_uci_tokens
     qsearch,
     alpha,
     beta,
-    checks;
+    checks,
+    train_nn_eval;
 
   struct
   {
@@ -113,6 +115,7 @@ uo_uci_tokens tokens = {
   .alpha = 32,
   .beta = 33,
   .checks = 34,
+  .train_nn_eval = 35,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -373,6 +376,12 @@ static void uo_uci_read_token(void)
   if (streq(ptr, "checks"))
   {
     token = tokens.checks;
+    return;
+  }
+
+  if (streq(ptr, "train_nn_eval"))
+  {
+    token = tokens.train_nn_eval;
     return;
   }
 
@@ -932,6 +941,22 @@ static void uo_uci_process_input__ready(void)
 
       uo_engine_start_search();
       state = states.go;
+      return;
+    }
+
+    if (uo_uci_match(tokens.train_nn_eval))
+    {
+      uo_engine_lock_stdout();
+      uo_engine_lock_position();
+
+      char *test_data_dir = strtok(NULL, "\n");
+      bool passed = uo_test_nn_train_eval(test_data_dir);
+
+      printf("\n");
+      fflush(stdout);
+      uo_engine_unlock_position();
+      uo_engine_unlock_stdout();
+
       return;
     }
   }

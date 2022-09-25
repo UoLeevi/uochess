@@ -10,7 +10,7 @@
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 // see: https://arxiv.org/pdf/1711.05101.pdf
-#define uo_nn_adam_learning_rate 1e-4
+#define uo_nn_adam_learning_rate 1e-5
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
@@ -78,6 +78,9 @@ typedef struct uo_nn
 
   // Some allocated memory to use in calculations
   float *temp[uo_nn_temp_var_count];
+
+  // User data
+  void *state;
 
   struct
   {
@@ -199,13 +202,16 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
   float *input = nn->X + n_X * index;
   memset(input, 0, n_X * sizeof(float));
 
-  // Step 1. Piece locations
+  // Step 1. Piece configuration
 
   for (uo_square i = 0; i < 64; ++i)
   {
     uo_piece piece = position->board[i];
 
     if (piece <= 1) continue;
+
+    // Square is occupied
+    input[i] = 1.0f;
 
     size_t offset = uo_color(piece) ? 64 * 5 + 48 : 0;
 
@@ -232,11 +238,11 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
         break;
     }
 
-    input[offset + i] = 1.0;
+    input[64 + offset + i] = 1.0f;
   }
 
   // Step 2. Castling
-  size_t offset_castling = (64 * 5 + 48) * 2;
+  size_t offset_castling = 64 + (64 * 5 + 48) * 2;
   input[offset_castling + 0] = uo_position_flags_castling_OO(position->flags);
   input[offset_castling + 1] = uo_position_flags_castling_OOO(position->flags);
   input[offset_castling + 2] = uo_position_flags_castling_enemy_OO(position->flags);
@@ -363,15 +369,27 @@ typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error);
 
 bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval)
 {
-  size_t counter = 0;
   size_t output_size = nn->batch_size * nn->n_y;
+  float avg_error;
 
   float *y_true = malloc(output_size * sizeof(float));
 
-  for (size_t i = 0; i < max_iterations; ++i)
+  select_batch(nn, 0, nn->X, y_true);
+  uo_nn_feed_forward(nn);
+
+  float loss = uo_nn_calculate_loss(nn, y_true);
+
+  if (isnan(loss))
+  {
+    free(y_true);
+    return false;
+  }
+
+  avg_error = loss;
+
+  for (size_t i = 1; i < max_iterations; ++i)
   {
     select_batch(nn, i, nn->X, y_true);
-
     uo_nn_feed_forward(nn);
 
     float loss = uo_nn_calculate_loss(nn, y_true);
@@ -382,25 +400,19 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
       return false;
     }
 
-    if (loss < error_threshold)
-    {
-      ++counter;
+    avg_error -= avg_error / error_sample_size;
+    avg_error += loss / error_sample_size;
 
-      if (counter >= error_sample_size)
-      {
-        report(nn, i, loss);
-        free(y_true);
-        return true;
-      }
-    }
-    else
+    if (i > error_sample_size && avg_error < error_threshold)
     {
-      counter = 0;
+      report(nn, i, avg_error);
+      free(y_true);
+      return true;
     }
 
     if (i % report_interval == 0)
     {
-      report(nn, i, loss);
+      report(nn, i, avg_error);
     }
 
     float lr_multiplier = 1.0f - (float)i / (float)max_iterations;
@@ -451,18 +463,142 @@ uo_nn *uo_nn_read_from_file(char *filepath)
   uo_file_mmap_close(file_mmap);
 }
 
-void uo_nn_example()
+typedef struct uo_nn_eval_state
 {
-  uo_nn nn;
-  uo_nn_init(&nn, 3, 1, (uo_nn_layer_param[]) {
-    { 832 },
-    { 64, "relu" },
-    { 32, "relu" },
-    { 1 }
-  }, loss_mse);
+  uo_file_mmap *file_mmap;
+  char *buf;
+  size_t buf_size;
+} uo_nn_eval_state;
+
+void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *y_true)
+{
+  uo_nn_eval_state *state = nn->state;
+  size_t i = (float)rand() / (float)RAND_MAX * state->file_mmap->size;
+  i += iteration;
+  i %= state->file_mmap->size - nn->batch_size * 160;
+
+  char *ptr = state->buf;
+  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
+
+  char *fen = strchr(ptr, '\n') + 1;
+  char *eval = strchr(fen, ',') + 1;
+
+  uo_position position;
+
+  for (size_t j = 0; j < nn->batch_size; ++j)
+  {
+    uo_position_from_fen(&position, fen);
+    uo_nn_load_position(nn, &position, j);
+
+    uint8_t color = uo_color(position.flags);
+
+    float win_prob;
+
+    bool matein = eval[0] == '#';
+
+    if (matein)
+    {
+      win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
+      fen = strchr(eval, '\n') + 1;
+      eval = strchr(fen, ',') + 1;
+    }
+    else
+    {
+      char *end;
+      float score = (float)strtol(eval, &end, 10);
+      score = color ? -score : score;
+      win_prob = 1.0f / (1.0f + powf(10.0f, (-score / 400.0f)));
+
+      fen = strchr(end, '\n') + 1;
+      eval = strchr(fen, ',') + 1;
+    }
+
+    y_true[j] = win_prob;
+  }
 }
 
-void uo_nn_select_batch_test(uo_nn *nn, size_t iteration, float *X, float *y_true)
+void uo_nn_report_test_eval(uo_nn *nn, size_t iteration, float error)
+{
+  printf("iteration %zu rmse: %f\n", iteration, sqrtf(error));
+}
+
+bool uo_test_nn_train_eval(char *test_data_dir)
+{
+  if (!test_data_dir) return false;
+
+  size_t len_data_dir = strlen(test_data_dir);
+
+  char *eval_filepath = buf;
+  if (eval_filepath != test_data_dir) strcpy(eval_filepath, test_data_dir);
+
+  strcpy(eval_filepath + len_data_dir, "/evaluations.csv");
+
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(eval_filepath);
+
+  if (!file_mmap) return false;
+
+  char *nn_filepath = buf;
+  strcpy(nn_filepath + len_data_dir, "/nn-test-eval.nnuo");
+
+  srand(time(NULL));
+
+  size_t batch_size = 512;
+  uo_nn_eval_state state =
+  {
+    .file_mmap = file_mmap,
+    .buf_size = batch_size * 100,
+    .buf = malloc(batch_size * 100),
+  };
+
+  uo_nn nn;
+  uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
+    { 815 },
+    { 63, "swish" },
+    { 31, "relu" },
+    { 1,  "sigmoid" }
+  }, loss_mse);
+
+  nn.state = &state;
+
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 1000, 1000000, uo_nn_report_test_eval, 1000);
+
+  if (!passed)
+  {
+    uo_print_nn(stdout, &nn);
+    uo_file_mmap_close(file_mmap);
+    free(state.buf);
+    uo_nn_save_to_file(&nn, nn_filepath);
+    return false;
+  }
+
+  float *y_true = uo_alloca(batch_size * sizeof(float));
+
+  for (size_t i = 0; i < 1000; ++i)
+  {
+    uo_nn_select_batch_test_eval(&nn, i, nn.X, y_true);
+    uo_nn_feed_forward(&nn);
+
+    float mse = uo_nn_calculate_loss(&nn, y_true);
+    float rmse = sqrt(mse);
+
+    if (rmse > 0.1)
+    {
+      uo_print_nn(stdout, &nn);
+      uo_file_mmap_close(file_mmap);
+      free(state.buf);
+      uo_nn_save_to_file(&nn, nn_filepath);
+      return false;
+    }
+  }
+
+  uo_print_nn(stdout, &nn);
+  uo_file_mmap_close(file_mmap);
+  free(state.buf);
+  uo_nn_save_to_file(&nn, nn_filepath);
+  return true;
+}
+
+void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, float *X, float *y_true)
 {
   for (size_t j = 0; j < nn->batch_size; ++j)
   {
@@ -475,7 +611,7 @@ void uo_nn_select_batch_test(uo_nn *nn, size_t iteration, float *X, float *y_tru
   }
 }
 
-void uo_nn_report_test(uo_nn *nn, size_t iteration, float error)
+void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error)
 {
   printf("iteration %zu rmse: %f\n", iteration, sqrtf(error));
 
@@ -485,11 +621,9 @@ void uo_nn_report_test(uo_nn *nn, size_t iteration, float error)
   }
 }
 
-bool uo_test_nn_train(char *test_data_dir)
+bool uo_test_nn_train_xor(char *test_data_dir)
 {
   if (!test_data_dir) return false;
-
-  size_t test_count = 0;
 
   char *filepath = buf;
 
@@ -507,7 +641,7 @@ bool uo_test_nn_train(char *test_data_dir)
     { 1 }
   }, loss_mse);
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test, pow(1e-3, 2), 100, 400000, uo_nn_report_test, 1000);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000);
 
   if (!passed)
   {
@@ -519,7 +653,7 @@ bool uo_test_nn_train(char *test_data_dir)
 
   for (size_t i = 0; i < 1000; ++i)
   {
-    uo_nn_select_batch_test(&nn, i, nn.X, y_true);
+    uo_nn_select_batch_test_xor(&nn, i, nn.X, y_true);
     uo_nn_feed_forward(&nn);
 
     float mse = uo_nn_calculate_loss(&nn, y_true);

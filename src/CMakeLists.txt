@@ -51,8 +51,11 @@ add_test(NAME "Test move_generation"
 add_test(NAME "Test matmul"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul)
 
-add_test(NAME "Test nn_train"
-    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train)
+add_test(NAME "Test nn_train_xor"
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train_xor)
+
+add_test(NAME "Test nn_train_eval"
+    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train_eval)
 
 install(DIRECTORY conf/
     DESTINATION bin)
