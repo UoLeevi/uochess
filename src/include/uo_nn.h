@@ -13,27 +13,32 @@ extern "C"
 
   typedef uo_avx_float uo_nn_loss_function(uo_avx_float y_true, uo_avx_float y_pred);
 
-  typedef struct uo_nn_loss_function_param
-  {
-    uo_nn_loss_function *f;
-    uo_nn_loss_function *df;
-  } uo_nn_loss_function_param;
-
   typedef uo_avx_float uo_nn_activation_function(uo_avx_float avx_float);
 
-  typedef struct uo_nn_activation_function_param
+  typedef struct uo_nn_function_param
   {
-    uo_nn_activation_function *f;
-    uo_nn_activation_function *df;
-  } uo_nn_activation_function_param;
+    struct
+    {
+      uo_nn_activation_function *f;
+      uo_nn_activation_function *df;
+    } activation;
+    struct
+    {
+      uo_nn_loss_function *f;
+      uo_nn_loss_function *df;
+    } loss;
+    const char *name;
+  } uo_nn_function_param;
 
-  const uo_nn_activation_function_param *uo_nn_get_activation_function_by_name(const char *activation_function_name);
-
-  const char *uo_nn_get_activation_function_name(uo_nn_activation_function *f);
+  const uo_nn_function_param *uo_nn_get_function_by_name(const char *function_name);
 
   void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index);
 
-  bool uo_test_nn_train_eval(char *test_data_dir);
+  int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position);
+
+  uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
+
+  bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file);
 
   bool uo_test_nn_train_xor(char *test_data_dir);
 

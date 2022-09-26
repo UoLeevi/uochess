@@ -300,6 +300,8 @@ extern "C"
 
   void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n);
 
+  char *uo_parse_matrix(char *ptr, float **data, size_t *m, size_t *n);
+
 #ifdef __cplusplus
 }
 #endif

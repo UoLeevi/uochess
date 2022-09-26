@@ -15,6 +15,8 @@ void uo_engine_load_default_options()
   size_t capacity = (size_t)265 * mb / sizeof * engine.ttable.entries;
   capacity = (size_t)1 << uo_msb(capacity);
   engine_options.hash_size = capacity * sizeof * engine.ttable.entries;
+
+  strcpy(engine_options.eval_filename, "nn/nn-test-eval.nnuo");
 }
 
 void uo_search_queue_init(uo_search_queue *queue)
@@ -216,6 +218,9 @@ void uo_engine_init()
   uo_atomic_init(&engine.thread_queue.count, 0);
   engine.thread_queue.threads = malloc(engine.thread_count * sizeof(uo_engine_thread *));
 
+  // nn eval_filename
+  char *eval_filename = engine_options.eval_filename[0] ? engine_options.eval_filename : NULL;
+
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
@@ -227,6 +232,11 @@ void uo_engine_init()
     if (engine_options.multipv)
     {
       thread->info.secondary_pvs = calloc(engine_options.multipv, sizeof * thread->info.secondary_pvs);
+    }
+
+    if (eval_filename)
+    {
+      thread->nn = uo_nn_read_from_file(NULL, eval_filename, 1);
     }
 
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);

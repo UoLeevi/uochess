@@ -44,7 +44,7 @@ static int run_tests(char *test_data_dir, char *test_name)
   
   if (test_name == NULL || strcmp(test_name, "nn_train_eval") == 0)
   {
-    passed &= uo_test_nn_train_eval(test_data_dir);
+    passed &= uo_test_nn_train_eval(test_data_dir, false);
   }
 
   uo_engine_unlock_position();

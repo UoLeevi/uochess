@@ -12,6 +12,7 @@ extern "C"
 #include "uo_search.h"
 #include "uo_evaluation.h"
 #include "uo_def.h"
+#include "uo_nn.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -24,6 +25,7 @@ extern "C"
     size_t threads;
     uint16_t multipv;
     size_t hash_size;
+    char eval_filename[0x100];
   } uo_engine_options;
 
   typedef struct uo_search_queue_item
@@ -59,6 +61,7 @@ extern "C"
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
+    uo_nn *nn;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {

@@ -59,7 +59,8 @@ typedef const struct uo_uci_tokens
     uo_uci_token
       Threads,
       Hash,
-      MultiPV;
+      MultiPV,
+      EvalFile;
   } options;
 } uo_uci_tokens;
 
@@ -119,7 +120,8 @@ uo_uci_tokens tokens = {
   .options = {
     .Threads = 64,
     .Hash = 65,
-    .MultiPV = 66
+    .MultiPV = 66,
+    .EvalFile = 67
   }
 };
 
@@ -527,6 +529,7 @@ static void uo_uci_process_input__init(void)
     printf("option name Clear Hash type button\n");
     printf("option name Ponder type check default false\n");
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
+    printf("option name EvalFile type string default %s\n", engine_options.eval_filename);
 
     state = states.options;
     printf("uciok\n");
@@ -563,6 +566,12 @@ static void uo_uci_process_input__options(void)
       if (ptr && sscanf(ptr, "MultiPV value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 500)
       {
         engine_options.multipv = spin;
+      }
+
+      // EvalFile
+      if (ptr && sscanf(ptr, "EvalFile value %255s", engine_options.eval_filename) == 1)
+      {
+        // 
       }
     }
   }
@@ -950,7 +959,7 @@ static void uo_uci_process_input__ready(void)
       uo_engine_lock_position();
 
       char *test_data_dir = strtok(NULL, "\n");
-      bool passed = uo_test_nn_train_eval(test_data_dir);
+      bool passed = uo_test_nn_train_eval(test_data_dir, true);
 
       printf("\n");
       fflush(stdout);

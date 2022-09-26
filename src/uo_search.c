@@ -36,7 +36,7 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   if (!movetime && params->time_own)
   {
     int64_t movetime_max = uo_min(params->time_own / 8, 5000 + (params->time_own + params->time_inc_own - params->time_enemy) / 2);
-    int64_t bestmove_age_reduction = movetime_max / 12;
+    int64_t bestmove_age_reduction = uo_min(movetime_max / 18, 500);
     int16_t bestmove_age = info->depth - info->bestmove_change_depth;
     movetime = uo_max(movetime_max - bestmove_age_reduction * bestmove_age, 1);
   }
@@ -217,6 +217,13 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
   return false;
 }
 
+static int16_t uo_search_evaluate(uo_engine_thread *thread)
+{
+  return thread->nn
+    ? uo_nn_evaluate(thread->nn, &thread->position)
+    : uo_position_evaluate(&thread->position);
+}
+
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth)
 {
   uo_search_info *info = &thread->info;
@@ -245,7 +252,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 4. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    return uo_position_evaluate(position);
+    return uo_search_evaluate(thread);
   }
 
   // Step 5. Generate legal moves
@@ -300,7 +307,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 9. Position is not check. Initialize score to static evaluation. "Stand pat"
-  int16_t value = uo_position_evaluate(position);
+  int16_t value = uo_search_evaluate(thread);
 
   // Step 10. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta)
@@ -448,7 +455,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 6. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    entry.value = uo_position_evaluate(position);
+    entry.value = uo_search_evaluate(thread);
     return uo_engine_store_entry(position, &entry);
   }
 
@@ -473,7 +480,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     && depth > 3
     && position->ply > 1
     && uo_position_is_null_move_allowed(position)
-    && uo_position_evaluate(position) > beta)
+    && uo_search_evaluate(thread) > beta)
   {
     // depth * 3/4 - 1
     size_t depth_nmp = (depth * 3 >> 2) - 1;

@@ -66,27 +66,35 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
 char *uo_parse_matrix(char *ptr, float **data, size_t *m, size_t *n)
 {
-  char *start = ptr;
   char *end = strchr(ptr, ']');
   if (!end) return NULL;
 
+  // skip delimiter white space
+  while (isspace(*ptr) && ptr < end) ++ptr;
+
+  if (*ptr == '[') ++ptr;
+
+  char *start = ptr;
+
   // Count columns
-  *n = 0;
-  while (ptr < end)
+  if (*n == 0)
   {
-    // skip delimiter white space
-    while (isspace(*ptr) && ptr < end) ++ptr;
+    while (ptr < end)
+    {
+      // skip delimiter white space
+      while (isspace(*ptr) && ptr < end) ++ptr;
 
-    if (ptr > end) return NULL;
+      if (ptr > end) return NULL;
 
-    if (*ptr == ']' || *ptr == ';') break;
+      if (*ptr == ']' || *ptr == ';') break;
 
-    char *endptr;
-    float value = strtof(ptr, &endptr);
+      char *endptr;
+      float value = strtof(ptr, &endptr);
 
-    if (ptr == endptr) return NULL;
-    ptr = endptr;
-    ++ *n;
+      if (ptr == endptr) return NULL;
+      ptr = endptr;
+      ++ *n;
+    }
   }
 
   ptr = start;
@@ -94,36 +102,43 @@ char *uo_parse_matrix(char *ptr, float **data, size_t *m, size_t *n)
   size_t size = 0;
 
   // Count rows
-  *m = 1;
-  while (ptr < end)
+  if (*m == 0)
   {
-    // skip delimiter white space
-    while (isspace(*ptr) && ptr < end) ++ptr;
-
-    if (ptr > end) return NULL;
-
-    if (*ptr == ';')
+    *m = 1;
+    while (ptr < end)
     {
-      ++ *m;
-      ++ptr;
       // skip delimiter white space
       while (isspace(*ptr) && ptr < end) ++ptr;
 
       if (ptr > end) return NULL;
+
+      if (*ptr == ';')
+      {
+        ++ *m;
+        ++ptr;
+        // skip delimiter white space
+        while (isspace(*ptr) && ptr < end) ++ptr;
+
+        if (ptr > end) return NULL;
+      }
+      else if (*ptr == ']') break;
+
+      char *endptr;
+      float value = strtof(ptr, &endptr);
+
+      if (ptr == endptr) return NULL;
+      ptr = endptr;
+      ++size;
     }
-    else if (*ptr == ']') break;
 
-    char *endptr;
-    float value = strtof(ptr, &endptr);
-
-    if (ptr == endptr) return NULL;
-    ptr = endptr;
-    ++size;
+    if (size != *m * *n) return NULL;
+  }
+  else
+  {
+    size = *m * *n;
   }
 
   ptr = start;
-
-  if (size != *m * *n) return NULL;
 
   if (!*data)
   {
@@ -196,8 +211,8 @@ bool uo_test_matmul(char *test_data_dir)
     ptr += 5;
 
     float *A = NULL;
-    size_t m_A;
-    size_t n_A;
+    size_t m_A = 0;
+    size_t n_A = 0;
 
     ptr = uo_parse_matrix(ptr, &A, &m_A, &n_A);
     if (!ptr) goto failed_err_data;
@@ -233,8 +248,8 @@ bool uo_test_matmul(char *test_data_dir)
     ptr += 5;
 
     float *C = NULL;
-    size_t m_C;
-    size_t n_C;
+    size_t m_C = 0;
+    size_t n_C = 0;
 
     ptr = uo_parse_matrix(ptr, &C, &m_C, &n_C);
     if (!ptr)
@@ -277,7 +292,7 @@ void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n)
   {
     for (size_t j = 0; j < n; ++j)
     {
-      fprintf(fp, " %12.6f ", A[i * n + j]);
+      fprintf(fp, " %12.6g ", A[i * n + j]);
     }
 
     fprintf(fp, i + 1 == m ? "]" : ";\n");

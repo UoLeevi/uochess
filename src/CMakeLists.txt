@@ -15,7 +15,7 @@ add_executable(uochess
     uo_uci.c
     uo_engine.c
     uo_nn.c
-    uo_nn_activation_funcs.c
+    uo_nn_funcs.c
     uo_math.c
     uo_test.c)
 
@@ -31,6 +31,10 @@ target_compile_features(uochess
     PUBLIC
         c_std_11)
 
+set_target_properties(uochess PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     target_compile_options(uochess
         PRIVATE -mavx -mavx2 -mbmi2 -mpopcnt)
@@ -41,6 +45,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(uochess
         PRIVATE /arch:AVX2 /volatile:iso)
 endif()
+
+add_custom_target(copy-runtime-files ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/nn" "${CMAKE_BINARY_DIR}/bin/nn"
+    DEPENDS uochess)
 
 add_test(NAME "Test all"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
