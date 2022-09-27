@@ -240,6 +240,168 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
   }
 }
 
+int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
+{
+  char piece_placement[72];
+  char active_color;
+  char castling[5];
+  char enpassant[3];
+  int rule50;
+  int fullmove;
+
+  int count = sscanf(fen, "%71s %c %4s %2s %d %d",
+    piece_placement, &active_color,
+    castling, enpassant,
+    &rule50, &fullmove);
+
+  if (count != 6)
+  {
+    return -1;
+  }
+
+  size_t n_X = nn->n_X;
+  float *input = nn->X + n_X * index;
+  memset(input, 0, n_X * sizeof(float));
+
+  uint8_t color = active_color == 'b' ? uo_black : uo_white;
+  size_t flip_if_black = color == uo_black ? 56 : 0;
+
+  // Step 1. Piece placement
+
+  char *ptr = piece_placement;
+
+  char c;
+
+  // loop by rank
+  for (int i = 7; i >= 0; --i)
+  {
+    // loop by file
+    for (int j = 0; j < 8; ++j)
+    {
+      size_t index = (i * 8 + j) ^ flip_if_black;
+
+      c = *ptr++;
+
+      // empty squares
+      if (c > '0' && c <= ('8' - j))
+      {
+        j += c - '0' - 1;
+        input[index] = 1.0f;
+        continue;
+      }
+
+      uo_piece piece = uo_piece_from_char(c);
+
+      if (!piece)
+      {
+        return -1;
+      }
+
+      size_t offset = uo_color(piece) != color ? 64 * 5 + 48 : 0;
+
+      switch (uo_piece_type(piece))
+      {
+        case uo_piece__P:
+          offset += 64 * 5 - 8;
+          break;
+
+        case uo_piece__N:
+          offset += 64 * 4;
+          break;
+
+        case uo_piece__B:
+          offset += 64 * 3;
+          break;
+
+        case uo_piece__R:
+          offset += 64 * 2;
+          break;
+
+        case uo_piece__Q:
+          offset += 64 * 1;
+          break;
+      }
+
+      input[64 + offset + index] = 1.0f;
+    }
+
+    c = *ptr++;
+
+    if (i != 0 && c != '/')
+    {
+      return -1;
+    }
+  }
+
+  // Step 2. Castling rights
+
+  size_t offset_castling = 64 + (64 * 5 + 48) * 2;
+
+  ptr = castling;
+  c = *ptr++;
+
+  if (c == '-')
+  {
+    c = *ptr++;
+  }
+  else
+  {
+    if (c == 'K')
+    {
+      input[offset_castling + (color == uo_white ? 0 : 2)] = 1.0f;
+      c = *ptr++;
+    }
+
+    if (c == 'Q')
+    {
+      input[offset_castling + (color == uo_white ? 1 : 3)] = 1.0f;
+      c = *ptr++;
+    }
+
+    if (c == 'k')
+    {
+      input[offset_castling + (color == uo_white ? 2 : 0)] = 1.0f;
+      c = *ptr++;
+    }
+
+    if (c == 'q')
+    {
+      input[offset_castling + (color == uo_white ? 3 : 1)] = 1.0f;
+      c = *ptr++;
+    }
+  }
+
+  // Step 3. Enpassant
+
+  size_t offset_enpassant = offset_castling + 4;
+
+  ptr = enpassant;
+  c = *ptr++;
+
+  if (c != '-')
+  {
+    uint8_t file = c - 'a';
+    if (file < 0 || file >= 8)
+    {
+      return -1;
+    }
+
+    c = *ptr++;
+    uint8_t rank = c - '1';
+    if (rank < 0 || rank >= 8)
+    {
+      return -1;
+    }
+
+    if (file)
+    {
+      input[offset_enpassant + file] = 1.0;
+    }
+  }
+
+  return color;
+}
+
 float uo_nn_calculate_loss(uo_nn *nn, float *y_true)
 {
   float *losses = nn->temp[0];
@@ -542,14 +704,11 @@ void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *
   char *fen = strchr(ptr, '\n') + 1;
   char *eval = strchr(fen, ',') + 1;
 
-  uo_position position;
-
   for (size_t j = 0; j < nn->batch_size; ++j)
   {
-    uo_position_from_fen(&position, fen);
-    uo_nn_load_position(nn, &position, j);
+    uint8_t color = uo_nn_load_fen(nn, fen, j);
 
-    uint8_t color = uo_color(position.flags);
+    assert(color == uo_white || color == uo_black);
 
     float win_prob;
 
