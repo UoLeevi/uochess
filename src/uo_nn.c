@@ -10,7 +10,7 @@
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 // see: https://arxiv.org/pdf/1711.05101.pdf
-#define uo_nn_adam_learning_rate 1e-13
+#define uo_nn_adam_learning_rate 1e-5
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
@@ -760,7 +760,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   srand(time(NULL));
 
-  size_t batch_size = 512;
+  size_t batch_size = 1028;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
@@ -778,9 +778,9 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
     uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
       { 815 },
       { 255, "swish" },
-      { 63, "swish" },
-      { 31, "swish" },
-      { 1,  "sigmoid_loss_binary_kl_divergence" }
+      { 63,  "swish" },
+      { 31,  "swish" },
+      { 1,   "loss_mse" }
     });
   }
 
