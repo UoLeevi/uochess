@@ -516,6 +516,8 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
 {
   size_t output_size = nn->batch_size * nn->n_y;
   float avg_error, prev_avg_err, min_avg_err;
+  const size_t adam_reset_count_threshold = 3;
+  size_t adam_reset_counter = 0;
 
   float *y_true = malloc(output_size * sizeof(float));
 
@@ -562,12 +564,32 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
 
       if (avg_error > prev_avg_err)
       {
+        ++adam_reset_counter;
+
+        if (adam_reset_counter == adam_reset_count_threshold)
+        {
+          // Reset adam weights if loss keeps increasing
+          prev_avg_err = avg_error = loss;
+          adam_reset_counter = 0;
+          nn->adam.t = 1;
+          for (size_t layer_index = 1; layer_index < nn->layer_count; ++layer_index)
+          {
+            uo_nn_layer *layer = nn->layers + layer_index;
+            memset(layer->adam.m, 0, layer->m_W * layer->n_W * sizeof(float));
+          }
+        }
+
         lr_multiplier *= 0.65f;
       }
-      else if (avg_error < min_avg_err)
+      else
       {
-        lr_multiplier *= 1.05f;
-        min_avg_err = avg_error;
+        adam_reset_counter = 0;
+
+        if (avg_error < min_avg_err)
+        {
+          lr_multiplier *= 1.05f;
+          min_avg_err = avg_error;
+        }
       }
 
       prev_avg_err = avg_error;
@@ -786,7 +808,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   nn.state = &state;
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 1000, 50000, uo_nn_report_test_eval, 1000);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 100, 50000, uo_nn_report_test_eval, 100);
 
   if (!passed)
   {
