@@ -782,7 +782,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   srand(time(NULL));
 
-  size_t batch_size = 1028;
+  size_t batch_size = 2056;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
