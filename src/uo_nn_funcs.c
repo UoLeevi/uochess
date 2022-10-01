@@ -99,6 +99,44 @@ uo_nn_function_param loss_mse = {
   .name = "loss_mse"
 };
 
+uo_avx_float uo_nn_loss_function_mean_absolute_error(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 sub = _mm256_sub_ps(y_pred, y_true);
+  __m256 a = _mm256_set1_ps(-0.0);
+  return _mm256_andnot_ps(a, sub);
+}
+
+uo_avx_float uo_nn_loss_function_mean_absolute_error_d(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 mask_gt = _mm256_cmp_ps(y_pred, y_true, _CMP_GT_OS);
+  __m256 ones = _mm256_set1_ps(1.0f);
+  ones = _mm256_and_ps(ones, mask_gt);
+  __m256 mask_lt = _mm256_cmp_ps(y_pred, y_true, _CMP_LT_OS);
+  __m256 minus_ones = _mm256_set1_ps(-1.0f);
+  minus_ones = _mm256_and_ps(ones, mask_lt);
+  return _mm256_or_ps(ones, minus_ones);
+}
+
+uo_nn_function_param loss_mae = {
+  .loss = {
+    .f = uo_nn_loss_function_mean_absolute_error,
+    .df = uo_nn_loss_function_mean_absolute_error_d
+  },
+  .name = "loss_mae"
+};
+
+uo_nn_function_param sigmoid_loss_mae = {
+  .activation = {
+    .f = uo_nn_function_sigmoid,
+    .df = uo_nn_function_sigmoid_d,
+  },
+  .loss = {
+    .f = uo_nn_loss_function_mean_absolute_error,
+    .df = uo_nn_loss_function_mean_absolute_error_d
+  },
+  .name = "sigmoid_loss_mae"
+};
+
 uo_avx_float uo_nn_loss_function_binary_cross_entropy(uo_avx_float y_true, uo_avx_float y_pred)
 {
   __m256 ln_y_pred = _mm256_log_ps(y_pred);
@@ -194,6 +232,16 @@ const uo_nn_function_param *uo_nn_get_function_by_name(const char *function_name
   if (strcmp(function_name, "loss_mse") == 0)
   {
     return &loss_mse;
+  }
+
+  if (strcmp(function_name, "loss_mae") == 0)
+  {
+    return &loss_mae;
+  }
+
+  if (strcmp(function_name, "sigmoid_loss_mae") == 0)
+  {
+    return &sigmoid_loss_mae;
   }
 
   if (strcmp(function_name, "sigmoid_loss_binary_cross_entropy") == 0)

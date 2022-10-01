@@ -16,6 +16,39 @@
 #define uo_nn_adam_epsilon 1e-8
 #define uo_nn_adam_weight_decay 1e-2
 
+typedef struct uo_nn_position
+{
+  float empty[64];
+  struct
+  {
+    float K[64];
+    float Q[64];
+    float R[64];
+    float B[64];
+    float N[64];
+    float P[48];
+  } own;
+  struct
+  {
+    float K[64];
+    float Q[64];
+    float R[64];
+    float B[64];
+    float N[64];
+    float P[48];
+  } enemy;
+  struct
+  {
+    float own_K;
+    float own_Q;
+    float enemy_K;
+    float enemy_Q;
+  } castling;
+  float enpassant[8];
+
+  float bias;
+} uo_nn_position;
+
 typedef struct uo_nn_layer_param
 {
   size_t n;
@@ -53,7 +86,10 @@ typedef struct uo_nn
   uo_nn_layer *layers;
   size_t batch_size;
   size_t n_X;
-  float *X;
+  union {
+    float *X;
+    uo_nn_position *position;
+  };
   size_t n_y;
   float *y;
   uo_nn_loss_function *loss_func;
@@ -108,6 +144,14 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
     const uo_nn_function_param *function_param = uo_nn_get_function_by_name(layer_params[layer_index].function);
     layer->func = *function_param;
+
+    if (layer_index == layer_count && !function_param->loss.f)
+    {
+      // If no loss function was set for output layer, let's default to mean squared error loss
+      function_param = uo_nn_get_function_by_name("loss_mse");
+      layer->func.loss.f = function_param->loss.f;
+      layer->func.loss.df = function_param->loss.df;
+    }
 
     if (layer->func.activation.df)
     {
@@ -196,9 +240,9 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
       continue;
     }
 
-    size_t offset = uo_color(piece) ? 64 * 5 + 48 : 0;
+    size_t offset = uo_color(piece) == uo_black ? 64 * 5 + 48 : 0;
 
-    switch (piece)
+    switch (uo_piece_type(piece))
     {
       case uo_piece__P:
         offset += 64 * 5 - 8;
@@ -285,8 +329,14 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
       // empty squares
       if (c > '0' && c <= ('8' - j))
       {
-        j += c - '0' - 1;
-        input[index] = 1.0f;
+        size_t empty_count = c - '0';
+        j += empty_count - 1;
+
+        while (empty_count--)
+        {
+          input[index + empty_count] = 1.0f;
+        }
+
         continue;
       }
 
@@ -297,7 +347,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
         return -1;
       }
 
-      size_t offset = uo_color(piece) != color ? 64 * 5 + 48 : 0;
+      size_t offset = uo_color(piece) != color ? (64 * 5 + 48) : 0;
 
       switch (uo_piece_type(piece))
       {
@@ -393,10 +443,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
       return -1;
     }
 
-    if (file)
-    {
-      input[offset_enpassant + file] = 1.0;
-    }
+    input[offset_enpassant + file] = 1.0;
   }
 
   return color;
@@ -579,7 +626,7 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
           }
         }
 
-        lr_multiplier *= 0.65f;
+        lr_multiplier *= 0.75f;
       }
       else
       {
@@ -729,7 +776,6 @@ void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *
   for (size_t j = 0; j < nn->batch_size; ++j)
   {
     uint8_t color = uo_nn_load_fen(nn, fen, j);
-
     assert(color == uo_white || color == uo_black);
 
     float win_prob;
@@ -782,7 +828,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   srand(time(NULL));
 
-  size_t batch_size = 2056;
+  size_t batch_size = 8256;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
@@ -797,18 +843,16 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
   }
   else
   {
-    uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
       { 815 },
-      { 255, "swish" },
-      { 63,  "swish" },
       { 31,  "swish" },
-      { 1,   "loss_mse" }
+      { 1,   "sigmoid_loss_mae" }
     });
   }
 
   nn.state = &state;
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 100, 50000, uo_nn_report_test_eval, 100);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 100, 1000, uo_nn_report_test_eval, 100);
 
   if (!passed)
   {
