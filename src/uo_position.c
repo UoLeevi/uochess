@@ -1109,25 +1109,25 @@ void uo_position_unmake_move(uo_position *position)
 
     case uo_move_type__promo_Nx:;
       piece_captured = position->piece_captured[-1];
-      position->material += uo_score_P - uo_score_N + uo_piece_value(piece_captured); 
+      position->material += uo_score_P - uo_score_N + uo_piece_value(piece_captured);
       uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
       break;
 
     case uo_move_type__promo_Bx:;
       piece_captured = position->piece_captured[-1];
-      position->material += uo_score_P - uo_score_B + uo_piece_value(piece_captured); 
+      position->material += uo_score_P - uo_score_B + uo_piece_value(piece_captured);
       uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
       break;
 
     case uo_move_type__promo_Rx:;
       piece_captured = position->piece_captured[-1];
-      position->material += uo_score_P - uo_score_R + uo_piece_value(piece_captured); 
+      position->material += uo_score_P - uo_score_R + uo_piece_value(piece_captured);
       uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
       break;
 
     case uo_move_type__promo_Qx:;
       piece_captured = position->piece_captured[-1];
-      position->material += uo_score_P - uo_score_Q + uo_piece_value(piece_captured); 
+      position->material += uo_score_P - uo_score_Q + uo_piece_value(piece_captured);
       uo_position_undo_promo_capture(position, square_from, square_to, piece_captured);
       break;
   }
@@ -2118,4 +2118,272 @@ size_t uo_position_perft(uo_position *position, size_t depth)
   }
 
   return node_count;
+}
+
+uo_position *uo_position_randomize(uo_position *position)
+{
+  // Step 1. Clear position
+  memset(position, 0, sizeof * position);
+
+  // Step 2. Active color
+  uo_position_flags flags = 0;
+  uint8_t color = uo_white;
+
+  if (uo_rand_percent() > 0.5f)
+  {
+    color = uo_black;
+    flags = uo_position_flags_update_color_to_move(flags, uo_black);
+    ++position->root_ply;
+  }
+
+  // Step 3. Piece placement
+
+  uo_bitboard occupied = 0;
+
+  size_t count_own_P = uo_rand_between_excl(0, 8);
+  size_t count_own_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
+  size_t count_own_R = uo_rand_between_excl(0, 2);
+  size_t count_own_B = uo_rand_between_excl(0, 2);
+  size_t count_own_N = uo_rand_between_excl(0, 2);
+
+  size_t count_enemy_P = uo_rand_between_excl(0, 8);
+  size_t count_enemy_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
+  size_t count_enemy_R = uo_rand_between_excl(0, 2);
+  size_t count_enemy_B = uo_rand_between_excl(0, 2);
+  size_t count_enemy_N = uo_rand_between_excl(0, 2);
+
+  while (count_own_P--)
+  {
+    size_t i = uo_rand_between_excl(8, 56);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(8, 56);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->own |= mask;
+    position->P |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__P;
+  }
+
+  while (count_enemy_P--)
+  {
+    size_t i = uo_rand_between_excl(8, 56);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(8, 56);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->enemy |= mask;
+    position->P |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__p;
+  }
+
+  while (count_own_Q--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->own |= mask;
+    position->Q |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__Q;
+  }
+
+  while (count_enemy_Q--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->enemy |= mask;
+    position->Q |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__q;
+  }
+
+  while (count_own_R--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->own |= mask;
+    position->R |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__R;
+  }
+
+  while (count_enemy_R--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->enemy |= mask;
+    position->R |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__r;
+  }
+
+  while (count_own_B--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->own |= mask;
+    position->B |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__B;
+  }
+
+  while (count_enemy_B--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->enemy |= mask;
+    position->B |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__b;
+  }
+
+  while (count_own_N--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->own |= mask;
+    position->N |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__N;
+  }
+
+  while (count_enemy_N--)
+  {
+    size_t i = uo_rand_between_excl(0, 64);
+    uo_bitboard mask = uo_square_bitboard(i);
+
+    while (mask & occupied)
+    {
+      i = uo_rand_between_excl(0, 64);
+      mask = uo_square_bitboard(i);
+    }
+
+    position->enemy |= mask;
+    position->N |= mask;
+    occupied |= mask;
+    position->board[i] = uo_piece__n;
+  }
+
+  size_t square_own_K = uo_rand_between_excl(0, 64);
+  uo_bitboard own_K = uo_square_bitboard(square_own_K);
+
+  while (own_K & occupied)
+  {
+    square_own_K = uo_rand_between_excl(0, 64);
+    own_K = uo_square_bitboard(square_own_K);
+  }
+
+  position->own |= own_K;
+  position->K |= own_K;
+  occupied |= own_K;
+  position->board[square_own_K] = uo_piece__K;
+
+  uo_bitboard unavailable_to_enemy_K = occupied;
+
+  unavailable_to_enemy_K |= uo_bitboard_attacks_K(square_own_K);
+  unavailable_to_enemy_K |= uo_position_attacks_own_NBRQ(position);
+  uo_bitboard own_P = position->P & position->own;
+  unavailable_to_enemy_K |= uo_bitboard_attacks_left_P(own_P);
+  unavailable_to_enemy_K |= uo_bitboard_attacks_right_P(own_P);
+
+  size_t square_enemy_K = uo_rand_between_excl(0, 64);
+  uo_bitboard enemy_K = uo_square_bitboard(square_enemy_K);
+
+  while (enemy_K & unavailable_to_enemy_K)
+  {
+    square_enemy_K = uo_rand_between_excl(0, 64);
+    enemy_K = uo_square_bitboard(square_enemy_K);
+  }
+
+  position->enemy |= enemy_K;
+  position->K |= enemy_K;
+  occupied |= enemy_K;
+  position->board[square_enemy_K] = uo_piece__k;
+
+  // TODO: Step 4. Castling availability
+
+  // TODO: Step 5. En passant file
+
+  // Step 6. Halfmove clock
+  // Step 7. Fullmove number
+  int rule50 = 0;
+  int fullmove = 1;
+  flags = uo_position_flags_update_rule50(flags, rule50);
+  position->root_ply += (fullmove - 1) << 1;
+  position->ply = 0;
+  position->stack = position->history;
+  position->flags = flags;
+  position->key = uo_position_calculate_key(position);
+  uo_position_reset_root(position);
+
+  uo_position_update_checks(position);
+  uo_position_update_pins(position);
+
+  position->material = (
+    uo_score_P * uo_popcnt(position->P) +
+    uo_score_N * uo_popcnt(position->N) +
+    uo_score_B * uo_popcnt(position->B) +
+    uo_score_R * uo_popcnt(position->R) +
+    uo_score_Q * uo_popcnt(position->Q));
+
+  assert(uo_position_is_ok(position));
+  return position;
 }

@@ -35,7 +35,7 @@ extern "C"
 
 #include <immintrin.h>
 
-// ~a & b
+  // ~a & b
 # define uo_andn _andn_u64
 
 // (a - 1) & a
@@ -229,7 +229,7 @@ extern "C"
 
 #pragma endregion
 
-  static inline uint64_t uo_rand()
+  static inline uint64_t uo_rand_u64()
   {
     uint64_t r = 0;
 
@@ -239,6 +239,28 @@ extern "C"
     }
 
     return r;
+  }
+
+  static inline float uo_rand_percent()
+  {
+    return (float)rand() / (float)RAND_MAX;
+  }
+
+  static inline float uo_rand_percent_excl()
+  {
+    return (float)rand() / (float)(RAND_MAX + 1);
+  }
+
+  static inline float uo_rand_between(float min, float max)
+  {
+    float range = max - min;
+    return uo_rand_percent() * range + min;
+  }
+
+  static inline float uo_rand_between_excl(float min, float max_ex)
+  {
+    float range = max_ex - min;
+    return uo_rand_percent_excl() * range + min;
   }
 
   static inline void uo_rand_init(uint64_t seed)

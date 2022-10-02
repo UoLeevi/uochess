@@ -22,7 +22,7 @@ void uo_zobrist_init()
 
   for (size_t i = 0; i < 0xEull << 6; ++i)
   {
-    uo_zobrist[i] = uo_rand();
+    uo_zobrist[i] = uo_rand_u64();
   }
 
   uo_zobrist_enpassant_file = uo_zobrist;

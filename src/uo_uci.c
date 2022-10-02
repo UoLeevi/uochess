@@ -52,7 +52,8 @@ typedef const struct uo_uci_tokens
     alpha,
     beta,
     checks,
-    train_nn_eval;
+    train_nn_eval,
+    randomize;
 
   struct
   {
@@ -117,6 +118,7 @@ uo_uci_tokens tokens = {
   .beta = 33,
   .checks = 34,
   .train_nn_eval = 35,
+  .randomize = 36,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -387,6 +389,12 @@ static void uo_uci_read_token(void)
     return;
   }
 
+  if (streq(ptr, "randomize"))
+  {
+    token = tokens.randomize;
+    return;
+  }
+
   token = tokens.unknown;
   return;
 
@@ -449,6 +457,10 @@ static void uo_uci__position(void)
     }
 
     uo_position_from_fen(&engine.position, fen);
+  }
+  else if (uo_uci_match(tokens.randomize))
+  {
+    uo_position_randomize(&engine.position);
   }
   else
   {

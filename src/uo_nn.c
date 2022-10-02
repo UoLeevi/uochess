@@ -2,6 +2,7 @@
 #include "uo_math.h"
 #include "uo_misc.h"
 #include "uo_global.h"
+#include "uo_util.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -10,7 +11,7 @@
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 // see: https://arxiv.org/pdf/1711.05101.pdf
-#define uo_nn_adam_learning_rate 1e-4
+#define uo_nn_adam_learning_rate 1e-3
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
@@ -209,7 +210,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
     for (size_t j = 0; j < count; ++j)
     {
-      layer->W_t[j] = scale * ((((float)rand() / (float)RAND_MAX) - 0.5f) * 2.0f);
+      layer->W_t[j] = uo_rand_between(-scale, scale);
     }
   }
 
@@ -763,7 +764,7 @@ typedef struct uo_nn_eval_state
 void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *y_true)
 {
   uo_nn_eval_state *state = nn->state;
-  size_t i = (float)rand() / (float)RAND_MAX * state->file_mmap->size;
+  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
   i += iteration;
   i %= state->file_mmap->size - nn->batch_size * 160;
 
@@ -826,7 +827,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
   char *nn_filepath = buf;
   strcpy(nn_filepath + len_data_dir, "/nn-test-eval.nnuo");
 
-  srand(time(NULL));
+  uo_rand_init(time(NULL));
 
   size_t batch_size = 8256;
   uo_nn_eval_state state = {
@@ -852,7 +853,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   nn.state = &state;
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 100, 1000, uo_nn_report_test_eval, 100);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 100, 10000, uo_nn_report_test_eval, 100);
 
   if (!passed)
   {
@@ -891,8 +892,8 @@ void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, float *X, float *y
 {
   for (size_t j = 0; j < nn->batch_size; ++j)
   {
-    float x0 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
-    float x1 = rand() > (RAND_MAX / 2) ? 1.0 : 0.0;
+    float x0 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
+    float x1 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
     float y = (int)x0 ^ (int)x1;
     y_true[j] = y;
     X[j * nn->n_X] = x0;
@@ -914,7 +915,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   strcpy(filepath, test_data_dir);
   strcpy(filepath + strlen(test_data_dir), "/nn-test-xor.nnuo");
 
-  srand(time(NULL));
+  uo_rand_init(time(NULL));
 
   size_t batch_size = 256;
   uo_nn nn;

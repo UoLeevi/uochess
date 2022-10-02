@@ -968,6 +968,8 @@ extern "C"
 
   size_t uo_position_perft(uo_position *position, size_t depth);
 
+  uo_position *uo_position_randomize(uo_position *position);
+
 #ifdef __cplusplus
   }
 #endif
