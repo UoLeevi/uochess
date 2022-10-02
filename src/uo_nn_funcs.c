@@ -113,7 +113,7 @@ uo_avx_float uo_nn_loss_function_mean_absolute_error_d(uo_avx_float y_true, uo_a
   ones = _mm256_and_ps(ones, mask_gt);
   __m256 mask_lt = _mm256_cmp_ps(y_pred, y_true, _CMP_LT_OS);
   __m256 minus_ones = _mm256_set1_ps(-1.0f);
-  minus_ones = _mm256_and_ps(ones, mask_lt);
+  minus_ones = _mm256_and_ps(minus_ones, mask_lt);
   return _mm256_or_ps(ones, minus_ones);
 }
 

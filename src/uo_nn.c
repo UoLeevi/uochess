@@ -10,7 +10,7 @@
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 // see: https://arxiv.org/pdf/1711.05101.pdf
-#define uo_nn_adam_learning_rate 1e-5
+#define uo_nn_adam_learning_rate 1e-4
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
