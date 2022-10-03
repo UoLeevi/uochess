@@ -83,6 +83,25 @@ extern "C"
 
   char *uo_file_mmap_readline(uo_file_mmap *file_mmap);
 
+
+  // Pipes
+
+  typedef struct uo_pipe uo_pipe;
+
+  uo_pipe *uo_pipe_create();
+  void uo_pipe_close(uo_pipe *pipe);
+
+  void uo_pipe_read(uo_pipe *pipe);
+  void uo_pipe_write(uo_pipe *pipe);
+
+
+  // Processes
+
+  typedef struct uo_process uo_process;
+
+  uo_process *uo_process_create();
+  void uo_process_free(uo_process *process);
+
 #ifdef __cplusplus
 }
 #endif

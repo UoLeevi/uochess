@@ -122,4 +122,55 @@ char *uo_file_mmap_readline(uo_file_mmap *file_mmap)
   return line;
 }
 
+// Pipes
+
+typedef struct uo_pipe
+{
+  HANDLE rd;
+  HANDLE wr;
+  SECURITY_ATTRIBUTES saAttr;
+} uo_pipe;
+
+uo_pipe *uo_pipe_create()
+{
+  uo_pipe *pipe = malloc(sizeof *pipe);
+
+  // Set the bInheritHandle flag so pipe handles are inherited. 
+
+  pipe->saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+  pipe->saAttr.bInheritHandle = TRUE;
+  pipe->saAttr.lpSecurityDescriptor = NULL;
+
+  // Create a pipe
+
+  if (!CreatePipe(&pipe->rd, &pipe->wr, &pipe->saAttr, 0))
+  {
+    free(pipe);
+    return NULL;
+  }
+
+  return pipe;
+}
+
+void uo_pipe_close(uo_pipe *pipe)
+{
+  CloseHandle(pipe->rd);
+  CloseHandle(pipe->wr);
+  free(pipe);
+}
+
+void uo_pipe_read(uo_pipe *pipe);
+void uo_pipe_write(uo_pipe *pipe);
+
+
+// Processes
+
+typedef struct uo_process
+{
+
+} uo_process;
+
+uo_process *uo_process_create();
+void uo_process_free(uo_process *process);
+
 #endif
