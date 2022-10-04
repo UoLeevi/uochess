@@ -99,7 +99,7 @@ extern "C"
 
   typedef struct uo_process uo_process;
 
-  uo_process *uo_process_create();
+  uo_process *uo_process_create(char *cmdline);
   void uo_process_free(uo_process *process);
 
 #ifdef __cplusplus

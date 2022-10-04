@@ -133,7 +133,7 @@ typedef struct uo_pipe
 
 uo_pipe *uo_pipe_create()
 {
-  uo_pipe *pipe = malloc(sizeof *pipe);
+  uo_pipe *pipe = malloc(sizeof * pipe);
 
   // Set the bInheritHandle flag so pipe handles are inherited. 
 
@@ -167,10 +167,87 @@ void uo_pipe_write(uo_pipe *pipe);
 
 typedef struct uo_process
 {
-
+  PROCESS_INFORMATION piProcInfo;
+  uo_pipe *stdin_pipe;
+  uo_pipe *stdout_pipe;
 } uo_process;
 
-uo_process *uo_process_create();
-void uo_process_free(uo_process *process);
+// see: https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
+uo_process *uo_process_create(char *cmdline)
+{
+  uo_process *process = malloc(sizeof * process);
+  process->stdin_pipe = uo_pipe_create();
+  process->stdout_pipe = uo_pipe_create();
+
+  // Ensure the read handle to the pipe for STDOUT is not inherited.
+
+  if (!SetHandleInformation(process->stdout_pipe->rd, HANDLE_FLAG_INHERIT, 0))
+  {
+    uo_pipe_close(process->stdin_pipe);
+    uo_pipe_close(process->stdout_pipe);
+    free(process);
+    return NULL;
+  }
+
+  // Ensure the write handle to the pipe for STDIN is not inherited. 
+
+  if (!SetHandleInformation(process->stdin_pipe->wr, HANDLE_FLAG_INHERIT, 0))
+  {
+    uo_pipe_close(process->stdin_pipe);
+    uo_pipe_close(process->stdout_pipe);
+    free(process);
+    return NULL;
+  }
+
+  // Set up members of the PROCESS_INFORMATION structure. 
+
+  ZeroMemory(&process->piProcInfo, sizeof(PROCESS_INFORMATION));
+
+  // Set up members of the STARTUPINFO structure. 
+  // This structure specifies the STDIN and STDOUT handles for redirection.
+
+  STARTUPINFO siStartInfo;
+  ZeroMemory(&siStartInfo, sizeof(STARTUPINFO));
+  siStartInfo.cb = sizeof(STARTUPINFO);
+  siStartInfo.hStdError = process->stdout_pipe->wr;
+  siStartInfo.hStdOutput = process->stdout_pipe->wr;
+  siStartInfo.hStdInput = process->stdin_pipe->rd;
+  siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+  // Create the child process. 
+
+  bool bSuccess = CreateProcess(NULL,
+    cmdline,       // command line 
+    NULL,          // process security attributes 
+    NULL,          // primary thread security attributes 
+    TRUE,          // handles are inherited 
+    0,             // creation flags 
+    NULL,          // use parent's environment 
+    NULL,          // use parent's current directory 
+    &siStartInfo,  // STARTUPINFO pointer 
+    &process->piProcInfo);  // receives PROCESS_INFORMATION 
+
+  // If an error occurs, exit the application. 
+  if (!bSuccess)
+  {
+    uo_pipe_close(process->stdin_pipe);
+    uo_pipe_close(process->stdout_pipe);
+    free(process);
+    return NULL;
+  }
+
+  return process;
+}
+
+
+void uo_process_free(uo_process *process)
+{
+  CloseHandle(process->piProcInfo.hProcess);
+  CloseHandle(process->piProcInfo.hThread);
+
+  uo_pipe_close(process->stdin_pipe);
+  uo_pipe_close(process->stdout_pipe);
+  free(process);
+}
 
 #endif
