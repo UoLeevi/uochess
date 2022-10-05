@@ -236,6 +236,12 @@ uo_process *uo_process_create(char *cmdline)
     return NULL;
   }
 
+  // Close handles to the stdin and stdout pipes no longer needed by the child process.
+  // If they are not explicitly closed, there is no way to recognize that the child process has ended.
+
+  CloseHandle(process->stdout_pipe->wr);
+  CloseHandle(process->stdin_pipe->rd);
+
   return process;
 }
 
@@ -244,9 +250,10 @@ void uo_process_free(uo_process *process)
 {
   CloseHandle(process->piProcInfo.hProcess);
   CloseHandle(process->piProcInfo.hThread);
-
-  uo_pipe_close(process->stdin_pipe);
-  uo_pipe_close(process->stdout_pipe);
+  CloseHandle(process->stdout_pipe->rd);
+  CloseHandle(process->stdin_pipe->wr);
+  free(process->stdin_pipe);
+  free(process->stdout_pipe);
   free(process);
 }
 
