@@ -9,12 +9,7 @@ void uo_engine_load_default_options()
 {
   engine_options.multipv = 1;
   engine_options.threads = 4;
-
-  const size_t mb = 1000000;
-
-  size_t capacity = (size_t)265 * mb / sizeof * engine.ttable.entries;
-  capacity = (size_t)1 << uo_msb(capacity);
-  engine_options.hash_size = capacity * sizeof * engine.ttable.entries;
+  engine_options.hash_size = 256;
 
   strcpy(engine_options.eval_filename, "nn/nn-test-eval.nnuo");
 }
@@ -243,7 +238,7 @@ void uo_engine_init()
   }
 
   // hash table
-  size_t capacity = engine_options.hash_size / sizeof * engine.ttable.entries;
+  size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;
   uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
 
   // multipv

@@ -536,8 +536,8 @@ static void uo_uci_process_input__init(void)
     printf("id name uochess\n");
     printf("id author Leevi Uotinen\n\n");
     printf("option name Debug Log File type string default\n");
-    printf("option name Threads type spin default 4 min 1 max 254\n");
-    printf("option name Hash type spin default 256 min 1 max 33554432\n");
+    printf("option name Threads type spin default %zu min 1 max 254\n", engine_options.threads);
+    printf("option name Hash type spin default %zu min 1 max 33554432\n", engine_options.hash_size);
     printf("option name Clear Hash type button\n");
     printf("option name Ponder type check default false\n");
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
@@ -570,8 +570,7 @@ static void uo_uci_process_input__options(void)
       // Hash
       if (ptr && sscanf(ptr, "Hash value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 33554432)
       {
-        size_t capacity = spin * (size_t)1000000 / sizeof * engine.ttable.entries;
-        engine_options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * engine.ttable.entries;
+        engine_options.hash_size = spin;
       }
 
       // MultiPV
