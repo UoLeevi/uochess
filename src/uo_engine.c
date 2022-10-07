@@ -1,17 +1,54 @@
 #include "uo_engine.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 
 uo_engine_options engine_options;
 uo_engine engine;
 
 void uo_engine_load_default_options()
 {
+  char *envopt;
+
   engine_options.multipv = 1;
+  envopt = getenv("UO_OPT_MULTIPV");
+  if (envopt)
+  {
+    size_t multipv = strtoul(envopt, NULL, 10);
+    if (multipv > 0)
+    {
+      engine_options.multipv = multipv;
+    }
+  }
+
   engine_options.threads = 4;
+  envopt = getenv("UO_OPT_THREADS");
+  if (envopt)
+  {
+    size_t threads = strtoul(envopt, NULL, 10);
+    if (threads > 0)
+    {
+      engine_options.threads = threads;
+    }
+  }
+
   engine_options.hash_size = 256;
+  envopt = getenv("UO_OPT_HASH");
+  if (envopt)
+  {
+    size_t hash_size = strtoul(envopt, NULL, 10);
+    if (hash_size > 0)
+    {
+      engine_options.hash_size = hash_size;
+    }
+  }
 
   strcpy(engine_options.eval_filename, "nn/nn-test-eval.nnuo");
+  envopt = getenv("UO_OPT_EVALFILE");
+  if (envopt)
+  {
+    strcpy(engine_options.eval_filename, envopt);
+  }
 }
 
 void uo_search_queue_init(uo_search_queue *queue)
