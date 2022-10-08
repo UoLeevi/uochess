@@ -1,6 +1,7 @@
 ﻿{
   "environments": [
     {
+      "UO_OPT_TESTDATADIR": "${projectDir}/test_data",
       "UO_OPT_EVALFILE": "nn/nn-test-eval.nnuo",
       "UO_OPT_THREADS": "4",
       "UO_OPT_HASH": "256"

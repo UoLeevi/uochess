@@ -6,6 +6,8 @@ extern "C"
 {
 #endif
 
+#include "uo_macro.h"
+
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -267,6 +269,41 @@ extern "C"
   {
     srand(seed);
   }
+
+  static inline char *_uo_strcat(size_t count, ...)
+  {
+    size_t size = 0;
+    size_t *lens = uo_alloca(count * sizeof(size_t));
+    va_list args;
+
+    va_start(args, count);
+    for (size_t i = 0; i < count; ++i)
+    {
+      char *str = va_arg(args, char *);
+      size_t len = strlen(str);
+      size += len;
+      lens[i] = len;
+    }
+    va_end(args);
+
+    char *buf = malloc(size + 1);
+    char *ptr = buf;
+
+    va_start(args, count);
+    for (size_t i = 0; i < count; ++i)
+    {
+      char *str = va_arg(args, char *);
+      size_t len = lens[i];
+      memcpy(ptr, str, len);
+      ptr += len;
+    }
+    va_end(args);
+
+    *ptr = '\0';
+    return buf;
+  }
+
+#define uo_strcat(...) _uo_strcat(uo_narg(__VA_ARGS__), __VA_ARGS__)
 
 #ifdef __cplusplus
 }
