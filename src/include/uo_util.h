@@ -270,6 +270,20 @@ extern "C"
     srand(seed);
   }
 
+  static inline char *uo_timestr(char buf[UO_STRLEN("yyyymmddMMSS")])
+  {
+    if (!buf)
+    {
+      buf = malloc(sizeof buf);
+    }
+
+    time_t now = time(NULL);
+    struct tm *tm_now = gmtime(now);
+    strftime(buf, sizeof buf, "%y%m%d%M%s", tm_now);
+
+    return buf;
+  }
+
   static inline char *_uo_strcat(size_t count, ...)
   {
     size_t size = 0;
