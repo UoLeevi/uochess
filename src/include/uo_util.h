@@ -6,10 +6,12 @@ extern "C"
 {
 #endif
 
-#include "uo_macro.h"
+#include "uo_macro.h"  
 
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #if defined(_MSC_VER)
 
@@ -272,52 +274,35 @@ extern "C"
 
   static inline char *uo_timestr(char buf[UO_STRLEN("yyyymmddMMSS")])
   {
+    size_t size = UO_STRLEN("yyyymmddMMSS") * sizeof(char);
+
     if (!buf)
     {
-      buf = malloc(sizeof buf);
+      buf = malloc(size);
     }
 
     time_t now = time(NULL);
-    struct tm *tm_now = gmtime(now);
-    strftime(buf, sizeof buf, "%y%m%d%M%s", tm_now);
+    struct tm *tm_now = gmtime(&now);
+    strftime(buf, size, "%y%m%d%M%s", tm_now);
 
     return buf;
   }
 
-  static inline char *_uo_strcat(size_t count, ...)
+  static inline char *uo_aprintf(const char *fmt, ...)
   {
-    size_t size = 0;
-    size_t *lens = uo_alloca(count * sizeof(size_t));
-    va_list args;
+    va_list args1;
+    va_start(args1, fmt);
+    va_list args2;
+    va_copy(args2, args1);
+    size_t size = vsnprintf(NULL, 0, fmt, args1) + 1;
+    va_end(args1);
 
-    va_start(args, count);
-    for (size_t i = 0; i < count; ++i)
-    {
-      char *str = va_arg(args, char *);
-      size_t len = strlen(str);
-      size += len;
-      lens[i] = len;
-    }
-    va_end(args);
+    char *str = malloc(size * sizeof(char));
+    vsnprintf(str, size, fmt, args2);
+    va_end(args2);
 
-    char *buf = malloc(size + 1);
-    char *ptr = buf;
-
-    va_start(args, count);
-    for (size_t i = 0; i < count; ++i)
-    {
-      char *str = va_arg(args, char *);
-      size_t len = lens[i];
-      memcpy(ptr, str, len);
-      ptr += len;
-    }
-    va_end(args);
-
-    *ptr = '\0';
-    return buf;
+    return str;
   }
-
-#define uo_strcat(...) _uo_strcat(uo_narg(__VA_ARGS__), __VA_ARGS__)
 
 #ifdef __cplusplus
 }

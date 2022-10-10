@@ -814,19 +814,15 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 {
   if (!test_data_dir) return false;
 
-  size_t len_data_dir = strlen(test_data_dir);
-
-  char *eval_filepath = buf;
-  if (eval_filepath != test_data_dir) strcpy(eval_filepath, test_data_dir);
-
-  strcpy(eval_filepath + len_data_dir, "/evaluations.csv");
-
+  char *eval_filepath = uo_aprintf("%s/evaluations.csv", test_data_dir);
   uo_file_mmap *file_mmap = uo_file_mmap_open_read(eval_filepath);
+  if (!file_mmap)
+  {
+    free(eval_filepath);
+    return false;
+  }
 
-  if (!file_mmap) return false;
-
-  char *nn_filepath = buf;
-  strcpy(nn_filepath + len_data_dir, "/nn-test-eval.nnuo");
+  char *nn_filepath = uo_aprintf("%s/nn-test-eval.nnuo", test_data_dir);
 
   uo_rand_init(time(NULL));
 
@@ -862,6 +858,8 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
     uo_file_mmap_close(file_mmap);
     free(state.buf);
     uo_nn_save_to_file(&nn, nn_filepath);
+    free(eval_filepath);
+    free(nn_filepath);
     return false;
   }
 
@@ -880,6 +878,8 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
       uo_file_mmap_close(file_mmap);
       free(state.buf);
       uo_nn_save_to_file(&nn, nn_filepath);
+      free(eval_filepath);
+      free(nn_filepath);
       return false;
     }
   }
@@ -887,6 +887,8 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
   uo_file_mmap_close(file_mmap);
   free(state.buf);
   uo_nn_save_to_file(&nn, nn_filepath);
+  free(eval_filepath);
+  free(nn_filepath);
   return true;
 }
 
