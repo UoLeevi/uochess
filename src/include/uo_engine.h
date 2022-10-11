@@ -26,6 +26,8 @@ extern "C"
     uint16_t multipv;
     size_t hash_size;
     char eval_filename[0x100];
+    char nn_dir[0x100];
+    char test_data_dir[0x100];
   } uo_engine_options;
 
   typedef struct uo_search_queue_item

@@ -970,6 +970,8 @@ static void uo_uci_process_input__ready(void)
       uo_engine_lock_position();
 
       char *test_data_dir = strtok(NULL, "\n");
+      if (!test_data_dir) test_data_dir = engine_options.test_data_dir;
+
       bool passed = uo_test_nn_train_eval(test_data_dir, false);
 
       printf("\n");

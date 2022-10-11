@@ -3,6 +3,7 @@
 #include "uo_misc.h"
 #include "uo_global.h"
 #include "uo_util.h"
+#include "uo_engine.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -107,6 +108,39 @@ typedef struct uo_nn
     size_t t; // timestep
   } adam;
 } uo_nn;
+
+void uo_print_nn(FILE *const fp, uo_nn *nn)
+{
+  fprintf(fp, "Layers: %zu\n\n", nn->layer_count);
+
+  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
+  {
+    uo_nn_layer *layer = nn->layers + layer_index;
+    size_t m_W = layer->m_W;
+    size_t n_W = layer->n_W;
+
+    fprintf(fp, "Layer %zu (%zu x %zu)", layer_index, m_W, n_W);
+
+    if (layer->func.name)
+    {
+      fprintf(fp, " - %s", layer->func.name);
+    }
+
+    fprintf(fp, ":");
+    float *W_t = layer->W_t;
+    float *W = nn->temp[0];
+    uo_transpose_ps(W_t, W, n_W, m_W);
+    uo_print_matrix(fp, W, m_W, n_W);
+    fprintf(fp, "\n\n");
+  }
+}
+
+void uo_nn_save_to_file(uo_nn *nn, char *filepath)
+{
+  FILE *fp = fopen(filepath, "w");
+  uo_print_nn(fp, nn);
+  fclose(fp);
+}
 
 void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_param *layer_params)
 {
@@ -638,6 +672,15 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
         {
           lr_multiplier *= 1.05f;
           min_avg_err = avg_error;
+
+          if (*engine_options.nn_dir)
+          {
+            char timestamp[13];
+            uo_timestr(timestamp);
+            char *nn_filepath = uo_aprintf("%s/nn-eval-%s.nnuo", engine_options.nn_dir, timestamp);
+            uo_nn_save_to_file(nn, nn_filepath);
+            free(nn_filepath);
+          }
         }
       }
 
@@ -657,39 +700,6 @@ int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position)
   uo_nn_feed_forward(nn);
   float win_prob = *nn->y;
   return (int16_t)(400.0f * log10f(win_prob / (1.0f - win_prob)));
-}
-
-void uo_print_nn(FILE *const fp, uo_nn *nn)
-{
-  fprintf(fp, "Layers: %zu\n\n", nn->layer_count);
-
-  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
-  {
-    uo_nn_layer *layer = nn->layers + layer_index;
-    size_t m_W = layer->m_W;
-    size_t n_W = layer->n_W;
-
-    fprintf(fp, "Layer %zu (%zu x %zu)", layer_index, m_W, n_W);
-
-    if (layer->func.name)
-    {
-      fprintf(fp, " - %s", layer->func.name);
-    }
-
-    fprintf(fp, ":");
-    float *W_t = layer->W_t;
-    float *W = nn->temp[0];
-    uo_transpose_ps(W_t, W, n_W, m_W);
-    uo_print_matrix(fp, W, m_W, n_W);
-    fprintf(fp, "\n\n");
-  }
-}
-
-void uo_nn_save_to_file(uo_nn *nn, char *filepath)
-{
-  FILE *fp = fopen(filepath, "w");
-  uo_print_nn(fp, nn);
-  fclose(fp);
 }
 
 uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
@@ -826,7 +836,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 32768;
+  size_t batch_size = 0x1000;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,

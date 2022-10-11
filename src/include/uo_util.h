@@ -272,9 +272,9 @@ extern "C"
     srand(seed);
   }
 
-  static inline char *uo_timestr(char buf[UO_STRLEN("yyyymmddMMSS")])
+  static inline char *uo_timestr(char buf[UO_STRLEN("yyyymmddMMSS") + 1])
   {
-    size_t size = UO_STRLEN("yyyymmddMMSS") * sizeof(char);
+    size_t size = (UO_STRLEN("yyyymmddMMSS") + 1) * sizeof(char);
 
     if (!buf)
     {
@@ -283,7 +283,7 @@ extern "C"
 
     time_t now = time(NULL);
     struct tm *tm_now = gmtime(&now);
-    strftime(buf, size, "%y%m%d%M%s", tm_now);
+    strftime(buf, size, "%y%m%d%M%S", tm_now);
 
     return buf;
   }
