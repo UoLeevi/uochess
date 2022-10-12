@@ -33,7 +33,7 @@ target_compile_features(uochess
 
 set_target_properties(uochess PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-  VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     target_compile_options(uochess

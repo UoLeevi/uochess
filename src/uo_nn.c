@@ -12,7 +12,7 @@
 
 // see: https://arxiv.org/pdf/1412.6980.pdf
 // see: https://arxiv.org/pdf/1711.05101.pdf
-#define uo_nn_adam_learning_rate 1e-5
+#define uo_nn_adam_learning_rate 1e-4
 #define uo_nn_adam_beta1 0.9
 #define uo_nn_adam_beta2 0.999
 #define uo_nn_adam_epsilon 1e-8
@@ -682,6 +682,10 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
             free(nn_filepath);
           }
         }
+        else
+        {
+          lr_multiplier *= 1.05f;
+        }
       }
 
       prev_avg_err = avg_error;
@@ -836,7 +840,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 0x1000;
+  size_t batch_size = 0x2000;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
@@ -851,8 +855,9 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
   }
   else
   {
-    uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
       { 815 },
+      { 255,  "swish" },
       { 63,  "swish" },
       { 31,  "swish" },
       { 1,   "sigmoid" }
@@ -861,7 +866,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   nn.state = &state;
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 10, 1000, uo_nn_report_test_eval, 10);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 10, 10000, uo_nn_report_test_eval, 100);
 
   if (!passed)
   {
