@@ -828,7 +828,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 {
   if (!test_data_dir) return false;
 
-  char *eval_filepath = uo_aprintf("%s/evaluations.csv", test_data_dir);
+  char *eval_filepath = uo_aprintf("%s/shuffled_evaluations.csv", test_data_dir);
   uo_file_mmap *file_mmap = uo_file_mmap_open_read(eval_filepath);
   if (!file_mmap)
   {

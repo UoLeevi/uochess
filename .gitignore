@@ -1,5 +1,5 @@
 # Other
-test_data/evaluations.csv
+test_data/*evaluations.csv
 
 # Visual Studio
 .vs
