@@ -840,7 +840,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 0x2000;
+  size_t batch_size = 0x200;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
@@ -855,10 +855,12 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
   }
   else
   {
-    uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
-      { 815 },
-      { 255,  "swish" },
-      { 63,  "swish" },
+    // TODO: Compute cross features for piece placement
+    size_t n = 812;
+    n = n * (n - 1) / 2 + n;
+
+    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
+      { n },
       { 31,  "swish" },
       { 1,   "sigmoid" }
     });
