@@ -51,6 +51,8 @@ typedef struct uo_nn_position
   float bias;
 } uo_nn_position;
 
+const size_t nn_position_size = sizeof(uo_nn_position) / sizeof(float);
+
 typedef struct uo_nn_layer_param
 {
   size_t n;
@@ -594,7 +596,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true);
 typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error, float learning_rate);
 
-bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval)
+bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval, float learning_rate)
 {
   size_t output_size = nn->batch_size * nn->n_y;
   float avg_error, prev_avg_err, min_avg_err;
@@ -614,7 +616,7 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
     return false;
   }
 
-  float lr_multiplier = 1.0f;
+  float lr_multiplier = learning_rate > 0.0f ? learning_rate / uo_nn_adam_learning_rate : 1.0f;
   prev_avg_err = min_avg_err = avg_error = loss;
 
   for (size_t i = 1; i < max_iterations; ++i)
@@ -776,7 +778,7 @@ typedef struct uo_nn_eval_state
   size_t buf_size;
 } uo_nn_eval_state;
 
-void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *y_true)
+void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true)
 {
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
@@ -819,64 +821,66 @@ void uo_nn_select_batch_test_eval(uo_nn *nn, size_t iteration, float *X, float *
   }
 }
 
-void uo_nn_report_test_eval(uo_nn *nn, size_t iteration, float error, float learning_rate)
+void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
 {
   printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
 }
 
-bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
+bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations)
 {
-  if (!test_data_dir) return false;
+  void *allocated_mem[3];
+  size_t allocated_mem_count = 0;
 
-  char *eval_filepath = uo_aprintf("%s/shuffled_evaluations.csv", test_data_dir);
-  uo_file_mmap *file_mmap = uo_file_mmap_open_read(eval_filepath);
+  if (!dataset_filepath)
+  {
+    if (!*engine_options.test_data_dir) return false;
+    dataset_filepath = uo_aprintf("%s/shuffled_evaluations.csv", engine_options.test_data_dir);
+    allocated_mem[allocated_mem_count++] = dataset_filepath;
+  }
+
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(dataset_filepath);
   if (!file_mmap)
   {
-    free(eval_filepath);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
     return false;
   }
 
-  char *nn_filepath = uo_aprintf("%s/nn-test-eval.nnuo", test_data_dir);
-
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 0x200;
+  size_t batch_size = 0x2000;
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
     .buf = malloc(batch_size * 100),
   };
 
+  allocated_mem[allocated_mem_count++] = state.buf;
+
   uo_nn nn;
 
-  if (init_from_file)
+  if (nn_init_filepath)
   {
-    uo_nn_read_from_file(&nn, nn_filepath, batch_size);
+    uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
   }
   else
   {
-    // TODO: Compute cross features for piece placement
-    size_t n = 812;
-    n = n * (n - 1) / 2 + n;
-
-    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
-      { n },
-      { 31,  "swish" },
+    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
+      { nn_position_size - 1 },
       { 1,   "sigmoid" }
     });
   }
 
   nn.state = &state;
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_eval, pow(0.1, 2), 10, 10000, uo_nn_report_test_eval, 100);
+  if (!iterations) iterations = 1000;
+
+  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate);
 
   if (!passed)
   {
     uo_file_mmap_close(file_mmap);
-    free(state.buf);
-    uo_nn_save_to_file(&nn, nn_filepath);
-    free(eval_filepath);
-    free(nn_filepath);
+    if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
     return false;
   }
 
@@ -884,7 +888,7 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
 
   for (size_t i = 0; i < 1000; ++i)
   {
-    uo_nn_select_batch_test_eval(&nn, i, nn.X, y_true);
+    uo_nn_train_eval_select_batch(&nn, i, nn.X, y_true);
     uo_nn_feed_forward(&nn);
 
     float mse = uo_nn_calculate_loss(&nn, y_true);
@@ -893,19 +897,15 @@ bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file)
     if (rmse > 0.1)
     {
       uo_file_mmap_close(file_mmap);
-      free(state.buf);
-      uo_nn_save_to_file(&nn, nn_filepath);
-      free(eval_filepath);
-      free(nn_filepath);
+      if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
       return false;
     }
   }
 
   uo_file_mmap_close(file_mmap);
-  free(state.buf);
-  uo_nn_save_to_file(&nn, nn_filepath);
-  free(eval_filepath);
-  free(nn_filepath);
+  if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
   return true;
 }
 
@@ -947,7 +947,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     { 1, "sigmoid_loss_binary_cross_entropy" }
   });
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f);
 
   if (!passed)
   {

@@ -38,7 +38,7 @@ extern "C"
 
   uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
 
-  bool uo_test_nn_train_eval(char *test_data_dir, bool init_from_file);
+  bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations);
 
   bool uo_test_nn_train_xor(char *test_data_dir);
 

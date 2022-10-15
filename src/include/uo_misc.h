@@ -65,6 +65,31 @@ extern "C"
     return NULL;
   }
 
+  static inline char *uo_line_arg_parse(const char *line, const char *argname, int argvalue_index, char **end)
+  {
+    if (!line) return NULL;
+    char *start = strstr(line, argname);
+    if (!start) return NULL;
+
+    *end = strchr(start, ' ');
+
+    while (argvalue_index--)
+    {
+      if (!*end) return NULL;
+
+      start = *end + 1;
+
+      while (isspace(*start))
+      {
+        ++start;
+      }
+
+      *end = strchr(start, ' ');
+    }
+
+    return start;
+  }
+
   // Memory-Mapped Files
   // see: https://docs.microsoft.com/en-us/previous-versions/ms810613(v=msdn.10)
 

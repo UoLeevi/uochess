@@ -52,7 +52,8 @@ typedef const struct uo_uci_tokens
     alpha,
     beta,
     checks,
-    train_nn_eval,
+    nneval,
+    train,
     randomize;
 
   struct
@@ -117,8 +118,9 @@ uo_uci_tokens tokens = {
   .alpha = 32,
   .beta = 33,
   .checks = 34,
-  .train_nn_eval = 35,
+  .nneval = 35,
   .randomize = 36,
+  .train = 37,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -383,15 +385,21 @@ static void uo_uci_read_token(void)
     return;
   }
 
-  if (streq(ptr, "train_nn_eval"))
+  if (streq(ptr, "nneval"))
   {
-    token = tokens.train_nn_eval;
+    token = tokens.nneval;
     return;
   }
 
   if (streq(ptr, "randomize"))
   {
     token = tokens.randomize;
+    return;
+  }
+
+  if (streq(ptr, "train"))
+  {
+    token = tokens.train;
     return;
   }
 
@@ -964,23 +972,6 @@ static void uo_uci_process_input__ready(void)
       return;
     }
 
-    if (uo_uci_match(tokens.train_nn_eval))
-    {
-      uo_engine_lock_stdout();
-      uo_engine_lock_position();
-
-      char *test_data_dir = strtok(NULL, "\n");
-      if (!test_data_dir) test_data_dir = engine_options.test_data_dir;
-
-      bool passed = uo_test_nn_train_eval(test_data_dir, true);
-
-      printf("\n");
-      fflush(stdout);
-      uo_engine_unlock_position();
-      uo_engine_unlock_stdout();
-
-      return;
-    }
   }
 
   if (uo_uci_match(tokens.eval))
@@ -1007,6 +998,52 @@ static void uo_uci_process_input__ready(void)
     uo_engine_unlock_position();
     uo_engine_unlock_stdout();
   }
+
+  if (uo_uci_match(tokens.nneval))
+  {
+    uo_uci_read_token();
+    if (uo_uci_match(tokens.train))
+    {
+      uo_engine_lock_stdout();
+      uo_engine_lock_position();
+
+      char *line = strtok(NULL, "\n");
+
+      char *arg_nn_file_end;
+      char *arg_nn_file = uo_line_arg_parse(line, "nn_file", 1, &arg_nn_file_end);
+
+      char *arg_nn_out_file_end;
+      char *arg_nn_out_file = uo_line_arg_parse(line, "nn_out_file", 1, &arg_nn_out_file_end);
+
+      char *arg_dataset_file_end;
+      char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
+
+      char *arg_iterations_end;
+      char *arg_iterations = uo_line_arg_parse(line, "iterations", 1, &arg_iterations_end);
+
+      char *arg_learning_rate_end;
+      char *arg_learning_rate = uo_line_arg_parse(line, "learning_rate", 1, &arg_learning_rate_end);
+
+      if (arg_nn_file && arg_nn_file_end) *arg_nn_file_end = '\0';
+      if (arg_nn_out_file && arg_nn_out_file_end) *arg_nn_file_end = '\0';
+      if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
+      if (arg_iterations && arg_iterations_end) *arg_iterations_end = '\0';
+      if (arg_learning_rate && arg_learning_rate_end) *arg_learning_rate_end = '\0';
+
+      size_t iterations = arg_iterations ? strtoull(arg_iterations, NULL, 10) : 0;
+      float learning_rate = arg_iterations ? strtoull(arg_iterations, NULL, 10) : 0;
+
+      bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations);
+
+      printf("\n");
+      fflush(stdout);
+      uo_engine_unlock_position();
+      uo_engine_unlock_stdout();
+
+      return;
+    }
+  }
+
 }
 
 static void uo_uci_process_input__go(void)
