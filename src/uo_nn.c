@@ -1095,8 +1095,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
+      { 255,   "swish" },
+      { 63,   "swish" },
       { 8,   "swish" },
       { 1,   "tanh" }
     });
@@ -1281,6 +1283,8 @@ void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char 
     int16_t score;
     if (sscanf(ptr, "score cp %hd", &score) == 1)
     {
+      if (uo_color(position.flags) == uo_black) score *= -1.0f;
+
       char *ptr = buffer;
       ptr += uo_position_print_fen(&position, ptr);
       ptr += sprintf(ptr, ",%+d\n", score);
