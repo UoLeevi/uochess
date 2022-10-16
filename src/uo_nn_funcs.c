@@ -18,7 +18,7 @@ uo_avx_float uo_nn_function_relu_d(__m256 avx_float)
   return _mm256_max_ps(mask, ones);
 }
 
-const uo_nn_function_param relu = {
+const uo_nn_function_param activation_relu = {
   .activation = {
     .f = uo_nn_function_relu,
     .df = uo_nn_function_relu_d
@@ -47,12 +47,33 @@ uo_avx_float uo_nn_function_sigmoid_d(__m256 avx_float)
   return _mm256_mul_ps(sigmoid, sub);
 }
 
-const uo_nn_function_param sigmoid = {
+const uo_nn_function_param activation_sigmoid = {
   .activation = {
     .f = uo_nn_function_sigmoid,
     .df = uo_nn_function_sigmoid_d,
   },
   .name = "sigmoid"
+};
+
+uo_avx_float uo_nn_function_tanh(__m256 avx_float)
+{
+  return _mm256_tanh_ps(avx_float);
+}
+
+uo_avx_float uo_nn_function_tanh_d(__m256 avx_float)
+{
+  __m256 tanh = _mm256_tanh_ps(avx_float);
+  __m256 sqr = _mm256_mul_ps(tanh, tanh);
+  __m256 ones = _mm256_set1_ps(1.0);
+  return _mm256_sub_ps(ones, sqr);
+}
+
+const uo_nn_function_param activation_tanh = {
+  .activation = {
+    .f = uo_nn_function_tanh,
+    .df = uo_nn_function_tanh_d,
+  },
+  .name = "tanh"
 };
 
 uo_avx_float uo_nn_function_swish(__m256 avx_float)
@@ -71,7 +92,7 @@ uo_avx_float uo_nn_function_swish_d(__m256 avx_float)
   return _mm256_add_ps(swish, mul);
 }
 
-const uo_nn_function_param swish = {
+const uo_nn_function_param activation_swish = {
   .activation = {
     .f = uo_nn_function_swish,
     .df = uo_nn_function_swish_d
@@ -216,17 +237,22 @@ const uo_nn_function_param *uo_nn_get_function_by_name(const char *function_name
 
   if (strcmp(function_name, "sigmoid") == 0)
   {
-    return &sigmoid;
+    return &activation_sigmoid;
+  }
+
+  if (strcmp(function_name, "tanh") == 0)
+  {
+    return &activation_tanh;
   }
 
   if (strcmp(function_name, "relu") == 0)
   {
-    return &relu;
+    return &activation_relu;
   }
 
   if (strcmp(function_name, "swish") == 0)
   {
-    return &swish;
+    return &activation_swish;
   }
 
   if (strcmp(function_name, "loss_mse") == 0)

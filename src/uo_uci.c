@@ -54,8 +54,9 @@ typedef const struct uo_uci_tokens
     checks,
     nneval,
     train,
-    randomize;
-
+    randomize,
+    nngen,
+    dataset;
   struct
   {
     uo_uci_token
@@ -121,6 +122,8 @@ uo_uci_tokens tokens = {
   .nneval = 35,
   .randomize = 36,
   .train = 37,
+  .nngen = 38,
+  .dataset = 39,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -400,6 +403,18 @@ static void uo_uci_read_token(void)
   if (streq(ptr, "train"))
   {
     token = tokens.train;
+    return;
+  }
+
+  if (streq(ptr, "nngen"))
+  {
+    token = tokens.nngen;
+    return;
+  }
+
+  if (streq(ptr, "dataset"))
+  {
+    token = tokens.dataset;
     return;
   }
 
@@ -1024,16 +1039,57 @@ static void uo_uci_process_input__ready(void)
       char *arg_learning_rate_end;
       char *arg_learning_rate = uo_line_arg_parse(line, "learning_rate", 1, &arg_learning_rate_end);
 
+      char *arg_batch_size_end;
+      char *arg_batch_size = uo_line_arg_parse(line, "batch_size", 1, &arg_batch_size_end);
+
       if (arg_nn_file && arg_nn_file_end) *arg_nn_file_end = '\0';
-      if (arg_nn_out_file && arg_nn_out_file_end) *arg_nn_file_end = '\0';
+      if (arg_nn_out_file && arg_nn_out_file_end) *arg_nn_out_file_end = '\0';
       if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
       if (arg_iterations && arg_iterations_end) *arg_iterations_end = '\0';
       if (arg_learning_rate && arg_learning_rate_end) *arg_learning_rate_end = '\0';
+      if (arg_batch_size && arg_batch_size_end) *arg_batch_size_end = '\0';
 
       size_t iterations = arg_iterations ? strtoull(arg_iterations, NULL, 10) : 0;
-      float learning_rate = arg_iterations ? strtoull(arg_iterations, NULL, 10) : 0;
+      float learning_rate = arg_learning_rate ? strtof(arg_learning_rate, NULL) : 0;
+      size_t batch_size = arg_batch_size ? strtoull(arg_batch_size, NULL, 10) : 0;
 
-      bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations);
+      bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations, batch_size);
+
+      printf("\n");
+      fflush(stdout);
+      uo_engine_unlock_position();
+      uo_engine_unlock_stdout();
+
+      return;
+    }
+  }
+
+  if (uo_uci_match(tokens.nngen))
+  {
+    uo_uci_read_token();
+    if (uo_uci_match(tokens.dataset))
+    {
+      uo_engine_lock_stdout();
+      uo_engine_lock_position();
+
+      char *line = strtok(NULL, "\n");
+
+      char *arg_engine_file_end;
+      char *arg_engine_file = uo_line_arg_parse(line, "engine_file", 1, &arg_engine_file_end);
+
+      char *arg_dataset_file_end;
+      char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
+
+      char *arg_positions_end;
+      char *arg_positions = uo_line_arg_parse(line, "positions", 1, &arg_positions_end);
+
+      if (arg_engine_file && arg_engine_file_end) *arg_engine_file_end = '\0';
+      if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
+      if (arg_positions && arg_positions_end) *arg_positions_end = '\0';
+
+      size_t positions = arg_positions ? strtoull(arg_positions, NULL, 10) : 0;
+
+      uo_nn_generate_dataset(arg_dataset_file, arg_engine_file, NULL, positions);
 
       printf("\n");
       fflush(stdout);

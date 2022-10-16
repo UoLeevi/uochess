@@ -116,8 +116,8 @@ extern "C"
   uo_pipe *uo_pipe_create();
   void uo_pipe_close(uo_pipe *pipe);
 
-  void uo_pipe_read(uo_pipe *pipe);
-  void uo_pipe_write(uo_pipe *pipe);
+  size_t uo_pipe_read(uo_pipe *pipe, char *buffer, size_t len);
+  size_t uo_pipe_write(uo_pipe *pipe, const char *ptr, size_t len);
 
 
   // Processes
@@ -126,6 +126,8 @@ extern "C"
 
   uo_process *uo_process_create(char *cmdline);
   void uo_process_free(uo_process *process);
+  size_t uo_process_write_stdin(uo_process *process, const char *ptr, size_t len);
+  size_t uo_process_read_stdout(uo_process *process, char *buffer, size_t len);
 
 #ifdef __cplusplus
 }

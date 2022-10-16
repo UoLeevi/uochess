@@ -18,37 +18,66 @@
 #define uo_nn_adam_epsilon 1e-8
 #define uo_nn_adam_weight_decay 1e-2
 
-typedef struct uo_nn_position
-{
-  float empty[64];
-  struct
-  {
-    float K[64];
-    float Q[64];
-    float R[64];
-    float B[64];
-    float N[64];
-    float P[48];
-  } own;
-  struct
-  {
-    float K[64];
-    float Q[64];
-    float R[64];
-    float B[64];
-    float N[64];
-    float P[48];
-  } enemy;
-  struct
-  {
-    float own_K;
-    float own_Q;
-    float enemy_K;
-    float enemy_Q;
-  } castling;
-  float enpassant[8];
+#define uo_score_centipawn_to_win_prob(cp) (atanf(score / 111.714640912f) / 1.5620688421f)
+#define uo_score_centipawn_to_q_score(cp) (atanf(score / 290.680623072f) / 3.096181612f + 0.5f)
+#define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
+#define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
-  float bias;
+typedef union uo_nn_position
+{
+  float vector[823];
+  struct {
+    float empty[64];
+    struct
+    {
+      struct
+      {
+        float K[64];
+        float Q[64];
+        float R[64];
+        float B[64];
+        float N[64];
+        float P[48];
+      } own;
+      struct
+      {
+        float K[64];
+        float Q[64];
+        float R[64];
+        float B[64];
+        float N[64];
+        float P[48];
+      } enemy;
+    } piece_placement;
+    struct
+    {
+      struct
+      {
+        float Q;
+        float R;
+        float B;
+        float N;
+        float P;
+      } own;
+      struct
+      {
+        float Q;
+        float R;
+        float B;
+        float N;
+        float P;
+      } enemy;
+    } material;
+    struct
+    {
+      float own_K;
+      float own_Q;
+      float enemy_K;
+      float enemy_Q;
+    } castling;
+    float enpassant[8];
+    float bias;
+  } data;
 } uo_nn_position;
 
 const size_t nn_position_size = sizeof(uo_nn_position) / sizeof(float);
@@ -177,8 +206,6 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
     size_t size_output = batch_size * n_A;
     size_max = uo_max(size_max, size_output);
 
-    float *mem;
-
     const uo_nn_function_param *function_param = uo_nn_get_function_by_name(layer_params[layer_index].function);
     layer->func = *function_param;
 
@@ -192,9 +219,7 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
 
     if (layer->func.activation.df)
     {
-      size_t size_total = size_output * 4 + size_weights * 6;
-      mem = calloc(size_total, sizeof(float));
-
+      float *mem = calloc(size_output * 4, sizeof(float));
       layer->Z = mem;
       mem += size_output;
       layer->dZ = mem;
@@ -202,19 +227,16 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
       layer->A = mem;
       mem += size_output;
       layer->dA = mem;
-      mem += size_output;
     }
     else
     {
-      size_t size_total = size_output * 2 + size_weights * 6;
-      mem = calloc(size_total, sizeof(float));
-
+      float *mem = calloc(size_output * 2, sizeof(float));
       layer->Z = layer->A = mem;
       mem += size_output;
       layer->dZ = layer->dA = mem;
-      mem += size_output;
     }
 
+    float *mem = calloc(size_weights * 6, sizeof(float));
     layer->W_t = mem;
     mem += size_weights;
     layer->dW_t = mem;
@@ -258,11 +280,92 @@ void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_pa
   }
 }
 
+void uo_nn_free(uo_nn *nn)
+{
+  free(nn->temp[0]);
+  free(nn->X);
+
+  for (size_t i = 1; i <= nn->layer_count; ++i)
+  {
+    free(nn->layers[i - 1].Z);
+    free(nn->layers[i - 1].W_t);
+  }
+
+  free(nn->layers);
+}
+
+void uo_nn_change_batch_size(uo_nn *nn, size_t batch_size)
+{
+  nn->batch_size = batch_size;
+
+  // Step 1. Reallocate input layer
+  uo_nn_layer *input_layer = nn->layers;
+  size_t size_input = batch_size * nn->n_X;
+  size_t size_max = size_input;
+  free(nn->X);
+  nn->X = input_layer->A = calloc(size_input, sizeof(float));
+
+  // Step 2. Reallocate hidden layers and output layer
+  uo_nn_layer *layer = input_layer;
+
+  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
+  {
+    ++layer;
+    bool is_output_layer = layer_index == nn->layer_count;
+    // For hidden layers, let's leave room for bias terms when computing output matrix
+    int bias_offset = is_output_layer ? 0 : 1;
+
+    size_t m_W = layer->m_W;
+    size_t n_W = layer->n_W;
+    size_t size_weights = m_W * n_W;
+    size_max = uo_max(size_max, size_weights);
+    size_t n_A = n_W + bias_offset;
+    size_t size_output = batch_size * n_A;
+    size_max = uo_max(size_max, size_output);
+
+    if (layer->func.activation.df)
+    {
+      free(layer->Z);
+      float *mem = calloc(size_output * 4, sizeof(float));
+      layer->Z = mem;
+      mem += size_output;
+      layer->dZ = mem;
+      mem += size_output;
+      layer->A = mem;
+      mem += size_output;
+      layer->dA = mem;
+    }
+    else
+    {
+      free(layer->Z);
+      float *mem = calloc(size_output * 2, sizeof(float));
+      layer->Z = layer->A = mem;
+      mem += size_output;
+      layer->dZ = layer->dA = mem;
+    }
+  }
+
+  // Step 3. Set output layer and loss function
+  uo_nn_layer *output_layer = nn->layers + nn->layer_count;
+  nn->n_y = output_layer->n_W;
+  nn->y = output_layer->A;
+
+  // Step 4. Allocate space for temp data
+  free(nn->temp[0]);
+  float *temp = calloc(size_max * uo_nn_temp_var_count, sizeof(float));
+  for (size_t i = 0; i < uo_nn_temp_var_count; ++i)
+  {
+    nn->temp[i] = temp + size_max * i;
+  }
+}
+
 void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
 {
   size_t n_X = nn->n_X;
   float *input = nn->X + n_X * index;
-  memset(input, 0, n_X * sizeof(float));
+
+  uo_nn_position *position_input = (uo_nn_position *)(void *)input;
+  memset(position_input, 0, sizeof(uo_nn_position));
 
   // Step 1. Piece configuration
 
@@ -273,51 +376,84 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
     if (piece <= 1)
     {
       // Empty square
-      input[i] = 1.0f;
+      position_input->data.empty[i] = 1.0f;
       continue;
     }
 
-    size_t offset = uo_color(piece) == uo_black ? 64 * 5 + 48 : 0;
-
-    switch (uo_piece_type(piece))
+    switch (piece)
     {
       case uo_piece__P:
-        offset += 64 * 5 - 8;
+        position_input->data.piece_placement.own.P[i] = 1.0f;
+        position_input->data.material.own.P += 1.0f;
         break;
 
       case uo_piece__N:
-        offset += 64 * 4;
+        position_input->data.piece_placement.own.N[i] = 1.0f;
+        position_input->data.material.own.N += 1.0f;
         break;
 
       case uo_piece__B:
-        offset += 64 * 3;
+        position_input->data.piece_placement.own.B[i] = 1.0f;
+        position_input->data.material.own.B += 1.0f;
         break;
 
       case uo_piece__R:
-        offset += 64 * 2;
+        position_input->data.piece_placement.own.R[i] = 1.0f;
+        position_input->data.material.own.R += 1.0f;
         break;
 
       case uo_piece__Q:
-        offset += 64 * 1;
+        position_input->data.piece_placement.own.Q[i] = 1.0f;
+        position_input->data.material.own.Q += 1.0f;
+        break;
+
+      case uo_piece__K:
+        position_input->data.piece_placement.own.K[i] = 1.0f;
+        break;
+
+      case uo_piece__p:
+        position_input->data.piece_placement.enemy.P[i] = 1.0f;
+        position_input->data.material.enemy.P += 1.0f;
+        break;
+
+      case uo_piece__n:
+        position_input->data.piece_placement.enemy.N[i] = 1.0f;
+        position_input->data.material.enemy.N += 1.0f;
+        break;
+
+      case uo_piece__b:
+        position_input->data.piece_placement.enemy.B[i] = 1.0f;
+        position_input->data.material.enemy.B += 1.0f;
+        break;
+
+      case uo_piece__r:
+        position_input->data.piece_placement.enemy.R[i] = 1.0f;
+        position_input->data.material.enemy.R += 1.0f;
+        break;
+
+      case uo_piece__q:
+        position_input->data.piece_placement.enemy.Q[i] = 1.0f;
+        position_input->data.material.enemy.Q += 1.0f;
+        break;
+
+      case uo_piece__k:
+        position_input->data.piece_placement.enemy.K[i] = 1.0f;
         break;
     }
-
-    input[64 + offset + i] = 1.0f;
   }
 
   // Step 2. Castling
-  size_t offset_castling = 64 + (64 * 5 + 48) * 2;
-  input[offset_castling + 0] = uo_position_flags_castling_OO(position->flags);
-  input[offset_castling + 1] = uo_position_flags_castling_OOO(position->flags);
-  input[offset_castling + 2] = uo_position_flags_castling_enemy_OO(position->flags);
-  input[offset_castling + 3] = uo_position_flags_castling_enemy_OOO(position->flags);
+  position_input->data.castling.own_K = uo_position_flags_castling_OO(position->flags);
+  position_input->data.castling.own_Q = uo_position_flags_castling_OOO(position->flags);
+  position_input->data.castling.enemy_K = uo_position_flags_castling_enemy_OO(position->flags);
+  position_input->data.castling.enemy_Q = uo_position_flags_castling_enemy_OOO(position->flags);
 
   // Step 3. Enpassant
-  size_t offset_enpassant = offset_castling + 4;
   size_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
+
   if (enpassant_file)
   {
-    input[offset_enpassant + enpassant_file - 1] = 1.0;
+    position_input->data.enpassant[enpassant_file - 1] = 1.0f;
   }
 }
 
@@ -342,7 +478,9 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
 
   size_t n_X = nn->n_X;
   float *input = nn->X + n_X * index;
-  memset(input, 0, n_X * sizeof(float));
+
+  uo_nn_position *position_input = (uo_nn_position *)(void *)input;
+  memset(position_input, 0, sizeof(uo_nn_position));
 
   uint8_t color = active_color == 'b' ? uo_black : uo_white;
   size_t flip_if_black = color == uo_black ? 56 : 0;
@@ -371,7 +509,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
 
         while (empty_count--)
         {
-          input[index + empty_count] = 1.0f;
+          position_input->data.empty[index + empty_count] = 1.0f;
         }
 
         continue;
@@ -384,32 +522,68 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
         return -1;
       }
 
-      size_t offset = uo_color(piece) != color ? (64 * 5 + 48) : 0;
+      piece ^= color;
 
-      switch (uo_piece_type(piece))
+      switch (piece)
       {
         case uo_piece__P:
-          offset += 64 * 5 - 8;
+          position_input->data.piece_placement.own.P[i] = 1.0f;
+          position_input->data.material.own.P += 1.0f;
           break;
 
         case uo_piece__N:
-          offset += 64 * 4;
+          position_input->data.piece_placement.own.N[i] = 1.0f;
+          position_input->data.material.own.N += 1.0f;
           break;
 
         case uo_piece__B:
-          offset += 64 * 3;
+          position_input->data.piece_placement.own.B[i] = 1.0f;
+          position_input->data.material.own.B += 1.0f;
           break;
 
         case uo_piece__R:
-          offset += 64 * 2;
+          position_input->data.piece_placement.own.R[i] = 1.0f;
+          position_input->data.material.own.R += 1.0f;
           break;
 
         case uo_piece__Q:
-          offset += 64 * 1;
+          position_input->data.piece_placement.own.Q[i] = 1.0f;
+          position_input->data.material.own.Q += 1.0f;
+          break;
+
+        case uo_piece__K:
+          position_input->data.piece_placement.own.K[i] = 1.0f;
+          break;
+
+        case uo_piece__p:
+          position_input->data.piece_placement.enemy.P[i] = 1.0f;
+          position_input->data.material.enemy.P += 1.0f;
+          break;
+
+        case uo_piece__n:
+          position_input->data.piece_placement.enemy.N[i] = 1.0f;
+          position_input->data.material.enemy.N += 1.0f;
+          break;
+
+        case uo_piece__b:
+          position_input->data.piece_placement.enemy.B[i] = 1.0f;
+          position_input->data.material.enemy.B += 1.0f;
+          break;
+
+        case uo_piece__r:
+          position_input->data.piece_placement.enemy.R[i] = 1.0f;
+          position_input->data.material.enemy.R += 1.0f;
+          break;
+
+        case uo_piece__q:
+          position_input->data.piece_placement.enemy.Q[i] = 1.0f;
+          position_input->data.material.enemy.Q += 1.0f;
+          break;
+
+        case uo_piece__k:
+          position_input->data.piece_placement.enemy.K[i] = 1.0f;
           break;
       }
-
-      input[64 + offset + index] = 1.0f;
     }
 
     c = *ptr++;
@@ -433,28 +607,57 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
   }
   else
   {
-    if (c == 'K')
+    if (color == uo_white)
     {
-      input[offset_castling + (color == uo_white ? 0 : 2)] = 1.0f;
-      c = *ptr++;
-    }
+      if (c == 'K')
+      {
+        position_input->data.castling.own_K = 1.0f;
+        c = *ptr++;
+      }
 
-    if (c == 'Q')
-    {
-      input[offset_castling + (color == uo_white ? 1 : 3)] = 1.0f;
-      c = *ptr++;
-    }
+      if (c == 'Q')
+      {
+        position_input->data.castling.own_Q = 1.0f;
+        c = *ptr++;
+      }
 
-    if (c == 'k')
-    {
-      input[offset_castling + (color == uo_white ? 2 : 0)] = 1.0f;
-      c = *ptr++;
-    }
+      if (c == 'k')
+      {
+        position_input->data.castling.enemy_K = 1.0f;
+        c = *ptr++;
+      }
 
-    if (c == 'q')
+      if (c == 'q')
+      {
+        position_input->data.castling.enemy_Q = 1.0f;
+        c = *ptr++;
+      }
+    }
+    else
     {
-      input[offset_castling + (color == uo_white ? 3 : 1)] = 1.0f;
-      c = *ptr++;
+      if (c == 'K')
+      {
+        position_input->data.castling.enemy_K = 1.0f;
+        c = *ptr++;
+      }
+
+      if (c == 'Q')
+      {
+        position_input->data.castling.enemy_Q = 1.0f;
+        c = *ptr++;
+      }
+
+      if (c == 'k')
+      {
+        position_input->data.castling.own_K = 1.0f;
+        c = *ptr++;
+      }
+
+      if (c == 'q')
+      {
+        position_input->data.castling.own_Q = 1.0f;
+        c = *ptr++;
+      }
     }
   }
 
@@ -480,7 +683,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
       return -1;
     }
 
-    input[offset_enpassant + file] = 1.0;
+    position_input->data.enpassant[file] = 1.0f;
   }
 
   return color;
@@ -584,8 +787,10 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
       v[i] = uo_nn_adam_beta2 * v[i] + (1.0f - uo_nn_adam_beta2) * (dW_t[i] * dW_t[i]);
       m_hat[i] = m[i] / (1.0f - powf(uo_nn_adam_beta1, t));
       v_hat[i] = v[i] / (1.0f - powf(uo_nn_adam_beta2, t));
-      //W_t[i] -= (i + 1) % n_W_t == 0 ? 0.0f : (uo_nn_adam_weight_decay * uo_nn_adam_learning_rate * W_t[i]);
       W_t[i] -= learning_rate * m_hat[i] / (sqrtf(v_hat[i] + uo_nn_adam_epsilon));
+
+      // weight decay
+      W_t[i] -= (i + 1) % m_W == 0 ? 0.0f : (uo_nn_adam_weight_decay * learning_rate * W_t[i]);
     }
   }
 
@@ -596,8 +801,15 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true);
 typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error, float learning_rate);
 
-bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval, float learning_rate)
+bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval, float learning_rate, size_t batch_size)
 {
+  if (batch_size && nn->batch_size != batch_size)
+  {
+    uo_nn_change_batch_size(nn, batch_size);
+  }
+
+  char *nn_filepath = NULL;
+
   size_t output_size = nn->batch_size * nn->n_y;
   float avg_error, prev_avg_err, min_avg_err;
   const size_t adam_reset_count_threshold = 3;
@@ -661,10 +873,10 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
             uo_nn_layer *layer = nn->layers + layer_index;
             memset(layer->adam.m, 0, layer->m_W * layer->n_W * sizeof(float));
           }
-        }
 
-        lr_multiplier *= 0.75f;
-        lr_multiplier = uo_max(lr_multiplier, 1e-10);
+          lr_multiplier *= 0.75f;
+          lr_multiplier = uo_max(lr_multiplier, 1e-10);
+        }
       }
       else
       {
@@ -677,16 +889,16 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
 
           if (*engine_options.nn_dir)
           {
+            free(nn_filepath);
             char timestamp[13];
             uo_timestr(timestamp);
-            char *nn_filepath = uo_aprintf("%s/nn-eval-%s.nnuo", engine_options.nn_dir, timestamp);
+            nn_filepath = uo_aprintf("%s/nn-eval-%s.nnuo", engine_options.nn_dir, timestamp);
             uo_nn_save_to_file(nn, nn_filepath);
-            free(nn_filepath);
           }
         }
         else
         {
-          lr_multiplier *= 1.05f;
+          lr_multiplier *= 1.025f;
         }
       }
 
@@ -694,6 +906,14 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
     }
 
     uo_nn_backprop(nn, y_true, lr_multiplier);
+  }
+
+  if (nn_filepath)
+  {
+    // Load best version from file
+    uo_nn_free(nn);
+    uo_nn_read_from_file(nn, nn_filepath, batch_size);
+    free(nn_filepath);
   }
 
   free(y_true);
@@ -704,8 +924,8 @@ int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position)
 {
   uo_nn_load_position(nn, position, 0);
   uo_nn_feed_forward(nn);
-  float win_prob = *nn->y;
-  return (int16_t)(400.0f * log10f(win_prob / (1.0f - win_prob)));
+  return uo_score_q_score_to_centipawn(*nn->y);
+  //return uo_score_win_prob_to_centipawn(*nn->y);
 }
 
 uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
@@ -796,28 +1016,38 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float 
     uint8_t color = uo_nn_load_fen(nn, fen, j);
     assert(color == uo_white || color == uo_black);
 
-    float win_prob;
+    //float win_prob;
+    float q_score;
 
     bool matein = eval[0] == '#';
 
     if (matein)
     {
-      win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
+      // Let's skip positions which lead to mate
+
+      ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
+      //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
       fen = strchr(eval, '\n') + 1;
       eval = strchr(fen, ',') + 1;
+
+      --j;
+      continue;
     }
     else
     {
       char *end;
       float score = (float)strtol(eval, &end, 10);
       score = color ? -score : score;
-      win_prob = 1.0f / (1.0f + powf(10.0f, (-score / 400.0f)));
+
+      q_score = uo_score_centipawn_to_q_score(score);
+      //win_prob = uo_score_centipawn_to_q_score(score);
 
       fen = strchr(end, '\n') + 1;
       eval = strchr(fen, ',') + 1;
     }
 
-    y_true[j] = win_prob;
+    //y_true[j] = win_prob;
+    y_true[j] = q_score;
   }
 }
 
@@ -826,15 +1056,15 @@ void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, 
   printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
 }
 
-bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations)
+bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size)
 {
   void *allocated_mem[3];
   size_t allocated_mem_count = 0;
 
   if (!dataset_filepath)
   {
-    if (!*engine_options.test_data_dir) return false;
-    dataset_filepath = uo_aprintf("%s/shuffled_evaluations.csv", engine_options.test_data_dir);
+    if (!*engine_options.dataset_dir) return false;
+    dataset_filepath = uo_aprintf("%s/dataset_depth_6.csv", engine_options.dataset_dir);
     allocated_mem[allocated_mem_count++] = dataset_filepath;
   }
 
@@ -847,7 +1077,8 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 0x2000;
+  if (!batch_size) batch_size = 0x100;
+
   uo_nn_eval_state state = {
     .file_mmap = file_mmap,
     .buf_size = batch_size * 100,
@@ -864,9 +1095,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
-      { 1,   "sigmoid" }
+      { 8,   "swish" },
+      { 1,   "tanh" }
     });
   }
 
@@ -874,7 +1106,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   if (!iterations) iterations = 1000;
 
-  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate);
+  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate, batch_size);
 
   if (!passed)
   {
@@ -947,7 +1179,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     { 1, "sigmoid_loss_binary_cross_entropy" }
   });
 
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f);
+  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f, batch_size);
 
   if (!passed)
   {
@@ -975,4 +1207,97 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   uo_print_nn(stdout, &nn);
   uo_nn_save_to_file(&nn, filepath);
   return true;
+}
+
+void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count)
+{
+  char *ptr;
+  char buffer[0x1000];
+
+  uo_rand_init(time(NULL));
+
+  uo_process *engine_process = uo_process_create(engine_filepath);
+  FILE *fp = fopen(dataset_filepath, "a");
+
+  uo_process_write_stdin(engine_process, "uci\n", 0);
+  if (engine_option_commands)
+  {
+    uo_process_write_stdin(engine_process, engine_option_commands, 0);
+  }
+
+  uo_position position;
+
+  for (size_t i = 0; i < position_count; ++i)
+  {
+    uo_process_write_stdin(engine_process, "isready\n", 0);
+    ptr = buffer;
+    do
+    {
+      uo_process_read_stdout(engine_process, buffer, sizeof buffer);
+      ptr = strstr(buffer, "readyok");
+    } while (!ptr);
+
+    uo_position_randomize(&position);
+
+    while (!uo_position_is_quiescent(&position))
+    {
+      uo_position_randomize(&position);
+    }
+
+    ptr = buffer;
+    ptr += sprintf(buffer, "position fen ");
+    ptr += uo_position_print_fen(&position, ptr);
+    ptr += sprintf(ptr, "\n");
+
+    uo_process_write_stdin(engine_process, buffer, 0);
+
+    uo_process_write_stdin(engine_process, "isready\n", 0);
+    ptr = buffer;
+    do
+    {
+      uo_process_read_stdout(engine_process, buffer, sizeof buffer);
+      ptr = strstr(buffer, "readyok");
+    } while (!ptr);
+
+    uo_process_write_stdin(engine_process, "go depth 6\n", 0);
+
+    do
+    {
+      uo_process_read_stdout(engine_process, buffer, sizeof buffer);
+
+      char *mate = strstr(buffer, "score mate ");
+      char *nomoves = strstr(buffer, "bestmove (none)");
+      if (mate || nomoves)
+      {
+        --i;
+        goto next_position;
+      }
+
+      ptr = strstr(buffer, "info depth 6");
+    } while (!ptr);
+
+    ptr = strstr(ptr, "score");
+
+    int16_t score;
+    if (sscanf(ptr, "score cp %hd", &score) == 1)
+    {
+      char *ptr = buffer;
+      ptr += uo_position_print_fen(&position, ptr);
+      ptr += sprintf(ptr, ",%+d\n", score);
+      fprintf(fp, "%s", buffer);
+    }
+
+    if ((i + 1) % 1000 == 0)
+    {
+      printf("positions generated: %zu\n", i + 1);
+    }
+
+  next_position:
+    uo_process_write_stdin(engine_process, "ucinewgame\n", 0);
+  }
+
+  uo_process_write_stdin(engine_process, "quit\n", 0);
+
+  uo_process_free(engine_process);
+  fclose(fp);
 }

@@ -61,6 +61,12 @@ void uo_engine_load_default_options()
   {
     strcpy(engine_options.test_data_dir, envopt);
   }
+
+  envopt = getenv("UO_OPT_DATASETDIR");
+  if (envopt)
+  {
+    strcpy(engine_options.dataset_dir, envopt);
+  }
 }
 
 void uo_search_queue_init(uo_search_queue *queue)

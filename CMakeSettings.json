@@ -2,6 +2,7 @@
   "environments": [
     {
       "UO_OPT_TESTDATADIR": "${projectDir}/test_data",
+      "UO_OPT_DATASETDIR": "${projectDir}/datasets",
       "UO_OPT_NNDIR": "nn",
       "UO_OPT_EVALFILE": "nn/nn-test-eval.nnuo",
       "UO_OPT_THREADS": "4",

@@ -159,8 +159,25 @@ void uo_pipe_close(uo_pipe *pipe)
   free(pipe);
 }
 
-void uo_pipe_read(uo_pipe *pipe);
-void uo_pipe_write(uo_pipe *pipe);
+size_t uo_pipe_read(uo_pipe *pipe, char *buffer, size_t len)
+{
+  DWORD len_read;
+
+  while (ReadFile(pipe->rd, buffer, len - 1, &len_read, NULL) != FALSE)
+  {
+    /* add terminating zero */
+    buffer[len_read] = '\0';
+
+    return len_read;
+  }
+}
+
+size_t uo_pipe_write(uo_pipe *pipe, const char *ptr, size_t len)
+{
+  DWORD len_written;
+  WriteFile(pipe->wr, ptr, len, &len_written, NULL);
+  return len_written;
+}
 
 
 // Processes
@@ -255,6 +272,17 @@ void uo_process_free(uo_process *process)
   free(process->stdin_pipe);
   free(process->stdout_pipe);
   free(process);
+}
+
+size_t uo_process_write_stdin(uo_process *process, const char *ptr, size_t len)
+{
+  if (!len) len = strlen(ptr);
+  return uo_pipe_write(process->stdin_pipe, ptr, len);
+}
+
+size_t uo_process_read_stdout(uo_process *process, char *buffer, size_t len)
+{
+  return uo_pipe_read(process->stdout_pipe, buffer, len);
 }
 
 #endif
