@@ -596,8 +596,6 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
 
   // Step 2. Castling rights
 
-  size_t offset_castling = 64 + (64 * 5 + 48) * 2;
-
   ptr = castling;
   c = *ptr++;
 
@@ -662,8 +660,6 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
   }
 
   // Step 3. Enpassant
-
-  size_t offset_enpassant = offset_castling + 4;
 
   ptr = enpassant;
   c = *ptr++;
@@ -731,6 +727,42 @@ void uo_nn_feed_forward(uo_nn *nn)
   }
 }
 
+// see: http://ufldl.stanford.edu/tutorial/supervised/DebuggingGradientChecking/
+bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *y_true)
+{
+  bool passed = true;
+  float epsilon = 1e-4f;
+
+  for (size_t i = 0; i < layer->m_W; ++i)
+  {
+    for (size_t j = 0; j < layer->n_W; ++j)
+    {
+      size_t index = j * layer->m_W + i;
+      float w = layer->W_t[index];
+
+      layer->W_t[index] = w + epsilon;
+      uo_nn_feed_forward(nn);
+      float loss_plus = uo_nn_calculate_loss(nn, y_true);
+
+      layer->W_t[index] = w - epsilon;
+      uo_nn_feed_forward(nn);
+      float loss_minus = uo_nn_calculate_loss(nn, y_true);
+
+      layer->W_t[index] = w;
+
+      float grad_num = (loss_plus - loss_minus) / (2.0f * epsilon);
+      float grad_calc = layer->dW_t[index];
+
+      float diff = grad_num - grad_calc;
+      if (diff < 0.0f) diff = -diff;
+
+      passed &= diff < powf(epsilon, 2.0f);
+    }
+  }
+
+  return passed;
+}
+
 void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 {
   // Step 1. Derivative of loss wrt output
@@ -761,6 +793,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     float *dW_t = layer->dW_t;
     float *X = layer[-1].A;
     uo_matmul_t_ps(X, dZ, dW_t, m_W, n_W, nn->batch_size, 0, 0, bias_offset);
+    assert(uo_nn_check_gradients(nn, layer, y_true));
 
     if (layer_index > 1)
     {
@@ -1037,7 +1070,8 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float 
     {
       char *end;
       float score = (float)strtol(eval, &end, 10);
-      score = color ? -score : score;
+
+      if (color == uo_black) score *= -1.0f;
 
       q_score = uo_score_centipawn_to_q_score(score);
       //win_prob = uo_score_centipawn_to_q_score(score);
@@ -1095,12 +1129,9 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 4, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
-      { 255,   "swish" },
-      { 63,   "swish" },
-      { 8,   "swish" },
-      { 1,   "tanh" }
+      { 1,   "loss_mse" }
     });
   }
 

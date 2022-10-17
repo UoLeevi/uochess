@@ -109,7 +109,9 @@ uo_avx_float uo_nn_loss_function_mean_squared_error(uo_avx_float y_true, uo_avx_
 
 uo_avx_float uo_nn_loss_function_mean_squared_error_d(uo_avx_float y_true, uo_avx_float y_pred)
 {
-  return _mm256_sub_ps(y_pred, y_true);
+  __m256 twos = _mm256_set1_ps(2.0f);
+  __m256 sub = _mm256_sub_ps(y_pred, y_true);
+  return _mm256_sub_ps(twos, sub);
 }
 
 uo_nn_function_param loss_mse = {
