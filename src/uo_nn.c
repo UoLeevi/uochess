@@ -693,65 +693,142 @@ float uo_nn_calculate_loss(uo_nn *nn, float *y_true)
   return loss;
 }
 
+static void uo_nn_layer_feed_forward(uo_nn *nn, uo_nn_layer *layer)
+{
+  bool is_output_layer = layer - nn->layers == nn->layer_count;
+  // For hidden layers, let's leave room for bias terms when computing output matrix
+  int bias_offset = is_output_layer ? 0 : 1;
+
+  // Step 1. Set bias input
+  size_t n_X = layer->m_W;
+  float *X = layer[-1].A;
+  for (size_t i = 1; i <= nn->batch_size; ++i)
+  {
+    X[i * n_X - 1] = 1.0f;
+  }
+
+  // Step 2. Matrix multiplication Z = XW
+  size_t m_W = layer->m_W;
+  size_t n_W = layer->n_W;
+  float *W_t = layer->W_t;
+  float *Z = layer->Z;
+  uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset, 0, 0);
+
+  // Step 3. Apply activation function A = f(Z)
+  if (layer->func.activation.f)
+  {
+    size_t n_A = n_W + bias_offset;
+    float *A = layer->A;
+    uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
+  }
+}
+
 void uo_nn_feed_forward(uo_nn *nn)
 {
   for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
   {
     uo_nn_layer *layer = nn->layers + layer_index;
-    bool is_output_layer = layer_index == nn->layer_count;
-    // For hidden layers, let's leave room for bias terms when computing output matrix
-    int bias_offset = is_output_layer ? 0 : 1;
-
-    // Step 1. Set bias input
-    size_t n_X = layer->m_W;
-    float *X = layer[-1].A;
-    for (size_t i = 1; i <= nn->batch_size; ++i)
-    {
-      X[i * n_X - 1] = 1.0f;
-    }
-
-    // Step 2. Matrix multiplication Z = XW
-    size_t m_W = layer->m_W;
-    size_t n_W = layer->n_W;
-    float *W_t = layer->W_t;
-    float *Z = layer->Z;
-    uo_matmul_ps(X, W_t, Z, nn->batch_size, n_W, m_W, bias_offset, 0, 0);
-
-    // Step 3. Apply activation function A = f(Z)
-    if (layer->func.activation.f)
-    {
-      size_t n_A = n_W + bias_offset;
-      float *A = layer->A;
-      uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
-    }
+    uo_nn_layer_feed_forward(nn, layer);
   }
 }
 
 // see: http://ufldl.stanford.edu/tutorial/supervised/DebuggingGradientChecking/
-bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *y_true)
+bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_true)
 {
+  size_t m;
+  size_t n;
+  float *val;
+  size_t feed_forward_layer_index = layer - nn->layers;
+
+  if (d == layer->dW_t)
+  {
+    val = layer->W_t;
+    m = layer->n_W;
+    n = layer->m_W;
+  }
+  else if (d == layer->dA)
+  {
+    val = layer->A;
+    m = nn->batch_size;
+    n = layer->n_W;
+    ++feed_forward_layer_index;
+  }
+  else if (d == layer->dZ)
+  {
+    val = layer->Z;
+    m = nn->batch_size;
+    n = layer->n_W;
+    ++feed_forward_layer_index;
+  }
+  else
+  {
+    return false;
+  }
+
   bool passed = true;
   float epsilon = 1e-4f;
 
-  for (size_t i = 0; i < layer->m_W; ++i)
+  for (size_t i = 0; i < m; ++i)
   {
-    for (size_t j = 0; j < layer->n_W; ++j)
+    for (size_t j = 0; j < n; ++j)
     {
-      size_t index = j * layer->m_W + i;
-      float w = layer->W_t[index];
+      size_t index = i * n + j;
+      float val_ij = val[index];
 
-      layer->W_t[index] = w + epsilon;
-      uo_nn_feed_forward(nn);
+      // Step 1. Add epsilon and feed forward
+
+      val[index] = val_ij + epsilon;
+
+      if (val == layer->Z && layer->func.activation.f)
+      {
+        bool is_output_layer = layer - nn->layers == nn->layer_count;
+        // For hidden layers, let's leave room for bias terms when computing output matrix
+        int bias_offset = is_output_layer ? 0 : 1;
+        size_t n_W = layer->n_W;
+        size_t n_A = n_W + bias_offset;
+        float *Z = layer->Z;
+        float *A = layer->A;
+        uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
+      }
+
+      for (size_t layer_index = feed_forward_layer_index; layer_index <= nn->layer_count; ++layer_index)
+      {
+        uo_nn_layer_feed_forward(nn, nn->layers + layer_index);
+      }
+
       float loss_plus = uo_nn_calculate_loss(nn, y_true);
 
-      layer->W_t[index] = w - epsilon;
-      uo_nn_feed_forward(nn);
+      // Step 2. Subtract epsilon and feed forward
+
+      val[index] = val_ij - epsilon;
+
+      if (val == layer->Z && layer->func.activation.f)
+      {
+        bool is_output_layer = layer - nn->layers == nn->layer_count;
+        // For hidden layers, let's leave room for bias terms when computing output matrix
+        int bias_offset = is_output_layer ? 0 : 1;
+        size_t n_W = layer->n_W;
+        size_t n_A = n_W + bias_offset;
+        float *Z = layer->Z;
+        float *A = layer->A;
+        uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
+      }
+
+      for (size_t layer_index = feed_forward_layer_index; layer_index <= nn->layer_count; ++layer_index)
+      {
+        uo_nn_layer_feed_forward(nn, nn->layers + layer_index);
+      }
+
       float loss_minus = uo_nn_calculate_loss(nn, y_true);
 
-      layer->W_t[index] = w;
+      // Step 3. Restore previous value
+
+      val[index] = val_ij;
+
+      // Step 4. Compute numeric gradient and compare to calculated gradient
 
       float grad_num = (loss_plus - loss_minus) / (2.0f * epsilon);
-      float grad_calc = layer->dW_t[index];
+      float grad_calc = d[index];
 
       float diff = grad_num - grad_calc;
       if (diff < 0.0f) diff = -diff;
@@ -768,6 +845,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
   // Step 1. Derivative of loss wrt output
   float *dA = nn->layers[nn->layer_count].dA;
   uo_vec_map2func_ps(y_true, nn->y, dA, nn->batch_size * nn->n_y, nn->loss_func_d);
+  assert(uo_nn_check_gradients(nn, nn->layers + nn->layer_count, dA, y_true));
 
   for (size_t layer_index = nn->layer_count; layer_index > 0; --layer_index)
   {
@@ -785,6 +863,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
       float *Z = layer->Z;
       float *dA = layer->dA;
       uo_vec_mapfunc_mul_ps(Z, dA, dZ, nn->batch_size * n_A, layer->func.activation.df);
+      assert(uo_nn_check_gradients(nn, layer, dZ, y_true));
     }
 
     // Step 3. Derivative of loss wrt weights
@@ -792,8 +871,19 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
     size_t n_W = layer->n_W;
     float *dW_t = layer->dW_t;
     float *X = layer[-1].A;
+
+    // X: m_X x m_W
+    // dZ: m_X x n_W
+    // dW: m_W x n_W
+
+    // dW_t: n_W x m_W
+    // X_t: m_W x m_X
+    // dZ_t: n_W x m_X
+
+    // dW = X_t . dZ
+
     uo_matmul_t_ps(X, dZ, dW_t, m_W, n_W, nn->batch_size, 0, 0, bias_offset);
-    assert(uo_nn_check_gradients(nn, layer, y_true));
+    assert(uo_nn_check_gradients(nn, layer, dW_t, y_true));
 
     if (layer_index > 1)
     {
@@ -803,6 +893,7 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
       float *W = nn->temp[0];
       uo_transpose_ps(W_t, W, n_W, m_W);
       uo_matmul_ps(dZ, W, dX, nn->batch_size, m_W, n_W, 0, bias_offset, 0);
+      assert(uo_nn_check_gradients(nn, layer - 1, dX, y_true));
     }
 
     // Step 5. Update weights using Adam update
@@ -1205,11 +1296,10 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   size_t batch_size = 256;
   uo_nn nn;
-  uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
+  uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
     { 2 },
     { 2, "swish" },
-    { 2, "sigmoid" },
-    { 1, "sigmoid_loss_binary_cross_entropy" }
+    { 1, "loss_mse" }
   });
 
   bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f, batch_size);

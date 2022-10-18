@@ -227,8 +227,8 @@ bool uo_test_matmul(char *test_data_dir)
     ptr += 5;
 
     float *B = NULL;
-    size_t m_B;
-    size_t n_B;
+    size_t m_B = 0;
+    size_t n_B = 0;
 
     ptr = uo_parse_matrix(ptr, &B, &m_B, &n_B);
     if (!ptr)
