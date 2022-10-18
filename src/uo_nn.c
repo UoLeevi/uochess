@@ -740,11 +740,16 @@ bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_tru
   float *val;
   size_t feed_forward_layer_index = layer - nn->layers;
 
+  bool is_output_layer = layer->A == nn->y;
+  // For hidden layers, ignore bias terms when computing derivatives
+  int bias_offset = is_output_layer ? 0 : 1;
+
   if (d == layer->dW_t)
   {
     val = layer->W_t;
     m = layer->n_W;
     n = layer->m_W;
+    bias_offset = 0;
   }
   else if (d == layer->dA)
   {
@@ -772,7 +777,7 @@ bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_tru
   {
     for (size_t j = 0; j < n; ++j)
     {
-      size_t index = i * n + j;
+      size_t index = i * (n + bias_offset) + j;
       float val_ij = val[index];
 
       // Step 1. Add epsilon and feed forward
@@ -833,7 +838,7 @@ bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_tru
       float diff = grad_num - grad_calc;
       if (diff < 0.0f) diff = -diff;
 
-      passed &= diff < powf(epsilon, 2.0f);
+      passed &= diff < 1e-2;
     }
   }
 
@@ -845,6 +850,8 @@ void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
   // Step 1. Derivative of loss wrt output
   float *dA = nn->layers[nn->layer_count].dA;
   uo_vec_map2func_ps(y_true, nn->y, dA, nn->batch_size * nn->n_y, nn->loss_func_d);
+  uo_vec_mul1_ps(dA, 1.0f / (float)nn->batch_size, dA, nn->batch_size * nn->n_y);
+
   assert(uo_nn_check_gradients(nn, nn->layers + nn->layer_count, dA, y_true));
 
   for (size_t layer_index = nn->layer_count; layer_index > 0; --layer_index)

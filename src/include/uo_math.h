@@ -234,7 +234,6 @@ extern "C"
     _mm256_maskstore_ps(dst + nb * uo_floats_per_avx_float, mask, mul);
   }
 
-
   static inline void uo_transpose_ps(const float *A, float *A_t, size_t m, size_t n)
   {
     for (size_t i = 0; i < m; ++i)

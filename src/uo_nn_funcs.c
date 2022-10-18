@@ -86,9 +86,9 @@ uo_avx_float uo_nn_function_swish_d(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
   __m256 swish = _mm256_mul_ps(avx_float, sigmoid);
-  __m256 ones = _mm256_set1_ps(1.0);
+  __m256 ones = _mm256_set1_ps(1.0f);
   __m256 sub = _mm256_sub_ps(ones, swish);
-  __m256 mul = _mm256_mul_ps(swish, sub);
+  __m256 mul = _mm256_mul_ps(sigmoid, sub);
   return _mm256_add_ps(swish, mul);
 }
 
@@ -111,7 +111,7 @@ uo_avx_float uo_nn_loss_function_mean_squared_error_d(uo_avx_float y_true, uo_av
 {
   __m256 twos = _mm256_set1_ps(2.0f);
   __m256 sub = _mm256_sub_ps(y_pred, y_true);
-  return _mm256_sub_ps(twos, sub);
+  return _mm256_mul_ps(twos, sub);
 }
 
 uo_nn_function_param loss_mse = {
