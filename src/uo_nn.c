@@ -943,7 +943,7 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
 
   size_t output_size = nn->batch_size * nn->n_y;
   float avg_error, prev_avg_err, min_avg_err;
-  const size_t adam_reset_count_threshold = 3;
+  const size_t adam_reset_count_threshold = 6;
   size_t adam_reset_counter = 0;
 
   float *y_true = malloc(output_size * sizeof(float));
@@ -1015,7 +1015,7 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
 
         if (avg_error < min_avg_err)
         {
-          lr_multiplier *= 1.05f;
+          lr_multiplier *= 1.025f;
           min_avg_err = avg_error;
 
           if (*engine_options.nn_dir)
@@ -1026,10 +1026,6 @@ bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_thresh
             nn_filepath = uo_aprintf("%s/nn-eval-%s.nnuo", engine_options.nn_dir, timestamp);
             uo_nn_save_to_file(nn, nn_filepath);
           }
-        }
-        else
-        {
-          lr_multiplier *= 1.025f;
         }
       }
 
@@ -1227,9 +1223,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
-      { 1,   "loss_mse" }
+      { 31,  "swish" },
+      { 1,   "tanh" }
     });
   }
 
