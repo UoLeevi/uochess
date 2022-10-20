@@ -369,75 +369,75 @@ void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
 
   // Step 1. Piece configuration
 
-  for (uo_square i = 0; i < 64; ++i)
+  for (uo_square square = 0; square < 64; ++square)
   {
-    uo_piece piece = position->board[i];
+    uo_piece piece = position->board[square];
 
     if (piece <= 1)
     {
       // Empty square
-      position_input->data.empty[i] = 1.0f;
+      position_input->data.empty[square] = 1.0f;
       continue;
     }
 
     switch (piece)
     {
       case uo_piece__P:
-        position_input->data.piece_placement.own.P[i] = 1.0f;
+        position_input->data.piece_placement.own.P[square] = 1.0f;
         position_input->data.material.own.P += 1.0f;
         break;
 
       case uo_piece__N:
-        position_input->data.piece_placement.own.N[i] = 1.0f;
+        position_input->data.piece_placement.own.N[square] = 1.0f;
         position_input->data.material.own.N += 1.0f;
         break;
 
       case uo_piece__B:
-        position_input->data.piece_placement.own.B[i] = 1.0f;
+        position_input->data.piece_placement.own.B[square] = 1.0f;
         position_input->data.material.own.B += 1.0f;
         break;
 
       case uo_piece__R:
-        position_input->data.piece_placement.own.R[i] = 1.0f;
+        position_input->data.piece_placement.own.R[square] = 1.0f;
         position_input->data.material.own.R += 1.0f;
         break;
 
       case uo_piece__Q:
-        position_input->data.piece_placement.own.Q[i] = 1.0f;
+        position_input->data.piece_placement.own.Q[square] = 1.0f;
         position_input->data.material.own.Q += 1.0f;
         break;
 
       case uo_piece__K:
-        position_input->data.piece_placement.own.K[i] = 1.0f;
+        position_input->data.piece_placement.own.K[square] = 1.0f;
         break;
 
       case uo_piece__p:
-        position_input->data.piece_placement.enemy.P[i] = 1.0f;
+        position_input->data.piece_placement.enemy.P[square] = 1.0f;
         position_input->data.material.enemy.P += 1.0f;
         break;
 
       case uo_piece__n:
-        position_input->data.piece_placement.enemy.N[i] = 1.0f;
+        position_input->data.piece_placement.enemy.N[square] = 1.0f;
         position_input->data.material.enemy.N += 1.0f;
         break;
 
       case uo_piece__b:
-        position_input->data.piece_placement.enemy.B[i] = 1.0f;
+        position_input->data.piece_placement.enemy.B[square] = 1.0f;
         position_input->data.material.enemy.B += 1.0f;
         break;
 
       case uo_piece__r:
-        position_input->data.piece_placement.enemy.R[i] = 1.0f;
+        position_input->data.piece_placement.enemy.R[square] = 1.0f;
         position_input->data.material.enemy.R += 1.0f;
         break;
 
       case uo_piece__q:
-        position_input->data.piece_placement.enemy.Q[i] = 1.0f;
+        position_input->data.piece_placement.enemy.Q[square] = 1.0f;
         position_input->data.material.enemy.Q += 1.0f;
         break;
 
       case uo_piece__k:
-        position_input->data.piece_placement.enemy.K[i] = 1.0f;
+        position_input->data.piece_placement.enemy.K[square] = 1.0f;
         break;
     }
   }
@@ -497,7 +497,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
     // loop by file
     for (int j = 0; j < 8; ++j)
     {
-      size_t index = (i * 8 + j) ^ flip_if_black;
+      uo_square square = (i * 8 + j) ^ flip_if_black;
 
       c = *ptr++;
 
@@ -509,7 +509,7 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
 
         while (empty_count--)
         {
-          position_input->data.empty[index + empty_count] = 1.0f;
+          position_input->data.empty[square + empty_count] = 1.0f;
         }
 
         continue;
@@ -527,61 +527,61 @@ int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
       switch (piece)
       {
         case uo_piece__P:
-          position_input->data.piece_placement.own.P[i] = 1.0f;
+          position_input->data.piece_placement.own.P[square] = 1.0f;
           position_input->data.material.own.P += 1.0f;
           break;
 
         case uo_piece__N:
-          position_input->data.piece_placement.own.N[i] = 1.0f;
+          position_input->data.piece_placement.own.N[square] = 1.0f;
           position_input->data.material.own.N += 1.0f;
           break;
 
         case uo_piece__B:
-          position_input->data.piece_placement.own.B[i] = 1.0f;
+          position_input->data.piece_placement.own.B[square] = 1.0f;
           position_input->data.material.own.B += 1.0f;
           break;
 
         case uo_piece__R:
-          position_input->data.piece_placement.own.R[i] = 1.0f;
+          position_input->data.piece_placement.own.R[square] = 1.0f;
           position_input->data.material.own.R += 1.0f;
           break;
 
         case uo_piece__Q:
-          position_input->data.piece_placement.own.Q[i] = 1.0f;
+          position_input->data.piece_placement.own.Q[square] = 1.0f;
           position_input->data.material.own.Q += 1.0f;
           break;
 
         case uo_piece__K:
-          position_input->data.piece_placement.own.K[i] = 1.0f;
+          position_input->data.piece_placement.own.K[square] = 1.0f;
           break;
 
         case uo_piece__p:
-          position_input->data.piece_placement.enemy.P[i] = 1.0f;
+          position_input->data.piece_placement.enemy.P[square] = 1.0f;
           position_input->data.material.enemy.P += 1.0f;
           break;
 
         case uo_piece__n:
-          position_input->data.piece_placement.enemy.N[i] = 1.0f;
+          position_input->data.piece_placement.enemy.N[square] = 1.0f;
           position_input->data.material.enemy.N += 1.0f;
           break;
 
         case uo_piece__b:
-          position_input->data.piece_placement.enemy.B[i] = 1.0f;
+          position_input->data.piece_placement.enemy.B[square] = 1.0f;
           position_input->data.material.enemy.B += 1.0f;
           break;
 
         case uo_piece__r:
-          position_input->data.piece_placement.enemy.R[i] = 1.0f;
+          position_input->data.piece_placement.enemy.R[square] = 1.0f;
           position_input->data.material.enemy.R += 1.0f;
           break;
 
         case uo_piece__q:
-          position_input->data.piece_placement.enemy.Q[i] = 1.0f;
+          position_input->data.piece_placement.enemy.Q[square] = 1.0f;
           position_input->data.material.enemy.Q += 1.0f;
           break;
 
         case uo_piece__k:
-          position_input->data.piece_placement.enemy.K[i] = 1.0f;
+          position_input->data.piece_placement.enemy.K[square] = 1.0f;
           break;
       }
     }
@@ -1125,6 +1125,7 @@ typedef struct uo_nn_eval_state
   size_t buf_size;
 } uo_nn_eval_state;
 
+
 void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true)
 {
   uo_nn_eval_state *state = nn->state;
@@ -1138,10 +1139,20 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float 
   char *fen = strchr(ptr, '\n') + 1;
   char *eval = strchr(fen, ',') + 1;
 
+  //uo_position position;
+
+  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
+  //uo_nn_save_to_file(nn, tempnnfile);
+  //uo_nn nn2;
+  //uo_nn_read_from_file(&nn2, tempnnfile, nn->batch_size);
+
   for (size_t j = 0; j < nn->batch_size; ++j)
   {
     uint8_t color = uo_nn_load_fen(nn, fen, j);
     assert(color == uo_white || color == uo_black);
+
+    //uo_position_from_fen(&position, fen);
+    //uo_nn_load_position(&nn2, &position, j);
 
     //float win_prob;
     float q_score;
@@ -1177,6 +1188,8 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float 
     //y_true[j] = win_prob;
     y_true[j] = q_score;
   }
+
+  //assert(memcmp(nn->X, nn2.X, nn2.batch_size * nn2.n_X * sizeof(float)) == 0);
 }
 
 void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
@@ -1223,9 +1236,8 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
-      { 31,  "swish" },
       { 1,   "tanh" }
     });
   }
