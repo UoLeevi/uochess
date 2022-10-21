@@ -1176,10 +1176,10 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float 
       char *end;
       float score = (float)strtol(eval, &end, 10);
 
-      if (color == uo_black) score *= -1.0f;
+      if (color == uo_black) score = -score;
 
       q_score = uo_score_centipawn_to_q_score(score);
-      //win_prob = uo_score_centipawn_to_q_score(score);
+      //win_prob = uo_score_centipawn_to_win_prob(score);
 
       fen = strchr(end, '\n') + 1;
       eval = strchr(fen, ',') + 1;
@@ -1236,8 +1236,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
-    uo_nn_init(&nn, 1, batch_size, (uo_nn_layer_param[]) {
+    uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
       { nn_position_size - 1 },
+      { 127, "swish" },
+      { 7,   "swish" },
       { 1,   "tanh" }
     });
   }
