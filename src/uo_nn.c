@@ -18,8 +18,8 @@
 #define uo_nn_adam_epsilon 1e-8
 #define uo_nn_adam_weight_decay 1e-2
 
-#define uo_score_centipawn_to_win_prob(cp) (atanf(score / 111.714640912f) / 1.5620688421f)
-#define uo_score_centipawn_to_q_score(cp) (atanf(score / 290.680623072f) / 3.096181612f + 0.5f)
+#define uo_score_centipawn_to_win_prob(cp) (atanf(score / 290.680623072f) / 3.096181612f + 0.5f)
+#define uo_score_centipawn_to_q_score(cp) (atanf(score / 111.714640912f) / 1.5620688421f)
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 

@@ -299,6 +299,12 @@ void uo_engine_init()
   // multipv
   engine.pv = malloc(engine_options.multipv * sizeof * engine.pv);
 
+  // neural network used for evaluation
+  if (eval_filename)
+  {
+    engine.nn = uo_nn_read_from_file(NULL, eval_filename, 1);
+  }
+
   // load startpos
   uo_position_from_fen(&engine.position, uo_fen_startpos);
 }
