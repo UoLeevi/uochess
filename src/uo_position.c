@@ -21,12 +21,12 @@ typedef struct uo_movegenlist
     {
       uo_move *root;
       uo_move *head;
-    }tactical;
+    } tactical;
     struct
     {
       uo_move *root;
       uo_move *head;
-    }non_tactical;
+    } non_tactical;
   } moves;
 } uo_movegenlist;
 
@@ -308,6 +308,12 @@ static inline void uo_position_do_move(uo_position *position, uo_square square_f
   uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece piece_colored = piece ^ uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = 0;
+  *nn_to = -1;
 }
 static inline void uo_position_undo_move(uo_position *position, uo_square square_from, uo_square square_to)
 {
@@ -324,6 +330,12 @@ static inline void uo_position_undo_move(uo_position *position, uo_square square
   uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece piece_colored = piece ^ !uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = -1;
+  *nn_to = 0;
 }
 
 static inline void uo_position_do_capture(uo_position *position, uo_square square_from, uo_square square_to)
@@ -346,6 +358,16 @@ static inline void uo_position_do_capture(uo_position *position, uo_square squar
   uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece piece_colored = piece ^ uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = 0;
+  *nn_to = -1;
+
+  uo_piece piece_captured_colored = piece_captured ^ uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = 0;
 }
 static inline void uo_position_undo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece_captured)
 {
@@ -366,6 +388,16 @@ static inline void uo_position_undo_capture(uo_position *position, uo_square squ
   uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
   *bitboard_captured |= bitboard_to;
   position->enemy |= bitboard_to;
+
+  uo_piece piece_colored = piece ^ !uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = -1;
+  *nn_to = 0;
+
+  uo_piece piece_captured_colored = piece_captured ^ !uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = -1;
 }
 
 static inline void uo_position_do_enpassant(uo_position *position, uo_square square_from, uo_square square_to)
@@ -373,7 +405,6 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_position_do_move(position, square_from, square_to);
 
   uo_piece *board = position->board;
-  uo_piece piece = board[square_to];
   uo_square square_piece_captured = square_to - 8;
   board[square_piece_captured] = 0;
 
@@ -382,6 +413,16 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P = uo_andn(enpassant, position->P);
   position->enemy = uo_andn(enpassant, position->enemy);
+
+  uo_piece piece_colored = uo_piece__P ^ uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = 0;
+  *nn_to = -1;
+
+  uo_piece piece_captured_colored = uo_piece__p ^ uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  *nn_captured = 0;
 }
 static inline void uo_position_undo_enpassant(uo_position *position, uo_square square_from, uo_square square_to)
 {
@@ -397,6 +438,16 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P |= enpassant;
   position->enemy |= enpassant;
+
+  uo_piece piece_colored = uo_piece__P ^ !uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = -1;
+  *nn_to = 0;
+
+  uo_piece piece_captured_colored = uo_piece__p ^ !uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  *nn_captured = -1;
 }
 
 static inline void uo_position_do_promo(uo_position *position, uo_square square_from, uo_piece piece)
@@ -417,6 +468,13 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
   *bitboard |= bitboard_to;
 
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece pawn_colored = uo_piece__P ^ uo_color(position->flags);
+  uo_piece piece_colored = piece ^ uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = 0;
+  *nn_to = -1;
 }
 static inline void uo_position_undo_promo(uo_position *position, uo_square square_from)
 {
@@ -438,6 +496,13 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
   *bitboard = uo_andn(bitboard_to, *bitboard);
 
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece pawn_colored = uo_piece__P ^ !uo_color(position->flags);
+  uo_piece piece_colored = piece ^ !uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = -1;
+  *nn_to = 0;
 }
 
 static inline void uo_position_do_promo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece)
@@ -462,6 +527,17 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
   *bitboard |= bitboard_to;
 
   position->own ^= bitboard_from | bitboard_to;
+
+  uo_piece pawn_colored = uo_piece__P ^ uo_color(position->flags);
+  uo_piece piece_colored = piece ^ uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = 0;
+  *nn_to = -1;
+
+  uo_piece piece_captured_colored = piece_captured ^ uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = 0;
 }
 static inline void uo_position_undo_promo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece_captured)
 {
@@ -484,6 +560,17 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   uo_bitboard *bitboard_captured = uo_position_piece_bitboard(position, piece_captured);
   *bitboard_captured |= bitboard_to;
   position->enemy |= bitboard_to;
+
+  uo_piece pawn_colored = uo_piece__P ^ !uo_color(position->flags);
+  uo_piece piece_colored = piece ^ !uo_color(position->flags);
+  uint32_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  uint32_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = -1;
+  *nn_to = 0;
+
+  uo_piece piece_captured_colored = piece_captured ^ !uo_color(position->flags);
+  uint32_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = -1;
 }
 
 static inline void uo_position_update_checks(uo_position *position)
@@ -592,14 +679,18 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
         return NULL;
       }
 
+      uint8_t color = uo_color(piece);
       uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
-      uo_bitboard *bitboard_color = position->bitboards + uo_color(piece);
+      uo_bitboard *bitboard_color = position->bitboards + color;
       uo_square square = (i << 3) + j;
       uo_bitboard mask = uo_square_bitboard(square);
 
       position->board[square] = piece;
       *bitboard |= mask;
       *bitboard_color |= mask;
+
+      uint32_t *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square);
+      *nn_piece_placement = -1;
     }
 
     c = *ptr++;
@@ -1972,7 +2063,6 @@ uo_move uo_position_parse_move(const uo_position *position, char str[5])
   uo_move_type move_type = uo_move_type__quiet;
   uo_piece piece = position->board[square_from];
   uo_piece piece_captured = position->board[square_to];
-  uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
 
   if (piece_captured > 1)
   {

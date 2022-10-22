@@ -53,6 +53,69 @@ extern "C"
     } search;
   } uo_move_history;
 
+  typedef struct uo_nn_input_half
+  {
+    union
+    {
+      uint32_t vector[368 + 2];
+      struct
+      {
+        struct
+        {
+          uint32_t K[64];
+          uint32_t Q[64];
+          uint32_t R[64];
+          uint32_t B[64];
+          uint32_t N[64];
+          uint32_t P[48];
+        } piece_placement;
+        struct
+        {
+          uint32_t K;
+          uint32_t Q;
+        } castling;
+      } features;
+    } mask;
+
+    union
+    {
+      float vector[5];
+      struct
+      {
+        struct
+        {
+          float P;
+          float N;
+          float B;
+          float R;
+          float Q;
+        } material;
+      } features;
+    } floats;
+  } uo_nn_input_half;
+
+  typedef struct uo_nn_input_shared
+  {
+    union
+    {
+      uint32_t vector[64 + 8];
+      struct
+      {
+        uint32_t empty_squares[64];
+        uint32_t enpassant_file[8];
+      } features;
+    } mask;
+
+    union
+    {
+      float vector[1];
+      struct
+      {
+        float bias;
+      } features;
+    } floats;
+  } uo_nn_input_shared;
+
   typedef struct uo_position
   {
     union {
@@ -95,6 +158,12 @@ extern "C"
     // see: https://www.researchgate.net/publication/220962554_The_Relative_History_Heuristic
     uint32_t hhtable[2 * 6 * 64];
     uint32_t bftable[2 * 6 * 64];
+
+    struct
+    {
+      uo_nn_input_half halves[2];
+      uo_nn_input_shared shared;
+    } nn_input;
 
     struct
     {
@@ -232,6 +301,27 @@ extern "C"
   }
 
 #pragma endregion
+
+  static inline uint32_t *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square)
+  {
+    int piece_color = uo_color(piece);
+    int flip_if_black = piece_color == uo_black ? 56 : 0;
+    int square_index = square ^ flip_if_black;
+
+    int piece_type = uo_piece_type(piece);
+    int piece_offset = piece_type == uo_piece__P ? -8 : 0;
+    int piece_index = 384 - (piece >> 1) * 64 + piece_offset;
+
+    return position->nn_input.halves[piece_color].mask.vector + piece_index + square_index;
+  }
+
+  static inline uint32_t *uo_position_nn_input_material(uo_position *position, uo_piece piece)
+  {
+    int piece_color = uo_color(piece);
+    int piece_type = uo_piece_type(piece);
+
+    return position->nn_input.halves[piece_color].floats.vector + piece_type;
+  }
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
@@ -723,7 +813,7 @@ extern "C"
     size_t square_to = uo_move_square_to(move);
     size_t color = uo_color(position->flags);
     size_t index = color * 6 * 64 + piece_type * 64 + square_to;
-    assert(index < (sizeof position->bftable / sizeof *position->bftable));
+    assert(index < (sizeof position->bftable / sizeof * position->bftable));
     return index;
   }
 
@@ -971,7 +1061,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

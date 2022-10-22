@@ -14,7 +14,7 @@ uo_avx_float uo_nn_function_relu_d(__m256 avx_float)
 {
   __m256 zeros = _mm256_setzero_ps();
   __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
-  __m256 ones = _mm256_set1_ps(1.0);
+  __m256 ones = _mm256_set1_ps(1.0f);
   return _mm256_max_ps(mask, ones);
 }
 
@@ -28,21 +28,17 @@ const uo_nn_function_param activation_relu = {
 
 uo_avx_float uo_nn_function_sigmoid(__m256 avx_float)
 {
-  float f[uo_floats_per_avx_float];
-  _mm256_storeu_ps(f, avx_float);
-
-  for (size_t i = 0; i < uo_floats_per_avx_float; ++i)
-  {
-    f[i] = 1.0 / (1.0 + expf(-f[i]));
-  }
-
-  return _mm256_loadu_ps(f);
+  __m256 neg = _mm256_sub_ps(_mm256_setzero_ps(), avx_float);
+  __m256 exp =  _mm256_exp_ps(neg);
+  __m256 ones = _mm256_set1_ps(1.0f);
+  __m256 add = _mm256_add_ps(ones, exp);
+  return _mm256_div_ps(ones, add);
 }
 
 uo_avx_float uo_nn_function_sigmoid_d(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
-  __m256 ones = _mm256_set1_ps(1.0);
+  __m256 ones = _mm256_set1_ps(1.0f);
   __m256 sub = _mm256_sub_ps(ones, sigmoid);
   return _mm256_mul_ps(sigmoid, sub);
 }

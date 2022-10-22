@@ -45,7 +45,7 @@ extern "C"
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

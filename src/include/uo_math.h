@@ -58,6 +58,29 @@ extern "C"
     return uo_mm256_hsum_ps(sum);
   }
 
+  static inline float uo_dotproduct_mask_ps(const uint32_t *a_mask, const float *b, size_t n)
+  {
+    size_t nb = n / uo_floats_per_avx_float;
+    size_t reminder = n % uo_floats_per_avx_float;
+    uo_avx_float sum = _mm256_setzero_ps();
+
+    for (size_t i = 0; i < nb; ++i)
+    {
+      __m256i _a_mask = _mm256_loadu_epi32(a_mask + i * uo_floats_per_avx_float);
+      uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
+      uo_avx_float mul = _mm256_and_ps(_mm256_castsi256_ps(_a_mask), _b);
+      sum = _mm256_add_ps(sum, mul);
+    }
+
+    __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
+    __m256i _a_mask = _mm256_maskload_epi32(a_mask + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
+    uo_avx_float mul = _mm256_and_ps(_mm256_castsi256_ps(_a_mask), _b);
+    sum = _mm256_add_ps(sum, mul);
+
+    return uo_mm256_hsum_ps(sum);
+  }
+
   static inline float uo_vec_mean_ps(float *a, size_t n)
   {
     size_t nb = n / uo_floats_per_avx_float;
@@ -241,6 +264,47 @@ extern "C"
       for (size_t j = 0; j < n; ++j)
       {
         A_t[j * m + i] = A[i * n + j];
+      }
+    }
+  }
+
+  // C = AB, C is m x n matrix, k is "other" dimension, A is split into six sub matrices:
+  // - two equal sized mask matrices
+  // - two equal sized float matrices
+  // - one mask matrix
+  // - one float matrix
+  static inline void uo_matmul_position_ps(
+    const uint32_t *own_mask, const uint32_t *enemy_mask, size_t k_half_mask,
+    const float *own_floats, const float *enemy_floats, size_t k_half_floats,
+    const float *shared_mask, size_t k_shared_mask,
+    const float *shared_floats, size_t k_shared_floats,
+    const float *B_t, float *C, size_t m, size_t n, int offset_C, int offset_B)
+  {
+    size_t k = k_half_mask * 2 + k_half_floats * 2 + k_shared_mask + k_shared_floats;
+
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        float *b = B_t + j * (k + offset_B);
+        float dot_own_mask = uo_dotproduct_mask_ps(own_mask + i * k_half_mask, b, k_half_mask);
+
+        b += k_half_mask;
+        float dot_own_floats = uo_dotproduct_mask_ps(own_floats + i * k_half_floats, b, k_half_floats);
+
+        b += k_half_floats;
+        float dot_enemy_mask = uo_dotproduct_mask_ps(enemy_mask + i * k_half_mask, b, k_half_mask);
+
+        b += k_half_mask;
+        float dot_enemy_floats = uo_dotproduct_mask_ps(enemy_floats + i * k_half_floats, b, k_half_floats);
+        
+        b += k_half_floats;
+        float dot_shared_mask = uo_dotproduct_mask_ps(shared_mask + i * k_shared_mask, b, k_shared_mask);
+        
+        b += k_shared_mask;
+        float dot_shared_floats = uo_dotproduct_mask_ps(shared_floats + i * k_shared_floats, b, k_shared_floats);
+
+        C[i * (n + offset_C) + j] = dot_own_mask + dot_own_floats + dot_enemy_mask + dot_enemy_floats + dot_shared_mask + dot_shared_floats;
       }
     }
   }

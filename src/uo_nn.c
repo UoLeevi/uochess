@@ -723,9 +723,42 @@ static void uo_nn_layer_feed_forward(uo_nn *nn, uo_nn_layer *layer)
   }
 }
 
-void uo_nn_feed_forward(uo_nn *nn)
+void uo_nn_feed_forward(uo_nn *nn, uo_position *position)
 {
-  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
+  // Step 1. Feed forward input layer
+  uo_nn_layer *input_layer = nn->layers + 1;
+
+  // Step 1.1. Matrix multiplication Z = XW
+
+  bool is_output_layer = 1 == nn->layer_count;
+  // For non-output layers, let's leave room for bias terms when computing output matrix
+  int bias_offset = is_output_layer ? 0 : 1;
+
+  size_t m_W = input_layer->m_W;
+  size_t n_W = input_layer->n_W;
+  float *W_t = input_layer->W_t;
+  float *Z = input_layer->Z;
+
+  uint8_t color = uo_color(position->flags);
+  uo_nn_input_half *halves = position->nn_input.halves;
+  uo_nn_input_shared *shared = &position->nn_input.shared;
+  size_t k_half = sizeof(uo_nn_input_half) / sizeof(uint32_t);
+  uo_matmul_position_ps(
+    halves[color].mask.vector, halves[!color].mask.vector, sizeof (halves[color].mask.vector) / sizeof (uint32_t),
+    halves[color].floats.vector, halves[!color].floats.vector, sizeof (halves[color].floats.vector) / sizeof (float),
+    shared->mask.vector, sizeof (shared->mask.vector) / sizeof (uint32_t),
+    shared->floats.vector, sizeof (shared->floats.vector) / sizeof (float),
+    W_t, Z, nn->batch_size, n_W, bias_offset, 0);
+
+  // Step 1.2. Apply activation function A = f(Z)
+  if (input_layer->func.activation.f)
+  {
+    size_t n_A = n_W + bias_offset;
+    float *A = input_layer->A;
+    uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, input_layer->func.activation.f);
+  }
+
+  for (size_t layer_index = 2; layer_index <= nn->layer_count; ++layer_index)
   {
     uo_nn_layer *layer = nn->layers + layer_index;
     uo_nn_layer_feed_forward(nn, layer);
