@@ -315,7 +315,7 @@ extern "C"
     return position->nn_input.halves[piece_color].mask.vector + piece_index + square_index;
   }
 
-  static inline uint32_t *uo_position_nn_input_material(uo_position *position, uo_piece piece)
+  static inline float *uo_position_nn_input_material(uo_position *position, uo_piece piece)
   {
     int piece_color = uo_color(piece);
     int piece_type = uo_piece_type(piece);

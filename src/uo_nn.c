@@ -742,7 +742,7 @@ void uo_nn_feed_forward(uo_nn *nn, uo_position *position)
   uint8_t color = uo_color(position->flags);
   uo_nn_input_half *halves = position->nn_input.halves;
   uo_nn_input_shared *shared = &position->nn_input.shared;
-  size_t k_half = sizeof(uo_nn_input_half) / sizeof(uint32_t);
+
   uo_matmul_position_ps(
     halves[color].mask.vector, halves[!color].mask.vector, sizeof (halves[color].mask.vector) / sizeof (uint32_t),
     halves[color].floats.vector, halves[!color].floats.vector, sizeof (halves[color].floats.vector) / sizeof (float),
