@@ -286,23 +286,23 @@ extern "C"
     {
       for (size_t j = 0; j < n; ++j)
       {
-        float *b = B_t + j * (k + offset_B);
+        const float *b = B_t + j * (k + offset_B);
         float dot_own_mask = uo_dotproduct_mask_ps(own_mask + i * k_half_mask, b, k_half_mask);
 
         b += k_half_mask;
-        float dot_own_floats = uo_dotproduct_mask_ps(own_floats + i * k_half_floats, b, k_half_floats);
+        float dot_own_floats = uo_dotproduct_ps(own_floats + i * k_half_floats, b, k_half_floats);
 
         b += k_half_floats;
         float dot_enemy_mask = uo_dotproduct_mask_ps(enemy_mask + i * k_half_mask, b, k_half_mask);
 
         b += k_half_mask;
-        float dot_enemy_floats = uo_dotproduct_mask_ps(enemy_floats + i * k_half_floats, b, k_half_floats);
+        float dot_enemy_floats = uo_dotproduct_ps(enemy_floats + i * k_half_floats, b, k_half_floats);
         
         b += k_half_floats;
         float dot_shared_mask = uo_dotproduct_mask_ps(shared_mask + i * k_shared_mask, b, k_shared_mask);
         
         b += k_shared_mask;
-        float dot_shared_floats = uo_dotproduct_mask_ps(shared_floats + i * k_shared_floats, b, k_shared_floats);
+        float dot_shared_floats = uo_dotproduct_ps(shared_floats + i * k_shared_floats, b, k_shared_floats);
 
         C[i * (n + offset_C) + j] = dot_own_mask + dot_own_floats + dot_enemy_mask + dot_enemy_floats + dot_shared_mask + dot_shared_floats;
       }

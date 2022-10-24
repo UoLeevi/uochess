@@ -116,6 +116,12 @@ extern "C"
     } floats;
   } uo_nn_input_shared;
 
+  typedef struct uo_nn_position
+  {
+    uo_nn_input_half halves[2];
+    uo_nn_input_shared shared;
+  } uo_nn_position;
+
   typedef struct uo_position
   {
     union {
@@ -159,11 +165,7 @@ extern "C"
     uint32_t hhtable[2 * 6 * 64];
     uint32_t bftable[2 * 6 * 64];
 
-    struct
-    {
-      uo_nn_input_half halves[2];
-      uo_nn_input_shared shared;
-    } nn_input;
+    uo_nn_position nn_input;
 
     struct
     {
