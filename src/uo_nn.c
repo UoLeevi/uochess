@@ -23,71 +23,6 @@
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
-typedef union uo_nn_position
-{
-  float vector[823];
-  struct {
-    float empty[64];
-    struct
-    {
-      struct
-      {
-        float K[64];
-        float Q[64];
-        float R[64];
-        float B[64];
-        float N[64];
-        float P[48];
-      } own;
-      struct
-      {
-        float K[64];
-        float Q[64];
-        float R[64];
-        float B[64];
-        float N[64];
-        float P[48];
-      } enemy;
-    } piece_placement;
-    struct
-    {
-      struct
-      {
-        float Q;
-        float R;
-        float B;
-        float N;
-        float P;
-      } own;
-      struct
-      {
-        float Q;
-        float R;
-        float B;
-        float N;
-        float P;
-      } enemy;
-    } material;
-    struct
-    {
-      float own_K;
-      float own_Q;
-      float enemy_K;
-      float enemy_Q;
-    } castling;
-    float enpassant[8];
-    float bias;
-  } data;
-} uo_nn_position;
-
-const size_t nn_position_size = sizeof(uo_nn_position) / sizeof(float);
-
-typedef struct uo_nn_layer_param
-{
-  size_t n;
-  const char *function;
-} uo_nn_layer_param;
-
 typedef struct uo_nn_layer
 {
   float *W_t;   // transpose of weights matrix, m x n
@@ -111,70 +46,76 @@ typedef struct uo_nn_layer
 
 } uo_nn_layer;
 
-#define uo_nn_temp_var_count 5
 
-typedef struct uo_nn
+//void uo_print_nn(FILE *const fp, uo_nn *nn)
+//{
+//  fprintf(fp, "Layers: %zu\n\n", nn->layer_count);
+//
+//  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
+//  {
+//    uo_nn_layer *layer = nn->layers + layer_index;
+//    size_t m_W = layer->m_W;
+//    size_t n_W = layer->n_W;
+//
+//    fprintf(fp, "Layer %zu (%zu x %zu)", layer_index, m_W, n_W);
+//
+//    if (layer->func.name)
+//    {
+//      fprintf(fp, " - %s", layer->func.name);
+//    }
+//
+//    fprintf(fp, ":");
+//    float *W_t = layer->W_t;
+//    float *W = nn->temp[0];
+//    uo_transpose_ps(W_t, W, n_W, m_W);
+//    uo_print_matrix(fp, W, m_W, n_W);
+//    fprintf(fp, "\n\n");
+//  }
+//}
+//
+//void uo_nn_save_to_file(uo_nn *nn, char *filepath)
+//{
+//  FILE *fp = fopen(filepath, "w");
+//  uo_print_nn(fp, nn);
+//  fclose(fp);
+//}
+
+void uo_nn_init(uo_nn *nn, size_t batch_size, uo_nn_node **graph)
 {
-  size_t layer_count;
-  uo_nn_layer *layers;
-  size_t batch_size;
-  size_t n_X;
-  union {
-    float *X;
-    uo_nn_position *position;
-  };
-  size_t n_y;
-  float *y;
-  uo_nn_loss_function *loss_func;
-  uo_nn_loss_function *loss_func_d;
+  // Step 1. Assign fields
+  nn->graph = graph;
+  nn->batch_size = batch_size;
 
-  // Some allocated memory to use in calculations
-  float *temp[uo_nn_temp_var_count];
+  // Step 2. Initialize nodes
+  uo_nn_node **iter = graph;
 
-  // User data
-  void *state;
-
-  struct
+  while (*iter)
   {
-    size_t t; // timestep
-  } adam;
-} uo_nn;
+    uo_nn_node *node = *iter;
 
-void uo_print_nn(FILE *const fp, uo_nn *nn)
-{
-  fprintf(fp, "Layers: %zu\n\n", nn->layer_count);
-
-  for (size_t layer_index = 1; layer_index <= nn->layer_count; ++layer_index)
-  {
-    uo_nn_layer *layer = nn->layers + layer_index;
-    size_t m_W = layer->m_W;
-    size_t n_W = layer->n_W;
-
-    fprintf(fp, "Layer %zu (%zu x %zu)", layer_index, m_W, n_W);
-
-    if (layer->func.name)
+    if (!node->is_init)
     {
-      fprintf(fp, " - %s", layer->func.name);
+      node->init(node, nn);
+      node->is_init = true;
     }
 
-    fprintf(fp, ":");
-    float *W_t = layer->W_t;
-    float *W = nn->temp[0];
-    uo_transpose_ps(W_t, W, n_W, m_W);
-    uo_print_matrix(fp, W, m_W, n_W);
-    fprintf(fp, "\n\n");
+    ++iter;
   }
-}
 
-void uo_nn_save_to_file(uo_nn *nn, char *filepath)
-{
-  FILE *fp = fopen(filepath, "w");
-  uo_print_nn(fp, nn);
-  fclose(fp);
-}
+  // Step 3. Get output node
+  iter = graph;
+  uo_nn_node **output;
 
-void uo_nn_init(uo_nn *nn, size_t layer_count, size_t batch_size, uo_nn_layer_param *layer_params)
-{
+  while (*iter)
+  {
+    output = iter;
+    iter += (*output)->input_arg_count + 1;
+  }
+
+  nn->output = output;
+
+
+
   // Step 1. Allocate layers array and set options
   nn->batch_size = batch_size;
   nn->layer_count = layer_count;
@@ -723,8 +664,19 @@ static void uo_nn_layer_feed_forward(uo_nn *nn, uo_nn_layer *layer)
   }
 }
 
-void uo_nn_feed_forward(uo_nn *nn, uo_position *position)
+void uo_nn_feed_forward(uo_nn *nn)
 {
+  uo_nn_node **iter = nn->graph;
+
+  while (*iter)
+  {
+    uo_nn_node *node = *iter;
+    node->forward(iter);
+    iter += node->input_arg_count + 1;
+  }
+
+
+
   // Step 1. Feed forward input layer
   uo_nn_layer *input_layer = nn->layers + 1;
 
@@ -744,10 +696,10 @@ void uo_nn_feed_forward(uo_nn *nn, uo_position *position)
   uo_nn_input_shared *shared = &position->nn_input.shared;
 
   uo_matmul_position_ps(
-    halves[color].mask.vector, halves[!color].mask.vector, sizeof (halves[color].mask.vector) / sizeof (uint32_t),
-    halves[color].floats.vector, halves[!color].floats.vector, sizeof (halves[color].floats.vector) / sizeof (float),
-    shared->mask.vector, sizeof (shared->mask.vector) / sizeof (uint32_t),
-    shared->floats.vector, sizeof (shared->floats.vector) / sizeof (float),
+    halves[color].mask.vector, halves[!color].mask.vector, sizeof(halves[color].mask.vector) / sizeof(uint32_t),
+    halves[color].floats.vector, halves[!color].floats.vector, sizeof(halves[color].floats.vector) / sizeof(float),
+    shared->mask.vector, sizeof(shared->mask.vector) / sizeof(uint32_t),
+    shared->floats.vector, sizeof(shared->floats.vector) / sizeof(float),
     W_t, Z, nn->batch_size, n_W, bias_offset, 0);
 
   // Step 1.2. Apply activation function A = f(Z)
@@ -880,6 +832,23 @@ bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_tru
 
 void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 {
+
+
+  uo_nn_node **iter = nn->output;
+
+  while (iter != nn->graph)
+  {
+    uo_nn_node *node = *iter;
+    node->backward(iter--);
+  }
+
+
+
+
+
+
+
+
   // Step 1. Derivative of loss wrt output
   float *dA = nn->layers[nn->layer_count].dA;
   uo_vec_map2func_ps(y_true, nn->y, dA, nn->batch_size * nn->n_y, nn->loss_func_d);
@@ -1265,16 +1234,45 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   if (nn_init_filepath)
   {
-    uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
+    //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
   }
   else
   {
-    uo_nn_init(&nn, 3, batch_size, (uo_nn_layer_param[]) {
-      { nn_position_size - 1 },
-      { 127, "swish" },
-      { 7,   "swish" },
-      { 1,   "tanh" }
-    });
+    // Layer 1
+    uo_nn_node_position position_node;
+    uo_nn_node_weights W1_t = { { "weights", .m = sizeof(uo_nn_position) / sizeof(uint32_t), .n = 127 } };
+    uo_nn_node swish1;
+
+    // Layer 2
+    uo_nn_node_weights W2_t = { { "weights", .m = W1_t.base.n + 1, .n = 8 } };
+    uo_nn_node matmul2;
+    uo_nn_node swish2;
+
+    // Layer 3
+    uo_nn_node_weights W3_t = { { "weights", .m = W2_t.base.n + 1, .n = 1 } };
+    uo_nn_node matmul3;
+    uo_nn_node tanh3;
+
+    uo_nn_node *graph[] =
+    {
+      // Layer 1
+      &position_node, &W1_t,
+      &swish1, &position_node,
+
+      // Layer 2
+      &matmul2, &swish1, &W2_t,
+      &swish2, &matmul2,
+
+      // Layer 3
+      &matmul3, &swish2, &W3_t,
+      &tanh3, &matmul3,
+
+      NULL
+    };
+
+
+
+    uo_nn_init(&nn, batch_size, graph);
   }
 
   nn.state = &state;
@@ -1316,72 +1314,72 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   return true;
 }
 
-void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, float *X, float *y_true)
-{
-  for (size_t j = 0; j < nn->batch_size; ++j)
-  {
-    float x0 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
-    float x1 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
-    float y = (int)x0 ^ (int)x1;
-    y_true[j] = y;
-    X[j * nn->n_X] = x0;
-    X[j * nn->n_X + 1] = x1;
-  }
-}
-
-void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error, float learning_rate)
-{
-  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
-}
-
-bool uo_test_nn_train_xor(char *test_data_dir)
-{
-  if (!test_data_dir) return false;
-
-  char *filepath = buf;
-
-  strcpy(filepath, test_data_dir);
-  strcpy(filepath + strlen(test_data_dir), "/nn-test-xor.nnuo");
-
-  uo_rand_init(time(NULL));
-
-  size_t batch_size = 256;
-  uo_nn nn;
-  uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
-    { 2 },
-    { 2, "swish" },
-    { 1, "loss_mse" }
-  });
-
-  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f, batch_size);
-
-  if (!passed)
-  {
-    uo_print_nn(stdout, &nn);
-    return false;
-  }
-
-  float *y_true = uo_alloca(batch_size * sizeof(float));
-
-  for (size_t i = 0; i < 1000; ++i)
-  {
-    uo_nn_select_batch_test_xor(&nn, i, nn.X, y_true);
-    uo_nn_feed_forward(&nn);
-
-    float mse = uo_nn_calculate_loss(&nn, y_true);
-    float rmse = sqrt(mse);
-
-    if (rmse > 0.001)
-    {
-      uo_print_nn(stdout, &nn);
-      return false;
-    }
-  }
-
-  uo_print_nn(stdout, &nn);
-  uo_nn_save_to_file(&nn, filepath);
-  return true;
-}
+//void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, float *X, float *y_true)
+//{
+//  for (size_t j = 0; j < nn->batch_size; ++j)
+//  {
+//    float x0 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
+//    float x1 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
+//    float y = (int)x0 ^ (int)x1;
+//    y_true[j] = y;
+//    X[j * nn->n_X] = x0;
+//    X[j * nn->n_X + 1] = x1;
+//  }
+//}
+//
+//void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error, float learning_rate)
+//{
+//  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
+//}
+//
+//bool uo_test_nn_train_xor(char *test_data_dir)
+//{
+//  if (!test_data_dir) return false;
+//
+//  char *filepath = buf;
+//
+//  strcpy(filepath, test_data_dir);
+//  strcpy(filepath + strlen(test_data_dir), "/nn-test-xor.nnuo");
+//
+//  uo_rand_init(time(NULL));
+//
+//  size_t batch_size = 256;
+//  uo_nn nn;
+//  uo_nn_init(&nn, 2, batch_size, (uo_nn_layer_param[]) {
+//    { 2 },
+//    { 2, "swish" },
+//    { 1, "loss_mse" }
+//  });
+//
+//  bool passed = uo_nn_train(&nn, uo_nn_select_batch_test_xor, pow(1e-3, 2), 100, 400000, uo_nn_report_test_xor, 1000, 0.0001f, batch_size);
+//
+//  if (!passed)
+//  {
+//    uo_print_nn(stdout, &nn);
+//    return false;
+//  }
+//
+//  float *y_true = uo_alloca(batch_size * sizeof(float));
+//
+//  for (size_t i = 0; i < 1000; ++i)
+//  {
+//    uo_nn_select_batch_test_xor(&nn, i, nn.X, y_true);
+//    uo_nn_feed_forward(&nn);
+//
+//    float mse = uo_nn_calculate_loss(&nn, y_true);
+//    float rmse = sqrt(mse);
+//
+//    if (rmse > 0.001)
+//    {
+//      uo_print_nn(stdout, &nn);
+//      return false;
+//    }
+//  }
+//
+//  uo_print_nn(stdout, &nn);
+//  uo_nn_save_to_file(&nn, filepath);
+//  return true;
+//}
 
 void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count)
 {

@@ -16,6 +16,7 @@ add_executable(uochess
     uo_engine.c
     uo_nn.c
     uo_nn_funcs.c
+    uo_nn_node.c
     uo_math.c
     uo_test.c)
 
