@@ -50,7 +50,8 @@ extern "C"
   {
     uo_nn_node base;
     size_t m;
-    size_t n;
+    size_t offset_m;
+    size_t offset_n;
     float *A;
     float *dA;
   } uo_nn_node_out_1f;
@@ -61,6 +62,12 @@ extern "C"
 
     struct
     {
+      float learning_rate;
+      float weight_decay;
+      float beta1;
+      float beta2;
+      float epsilon;
+
       float *m; // first moment vector
       float *v; // second moment vector
       float *m_hat; // bias-corrected first moment matrix, m x n

@@ -86,12 +86,33 @@ void uo_nn_init(uo_nn *nn, size_t batch_size, uo_nn_node **graph)
   nn->graph = graph;
   nn->batch_size = batch_size;
 
-  // Step 2. Initialize nodes
+  // Step 2. Allocate graph for operators
+  size_t op_count = 0;
   uo_nn_node **iter = graph;
 
   while (*iter)
   {
+    iter += (*iter)->input_arg_count + 1;
+    ++op_count;
+  }
+
+  nn->op_count = op_count;
+  nn->nodes = malloc(op_count * sizeof(uo_nn_node **));
+
+  // Step 3. Initialize nodes and assign operator nodes
+  iter = graph;
+  size_t op_counter = 0;
+  size_t op_index = 0;
+
+  while (*iter)
+  {
     uo_nn_node *node = *iter;
+
+    if (op_counter == 0)
+    {
+      nn->nodes[op_index++] = iter;
+      op_counter = node->input_arg_count + 1;
+    }
 
     if (!node->is_init)
     {
@@ -100,21 +121,8 @@ void uo_nn_init(uo_nn *nn, size_t batch_size, uo_nn_node **graph)
     }
 
     ++iter;
+    --op_counter;
   }
-
-  // Step 3. Get output node
-  iter = graph;
-  uo_nn_node **output;
-
-  while (*iter)
-  {
-    output = iter;
-    iter += (*output)->input_arg_count + 1;
-  }
-
-  nn->output = output;
-
-
 
   // Step 1. Allocate layers array and set options
   nn->batch_size = batch_size;
@@ -223,16 +231,20 @@ void uo_nn_init(uo_nn *nn, size_t batch_size, uo_nn_node **graph)
 
 void uo_nn_free(uo_nn *nn)
 {
-  free(nn->temp[0]);
-  free(nn->X);
+  free(nn->nodes);
 
-  for (size_t i = 1; i <= nn->layer_count; ++i)
-  {
-    free(nn->layers[i - 1].Z);
-    free(nn->layers[i - 1].W_t);
-  }
 
-  free(nn->layers);
+
+  //free(nn->temp[0]);
+  //free(nn->X);
+
+  //for (size_t i = 1; i <= nn->layer_count; ++i)
+  //{
+  //  free(nn->layers[i - 1].Z);
+  //  free(nn->layers[i - 1].W_t);
+  //}
+
+  //free(nn->layers);
 }
 
 void uo_nn_change_batch_size(uo_nn *nn, size_t batch_size)
@@ -666,16 +678,12 @@ static void uo_nn_layer_feed_forward(uo_nn *nn, uo_nn_layer *layer)
 
 void uo_nn_feed_forward(uo_nn *nn)
 {
-  uo_nn_node **iter = nn->graph;
-
-  while (*iter)
+  for (size_t i = 0; i < nn->op_count; ++i)
   {
-    uo_nn_node *node = *iter;
-    node->forward(iter);
-    iter += node->input_arg_count + 1;
+    uo_nn_node **graph = nn->nodes[i];
+    uo_nn_node *node = *graph;
+    node->forward(graph);
   }
-
-
 
   // Step 1. Feed forward input layer
   uo_nn_layer *input_layer = nn->layers + 1;
@@ -832,14 +840,11 @@ bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_tru
 
 void uo_nn_backprop(uo_nn *nn, float *y_true, float lr_multiplier)
 {
-
-
-  uo_nn_node **iter = nn->output;
-
-  while (iter != nn->graph)
+  for (size_t i = nn->op_count; i > 0; --i)
   {
-    uo_nn_node *node = *iter;
-    node->backward(iter--);
+    uo_nn_node **graph = nn->nodes[i - 1];
+    uo_nn_node *node = *graph;
+    node->backward(graph);
   }
 
 
