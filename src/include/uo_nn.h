@@ -51,6 +51,7 @@ extern "C"
     uo_nn_node base;
     size_t m;
     size_t offset_m;
+    size_t n;
     size_t offset_n;
     float *A;
     float *dA;
