@@ -72,9 +72,11 @@ void uo_nn_node_matmul__init(uo_nn_node **graph, uo_nn *nn)
   uo_nn_node_out_1f *input2 = (uo_nn_node_out_1f *)(void *)graph[2];
 
   size_t m = node->base.m;
+  size_t offset_m = node->base.offset_m;
   size_t n = node->base.n;
-  size_t size = m * n;
-  size_t size_B = input2->m * input2->n;
+  size_t offset_n = node->base.offset_n;
+  size_t size = (m + offset_m) * (n + offset_n);
+  size_t size_B = (input2->m + input2->offset_m) * (input2->n + input2->offset_n);
 
   float *mem = calloc(size * 2 + size_B, sizeof(float));
   node->base.A = mem;
@@ -91,9 +93,12 @@ void uo_nn_node_matmul__forward(uo_nn_node **graph)
   uo_nn_node_out_1f *input2 = (uo_nn_node_out_1f *)(void *)graph[2];
 
   float *A = input1->A;
+  size_t offset_A = input1->offset_n;
   float *B_t = input2->A;
+  size_t offset_B = input2->offset_m;
   float *C = node->base.A;
-  uo_matmul_ps(A, B_t, C, input1->m, input2->n, input2->m, 0, 0, 0);
+  size_t offset_C = node->base.offset_n;
+  uo_matmul_ps(A, B_t, C, input1->m, input2->n, input2->m, offset_C, offset_A, offset_B);
 }
 
 void uo_nn_node_matmul__backward(uo_nn_node **graph)
