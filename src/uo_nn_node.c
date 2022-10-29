@@ -108,15 +108,18 @@ void uo_nn_node_matmul__backward(uo_nn_node **graph)
   uo_nn_node_out_1f *input2 = (uo_nn_node_out_1f *)(void *)graph[2];
 
   float *A = input1->A;
+  size_t offset_A = input1->offset_n;
   float *dB_t = input2->dA;
+  size_t offset_B = input2->offset_m;
+  size_t offset_C = node->base.offset_n;
 
-  uo_matmul_t_ps(A, node->base.dA, dB_t, input2->m, input2->n, input1->m, 0, 0, 0);
+  uo_matmul_t_ps(A, node->base.dA, dB_t, input2->m, input2->n, input1->m, offset_B, offset_A, offset_C);
 
   float *dA = input1->dA;
   float *B_t = input2->A;
   float *B = node->B;
   uo_transpose_ps(B_t, B, input2->n, input2->m);
-  uo_matmul_ps(node->base.dA, B, dA, input1->m, input2->m, input2->n, 0, 0, 0);
+  uo_matmul_ps(node->base.dA, B, dA, input1->m, input2->m, input2->n, offset_A, offset_C, offset_B);
 }
 
 #pragma endregion
