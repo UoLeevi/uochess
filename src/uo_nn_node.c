@@ -1,6 +1,7 @@
 #include "uo_nn.h"
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <math.h>
 
 #pragma region uo_nn_node_weights
@@ -236,3 +237,11 @@ void uo_nn_node_swish__backward(uo_nn_node **graph)
 }
 
 #pragma endregion
+
+uo_nn_node *uo_nn_node_make(char *op_type, ...)
+{
+  va_list args;
+  va_start(args, op_type);
+
+  va_end(args);
+}
