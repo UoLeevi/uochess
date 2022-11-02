@@ -6,7 +6,7 @@
 
 #pragma region uo_nn_node_weights
 
-void uo_nn_node_weights__init(uo_nn_node **graph, uo_nn *nn)
+static void uo_nn_node_weights__init(uo_nn_node **graph, uo_nn *nn)
 {
   uo_nn_node_weights *node = (uo_nn_node_weights *)(void *)*graph;
 
@@ -30,7 +30,7 @@ void uo_nn_node_weights__init(uo_nn_node **graph, uo_nn *nn)
   node->adam.t = 1;
 }
 
-void uo_nn_node_weights__backward(uo_nn_node **graph)
+static void uo_nn_node_weights__backward(uo_nn_node **graph)
 {
   uo_nn_node_weights *node = (uo_nn_node_weights *)(void *)graph[0];
 
@@ -67,7 +67,7 @@ void uo_nn_node_weights__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_matmul
 
-void uo_nn_node_matmul__init(uo_nn_node **graph, uo_nn *nn)
+static void uo_nn_node_matmul__init(uo_nn_node **graph, uo_nn *nn)
 {
   uo_nn_node_matmul *node = (uo_nn_node_matmul *)(void *)*graph;
   uo_nn_node_out_1f *input2 = (uo_nn_node_out_1f *)(void *)graph[2];
@@ -87,7 +87,7 @@ void uo_nn_node_matmul__init(uo_nn_node **graph, uo_nn *nn)
   node->B = mem;
 }
 
-void uo_nn_node_matmul__forward(uo_nn_node **graph)
+static void uo_nn_node_matmul__forward(uo_nn_node **graph)
 {
   uo_nn_node_matmul *node = (uo_nn_node_matmul *)(void *)graph[0];
   uo_nn_node_out_1f *input1 = (uo_nn_node_out_1f *)(void *)graph[1];
@@ -102,7 +102,7 @@ void uo_nn_node_matmul__forward(uo_nn_node **graph)
   uo_matmul_ps(A, B_t, C, input1->m, input2->n, input2->m, offset_C, offset_A, offset_B);
 }
 
-void uo_nn_node_matmul__backward(uo_nn_node **graph)
+static void uo_nn_node_matmul__backward(uo_nn_node **graph)
 {
   uo_nn_node_matmul *node = (uo_nn_node_matmul *)(void *)graph[0];
   uo_nn_node_out_1f *input1 = (uo_nn_node_out_1f *)(void *)graph[1];
@@ -127,7 +127,7 @@ void uo_nn_node_matmul__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_out_1f
 
-void uo_nn_node_out_1f__init(uo_nn_node **graph, uo_nn *nn)
+static void uo_nn_node_out_1f__init(uo_nn_node **graph, uo_nn *nn)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)*graph;
 
@@ -145,14 +145,14 @@ void uo_nn_node_out_1f__init(uo_nn_node **graph, uo_nn *nn)
 
 #pragma region uo_nn_node_tanh
 
-void uo_nn_node_tanh__forward(uo_nn_node **graph)
+static void uo_nn_node_tanh__forward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
   uo_vec_mapfunc_ps(input->A, node->A, node->m * node->n, _mm256_tanh_ps);
 }
 
-uo_avx_float uo_nn_function_tanh_d(__m256 avx_float)
+static uo_avx_float uo_nn_function_tanh_d(__m256 avx_float)
 {
   __m256 tanh = _mm256_tanh_ps(avx_float);
   __m256 sqr = _mm256_mul_ps(tanh, tanh);
@@ -160,7 +160,7 @@ uo_avx_float uo_nn_function_tanh_d(__m256 avx_float)
   return _mm256_sub_ps(ones, sqr);
 }
 
-void uo_nn_node_tanh__backward(uo_nn_node **graph)
+static void uo_nn_node_tanh__backward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
@@ -171,7 +171,7 @@ void uo_nn_node_tanh__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_sigmoid
 
-uo_avx_float uo_nn_function_sigmoid(__m256 avx_float)
+static uo_avx_float uo_nn_function_sigmoid(__m256 avx_float)
 {
   __m256 neg = _mm256_sub_ps(_mm256_setzero_ps(), avx_float);
   __m256 exp = _mm256_exp_ps(neg);
@@ -180,14 +180,14 @@ uo_avx_float uo_nn_function_sigmoid(__m256 avx_float)
   return _mm256_div_ps(ones, add);
 }
 
-void uo_nn_node_sigmoid__forward(uo_nn_node **graph)
+static void uo_nn_node_sigmoid__forward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
   uo_vec_mapfunc_ps(input->A, node->A, node->m * node->n, uo_nn_function_sigmoid);
 }
 
-uo_avx_float uo_nn_function_sigmoid_d(__m256 avx_float)
+static uo_avx_float uo_nn_function_sigmoid_d(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
   __m256 ones = _mm256_set1_ps(1.0f);
@@ -195,7 +195,7 @@ uo_avx_float uo_nn_function_sigmoid_d(__m256 avx_float)
   return _mm256_mul_ps(sigmoid, sub);
 }
 
-void uo_nn_node_sigmoid__backward(uo_nn_node **graph)
+static void uo_nn_node_sigmoid__backward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
@@ -206,20 +206,20 @@ void uo_nn_node_sigmoid__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_swish
 
-uo_avx_float uo_nn_function_swish(__m256 avx_float)
+static uo_avx_float uo_nn_function_swish(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
   return _mm256_mul_ps(avx_float, sigmoid);
 }
 
-void uo_nn_node_swish__forward(uo_nn_node **graph)
+static void uo_nn_node_swish__forward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
   uo_vec_mapfunc_ps(input->A, node->A, node->m * node->n, uo_nn_function_swish);
 }
 
-uo_avx_float uo_nn_function_swish_d(__m256 avx_float)
+static uo_avx_float uo_nn_function_swish_d(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
   __m256 swish = _mm256_mul_ps(avx_float, sigmoid);
@@ -229,19 +229,43 @@ uo_avx_float uo_nn_function_swish_d(__m256 avx_float)
   return _mm256_add_ps(swish, mul);
 }
 
-void uo_nn_node_swish__backward(uo_nn_node **graph)
+static void uo_nn_node_swish__backward(uo_nn_node **graph)
 {
   uo_nn_node_out_1f *node = (uo_nn_node_out_1f *)(void *)graph[0];
   uo_nn_node_out_1f *input = (uo_nn_node_out_1f *)(void *)graph[1];
   uo_vec_mapfunc_mul_ps(input->A, node->dA, input->dA, node->m * node->n, uo_nn_function_swish_d);
 }
 
+
+static uo_nn_node *uo_nn_node_make_swish(va_list vlist)
+{
+
+}
+
 #pragma endregion
 
-uo_nn_node *uo_nn_node_make(char *op_type, ...)
+uo_nn_node *uo_nn_node_make(const char *op_type, ...)
 {
-  va_list args;
-  va_start(args, op_type);
+  va_list vlist;
+  va_start(vlist, op_type);
+  uo_nn_node *node;
 
-  va_end(args);
+  if (strcmp(op_type, "matmul"))
+  {
+
+  }
+  else if (strcmp(op_type, "tanh"))
+  {
+
+  }
+  else if (strcmp(op_type, "swish"))
+  {
+    node = uo_nn_node_make_swish(vlist);
+  }
+  else
+  {
+    node = NULL;
+  }
+
+  va_end(vlist);
 }

@@ -124,7 +124,7 @@ extern "C"
 
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
-  uo_nn_node *uo_nn_node_make(char *op_type, ...);
+  uo_nn_node *uo_nn_node_make(const char *op_type, ...);
 
 #ifdef __cplusplus
 }
