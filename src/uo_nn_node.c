@@ -236,10 +236,32 @@ static void uo_nn_node_swish__backward(uo_nn_node **graph)
   uo_vec_mapfunc_mul_ps(input->A, node->dA, input->dA, node->m * node->n, uo_nn_function_swish_d);
 }
 
-
 static uo_nn_node *uo_nn_node_make_swish(va_list vlist)
 {
+  size_t m = va_arg(vlist, size_t);
+  size_t offset_m = va_arg(vlist, size_t);
+  size_t n = va_arg(vlist, size_t);
+  size_t offset_n = va_arg(vlist, size_t);
 
+  size_t size = sizeof(uo_nn_node_out_1f) + 2 * (m + offset_m) * (n + offset_n) * sizeof(float);
+  char *mem = calloc(1, size);
+
+  uo_nn_node_out_1f *node = (void *)mem;
+  mem += sizeof(uo_nn_node_out_1f);
+  node->A = (void *)mem;
+  mem += (m + offset_m) * (n + offset_n) * sizeof(float);
+  node->dA = (void *)mem;
+
+  node->m = m;
+  node->offset_m = offset_m;
+  node->n = n;
+  node->offset_n = offset_n;
+
+  node->base.init = uo_nn_node_out_1f__init;
+  node->base.forward = uo_nn_node_swish__forward;
+  node->base.backward = uo_nn_node_swish__backward;
+
+  return node;
 }
 
 #pragma endregion
