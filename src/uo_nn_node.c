@@ -141,9 +141,44 @@ static void uo_nn_node_out_1f__init(uo_nn_node **graph, uo_nn *nn)
   node->dA = mem;
 }
 
+static uo_nn_node *uo_nn_node_make_activation(const char *op_type, va_list vlist,
+  void (*init)(uo_nn_node **graph, uo_nn *nn),
+  void (*forward)(uo_nn_node **graph),
+  void (*backward)(uo_nn_node **graph))
+{
+  size_t m = va_arg(vlist, size_t);
+  size_t offset_m = va_arg(vlist, size_t);
+  size_t n = va_arg(vlist, size_t);
+  size_t offset_n = va_arg(vlist, size_t);
+
+  size_t size = sizeof(uo_nn_node_out_1f) + 2 * (m + offset_m) * (n + offset_n) * sizeof(float);
+  char *mem = calloc(1, size);
+
+  uo_nn_node_out_1f *node = (void *)mem;
+  mem += sizeof(uo_nn_node_out_1f);
+  node->A = (void *)mem;
+  mem += (m + offset_m) * (n + offset_n) * sizeof(float);
+  node->dA = (void *)mem;
+
+  node->base.op_type = op_type;
+
+  node->m = m;
+  node->offset_m = offset_m;
+  node->n = n;
+  node->offset_n = offset_n;
+
+  node->base.init = init;
+  node->base.forward = forward;
+  node->base.backward = backward;
+
+  return node;
+}
+
 #pragma endregion
 
 #pragma region uo_nn_node_tanh
+
+static const char *op_type_tanh = "tanh";
 
 static void uo_nn_node_tanh__forward(uo_nn_node **graph)
 {
@@ -170,6 +205,8 @@ static void uo_nn_node_tanh__backward(uo_nn_node **graph)
 #pragma endregion
 
 #pragma region uo_nn_node_sigmoid
+
+static const char *op_type_sigmoid = "sigmoid";
 
 static uo_avx_float uo_nn_function_sigmoid(__m256 avx_float)
 {
@@ -206,6 +243,8 @@ static void uo_nn_node_sigmoid__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_swish
 
+static const char *op_type_swish = "swish";
+
 static uo_avx_float uo_nn_function_swish(__m256 avx_float)
 {
   __m256 sigmoid = uo_nn_function_sigmoid(avx_float);
@@ -236,34 +275,6 @@ static void uo_nn_node_swish__backward(uo_nn_node **graph)
   uo_vec_mapfunc_mul_ps(input->A, node->dA, input->dA, node->m * node->n, uo_nn_function_swish_d);
 }
 
-static uo_nn_node *uo_nn_node_make_swish(va_list vlist)
-{
-  size_t m = va_arg(vlist, size_t);
-  size_t offset_m = va_arg(vlist, size_t);
-  size_t n = va_arg(vlist, size_t);
-  size_t offset_n = va_arg(vlist, size_t);
-
-  size_t size = sizeof(uo_nn_node_out_1f) + 2 * (m + offset_m) * (n + offset_n) * sizeof(float);
-  char *mem = calloc(1, size);
-
-  uo_nn_node_out_1f *node = (void *)mem;
-  mem += sizeof(uo_nn_node_out_1f);
-  node->A = (void *)mem;
-  mem += (m + offset_m) * (n + offset_n) * sizeof(float);
-  node->dA = (void *)mem;
-
-  node->m = m;
-  node->offset_m = offset_m;
-  node->n = n;
-  node->offset_n = offset_n;
-
-  node->base.init = uo_nn_node_out_1f__init;
-  node->base.forward = uo_nn_node_swish__forward;
-  node->base.backward = uo_nn_node_swish__backward;
-
-  return node;
-}
-
 #pragma endregion
 
 uo_nn_node *uo_nn_node_make(const char *op_type, ...)
@@ -276,13 +287,26 @@ uo_nn_node *uo_nn_node_make(const char *op_type, ...)
   {
 
   }
-  else if (strcmp(op_type, "tanh"))
+  else if (strcmp(op_type, op_type_sigmoid))
   {
-
+    node = uo_nn_node_make_activation(op_type_sigmoid, vlist,
+      uo_nn_node_out_1f__init,
+      uo_nn_node_sigmoid__forward,
+      uo_nn_node_sigmoid__backward);
   }
-  else if (strcmp(op_type, "swish"))
+  else if (strcmp(op_type, op_type_tanh))
   {
-    node = uo_nn_node_make_swish(vlist);
+    node = uo_nn_node_make_activation(op_type_tanh, vlist,
+      uo_nn_node_out_1f__init,
+      uo_nn_node_tanh__forward,
+      uo_nn_node_tanh__backward);
+  }
+  else if (strcmp(op_type, op_type_swish))
+  {
+    node = uo_nn_node_make_activation(op_type_swish, vlist,
+      uo_nn_node_out_1f__init,
+      uo_nn_node_swish__forward,
+      uo_nn_node_swish__backward);
   }
   else
   {
