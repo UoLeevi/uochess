@@ -67,6 +67,8 @@ static void uo_nn_node_weights__backward(uo_nn_node **graph)
 
 #pragma region uo_nn_node_matmul
 
+static const char *op_type_matmul = "matmul";
+
 static void uo_nn_node_matmul__init(uo_nn_node **graph, uo_nn *nn)
 {
   uo_nn_node_matmul *node = (uo_nn_node_matmul *)(void *)*graph;
@@ -122,6 +124,37 @@ static void uo_nn_node_matmul__backward(uo_nn_node **graph)
   uo_transpose_ps(B_t, B, input2->n, input2->m);
   uo_matmul_ps(node->base.dA, B, dA, input1->m, input2->m, input2->n, offset_A, offset_C, offset_B);
 }
+
+static uo_nn_node *uo_nn_node_make_matmuk(va_list vlist)
+{
+  size_t m = va_arg(vlist, size_t);
+  size_t offset_m = va_arg(vlist, size_t);
+  size_t n = va_arg(vlist, size_t);
+  size_t offset_n = va_arg(vlist, size_t);
+
+  size_t size = sizeof(uo_nn_node_out_1f) + 2 * (m + offset_m) * (n + offset_n) * sizeof(float);
+  char *mem = calloc(1, size);
+
+  uo_nn_node_out_1f *node = (void *)mem;
+  mem += sizeof(uo_nn_node_out_1f);
+  node->A = (void *)mem;
+  mem += (m + offset_m) * (n + offset_n) * sizeof(float);
+  node->dA = (void *)mem;
+
+  node->base.op_type = op_type_matmul;
+
+  node->m = m;
+  node->offset_m = offset_m;
+  node->n = n;
+  node->offset_n = offset_n;
+
+  node->base.init = uo_nn_node_matmul__init;
+  node->base.forward = uo_nn_node_matmul__forward;
+  node->base.backward = uo_nn_node_matmul__backward;
+
+  return node;
+}
+
 
 #pragma endregion
 
@@ -285,7 +318,7 @@ uo_nn_node *uo_nn_node_make(const char *op_type, ...)
 
   if (strcmp(op_type, "matmul"))
   {
-
+    node = uo_nn_node_make_matmul(vlist);
   }
   else if (strcmp(op_type, op_type_sigmoid))
   {
