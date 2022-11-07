@@ -23,6 +23,26 @@
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
+typedef struct uo_tensor
+{
+  /*
+    s = single precision float (32 bit)
+    d = double precision float (64 bit)
+    i = signed integer (32 bit)
+    u = unsigned integer (32 bit)
+  */
+  char type;
+  union
+  {
+    float *s;
+    double *d;
+    int32_t *i;
+    uint32_t *u;
+  };
+  size_t dim_count;
+  size_t *dim_sizes;
+} uo_tensor;
+
 typedef struct uo_nn_layer
 {
   float *W_t;   // transpose of weights matrix, m x n
