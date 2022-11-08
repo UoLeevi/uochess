@@ -23,6 +23,19 @@
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
+typedef struct uo_tensor_dim_def {
+  size_t size;
+  size_t offset;
+} uo_tensor_dim_def;
+
+typedef union uo_tensor_data {
+  void *ptr;
+  float *s;
+  double *d;
+  int32_t *i;
+  uint32_t *u;
+} uo_tensor_data;
+
 typedef struct uo_tensor
 {
   /*
@@ -32,15 +45,10 @@ typedef struct uo_tensor
     u = unsigned integer (32 bit)
   */
   char type;
-  union
-  {
-    float *s;
-    double *d;
-    int32_t *i;
-    uint32_t *u;
-  };
-  size_t dim_count;
-  size_t *dim_sizes;
+  uo_tensor_data data;
+  size_t dimension_count;
+  size_t element_count;
+  uo_tensor_dim_def *dims;
 } uo_tensor;
 
 typedef struct uo_nn_layer
@@ -1499,4 +1507,52 @@ void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char 
 
   uo_process_free(engine_process);
   fclose(fp);
+}
+
+uo_tensor *uo_tensor_create(char type, size_t dimension_count, uo_tensor_dim_def *dims)
+{
+  size_t base_size = sizeof(uo_tensor) + dimension_count * sizeof(uo_tensor_dim_def);
+  size_t element_count = 0;
+
+  for (size_t i = 0; i < dimension_count; ++i)
+  {
+    element_count += dims[i].size + dims[i].offset;
+  }
+
+  size_t size = base_size;
+
+  switch (type)
+  {
+    case 's':
+      size += sizeof(float) * element_count;
+      break;
+
+    case 'd':
+      size += sizeof(double) * element_count;
+      break;
+
+    case 'i':
+      size += sizeof(int32_t) * element_count;
+      break;
+
+    case 'u':
+      size += sizeof(uint32_t) * element_count;
+      break;
+
+    default:
+      return NULL;
+  }
+
+  void *mem = malloc(size);
+  uo_tensor *tensor = mem;
+  tensor->dimension_count = dimension_count;
+  tensor->element_count = element_count;
+  tensor->data.ptr = ((char *)mem) + base_size;
+
+  for (size_t i = 0; i < dimension_count; ++i)
+  {
+    tensor->dims[i] = dims[i];
+  }
+
+  return tensor;
 }
