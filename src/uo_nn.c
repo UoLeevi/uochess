@@ -1512,11 +1512,11 @@ void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char 
 uo_tensor *uo_tensor_create(char type, size_t dimension_count, uo_tensor_dim_def *dims)
 {
   size_t base_size = sizeof(uo_tensor) + dimension_count * sizeof(uo_tensor_dim_def);
-  size_t element_count = 0;
+  size_t element_count = 1;
 
   for (size_t i = 0; i < dimension_count; ++i)
   {
-    element_count += dims[i].size + dims[i].offset;
+    element_count *= dims[i].size + dims[i].offset;
   }
 
   size_t size = base_size;
