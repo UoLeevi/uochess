@@ -125,7 +125,7 @@ static void uo_nn_node_matmul__backward(uo_nn_node **graph)
   uo_matmul_ps(node->base.dA, B, dA, input1->m, input2->m, input2->n, offset_A, offset_C, offset_B);
 }
 
-static uo_nn_node *uo_nn_node_make_matmuk(va_list vlist)
+static uo_nn_node *uo_nn_node_make_matmul(va_list vlist)
 {
   size_t m = va_arg(vlist, size_t);
   size_t offset_m = va_arg(vlist, size_t);
