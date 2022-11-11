@@ -46,9 +46,11 @@ typedef struct uo_tensor
   */
   char type;
   uo_tensor_data data;
+  uo_tensor_data grad;
   size_t dimension_count;
   size_t element_count;
   uo_tensor_dim_def *dims;
+  void (*backward)(struct uo_tensor *graph);
 } uo_tensor;
 
 typedef struct uo_nn_layer
