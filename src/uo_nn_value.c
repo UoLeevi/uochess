@@ -214,8 +214,25 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, uo_nn_value *
 
   void *mem = calloc(1, size);
   uo_nn_value *value = mem;
+  value->op = op;
   value->tensor = tensor;
   value->grad.ptr = (void *)(((char *)mem) + base_size);
+  return value;
+}
+
+uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
+{
+  if (c == NULL)
+  {
+    uo_tensor *C = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
+      a->tensor->dims[0],
+      b->tensor->dims[1]
+    });
+
+    c = uo_nn_value_create(C, NULL, NULL);
+  }
+
+  // TODO
 }
 
 bool uo_test_nn_value()
@@ -230,16 +247,26 @@ bool uo_test_nn_value()
     2.0, 2.0, 1.0
   });
 
+  uo_nn_value *a = uo_nn_value_create(A, NULL, NULL);
+
   uo_tensor *B = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
     { 3 },
     { 1 }
   });
 
-  uo_tensor_set(A, 0, 0, 6, (float[]) {
+  uo_tensor_set(B, 0, 0, 6, (float[]) {
     -1.0,
      2.0,
      3.0
   });
+
+  uo_nn_value *b = uo_nn_value_create(B, NULL, NULL);
+
+  uo_nn_value *c = NULL;
+
+
+  c = uo_nn_value_op_matmul(a, b, c, NULL);
+
 }
 
 
