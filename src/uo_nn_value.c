@@ -185,7 +185,7 @@ void uo_tensor_set1(uo_tensor *tensor, size_t index, size_t offset, size_t count
   }
 }
 
-uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, uo_nn_value *children)
+uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, uo_nn_value **children)
 {
   size_t base_size = sizeof(uo_nn_value);
   size_t size = base_size;
@@ -229,7 +229,7 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
       b->tensor->dims[1]
     });
 
-    c = uo_nn_value_create(C, NULL, NULL);
+    c = uo_nn_value_create(C, "matmul", (uo_nn_value *[]){ a, b });
   }
 
   // TODO
