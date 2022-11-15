@@ -7,12 +7,6 @@
 
 typedef struct uo_nn_value uo_nn_value;
 
-typedef struct uo_nn_backprop_callback
-{
-  uo_nn_value *(*invoke)(uo_nn_value *self, uo_nn_value *other);
-  uo_nn_value *other;
-} uo_nn_backprop_callback;
-
 typedef struct uo_tensor_dim_def {
   size_t size;
   size_t offset;
@@ -46,7 +40,8 @@ typedef struct uo_nn_value
   const char *op;
   uo_tensor *tensor;
   uo_tensor_data grad;
-  uo_nn_backprop_callback backprob_callback;
+  uo_nn_value *(*backwards)(uo_nn_value *self, uo_nn_value **children);
+  uo_nn_value **children;
 } uo_nn_value;
 
 uo_tensor *uo_tensor_create(char type, size_t dimension_count, uo_tensor_dim_def *dims)
@@ -185,39 +180,55 @@ void uo_tensor_set1(uo_tensor *tensor, size_t index, size_t offset, size_t count
   }
 }
 
-uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, uo_nn_value **children)
+uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count)
 {
   size_t base_size = sizeof(uo_nn_value);
-  size_t size = base_size;
+  size_t children_size = sizeof(uo_nn_value) * children_count;
+  size_t elements_size;
 
   switch (tensor->type)
   {
     case 's':
-      size += sizeof(float) * tensor->element_count;
+      elements_size = sizeof(float) * tensor->element_count;
       break;
 
     case 'd':
-      size += sizeof(double) * tensor->element_count;
+      elements_size = sizeof(double) * tensor->element_count;
       break;
 
     case 'i':
-      size += sizeof(int32_t) * tensor->element_count;
+      elements_size = sizeof(int32_t) * tensor->element_count;
       break;
 
     case 'u':
-      size += sizeof(uint32_t) * tensor->element_count;
+      elements_size = sizeof(uint32_t) * tensor->element_count;
       break;
 
     default:
       return NULL;
   }
 
-  void *mem = calloc(1, size);
+  void *mem = calloc(1, base_size + children_size + elements_size);
   uo_nn_value *value = mem;
   value->op = op;
   value->tensor = tensor;
-  value->grad.ptr = (void *)(((char *)mem) + base_size);
+
+  mem = (void *)(((char *)mem) + base_size);
+  value->grad.ptr = mem;
+
+  mem = (void *)(((char *)mem) + elements_size);
+
+  if (children_count > 0)
+  {
+    value->children = mem;
+  }
+
   return value;
+}
+
+uo_nn_value *uo_nn_value_op_backwards_matmul(uo_nn_value *self)
+{
+  // TODO
 }
 
 uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
@@ -226,13 +237,41 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   {
     uo_tensor *C = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
       a->tensor->dims[0],
-      b->tensor->dims[1]
+        b->tensor->dims[1]
     });
 
-    c = uo_nn_value_create(C, "matmul", (uo_nn_value *[]){ a, b });
+    c = uo_nn_value_create(C, "matmul", 2);
   }
 
-  // TODO
+  float *A = a->tensor->data.s;
+  size_t m_A = a->tensor->dims[0].size;
+  size_t m_offset_A = a->tensor->dims[0].offset;
+  size_t n_A = a->tensor->dims[1].size;
+  size_t n_offset_A = a->tensor->dims[1].offset;
+
+  float *B = b->tensor->data.s;
+  size_t m_B = b->tensor->dims[0].size;
+  size_t m_offset_B = b->tensor->dims[0].offset;
+  size_t n_B = b->tensor->dims[1].size;
+  size_t n_offset_B = b->tensor->dims[1].offset;
+
+  float *B_t = b->grad.s;
+
+  uo_transpose_ps(B, B_t, m_B + m_offset_B, n_B + n_offset_B);
+
+  float *C = c->tensor->data.s;
+  size_t m_C = c->tensor->dims[0].size;
+  size_t m_offset_C = c->tensor->dims[0].offset;
+  size_t n_C = c->tensor->dims[1].size;
+  size_t n_offset_C = c->tensor->dims[1].offset;
+
+  uo_matmul_ps(A, B_t, C, m_C, n_C, m_B, n_offset_C, n_offset_A, m_offset_B);
+
+  c->backwards = uo_nn_value_op_backwards_matmul;
+  c->children[0] = a;
+  c->children[1] = b;
+
+  return C;
 }
 
 bool uo_test_nn_value()
@@ -244,10 +283,10 @@ bool uo_test_nn_value()
 
   uo_tensor_set(A, 0, 0, 6, (float[]) {
     3.0, 2.0, 1.0,
-    2.0, 2.0, 1.0
+      2.0, 2.0, 1.0
   });
 
-  uo_nn_value *a = uo_nn_value_create(A, NULL, NULL);
+  uo_nn_value *a = uo_nn_value_create(A, NULL, 0);
 
   uo_tensor *B = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
     { 3 },
@@ -256,16 +295,16 @@ bool uo_test_nn_value()
 
   uo_tensor_set(B, 0, 0, 6, (float[]) {
     -1.0,
-     2.0,
-     3.0
+      2.0,
+      3.0
   });
 
-  uo_nn_value *b = uo_nn_value_create(B, NULL, NULL);
+  uo_nn_value *b = uo_nn_value_create(B, NULL, 0);
 
   uo_nn_value *c = NULL;
 
 
-  c = uo_nn_value_op_matmul(a, b, c, NULL);
+  c = uo_nn_value_op_matmul(a, b, c);
 
 }
 
