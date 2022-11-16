@@ -7,6 +7,8 @@
 
 typedef struct uo_nn_value uo_nn_value;
 
+typedef uo_nn_value *(uo_nn_value_backprop_function)(uo_nn_value *node);
+
 typedef struct uo_tensor_dim_def {
   size_t size;
   size_t offset;
@@ -40,7 +42,7 @@ typedef struct uo_nn_value
   const char *op;
   uo_tensor *tensor;
   uo_tensor_data grad;
-  uo_nn_value *(*backwards)(uo_nn_value *self, uo_nn_value **children);
+  uo_nn_value_backprop_function *backwards;
   uo_nn_value **children;
 } uo_nn_value;
 
