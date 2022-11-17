@@ -284,6 +284,14 @@ failed_err_data:
   return false;
 }
 
+// see: https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3
+void uo_gemm(bool ta, bool tb, size_t m, size_t n, size_t k,
+  float alpha,
+  float *A, size_t lda,
+  float *B, size_t ldb,
+  float beta,
+  float *C, size_t ldc);
+
 void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n)
 {
   fprintf(fp, "[\n");
