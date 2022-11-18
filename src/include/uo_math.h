@@ -297,10 +297,10 @@ extern "C"
 
         b += k_half_mask;
         float dot_enemy_floats = uo_dotproduct_ps(enemy_floats + i * k_half_floats, b, k_half_floats);
-        
+
         b += k_half_floats;
         float dot_shared_mask = uo_dotproduct_mask_ps(shared_mask + i * k_shared_mask, b, k_shared_mask);
-        
+
         b += k_shared_mask;
         float dot_shared_floats = uo_dotproduct_ps(shared_floats + i * k_shared_floats, b, k_shared_floats);
 
@@ -357,6 +357,110 @@ extern "C"
         _mm256_maskstore_ps(c, mask, add);
       }
     }
+  }
+
+  static inline void uo_gemm_nn(size_t m, size_t n, size_t k, float alpha,
+    float *A, size_t lda,
+    float *B, size_t ldb,
+    float *C, size_t ldc)
+  {
+#pragma omp parallel for
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t k = 0; k < k; ++k)
+      {
+        register float A_PART = alpha * A[i * lda + k];
+        for (size_t j = 0; j < n; ++j)
+        {
+          C[i * ldc + j] += A_PART * B[k * ldb + j];
+        }
+      }
+    }
+  }
+
+  static inline void uo_gemm_nt(size_t m, size_t n, size_t k, float alpha,
+    float *A, size_t lda,
+    float *B, size_t ldb,
+    float *C, size_t ldc)
+  {
+#pragma omp parallel for
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        register float sum = 0;
+        for (size_t k = 0; k < k; ++k)
+        {
+          sum += alpha * A[i * lda + k] * B[j * ldb + k];
+        }
+        C[i * ldc + j] += sum;
+      }
+    }
+  }
+
+  static inline void uo_gemm_tn(size_t m, size_t n, size_t k, float alpha,
+    float *A, size_t lda,
+    float *B, size_t ldb,
+    float *C, size_t ldc)
+  {
+#pragma omp parallel for
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t k = 0; k < k; ++k)
+      {
+        register float A_PART = alpha * A[k * lda + i];
+        for (size_t j = 0; j < n; ++j)
+        {
+          C[i * ldc + j] += A_PART * B[k * ldb + j];
+        }
+      }
+    }
+  }
+
+  static inline void uo_gemm_tt(size_t m, size_t n, size_t k, float alpha,
+    float *A, size_t lda,
+    float *B, size_t ldb,
+    float *C, size_t ldc)
+  {
+#pragma omp parallel for
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        register float sum = 0;
+        for (size_t k = 0; k < k; ++k)
+        {
+          sum += alpha * A[i + k * lda] * B[k + j * ldb];
+        }
+        C[i * ldc + j] += sum;
+      }
+    }
+  }
+
+  // see: https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3
+  static inline void uo_gemm(bool ta, bool tb, size_t m, size_t n, size_t k,
+    float alpha,
+    float *A, size_t lda,
+    float *B, size_t ldb,
+    float beta,
+    float *C, size_t ldc)
+  {
+    for (size_t i = 0; i < m; ++i)
+    {
+      for (size_t j = 0; j < n; ++j)
+      {
+        C[i * ldc + j] *= beta;
+      }
+    }
+
+    if (!ta && !tb)
+      uo_gemm_nn(m, n, k, alpha, A, lda, B, ldb, C, ldc);
+    else if (ta && !tb)
+      uo_gemm_tn(m, n, k, alpha, A, lda, B, ldb, C, ldc);
+    else if (!ta && tb)
+      uo_gemm_nt(m, n, k, alpha, A, lda, B, ldb, C, ldc);
+    else
+      uo_gemm_tt(m, n, k, alpha, A, lda, B, ldb, C, ldc);
   }
 
   bool uo_test_matmul(char *test_data_dir);
