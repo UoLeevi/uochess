@@ -9,11 +9,6 @@ typedef struct uo_nn_value uo_nn_value;
 
 typedef uo_nn_value *(uo_nn_value_backprop_function)(uo_nn_value *node);
 
-typedef struct uo_tensor_dim_def {
-  size_t size;
-  size_t offset;
-} uo_tensor_dim_def;
-
 typedef union uo_tensor_data {
   void *ptr;
   float *s;
@@ -33,7 +28,7 @@ typedef struct uo_tensor
   char type;
   size_t dimension_count;
   size_t element_count;
-  uo_tensor_dim_def *dims;
+  size_t *dim_sizes;
   uo_tensor_data data;
 } uo_tensor;
 
@@ -42,18 +37,68 @@ typedef struct uo_nn_value
   const char *op;
   uo_tensor *tensor;
   uo_tensor_data grad;
-  uo_nn_value_backprop_function *backwards;
+  uo_nn_value_backprop_function *backward;
   uo_nn_value **children;
+  size_t children_count;
 } uo_nn_value;
 
-uo_tensor *uo_tensor_create(char type, size_t dimension_count, uo_tensor_dim_def *dims)
+uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size)
 {
-  size_t base_size = sizeof(uo_tensor) + dimension_count * sizeof(uo_tensor_dim_def);
+  uo_nn_value **graph = malloc(*size * 2 * sizeof(uo_nn_value *));
+  uo_nn_value **visited = graph + *size;
+  *size = 0;
+  size_t visited_count = 0;
+  uo_nn_value_build_topo(self, graph, size, visited, visited_count);
+  return graph;
+}
+
+void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_count, uo_nn_value **visited, size_t *visited_count)
+{
+  for (size_t j = 0; j < *visited_count; ++j)
+  {
+    if (visited[j] == self)
+    {
+      return;
+    }
+  }
+
+  visited[*visited_count++] = self;
+
+  for (size_t i = 0; i < self->children_count; ++i)
+  {
+    uo_nn_value_build_topo(self->children[i], topo, topo_count, visited, visited_count);
+  }
+
+  topo[*topo_count++] = self;
+}
+
+uo_nn_value *uo_nn_value_backward(uo_nn_value *nn_value)
+{
+  return nn_value->backward(nn_value);
+}
+
+void uo_nn_value_graph_backward(uo_nn_value **graph, size_t size)
+{
+  uo_nn_value *nn_value = graph[--size];
+  for (size_t i = 0; i < nn_value->tensor->element_count; ++i)
+  {
+    nn_value->grad.s[i] = 1.0f;
+  }
+
+  while (size)
+  {
+    uo_nn_value_backward(graph[--size]);
+  }
+}
+
+uo_tensor *uo_tensor_create(char type, size_t dimension_count, size_t *dim_sizes)
+{
+  size_t base_size = sizeof(uo_tensor) + dimension_count * sizeof(size_t);
   size_t element_count = 1;
 
   for (size_t i = 0; i < dimension_count; ++i)
   {
-    element_count *= dims[i].size + dims[i].offset;
+    element_count *= dim_sizes[i];
   }
 
   size_t size = base_size;
@@ -88,7 +133,7 @@ uo_tensor *uo_tensor_create(char type, size_t dimension_count, uo_tensor_dim_def
 
   for (size_t i = 0; i < dimension_count; ++i)
   {
-    tensor->dims[i] = dims[i];
+    tensor->dim_sizes[i] = dim_sizes[i];
   }
 
   return tensor;
@@ -222,54 +267,77 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 
   if (children_count > 0)
   {
+    value->children_count = children_count;
     value->children = mem;
   }
 
   return value;
 }
 
-uo_nn_value *uo_nn_value_op_backwards_matmul(uo_nn_value *self)
+uo_nn_value *uo_nn_value_op_backward_matmul(uo_nn_value *self)
 {
-  // TODO
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  float *A_grad = a->grad.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  float *B_grad = b->grad.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C_grad = c->grad.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  uo_gemm(true, true, m_B, n_B, m_A, 1.0f,
+    A, m_A,
+    C_grad, m_C,
+    0.0f,
+    B_grad, n_B);
+
+  uo_gemm(true, true, m_A, n_A, m_B, 1.0f,
+    B, m_B,
+    C_grad, m_C,
+    0.0f,
+    A_grad, n_A);
 }
 
 uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
 {
   if (c == NULL)
   {
-    uo_tensor *C = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
-      a->tensor->dims[0],
-        b->tensor->dims[1]
+    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+      a->tensor->dim_sizes[0],
+        b->tensor->dim_sizes[1]
     });
 
     c = uo_nn_value_create(C, "matmul", 2);
   }
 
   float *A = a->tensor->data.s;
-  size_t m_A = a->tensor->dims[0].size;
-  size_t m_offset_A = a->tensor->dims[0].offset;
-  size_t n_A = a->tensor->dims[1].size;
-  size_t n_offset_A = a->tensor->dims[1].offset;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
 
   float *B = b->tensor->data.s;
-  size_t m_B = b->tensor->dims[0].size;
-  size_t m_offset_B = b->tensor->dims[0].offset;
-  size_t n_B = b->tensor->dims[1].size;
-  size_t n_offset_B = b->tensor->dims[1].offset;
-
-  float *B_t = b->grad.s;
-
-  uo_transpose_ps(B, B_t, m_B + m_offset_B, n_B + n_offset_B);
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
 
   float *C = c->tensor->data.s;
-  size_t m_C = c->tensor->dims[0].size;
-  size_t m_offset_C = c->tensor->dims[0].offset;
-  size_t n_C = c->tensor->dims[1].size;
-  size_t n_offset_C = c->tensor->dims[1].offset;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
 
-  uo_matmul_ps(A, B_t, C, m_C, n_C, m_B, n_offset_C, n_offset_A, m_offset_B);
+  uo_gemm(false, false, m_C, n_C, n_A, 1.0f,
+    A, n_A,
+    B, n_B,
+    0.0f,
+    C, n_C);
 
-  c->backwards = uo_nn_value_op_backwards_matmul;
+  c->backward = uo_nn_value_op_backward_matmul;
   c->children[0] = a;
   c->children[1] = b;
 
@@ -278,10 +346,7 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
 
 bool uo_test_nn_value()
 {
-  uo_tensor *A = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
-    { 2 },
-    { 3 }
-  });
+  uo_tensor *A = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
 
   uo_tensor_set(A, 0, 0, 6, (float[]) {
     3.0, 2.0, 1.0,
@@ -290,10 +355,7 @@ bool uo_test_nn_value()
 
   uo_nn_value *a = uo_nn_value_create(A, NULL, 0);
 
-  uo_tensor *B = uo_tensor_create('s', 2, (uo_tensor_dim_def[]) {
-    { 3 },
-    { 1 }
-  });
+  uo_tensor *B = uo_tensor_create('s', 2, (size_t[]) { 3, 1 });
 
   uo_tensor_set(B, 0, 0, 6, (float[]) {
     -1.0,
@@ -306,7 +368,13 @@ bool uo_test_nn_value()
   uo_nn_value *c = NULL;
 
 
-  c = uo_nn_value_op_matmul(a, b, c);
+  uo_nn_value_op_matmul(a, b, c);
+
+  size_t graph_size = 3;
+  uo_nn_value **graph = uo_nn_value_create_graph(c, &graph_size);
+  uo_nn_value_graph_backward(graph, graph_size);
+
+
 
 }
 
