@@ -302,7 +302,7 @@ void uo_engine_init()
   // neural network used for evaluation
   if (eval_filename)
   {
-    engine.nn = uo_nn_read_from_file(NULL, eval_filename, 1);
+    //engine.nn = uo_nn_read_from_file(NULL, eval_filename, 1);
   }
 
   // load startpos

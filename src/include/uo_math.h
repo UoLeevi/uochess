@@ -276,7 +276,7 @@ extern "C"
   static inline void uo_matmul_position_ps(
     const uint32_t *own_mask, const uint32_t *enemy_mask, size_t k_half_mask,
     const float *own_floats, const float *enemy_floats, size_t k_half_floats,
-    const float *shared_mask, size_t k_shared_mask,
+    const uint32_t *shared_mask, size_t k_shared_mask,
     const float *shared_floats, size_t k_shared_floats,
     const float *B_t, float *C, size_t m, size_t n, int offset_C, int offset_B)
   {
@@ -367,12 +367,12 @@ extern "C"
 #pragma omp parallel for
     for (size_t i = 0; i < m; ++i)
     {
-      for (size_t k = 0; k < k; ++k)
+      for (size_t l = 0; l < k; ++l)
       {
-        register float A_PART = alpha * A[i * lda + k];
+        register float A_PART = alpha * A[i * lda + l];
         for (size_t j = 0; j < n; ++j)
         {
-          C[i * ldc + j] += A_PART * B[k * ldb + j];
+          C[i * ldc + j] += A_PART * B[l * ldb + j];
         }
       }
     }
@@ -389,9 +389,9 @@ extern "C"
       for (size_t j = 0; j < n; ++j)
       {
         register float sum = 0;
-        for (size_t k = 0; k < k; ++k)
+        for (size_t l = 0; l < k; ++l)
         {
-          sum += alpha * A[i * lda + k] * B[j * ldb + k];
+          sum += alpha * A[i * lda + l] * B[j * ldb + l];
         }
         C[i * ldc + j] += sum;
       }
@@ -406,12 +406,12 @@ extern "C"
 #pragma omp parallel for
     for (size_t i = 0; i < m; ++i)
     {
-      for (size_t k = 0; k < k; ++k)
+      for (size_t l = 0; l < k; ++l)
       {
-        register float A_PART = alpha * A[k * lda + i];
+        register float A_PART = alpha * A[l * lda + i];
         for (size_t j = 0; j < n; ++j)
         {
-          C[i * ldc + j] += A_PART * B[k * ldb + j];
+          C[i * ldc + j] += A_PART * B[l * ldb + j];
         }
       }
     }
@@ -428,9 +428,9 @@ extern "C"
       for (size_t j = 0; j < n; ++j)
       {
         register float sum = 0;
-        for (size_t k = 0; k < k; ++k)
+        for (size_t l = 0; l < k; ++l)
         {
-          sum += alpha * A[i + k * lda] * B[k + j * ldb];
+          sum += alpha * A[i + l * lda] * B[l + j * ldb];
         }
         C[i * ldc + j] += sum;
       }

@@ -219,9 +219,11 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
 
 static int16_t uo_search_evaluate(uo_engine_thread *thread)
 {
-  return thread->nn
-    ? uo_nn_evaluate(thread->nn, &thread->position)
-    : uo_position_evaluate(&thread->position);
+  return uo_position_evaluate(&thread->position);
+
+  //return thread->nn
+  //  ? uo_nn_evaluate(thread->nn, &thread->position)
+  //  : uo_position_evaluate(&thread->position);
 }
 
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth)
