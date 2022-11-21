@@ -11,7 +11,7 @@ extern "C"
 
   //typedef struct uo_nn uo_nn;
 
-  typedef struct uo_tensor;
+  typedef struct uo_tensor uo_tensor;
 
   //typedef uo_avx_float uo_nn_loss_function(uo_avx_float y_true, uo_avx_float y_pred);
 

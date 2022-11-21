@@ -997,15 +997,15 @@ static void uo_uci_process_input__ready(void)
     uo_engine_lock_position();
 
     int16_t value;
-    if (engine.nn)
-    {
-      uo_nn_load_position(engine.nn, &engine.position, 0);
-      value = uo_nn_evaluate(engine.nn, &engine.position);
-    }
-    else
-    {
+    //if (engine.nn)
+    //{
+    //  uo_nn_load_position(engine.nn, &engine.position, 0);
+    //  value = uo_nn_evaluate(engine.nn, &engine.position);
+    //}
+    //else
+    //{
      value = uo_position_evaluate(&engine.position);
-    }
+    //}
 
     uint16_t color = uo_color(engine.position.flags) == uo_white ? 1 : -1;
     int16_t score = color * value;

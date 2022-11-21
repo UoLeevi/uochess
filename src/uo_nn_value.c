@@ -146,7 +146,7 @@ void uo_tensor_set(uo_tensor *tensor, size_t index, size_t offset, size_t count,
   switch (tensor->type)
   {
     case 's': {
-      float *s = data;
+      const float *s = data;
       for (size_t i = index; i < count; ++i)
       {
         tensor->data.s[i * offset] = s[i];
@@ -155,7 +155,7 @@ void uo_tensor_set(uo_tensor *tensor, size_t index, size_t offset, size_t count,
     }
 
     case 'd': {
-      double *d = data;
+      const double *d = data;
       for (size_t i = index; i < count; ++i)
       {
         tensor->data.d[i * offset] = d[i];
@@ -164,7 +164,7 @@ void uo_tensor_set(uo_tensor *tensor, size_t index, size_t offset, size_t count,
     }
 
     case 'i': {
-      int32_t *int32 = data;
+      const int32_t *int32 = data;
       for (size_t i = index; i < count; ++i)
       {
         tensor->data.i[i * offset] = int32[i];
@@ -173,7 +173,7 @@ void uo_tensor_set(uo_tensor *tensor, size_t index, size_t offset, size_t count,
     }
 
     case 'u': {
-      float *u = data;
+      const uint32_t *u = data;
       for (size_t i = index; i < count; ++i)
       {
         tensor->data.u[i * offset] = u[i];
@@ -341,7 +341,7 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   c->children[0] = a;
   c->children[1] = b;
 
-  return C;
+  return c;
 }
 
 bool uo_test_nn_value()
