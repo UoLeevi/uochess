@@ -344,34 +344,58 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   return c;
 }
 
+
+uo_nn_value *uo_nn_value_op_backward_relu(uo_nn_value *self)
+{
+  uo_nn_value *x = self->children[0];
+  uo_nn_value *y = self;
+
+  // TODO
+}
+
+uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
+{
+  if (y == NULL)
+  {
+    uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
+      x->tensor->dim_sizes[0],
+      x->tensor->dim_sizes[1]
+    });
+
+    y = uo_nn_value_create(Y, "relu", 2);
+  }
+
+  // TODO
+
+  y->backward = uo_nn_value_op_backward_relu;
+  y->children[0] = x;
+
+  return y;
+}
+
 bool uo_test_nn_value()
 {
-  uo_tensor *A = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
-
-  uo_tensor_set(A, 0, 0, 6, (float[]) {
+  uo_tensor *X = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
+  uo_tensor_set(X, 0, 0, 6, (float[]) {
     3.0, 2.0, 1.0,
       2.0, 2.0, 1.0
   });
+  uo_nn_value *x = uo_nn_value_create(X, NULL, 0);
 
-  uo_nn_value *a = uo_nn_value_create(A, NULL, 0);
-
-  uo_tensor *B = uo_tensor_create('s', 2, (size_t[]) { 3, 1 });
-
-  uo_tensor_set(B, 0, 0, 6, (float[]) {
+  uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 3, 1 });
+  uo_tensor_set(W1, 0, 0, 6, (float[]) {
     -1.0,
       2.0,
       3.0
   });
+  uo_nn_value *w1 = uo_nn_value_create(W1, NULL, 0);
 
-  uo_nn_value *b = uo_nn_value_create(B, NULL, 0);
+  uo_nn_value *z1 = uo_nn_value_op_matmul(x, w1, NULL);
 
-  uo_nn_value *c = NULL;
-
-
-  uo_nn_value_op_matmul(a, b, c);
+  uo_nn_value *a1 = uo_nn_value_op_relu(z1, NULL);
 
   size_t graph_size = 3;
-  uo_nn_value **graph = uo_nn_value_create_graph(c, &graph_size);
+  uo_nn_value **graph = uo_nn_value_create_graph(a1, &graph_size);
   uo_nn_value_graph_backward(graph, graph_size);
 
 
