@@ -7,7 +7,7 @@
 
 typedef struct uo_nn_value uo_nn_value;
 
-typedef uo_nn_value *(uo_nn_value_backprop_function)(uo_nn_value *node);
+typedef void (uo_nn_value_backprop_function)(uo_nn_value *node);
 
 typedef union uo_tensor_data {
   void *ptr;
@@ -72,9 +72,9 @@ void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_
   topo[*topo_count++] = self;
 }
 
-uo_nn_value *uo_nn_value_backward(uo_nn_value *nn_value)
+void uo_nn_value_backward(uo_nn_value *nn_value)
 {
-  return nn_value->backward(nn_value);
+  nn_value->backward(nn_value);
 }
 
 void uo_nn_value_graph_backward(uo_nn_value **graph, size_t size)
@@ -274,7 +274,7 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
   return value;
 }
 
-uo_nn_value *uo_nn_value_op_backward_matmul(uo_nn_value *self)
+void uo_nn_value_op_backward_matmul(uo_nn_value *self)
 {
   uo_nn_value *a = self->children[0];
   uo_nn_value *b = self->children[1];
@@ -344,13 +344,24 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   return c;
 }
 
+uo_avx_float uo_nn_function_relu(__m256 avx_float)
+{
+  __m256 zeros = _mm256_setzero_ps();
+  return _mm256_max_ps(avx_float, zeros);
+}
 
-uo_nn_value *uo_nn_value_op_backward_relu(uo_nn_value *self)
+uo_avx_float uo_nn_function_relu_d(__m256 avx_float)
+{
+  __m256 zeros = _mm256_setzero_ps();
+  __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
+  __m256 ones = _mm256_set1_ps(1.0f);
+  return _mm256_max_ps(mask, ones);
+}
+
+void uo_nn_value_op_backward_relu(uo_nn_value *self)
 {
   uo_nn_value *x = self->children[0];
-  uo_nn_value *y = self;
-
-  // TODO
+  uo_vec_mapfunc_ps(x->tensor->data.s, x->grad.s, x->tensor->element_count, uo_nn_function_relu_d);
 }
 
 uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
@@ -365,7 +376,7 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
     y = uo_nn_value_create(Y, "relu", 2);
   }
 
-  // TODO
+  uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_relu);
 
   y->backward = uo_nn_value_op_backward_relu;
   y->children[0] = x;
