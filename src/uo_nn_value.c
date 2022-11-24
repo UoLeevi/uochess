@@ -274,6 +274,8 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
   return value;
 }
 
+#pragma region MatMul
+
 void uo_nn_value_op_backward_matmul(uo_nn_value *self)
 {
   uo_nn_value *a = self->children[0];
@@ -344,6 +346,84 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   return c;
 }
 
+#pragma endregion
+
+#pragma region AddBias
+
+void uo_nn_value_op_backward_addbias(uo_nn_value *self)
+{
+  /*uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  float *A_grad = a->grad.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  float *B_grad = b->grad.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C_grad = c->grad.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  uo_gemm(true, true, m_B, n_B, m_A, 1.0f,
+    A, m_A,
+    C_grad, m_C,
+    0.0f,
+    B_grad, n_B);
+
+  uo_gemm(true, true, m_A, n_A, m_B, 1.0f,
+    B, m_B,
+    C_grad, m_C,
+    0.0f,
+    A_grad, n_A);*/
+}
+
+uo_nn_value *uo_nn_value_op_addbias(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
+{
+  /*if (c == NULL)
+  {
+    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+      a->tensor->dim_sizes[0],
+        b->tensor->dim_sizes[1]
+    });
+
+    c = uo_nn_value_create(C, "matmul", 2);
+  }
+
+  float *A = a->tensor->data.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C = c->tensor->data.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  uo_gemm(false, false, m_C, n_C, n_A, 1.0f,
+    A, n_A,
+    B, n_B,
+    0.0f,
+    C, n_C);
+
+  c->backward = uo_nn_value_op_backward_matmul;
+  c->children[0] = a;
+  c->children[1] = b;
+
+  return c;*/
+}
+
+#pragma endregion
+
+#pragma region ReLU
+
 uo_avx_float uo_nn_function_relu(__m256 avx_float)
 {
   __m256 zeros = _mm256_setzero_ps();
@@ -383,6 +463,10 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
 
   return y;
 }
+
+#pragma endregion
+
+
 
 bool uo_test_nn_value()
 {
