@@ -352,72 +352,53 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
 
 void uo_nn_value_op_backward_addbias(uo_nn_value *self)
 {
-  /*uo_nn_value *a = self->children[0];
-  uo_nn_value *b = self->children[1];
-  uo_nn_value *c = self;
+  uo_nn_value *x = self->children[0];
 
-  float *A = a->tensor->data.s;
-  float *A_grad = a->grad.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
+  float *X_grad = x->grad.s;
+  size_t m_X = x->tensor->dim_sizes[0];
+  size_t n_X = x->tensor->dim_sizes[1];
 
-  float *B = b->tensor->data.s;
-  float *B_grad = b->grad.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
+  float *Y_grad = self->tensor->data.s;
 
-  float *C_grad = c->grad.s;
-  size_t m_C = c->tensor->dim_sizes[0];
-  size_t n_C = c->tensor->dim_sizes[1];
-
-  uo_gemm(true, true, m_B, n_B, m_A, 1.0f,
-    A, m_A,
-    C_grad, m_C,
-    0.0f,
-    B_grad, n_B);
-
-  uo_gemm(true, true, m_A, n_A, m_B, 1.0f,
-    B, m_B,
-    C_grad, m_C,
-    0.0f,
-    A_grad, n_A);*/
+  for (size_t i = 0; i < m_X; ++i)
+  {
+    memcpy(X_grad, Y_grad, n_X);
+    X_grad += n_X;
+    Y_grad += n_X + 1;
+  }
 }
 
-uo_nn_value *uo_nn_value_op_addbias(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
+uo_nn_value *uo_nn_value_op_addbias(uo_nn_value *x, uo_nn_value *y)
 {
-  /*if (c == NULL)
+  if (y == NULL)
   {
-    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
-      a->tensor->dim_sizes[0],
-        b->tensor->dim_sizes[1]
+    uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
+      y->tensor->dim_sizes[0],
+      y->tensor->dim_sizes[1] + 1
     });
 
-    c = uo_nn_value_create(C, "matmul", 2);
+    y = uo_nn_value_create(Y, "AddBias", 2);
   }
 
-  float *A = a->tensor->data.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
+  float *X = x->tensor->data.s;
+  size_t m_X = x->tensor->dim_sizes[0];
+  size_t n_X = x->tensor->dim_sizes[1];
 
-  float *B = b->tensor->data.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
+  float *Y = y->tensor->data.s;
 
-  float *C = c->tensor->data.s;
-  size_t m_C = c->tensor->dim_sizes[0];
-  size_t n_C = c->tensor->dim_sizes[1];
+  for (size_t i = 0; i < m_X; ++i)
+  {
+    memcpy(Y, X, n_X);
+    X += n_X;
+    Y += n_X;
+    *Y = 1.0f;
+    ++Y;
+  }
 
-  uo_gemm(false, false, m_C, n_C, n_A, 1.0f,
-    A, n_A,
-    B, n_B,
-    0.0f,
-    C, n_C);
+  y->backward = uo_nn_value_op_backward_addbias;
+  y->children[0] = x;
 
-  c->backward = uo_nn_value_op_backward_matmul;
-  c->children[0] = a;
-  c->children[1] = b;
-
-  return c;*/
+  return y;
 }
 
 #pragma endregion
@@ -450,7 +431,7 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
   {
     uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
       x->tensor->dim_sizes[0],
-      x->tensor->dim_sizes[1]
+        x->tensor->dim_sizes[1]
     });
 
     y = uo_nn_value_create(Y, "relu", 2);
@@ -473,19 +454,21 @@ bool uo_test_nn_value()
   uo_tensor *X = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
   uo_tensor_set(X, 0, 0, 6, (float[]) {
     3.0, 2.0, 1.0,
-      2.0, 2.0, 1.0
+    2.0, 2.0, 1.0
   });
   uo_nn_value *x = uo_nn_value_create(X, NULL, 0);
+  uo_nn_value *xb = uo_nn_value_op_addbias(x, NULL);
 
-  uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 3, 1 });
-  uo_tensor_set(W1, 0, 0, 6, (float[]) {
+  uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 4, 1 });
+  uo_tensor_set(W1, 0, 0, 4, (float[]) {
     -1.0,
-      2.0,
-      3.0
+     2.0,
+     3.0,
+     3.5
   });
   uo_nn_value *w1 = uo_nn_value_create(W1, NULL, 0);
 
-  uo_nn_value *z1 = uo_nn_value_op_matmul(x, w1, NULL);
+  uo_nn_value *z1 = uo_nn_value_op_matmul(xb, w1, NULL);
 
   uo_nn_value *a1 = uo_nn_value_op_relu(z1, NULL);
 
