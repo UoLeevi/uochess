@@ -1064,7 +1064,7 @@ static void uo_uci_process_input__ready(void)
       float learning_rate = arg_learning_rate ? strtof(arg_learning_rate, NULL) : 0;
       size_t batch_size = arg_batch_size ? strtoull(arg_batch_size, NULL, 10) : 0;
 
-      bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations, batch_size);
+      //bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations, batch_size);
 
       printf("\n");
       fflush(stdout);

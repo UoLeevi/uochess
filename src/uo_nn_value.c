@@ -42,16 +42,6 @@ typedef struct uo_nn_value
   size_t children_count;
 } uo_nn_value;
 
-uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size)
-{
-  uo_nn_value **graph = malloc(*size * 2 * sizeof(uo_nn_value *));
-  uo_nn_value **visited = graph + *size;
-  *size = 0;
-  size_t visited_count = 0;
-  uo_nn_value_build_topo(self, graph, size, visited, visited_count);
-  return graph;
-}
-
 void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_count, uo_nn_value **visited, size_t *visited_count)
 {
   for (size_t j = 0; j < *visited_count; ++j)
@@ -70,6 +60,16 @@ void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_
   }
 
   topo[*topo_count++] = self;
+}
+
+uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size)
+{
+  uo_nn_value **graph = malloc(*size * 2 * sizeof(uo_nn_value *));
+  uo_nn_value **visited = graph + *size;
+  *size = 0;
+  size_t visited_count = 0;
+  uo_nn_value_build_topo(self, graph, size, visited, visited_count);
+  return graph;
 }
 
 void uo_nn_value_backward(uo_nn_value *nn_value)

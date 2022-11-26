@@ -66,14 +66,14 @@ extern "C"
 
     for (size_t i = 0; i < nb; ++i)
     {
-      __m256i _a_mask = _mm256_loadu_epi32(a_mask + i * uo_floats_per_avx_float);
+      __m256i _a_mask = _mm256_lddqu_si256((void *)(a_mask + i * uo_floats_per_avx_float));
       uo_avx_float _b = _mm256_loadu_ps(b + i * uo_floats_per_avx_float);
       uo_avx_float mul = _mm256_and_ps(_mm256_castsi256_ps(_a_mask), _b);
       sum = _mm256_add_ps(sum, mul);
     }
 
     __m256i mask = _mm256_cmpgt_epi32(_mm256_set1_epi32(reminder), _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0));
-    __m256i _a_mask = _mm256_maskload_epi32(a_mask + nb * uo_floats_per_avx_float, mask);
+    __m256i _a_mask = _mm256_maskload_epi32((void *)(a_mask + nb * uo_floats_per_avx_float), mask);
     uo_avx_float _b = _mm256_maskload_ps(b + nb * uo_floats_per_avx_float, mask);
     uo_avx_float mul = _mm256_and_ps(_mm256_castsi256_ps(_a_mask), _b);
     sum = _mm256_add_ps(sum, mul);
