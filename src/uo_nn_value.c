@@ -318,7 +318,7 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
         b->tensor->dim_sizes[1]
     });
 
-    c = uo_nn_value_create(C, "matmul", 2);
+    c = uo_nn_value_create(C, "MatMul", 2);
   }
 
   float *A = a->tensor->data.s;
@@ -403,7 +403,7 @@ uo_nn_value *uo_nn_value_op_addbias(uo_nn_value *x, uo_nn_value *y)
 
 #pragma endregion
 
-#pragma region ReLU
+#pragma region Relu
 
 uo_avx_float uo_nn_function_relu(__m256 avx_float)
 {
@@ -434,7 +434,7 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
         x->tensor->dim_sizes[1]
     });
 
-    y = uo_nn_value_create(Y, "relu", 2);
+    y = uo_nn_value_create(Y, "Relu", 2);
   }
 
   uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_relu);
