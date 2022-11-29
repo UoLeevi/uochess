@@ -426,12 +426,10 @@ void uo_nn_value_op_backward_add(uo_nn_value *self)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  for (size_t j = 0; j < n_C; ++j)
+  for (size_t i = 0; i < a->tensor->element_count; ++i)
   {
-    for (size_t i = 0; i < m_C; ++i)
-    {
-      //TODO
-    }
+    A_grad[i] += C_grad[i];
+    B_grad[i] += C_grad[i];
   }
 }
 
@@ -459,7 +457,10 @@ uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  // TODO
+  for (size_t i = 0; i < a->tensor->element_count; ++i)
+  {
+    C[i] = A[i] + B[i];
+  }
 
   c->backward = uo_nn_value_op_backward_matmul;
   c->children[0] = a;
