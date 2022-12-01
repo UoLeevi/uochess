@@ -459,6 +459,32 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
 
 #pragma endregion
 
+#pragma region loss MSE
+
+
+uo_avx_float uo_nn_loss_function_mean_squared_error(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 sub = _mm256_sub_ps(y_pred, y_true);
+  __m256 mul = _mm256_mul_ps(sub, sub);
+  return mul;
+}
+
+uo_avx_float uo_nn_loss_function_mean_squared_error_d(uo_avx_float y_true, uo_avx_float y_pred)
+{
+  __m256 twos = _mm256_set1_ps(2.0f);
+  __m256 sub = _mm256_sub_ps(y_pred, y_true);
+  return _mm256_mul_ps(twos, sub);
+}
+
+void uo_nn_loss_grad_mse(uo_nn_value *y_pred, float *y_true)
+{
+  float *dA = y_pred->grad.s;
+  uo_vec_map2func_ps(y_true, y_pred->tensor->data.s, dA, y_pred->tensor->element_count, uo_nn_loss_function_mean_squared_error_d);
+  uo_vec_mul1_ps(dA, 1.0f / (float)y_pred->tensor->dim_sizes[0], dA, y_pred->tensor->element_count);
+}
+
+#pragma endregion
+
 bool uo_test_nn_value()
 {
   uo_tensor *X = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
@@ -487,6 +513,15 @@ bool uo_test_nn_value()
   uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1, NULL);
 
   uo_nn_value *a1 = uo_nn_value_op_relu(z1, NULL);
+
+
+  uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { 2, 1 });
+  uo_tensor_set(y_true, 0, 0, 2, (float[]) {
+    0.5,
+    0.5
+  });
+
+  uo_nn_loss_grad_mse(a1, y_true->data.s);
 
   size_t graph_size = 3;
   uo_nn_value **graph = uo_nn_value_create_graph(a1, &graph_size);
