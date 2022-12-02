@@ -478,9 +478,17 @@ uo_avx_float uo_nn_loss_function_mean_squared_error_d(uo_avx_float y_true, uo_av
 
 void uo_nn_loss_grad_mse(uo_nn_value *y_pred, float *y_true)
 {
-  float *dA = y_pred->grad.s;
-  uo_vec_map2func_ps(y_true, y_pred->tensor->data.s, dA, y_pred->tensor->element_count, uo_nn_loss_function_mean_squared_error_d);
-  uo_vec_mul1_ps(dA, 1.0f / (float)y_pred->tensor->dim_sizes[0], dA, y_pred->tensor->element_count);
+  float *grad = y_pred->grad.s;
+  uo_vec_map2func_ps(y_true, y_pred->tensor->data.s, grad, y_pred->tensor->element_count, uo_nn_loss_function_mean_squared_error_d);
+  uo_vec_mul1_ps(grad, 1.0f / (float)y_pred->tensor->dim_sizes[0], grad, y_pred->tensor->element_count);
+}
+
+float uo_nn_loss_mse(uo_nn_value *y_pred, float *y_true)
+{
+  float *losses = uo_alloca(sizeof(float) * y_pred->tensor->element_count);
+  uo_vec_map2func_ps(y_true, y_pred->tensor->data.s, losses, y_pred->tensor->element_count, uo_nn_loss_function_mean_squared_error);
+  float loss = uo_vec_mean_ps(losses, y_pred->tensor->element_count);
+  return loss;
 }
 
 #pragma endregion
