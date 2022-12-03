@@ -42,6 +42,23 @@ typedef struct uo_nn_value
   size_t children_count;
 } uo_nn_value;
 
+typedef struct uo_nn_adam_params
+{
+  uo_nn_value *value;
+  size_t t;
+
+  float lr;
+  float beta1;
+  float beta2;
+  float epsilon;
+  float weight_decay;
+
+  float *m; // first moment vector
+  float *v; // second moment vector
+  float *m_hat; // bias-corrected first moment matrix, m x n
+  float *v_hat; // bias-corrected second moment matrix, m x n
+} uo_nn_adam_params;
+
 void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_count, uo_nn_value **visited, size_t *visited_count)
 {
   for (size_t j = 0; j < *visited_count; ++j)
@@ -493,6 +510,68 @@ float uo_nn_loss_mse(uo_nn_value *y_pred, float *y_true)
 
 #pragma endregion
 
+uo_nn_adam_params *uo_nn_value_adam_params_create(uo_nn_value *value)
+{
+  size_t size = sizeof(uo_nn_adam_params) + sizeof(float) * value->tensor->element_count * 4;
+  void *mem = calloc(1, size);
+  uo_nn_adam_params *params = mem;
+
+  mem = (void *)(((char *)mem) + sizeof(uo_nn_adam_params));
+  params->m = mem;
+
+  mem = (void *)(((char *)mem) + sizeof(float) * value->tensor->element_count);
+  params->m_hat = mem;
+
+  mem = (void *)(((char *)mem) + sizeof(float) * value->tensor->element_count);
+  params->v = mem;
+
+  mem = (void *)(((char *)mem) + sizeof(float) * value->tensor->element_count);
+  params->v_hat = mem;
+
+  params->value = value;
+  params->t = 1;
+
+  params->lr = 1e-4;
+  params->beta1 = 0.9;
+  params->beta2 = 0.999;
+  params->epsilon = 1e-8;
+  params->weight_decay = 1e-2;
+
+  return params;
+}
+
+void uo_nn_value_update_adam(uo_nn_adam_params *params)
+{
+  size_t count = params->value->tensor->element_count;
+  float *value = params->value->tensor->data.s;
+  float *grad = params->value->grad.s;
+
+  float *m = params->m;
+  float *v = params->v;
+  float *m_hat = params->m_hat;
+  float *v_hat = params->v_hat;
+  float t = params->t;
+  float lr = params->lr;
+  float beta1 = params->beta1;
+  float beta2 = params->beta2;
+  float epsilon = params->weight_decay;
+  float weight_decay = params->weight_decay;
+
+  for (size_t i = 0; i < count; ++i)
+  {
+    m[i] = beta1 * m[i] + (1.0f - beta1) * grad[i];
+    v[i] = beta2 * v[i] + (1.0f - beta2) * (grad[i] * grad[i]);
+    m_hat[i] = m[i] / (1.0f - powf(beta1, t));
+    v_hat[i] = v[i] / (1.0f - powf(beta2, t));
+    value[i] -= lr * m_hat[i] / (sqrtf(v_hat[i] + epsilon));
+
+    // weight decay
+    value[i] -= weight_decay * lr * value[i];
+  }
+
+  params->t++;
+}
+
 bool uo_test_nn_value()
 {
   uo_tensor *X = uo_tensor_create('s', 2, (size_t[]) { 2, 3 });
@@ -510,12 +589,14 @@ bool uo_test_nn_value()
       3.5
   });
   uo_nn_value *w1 = uo_nn_value_create(W1, NULL, 0);
+  uo_nn_adam_params *w1_adam = uo_nn_value_adam_params_create(w1);
 
   uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, 1 });
   uo_tensor_set(W1, 0, 0, 1, (float[]) {
     0.5
   });
   uo_nn_value *b1 = uo_nn_value_create(b1, NULL, 0);
+  uo_nn_adam_params *b1_adam = uo_nn_value_adam_params_create(b1);
 
   uo_nn_value *xw1 = uo_nn_value_op_matmul(x, w1, NULL);
   uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1, NULL);
@@ -526,7 +607,7 @@ bool uo_test_nn_value()
   uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { 2, 1 });
   uo_tensor_set(y_true, 0, 0, 2, (float[]) {
     0.5,
-    0.5
+      0.5
   });
 
   uo_nn_loss_grad_mse(a1, y_true->data.s);
@@ -534,6 +615,9 @@ bool uo_test_nn_value()
   size_t graph_size = 3;
   uo_nn_value **graph = uo_nn_value_create_graph(a1, &graph_size);
   uo_nn_value_graph_backward(graph, graph_size);
+
+  uo_nn_value_update_adam(w1_adam);
+  uo_nn_value_update_adam(b1_adam);
 }
 
 
