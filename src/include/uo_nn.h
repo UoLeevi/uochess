@@ -9,7 +9,7 @@ extern "C"
 #include "uo_math.h"
 #include "uo_position.h"
 
-  //typedef struct uo_nn uo_nn;
+  typedef struct uo_nn uo_nn;
 
   typedef struct uo_tensor uo_tensor;
 
