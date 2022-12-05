@@ -7,7 +7,7 @@
 
 typedef struct uo_nn_value uo_nn_value;
 
-typedef void (uo_nn_value_backprop_function)(uo_nn_value *node);
+typedef void (uo_nn_value_function)(uo_nn_value *node);
 
 typedef union uo_tensor_data {
   void *ptr;
@@ -37,7 +37,8 @@ typedef struct uo_nn_value
   const char *op;
   uo_tensor *tensor;
   uo_tensor_data grad;
-  uo_nn_value_backprop_function *backward;
+  uo_nn_value_function *forward;
+  uo_nn_value_function *backward;
   uo_nn_value **children;
   size_t children_count;
 } uo_nn_value;
@@ -95,12 +96,17 @@ uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size)
   return graph;
 }
 
+void uo_nn_value_forward(uo_nn_value *nn_value)
+{
+  nn_value->forward(nn_value);
+}
+
 void uo_nn_value_backward(uo_nn_value *nn_value)
 {
   nn_value->backward(nn_value);
 }
 
-void uo_nn_value_graph_backward(uo_nn_value **graph, size_t size)
+void uo_nn_graph_backward(uo_nn_value **graph, size_t size)
 {
   uo_nn_value *nn_value = graph[--size];
   for (size_t i = 0; i < nn_value->tensor->element_count; ++i)
@@ -111,6 +117,14 @@ void uo_nn_value_graph_backward(uo_nn_value **graph, size_t size)
   while (size)
   {
     uo_nn_value_backward(graph[--size]);
+  }
+}
+
+void uo_nn_graph_forward(uo_nn_value **graph, size_t size)
+{
+  for (size_t i = 0; i < size; ++i)
+  {
+    uo_nn_value_forward(graph[i]);
   }
 }
 
@@ -299,6 +313,31 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 
 #pragma region MatMul
 
+void uo_nn_value_op_forward_matmul(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C = c->tensor->data.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  uo_gemm(false, false, m_C, n_C, n_A, 1.0f,
+    A, n_A,
+    B, n_B,
+    0.0f,
+    C, n_C);
+}
+
 void uo_nn_value_op_backward_matmul(uo_nn_value *self)
 {
   uo_nn_value *a = self->children[0];
@@ -344,6 +383,26 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
     c = uo_nn_value_create(C, "MatMul", 2);
   }
 
+  c->forward = uo_nn_value_op_forward_matmul;
+  c->backward = uo_nn_value_op_backward_matmul;
+  c->children[0] = a;
+  c->children[1] = b;
+
+  uo_nn_value_forward(c);
+
+  return c;
+}
+
+#pragma endregion
+
+#pragma region Add
+
+void uo_nn_value_op_forward_add(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
   float *A = a->tensor->data.s;
   size_t m_A = a->tensor->dim_sizes[0];
   size_t n_A = a->tensor->dim_sizes[1];
@@ -356,22 +415,11 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  uo_gemm(false, false, m_C, n_C, n_A, 1.0f,
-    A, n_A,
-    B, n_B,
-    0.0f,
-    C, n_C);
-
-  c->backward = uo_nn_value_op_backward_matmul;
-  c->children[0] = a;
-  c->children[1] = b;
-
-  return c;
+  for (size_t i = 0; i < a->tensor->element_count; ++i)
+  {
+    C[i] = A[i] + B[i];
+  }
 }
-
-#pragma endregion
-
-#pragma region Add
 
 void uo_nn_value_op_backward_add(uo_nn_value *self)
 {
@@ -412,26 +460,12 @@ uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
     c = uo_nn_value_create(C, "Add", 2);
   }
 
-  float *A = a->tensor->data.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
-
-  float *B = b->tensor->data.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
-
-  float *C = c->tensor->data.s;
-  size_t m_C = c->tensor->dim_sizes[0];
-  size_t n_C = c->tensor->dim_sizes[1];
-
-  for (size_t i = 0; i < a->tensor->element_count; ++i)
-  {
-    C[i] = A[i] + B[i];
-  }
-
+  c->forward = uo_nn_value_op_forward_matmul;
   c->backward = uo_nn_value_op_backward_matmul;
   c->children[0] = a;
   c->children[1] = b;
+
+  uo_nn_value_forward(c);
 
   return c;
 }
@@ -454,6 +488,14 @@ uo_avx_float uo_nn_function_relu_d(__m256 avx_float)
   return _mm256_max_ps(mask, ones);
 }
 
+void uo_nn_value_op_forward_relu(uo_nn_value *self)
+{
+  uo_nn_value *x = self->children[0];
+  uo_nn_value *y = self;
+  uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_relu);
+}
+
+
 void uo_nn_value_op_backward_relu(uo_nn_value *self)
 {
   uo_nn_value *x = self->children[0];
@@ -472,10 +514,11 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
     y = uo_nn_value_create(Y, "Relu", 2);
   }
 
-  uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_relu);
-
+  y->forward = uo_nn_value_op_forward_relu;
   y->backward = uo_nn_value_op_backward_relu;
   y->children[0] = x;
+
+  uo_nn_value_forward(y);
 
   return y;
 }
