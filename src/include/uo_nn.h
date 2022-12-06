@@ -122,7 +122,7 @@ extern "C"
 
   //bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size);
 
-  //bool uo_test_nn_train_xor(char *test_data_dir);
+  bool uo_test_nn_train_xor(char *test_data_dir);
 
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
