@@ -14,16 +14,22 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
   size_t m_B = k;
   size_t n_B = n;
-  float *B_t = malloc(m_B * n_B * sizeof(float));
+  //float *B_t = malloc(m_B * n_B * sizeof(float));
 
   size_t m_C = m;
   size_t n_C = n;
-  float *C = malloc(m_C * n_C * sizeof(float));
+  float *C = calloc(m_C * n_C, sizeof(float));
 
   bool passed = true;
 
-  uo_transpose_ps(B, B_t, m_B, n_B);
-  uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
+  uo_gemm(false, false, m_A, n_B, n_A, 1.0,
+    A, m_A,
+    B, m_B,
+    0.0,
+    C, m_C);
+
+  //uo_transpose_ps(B, B_t, m_B, n_B);
+  //uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
 
   // compare matrix multiplication results against expected results
   for (size_t i = 0; i < m_C * n_C; i++)
@@ -34,7 +40,7 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
   if (!passed)
   {
-    free(B_t);
+    //free(B_t);
     free(C);
     return false;
   }
@@ -55,7 +61,7 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
     passed &= uo_approx_eq_ps(d, 0);
   }
 
-  free(B_t);
+  //free(B_t);
   free(C);
   free(A_t);
   free(C_t_expected);
