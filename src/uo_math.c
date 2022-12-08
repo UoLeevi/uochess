@@ -23,10 +23,10 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
   bool passed = true;
 
   uo_gemm(false, false, m_A, n_B, n_A, 1.0,
-    A, m_A,
-    B, m_B,
+    A, n_A,
+    B, n_B,
     0.0,
-    C, m_C);
+    C, n_C);
 
   //uo_transpose_ps(B, B_t, m_B, n_B);
   //uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
