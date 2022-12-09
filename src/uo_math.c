@@ -11,10 +11,13 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
   size_t m_A = m;
   size_t n_A = k;
+  float *A_t = malloc(m_A * n_A * sizeof(float));
+  uo_transpose_ps(A, A_t, m_A, n_A);
 
   size_t m_B = k;
   size_t n_B = n;
-  //float *B_t = malloc(m_B * n_B * sizeof(float));
+  float *B_t = malloc(m_B * n_B * sizeof(float));
+  uo_transpose_ps(B, B_t, m_B, n_B);
 
   size_t m_C = m;
   size_t n_C = n;
@@ -28,8 +31,26 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
     0.0,
     C, n_C);
 
-  //uo_transpose_ps(B, B_t, m_B, n_B);
-  //uo_matmul_ps(A, B_t, C, m_C, n_C, n_A, 0, 0, 0);
+  // compare matrix multiplication results against expected results
+  for (size_t i = 0; i < m_C * n_C; i++)
+  {
+    float d = C_expected[i] - C[i];
+    passed &= uo_approx_eq_ps(d, 0);
+  }
+
+  if (!passed)
+  {
+    free(A_t);
+    free(B_t);
+    free(C);
+    return false;
+  }
+
+  uo_gemm(true, true, m_A, n_B, n_A, 1.0,
+    A_t, m_A,
+    B_t, m_B,
+    0.0,
+    C, n_C);
 
   // compare matrix multiplication results against expected results
   for (size_t i = 0; i < m_C * n_C; i++)
@@ -40,31 +61,57 @@ bool uo_test_matmul_A_dot_B_eq_C(float *A, float *B, float *C_expected, size_t m
 
   if (!passed)
   {
-    //free(B_t);
+    free(A_t);
+    free(B_t);
     free(C);
     return false;
   }
 
-  float *A_t = malloc(m_A * n_A * sizeof(float));
-  uo_transpose_ps(A, A_t, m_A, n_A);
-
-  float *C_t = C;
-  float *C_t_expected = malloc(m_C * n_C * sizeof(float));
-  uo_transpose_ps(C_expected, C_t_expected, m_C, n_C);
-
-  uo_matmul_t_ps(A_t, B, C_t, m_C, n_C, n_A, 0, 0, 0);
+  uo_gemm(true, false, m_A, n_B, n_A, 1.0,
+    A_t, m_A,
+    B, n_B,
+    0.0,
+    C, n_C);
 
   // compare matrix multiplication results against expected results
   for (size_t i = 0; i < m_C * n_C; i++)
   {
-    float d = C_t_expected[i] - C_t[i];
+    float d = C_expected[i] - C[i];
     passed &= uo_approx_eq_ps(d, 0);
   }
 
-  //free(B_t);
-  free(C);
+  if (!passed)
+  {
+    free(A_t);
+    free(B_t);
+    free(C);
+    return false;
+  }
+
+  uo_gemm(false, true, m_A, n_B, n_A, 1.0,
+    A, n_A,
+    B_t, m_B,
+    0.0,
+    C, n_C);
+
+  // compare matrix multiplication results against expected results
+  for (size_t i = 0; i < m_C * n_C; i++)
+  {
+    float d = C_expected[i] - C[i];
+    passed &= uo_approx_eq_ps(d, 0);
+  }
+
+  if (!passed)
+  {
+    free(A_t);
+    free(B_t);
+    free(C);
+    return false;
+  }
+
   free(A_t);
-  free(C_t_expected);
+  free(B_t);
+  free(C);
   return passed;
 
 #undef uo_approx_eq_ps
