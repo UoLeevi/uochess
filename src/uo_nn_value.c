@@ -328,7 +328,7 @@ void uo_tensor_set_rand(uo_tensor *tensor, size_t index, size_t offset, size_t c
 uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count)
 {
   size_t base_size = sizeof(uo_nn_value);
-  size_t children_size = sizeof(uo_nn_value) * children_count;
+  size_t children_size = sizeof(uo_nn_value *) * children_count;
   size_t elements_size;
 
   switch (tensor->type)
@@ -412,15 +412,15 @@ void uo_nn_value_op_backward_matmul(uo_nn_value *self)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  uo_gemm(true, true, m_B, n_B, m_A, 1.0f,
-    A, m_A,
-    C_grad, m_C,
+  uo_gemm(true, false, m_B, n_B, m_A, 1.0f,
+    A, n_A,
+    C_grad, n_C,
     0.0f,
     B_grad, n_B);
 
-  uo_gemm(true, true, m_A, n_A, m_B, 1.0f,
-    B, m_B,
-    C_grad, m_C,
+  uo_gemm(false, true, m_A, n_A, m_B, 1.0f,
+    C_grad, n_C,
+    B, n_B,
     0.0f,
     A_grad, n_A);
 }
@@ -469,35 +469,35 @@ void uo_nn_value_op_forward_add(uo_nn_value *self)
 
   if (m_A == m_B && n_A == n_B)
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
     {
       C[i] = A[i] + B[i];
     }
   }
   else if (m_A == m_B && n_A == 1)
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
     {
       C[i] = A[i % m_A] + B[i];
     }
   }
   else if (n_A == n_B && m_A == 1)
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
     {
       C[i] = A[i % n_A] + B[i];
     }
   }
   else if (m_A == m_B && n_B == 1)
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
     {
       C[i] = A[i] + B[i % m_B];
     }
   }
   else if (n_A == n_B && m_B == 1)
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
     {
       C[i] = A[i] + B[i % n_B];
     }
@@ -529,10 +529,50 @@ void uo_nn_value_op_backward_add(uo_nn_value *self)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  for (size_t i = 0; i < a->tensor->element_count; ++i)
+  if (m_A == m_B && n_A == n_B)
   {
-    A_grad[i] += C_grad[i];
-    B_grad[i] += C_grad[i];
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (m_A == m_B && n_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i % m_A] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (n_A == n_B && m_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i % n_A] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (m_A == m_B && n_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i % m_B] += C_grad[i];
+    }
+  }
+  else if (n_A == n_B && m_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i % n_B] += C_grad[i];
+    }
+  }
+  else
+  {
+    // sizes not compatible
+    exit(-1);
   }
 }
 
@@ -542,7 +582,7 @@ uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
   {
     uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
       uo_max(a->tensor->dim_sizes[0], b->tensor->dim_sizes[0]),
-      uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
+        uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
     });
 
     c = uo_nn_value_create(C, "Add", 2);
@@ -767,14 +807,14 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   uo_nn_value *b2 = uo_nn_value_create(B2, NULL, 0);
   uo_nn_adam_params *b2_adam = uo_nn_value_adam_params_create(b2);
 
-  uo_nn_value *xw2 = uo_nn_value_op_matmul(x, w2, NULL);
+  uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2, NULL);
   uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2, NULL);
   uo_nn_value *a2 = uo_nn_value_op_relu(z2, NULL);
 
   uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
 
   size_t graph_size = 20; // max size
-  uo_nn_value **graph = uo_nn_value_create_graph(a1, &graph_size);
+  uo_nn_value **graph = uo_nn_value_create_graph(a2, &graph_size);
 
   uo_nn nn = {
     .graph = graph,
@@ -785,20 +825,20 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn_select_batch_test_xor(&nn, 0, inputs, y_true);
   uo_nn_graph_forward(nn.graph, nn.graph_size);
-  float loss_avg = uo_nn_loss_mse(a1, y_true->data.s);
+  float loss_avg = uo_nn_loss_mse(a2, y_true->data.s);
 
   for (size_t i = 1; i < 100000; ++i)
   {
     uo_nn_select_batch_test_xor(&nn, i, inputs, y_true);
     uo_nn_graph_forward(nn.graph, nn.graph_size);
 
-    float loss = uo_nn_loss_mse(a1, y_true->data.s);
+    float loss = uo_nn_loss_mse(a2, y_true->data.s);
 
     loss_avg = loss_avg * 0.95 + loss * 0.05;
 
     if (loss_avg < 0.0001) break;
 
-    uo_nn_loss_grad_mse(a1, y_true->data.s);
+    uo_nn_loss_grad_mse(a2, y_true->data.s);
     uo_nn_graph_backward(graph, graph_size);
     uo_nn_value_update_adam(b2_adam);
     uo_nn_value_update_adam(w2_adam);
