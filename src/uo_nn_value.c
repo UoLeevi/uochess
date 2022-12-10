@@ -99,6 +99,35 @@ uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size)
   return graph;
 }
 
+void uo_nn_value_zero_grad(uo_nn_value *nn_value)
+{
+  size_t element_size;
+
+  switch (nn_value->tensor->type)
+  {
+    case 's':
+      element_size = sizeof(float);
+      break;
+
+    case 'd':
+      element_size = sizeof(double);
+      break;
+
+    case 'i':
+      element_size = sizeof(int32_t);
+      break;
+
+    case 'u':
+      element_size = sizeof(uint32_t);
+      break;
+
+    default:
+      exit(1);
+  }
+
+  memset(nn_value->grad.ptr, 0, nn_value->tensor->element_count * element_size);
+}
+
 void uo_nn_value_forward(uo_nn_value *nn_value)
 {
   if (nn_value->forward) nn_value->forward(nn_value);
@@ -111,10 +140,9 @@ void uo_nn_value_backward(uo_nn_value *nn_value)
 
 void uo_nn_graph_backward(uo_nn_value **graph, size_t size)
 {
-  uo_nn_value *nn_value = graph[--size];
-  for (size_t i = 0; i < nn_value->tensor->element_count; ++i)
+  for (size_t i = 0; i < size - 1; ++i)
   {
-    nn_value->grad.s[i] = 1.0f;
+    uo_nn_value_zero_grad(graph[i]);
   }
 
   while (size)
@@ -418,7 +446,7 @@ void uo_nn_value_op_backward_matmul(uo_nn_value *self)
     0.0f,
     B_grad, n_B);
 
-  uo_gemm(false, true, m_A, n_A, m_B, 1.0f,
+  uo_gemm(false, true, m_A, n_A, n_B, 1.0f,
     C_grad, n_C,
     B, n_B,
     0.0f,
@@ -611,7 +639,7 @@ uo_avx_float uo_nn_function_relu_d(__m256 avx_float)
   __m256 zeros = _mm256_setzero_ps();
   __m256 mask = _mm256_cmp_ps(avx_float, zeros, _CMP_GT_OQ);
   __m256 ones = _mm256_set1_ps(1.0f);
-  return _mm256_max_ps(mask, ones);
+  return _mm256_and_ps(mask, ones);
 }
 
 void uo_nn_value_op_forward_relu(uo_nn_value *self)
@@ -621,11 +649,17 @@ void uo_nn_value_op_forward_relu(uo_nn_value *self)
   uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_relu);
 }
 
-
 void uo_nn_value_op_backward_relu(uo_nn_value *self)
 {
   uo_nn_value *x = self->children[0];
-  uo_vec_mapfunc_ps(x->tensor->data.s, x->grad.s, x->tensor->element_count, uo_nn_function_relu_d);
+  uo_nn_value *y = self;
+
+  //uo_vec_mapfunc_mul_ps(y->tensor->data.s, y->grad.s, x->grad.s, y->tensor->element_count, uo_nn_function_relu_d);
+
+  for (size_t i = 0; i < y->tensor->element_count; i++)
+  {
+    x->grad.s[i] += (y->tensor->data.s[i] > 0) * y->grad.s[i];
+  }
 }
 
 uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
@@ -648,6 +682,59 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
 }
 
 #pragma endregion
+
+
+#pragma region Tanh
+
+uo_avx_float uo_nn_function_tanh(__m256 avx_float)
+{
+  return _mm256_tanh_ps(avx_float);
+}
+
+uo_avx_float uo_nn_function_tanh_d(__m256 avx_float)
+{
+  __m256 tanh = _mm256_tanh_ps(avx_float);
+  __m256 sqr = _mm256_mul_ps(tanh, tanh);
+  __m256 ones = _mm256_set1_ps(1.0);
+  return _mm256_sub_ps(ones, sqr);
+}
+
+void uo_nn_value_op_forward_tanh(uo_nn_value *self)
+{
+  uo_nn_value *x = self->children[0];
+  uo_nn_value *y = self;
+  uo_vec_mapfunc_ps(x->tensor->data.s, y->tensor->data.s, x->tensor->element_count, uo_nn_function_tanh);
+}
+
+void uo_nn_value_op_backward_tanh(uo_nn_value *self)
+{
+  uo_nn_value *x = self->children[0];
+  uo_nn_value *y = self;
+
+  uo_vec_mapfunc_mul_ps(y->tensor->data.s, y->grad.s, x->grad.s, y->tensor->element_count, uo_nn_function_tanh_d);
+}
+
+uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x, uo_nn_value *y)
+{
+  if (y == NULL)
+  {
+    uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
+      x->tensor->dim_sizes[0],
+        x->tensor->dim_sizes[1]
+    });
+
+    y = uo_nn_value_create(Y, "Tanh", 1);
+  }
+
+  y->forward = uo_nn_value_op_forward_tanh;
+  y->backward = uo_nn_value_op_backward_tanh;
+  y->children[0] = x;
+
+  return y;
+}
+
+#pragma endregion
+
 
 #pragma region loss MSE
 
@@ -703,11 +790,11 @@ uo_nn_adam_params *uo_nn_value_adam_params_create(uo_nn_value *value)
   params->value = value;
   params->t = 1;
 
-  params->lr = 1e-4;
+  params->lr = 1e-5;
   params->beta1 = 0.9;
   params->beta2 = 0.999;
   params->epsilon = 1e-8;
-  params->weight_decay = 1e-2;
+  params->weight_decay = 1e-4;
 
   return params;
 }
@@ -726,7 +813,7 @@ void uo_nn_value_update_adam(uo_nn_adam_params *params)
   float lr = params->lr;
   float beta1 = params->beta1;
   float beta2 = params->beta2;
-  float epsilon = params->weight_decay;
+  float epsilon = params->epsilon;
   float weight_decay = params->weight_decay;
 
   for (size_t i = 0; i < count; ++i)
@@ -794,7 +881,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn_value *xw1 = uo_nn_value_op_matmul(x, w1, NULL);
   uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1, NULL);
-  uo_nn_value *a1 = uo_nn_value_op_relu(z1, NULL);
+  uo_nn_value *a1 = uo_nn_value_op_tanh(z1, NULL);
 
   // Layer 2
   uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { 2, 1 });
@@ -809,12 +896,14 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2, NULL);
   uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2, NULL);
-  uo_nn_value *a2 = uo_nn_value_op_relu(z2, NULL);
+  uo_nn_value *a2 = uo_nn_value_op_tanh(z2, NULL);
+
+  uo_nn_value *y_pred = a2;
 
   uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
 
   size_t graph_size = 20; // max size
-  uo_nn_value **graph = uo_nn_value_create_graph(a2, &graph_size);
+  uo_nn_value **graph = uo_nn_value_create_graph(y_pred, &graph_size);
 
   uo_nn nn = {
     .graph = graph,
@@ -825,20 +914,20 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn_select_batch_test_xor(&nn, 0, inputs, y_true);
   uo_nn_graph_forward(nn.graph, nn.graph_size);
-  float loss_avg = uo_nn_loss_mse(a2, y_true->data.s);
+  float loss_avg = uo_nn_loss_mse(y_pred, y_true->data.s);
 
-  for (size_t i = 1; i < 100000; ++i)
+  for (size_t i = 1; i < 1000000; ++i)
   {
     uo_nn_select_batch_test_xor(&nn, i, inputs, y_true);
     uo_nn_graph_forward(nn.graph, nn.graph_size);
 
-    float loss = uo_nn_loss_mse(a2, y_true->data.s);
+    float loss = uo_nn_loss_mse(y_pred, y_true->data.s);
 
     loss_avg = loss_avg * 0.95 + loss * 0.05;
 
     if (loss_avg < 0.0001) break;
 
-    uo_nn_loss_grad_mse(a2, y_true->data.s);
+    uo_nn_loss_grad_mse(y_pred, y_true->data.s);
     uo_nn_graph_backward(graph, graph_size);
     uo_nn_value_update_adam(b2_adam);
     uo_nn_value_update_adam(w2_adam);
