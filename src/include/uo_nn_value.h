@@ -142,12 +142,12 @@ extern "C"
   uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y);
   uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x, uo_nn_value *y);
 
+  float uo_nn_loss_mse(uo_nn_value *y_pred, float *y_true);
   void uo_nn_loss_grad_mse(uo_nn_value *y_pred, float *y_true);
 
   uo_nn_adam_params *uo_nn_value_adam_params_create(uo_nn_value *value);
-
   void uo_nn_value_update_adam(uo_nn_adam_params *params);
-  float uo_nn_loss_mse(uo_nn_value *y_pred, float *y_true);
+
 
 #ifdef __cplusplus
 }
