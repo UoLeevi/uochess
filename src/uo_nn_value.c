@@ -271,59 +271,27 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 }
 
 
-#pragma region Mask
+#pragma region MaskSum
 
-void uo_nn_value_op_forward_mask(uo_nn_value *self)
+void uo_nn_value_op_forward_masksum(uo_nn_value *self)
 {
   uo_nn_value *input = self->children[0];
   uo_nn_value *mask = self->children[1];
   uo_nn_value *output = self;
 
-  size_t reps = input->tensor->element_count / mask->tensor->element_count;
-
-  for (size_t i = 0; i < reps; ++i)
-  {
-    for (size_t j = 0; j < mask->tensor->element_count; ++j)
-    {
-      
-    }
-  }
+  // TODO
 }
 
-void uo_nn_value_op_backward_mask(uo_nn_value *self)
+void uo_nn_value_op_backward_masksum(uo_nn_value *self)
 {
-  uo_nn_value *a = self->children[0];
-  uo_nn_value *b = self->children[1];
-  uo_nn_value *c = self;
+  uo_nn_value *input = self->children[0];
+  uo_nn_value *mask = self->children[1];
+  uo_nn_value *output = self;
 
-  float *A = a->tensor->data.s;
-  float *A_grad = a->grad.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
-
-  float *B = b->tensor->data.s;
-  float *B_grad = b->grad.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
-
-  float *C_grad = c->grad.s;
-  size_t m_C = c->tensor->dim_sizes[0];
-  size_t n_C = c->tensor->dim_sizes[1];
-
-  uo_gemm(true, false, m_B, n_B, m_A, 1.0f,
-    A, n_A,
-    C_grad, n_C,
-    0.0f,
-    B_grad, n_B);
-
-  uo_gemm(false, true, m_A, n_A, n_B, 1.0f,
-    C_grad, n_C,
-    B, n_B,
-    0.0f,
-    A_grad, n_A);
+  // TODO
 }
 
-uo_nn_value *uo_nn_value_op_mask(uo_nn_value *input, uo_nn_value *mask, uo_nn_value *output)
+uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *input, uo_nn_value *mask, uo_nn_value *output)
 {
   if (output == NULL)
   {
@@ -332,8 +300,8 @@ uo_nn_value *uo_nn_value_op_mask(uo_nn_value *input, uo_nn_value *mask, uo_nn_va
     output = uo_nn_value_create(C, "Mask", 2);
   }
 
-  output->forward = uo_nn_value_op_forward_mask;
-  output->backward = uo_nn_value_op_backward_mask;
+  output->forward = uo_nn_value_op_forward_masksum;
+  output->backward = uo_nn_value_op_backward_masksum;
   output->children[0] = input;
   output->children[1] = mask;
 
