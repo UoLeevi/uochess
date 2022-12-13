@@ -270,13 +270,12 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
   return value;
 }
 
-
 #pragma region MaskSum
 
 void uo_nn_value_op_forward_masksum(uo_nn_value *self)
 {
-  uo_nn_value *input = self->children[0];
-  uo_nn_value *mask = self->children[1];
+  uo_nn_value *a_mask = self->children[0];
+  uo_nn_value *b = self->children[1];
   uo_nn_value *output = self;
 
   // TODO
@@ -284,26 +283,29 @@ void uo_nn_value_op_forward_masksum(uo_nn_value *self)
 
 void uo_nn_value_op_backward_masksum(uo_nn_value *self)
 {
-  uo_nn_value *input = self->children[0];
-  uo_nn_value *mask = self->children[1];
+  uo_nn_value *a_mask = self->children[0];
+  uo_nn_value *b = self->children[1];
   uo_nn_value *output = self;
 
   // TODO
 }
 
-uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *input, uo_nn_value *mask, uo_nn_value *output)
+uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *a_mask, uo_nn_value *b, uo_nn_value *output)
 {
   if (output == NULL)
   {
-    uo_tensor *C = uo_tensor_create(input->tensor->type, input->tensor->dimension_count, input->tensor->dim_sizes);
+    uo_tensor *C = uo_tensor_create(b->tensor->type, 2, (size_t[]) {
+      a_mask->tensor->dim_sizes[0],
+        b->tensor->dim_sizes[1]
+    });
 
-    output = uo_nn_value_create(C, "Mask", 2);
+    output = uo_nn_value_create(C, "MaskSum", 2);
   }
 
   output->forward = uo_nn_value_op_forward_masksum;
   output->backward = uo_nn_value_op_backward_masksum;
-  output->children[0] = input;
-  output->children[1] = mask;
+  output->children[0] = a_mask;
+  output->children[1] = b;
 
   return output;
 }
