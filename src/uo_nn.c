@@ -681,198 +681,200 @@
 //  return nn;
 //}
 
-//typedef struct uo_nn_eval_state
-//{
-//  uo_file_mmap *file_mmap;
-//  char *buf;
-//  size_t buf_size;
-//} uo_nn_eval_state;
+typedef struct uo_nn_eval_state
+{
+  uo_file_mmap *file_mmap;
+  char *buf;
+  size_t buf_size;
+} uo_nn_eval_state;
 
-//void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, float *X, float *y_true)
-//{
-//  uo_nn_eval_state *state = nn->state;
-//  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
-//  i += iteration;
-//  i %= state->file_mmap->size - nn->batch_size * 160;
-//
-//  char *ptr = state->buf;
-//  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
-//
-//  char *fen = strchr(ptr, '\n') + 1;
-//  char *eval = strchr(fen, ',') + 1;
-//
-//  //uo_position position;
-//
-//  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
-//  //uo_nn_save_to_file(nn, tempnnfile);
-//  //uo_nn nn2;
-//  //uo_nn_read_from_file(&nn2, tempnnfile, nn->batch_size);
-//
-//  for (size_t j = 0; j < nn->batch_size; ++j)
-//  {
-//    uint8_t color = uo_nn_load_fen(nn, fen, j);
-//    assert(color == uo_white || color == uo_black);
-//
-//    //uo_position_from_fen(&position, fen);
-//    //uo_nn_load_position(&nn2, &position, j);
-//
-//    //float win_prob;
-//    float q_score;
-//
-//    bool matein = eval[0] == '#';
-//
-//    if (matein)
-//    {
-//      // Let's skip positions which lead to mate
-//
-//      ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
-//      //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
-//      fen = strchr(eval, '\n') + 1;
-//      eval = strchr(fen, ',') + 1;
-//
-//      --j;
-//      continue;
-//    }
-//    else
-//    {
-//      char *end;
-//      float score = (float)strtol(eval, &end, 10);
-//
-//      if (color == uo_black) score = -score;
-//
-//      q_score = uo_score_centipawn_to_q_score(score);
-//      //win_prob = uo_score_centipawn_to_win_prob(score);
-//
-//      fen = strchr(end, '\n') + 1;
-//      eval = strchr(fen, ',') + 1;
-//    }
-//
-//    //y_true[j] = win_prob;
-//    y_true[j] = q_score;
-//  }
-//
-//  //assert(memcmp(nn->X, nn2.X, nn2.batch_size * nn2.n_X * sizeof(float)) == 0);
-//}
+void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true)
+{
+  size_t batch_size = (*inputs)->dim_sizes[0];
 
-//void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
-//{
-//  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
-//}
+  uo_nn_eval_state *state = nn->state;
+  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
+  i += iteration;
+  i %= state->file_mmap->size - batch_size * 160;
 
-//bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size)
-//{
-//  void *allocated_mem[3];
-//  size_t allocated_mem_count = 0;
-//
-//  if (!dataset_filepath)
-//  {
-//    if (!*engine_options.dataset_dir) return false;
-//    dataset_filepath = uo_aprintf("%s/dataset_depth_6.csv", engine_options.dataset_dir);
-//    allocated_mem[allocated_mem_count++] = dataset_filepath;
-//  }
-//
-//  uo_file_mmap *file_mmap = uo_file_mmap_open_read(dataset_filepath);
-//  if (!file_mmap)
-//  {
-//    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-//    return false;
-//  }
-//
-//  uo_rand_init(time(NULL));
-//
-//  if (!batch_size) batch_size = 0x100;
-//
-//  uo_nn_eval_state state = {
-//    .file_mmap = file_mmap,
-//    .buf_size = batch_size * 100,
-//    .buf = malloc(batch_size * 100),
-//  };
-//
-//  allocated_mem[allocated_mem_count++] = state.buf;
-//
-//  uo_nn nn;
-//
-//  if (nn_init_filepath)
-//  {
-//    //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
-//  }
-//  else
-//  {
-//    // Layer 1
-//    uo_nn_node_position position_node;
-//    uo_nn_node_weights W1_t = { { "weights", .m = sizeof(uo_nn_position) / sizeof(uint32_t), .n = 127 } };
-//    uo_nn_node swish1;
-//
-//    // Layer 2
-//    uo_nn_node_weights W2_t = { { "weights", .m = W1_t.base.n + 1, .n = 8 } };
-//    uo_nn_node matmul2;
-//    uo_nn_node swish2;
-//
-//    // Layer 3
-//    uo_nn_node_weights W3_t = { { "weights", .m = W2_t.base.n + 1, .n = 1 } };
-//    uo_nn_node matmul3;
-//    uo_nn_node tanh3;
-//
-//    uo_nn_node *graph[] =
-//    {
-//      // Layer 1
-//      &position_node, &W1_t,
-//      &swish1, &position_node,
-//
-//      // Layer 2
-//      &matmul2, &swish1, &W2_t,
-//      &swish2, &matmul2,
-//
-//      // Layer 3
-//      &matmul3, &swish2, &W3_t,
-//      &tanh3, &matmul3,
-//
-//      NULL
-//    };
-//
-//
-//
-//    uo_nn_init(&nn, batch_size, graph);
-//  }
-//
-//  nn.state = &state;
-//
-//  if (!iterations) iterations = 1000;
-//
-//  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate, batch_size);
-//
-//  if (!passed)
-//  {
-//    uo_file_mmap_close(file_mmap);
-//    if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
-//    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-//    return false;
-//  }
-//
-//  float *y_true = uo_alloca(batch_size * sizeof(float));
-//
-//  for (size_t i = 0; i < 1000; ++i)
-//  {
-//    uo_nn_train_eval_select_batch(&nn, i, nn.X, y_true);
-//    uo_nn_feed_forward(&nn);
-//
-//    float mse = uo_nn_calculate_loss(&nn, y_true);
-//    float rmse = sqrt(mse);
-//
-//    if (rmse > 0.1)
-//    {
-//      uo_file_mmap_close(file_mmap);
-//      if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
-//      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-//      return false;
-//    }
-//  }
-//
-//  uo_file_mmap_close(file_mmap);
-//  if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
-//  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-//  return true;
-//}
+  char *ptr = state->buf;
+  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
+
+  char *fen = strchr(ptr, '\n') + 1;
+  char *eval = strchr(fen, ',') + 1;
+
+  //uo_position position;
+
+  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
+  //uo_nn_save_to_file(nn, tempnnfile);
+  //uo_nn nn2;
+  //uo_nn_read_from_file(&nn2, tempnnfile, batch_size);
+
+  for (size_t j = 0; j < batch_size; ++j)
+  {
+    uint8_t color = uo_nn_load_fen(nn, fen, j);
+    assert(color == uo_white || color == uo_black);
+
+    //uo_position_from_fen(&position, fen);
+    //uo_nn_load_position(&nn2, &position, j);
+
+    //float win_prob;
+    float q_score;
+
+    bool matein = eval[0] == '#';
+
+    if (matein)
+    {
+      // Let's skip positions which lead to mate
+
+      ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
+      //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
+      fen = strchr(eval, '\n') + 1;
+      eval = strchr(fen, ',') + 1;
+
+      --j;
+      continue;
+    }
+    else
+    {
+      char *end;
+      float score = (float)strtol(eval, &end, 10);
+
+      if (color == uo_black) score = -score;
+
+      q_score = uo_score_centipawn_to_q_score(score);
+      //win_prob = uo_score_centipawn_to_win_prob(score);
+
+      fen = strchr(end, '\n') + 1;
+      eval = strchr(fen, ',') + 1;
+    }
+
+    //y_true->data.s[j] = win_prob;
+    y_true->data.s[j] = q_score;
+  }
+
+  //assert(memcmp(nn->X, nn2.X, nn2.batch_size * nn2.n_X * sizeof(float)) == 0);
+}
+
+void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
+{
+  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
+}
+
+bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size)
+{
+  void *allocated_mem[3];
+  size_t allocated_mem_count = 0;
+
+  if (!dataset_filepath)
+  {
+    if (!*engine_options.dataset_dir) return false;
+    dataset_filepath = uo_aprintf("%s/dataset_depth_6.csv", engine_options.dataset_dir);
+    allocated_mem[allocated_mem_count++] = dataset_filepath;
+  }
+
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(dataset_filepath);
+  if (!file_mmap)
+  {
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
+
+  uo_rand_init(time(NULL));
+
+  if (!batch_size) batch_size = 0x100;
+
+  uo_nn_eval_state state = {
+    .file_mmap = file_mmap,
+    .buf_size = batch_size * 100,
+    .buf = malloc(batch_size * 100),
+  };
+
+  allocated_mem[allocated_mem_count++] = state.buf;
+
+  uo_nn nn;
+
+  if (nn_init_filepath)
+  {
+    //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
+  }
+  else
+  {
+    // Layer 1
+    uo_nn_node_position position_node;
+    uo_nn_node_weights W1_t = { { "weights", .m = sizeof(uo_nn_position) / sizeof(uint32_t), .n = 127 } };
+    uo_nn_node swish1;
+
+    // Layer 2
+    uo_nn_node_weights W2_t = { { "weights", .m = W1_t.base.n + 1, .n = 8 } };
+    uo_nn_node matmul2;
+    uo_nn_node swish2;
+
+    // Layer 3
+    uo_nn_node_weights W3_t = { { "weights", .m = W2_t.base.n + 1, .n = 1 } };
+    uo_nn_node matmul3;
+    uo_nn_node tanh3;
+
+    uo_nn_node *graph[] =
+    {
+      // Layer 1
+      &position_node, &W1_t,
+      &swish1, &position_node,
+
+      // Layer 2
+      &matmul2, &swish1, &W2_t,
+      &swish2, &matmul2,
+
+      // Layer 3
+      &matmul3, &swish2, &W3_t,
+      &tanh3, &matmul3,
+
+      NULL
+    };
+
+
+
+    uo_nn_init(&nn, batch_size, graph);
+  }
+
+  nn.state = &state;
+
+  if (!iterations) iterations = 1000;
+
+  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate, batch_size);
+
+  if (!passed)
+  {
+    uo_file_mmap_close(file_mmap);
+    if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
+
+  float *y_true = uo_alloca(batch_size * sizeof(float));
+
+  for (size_t i = 0; i < 1000; ++i)
+  {
+    uo_nn_train_eval_select_batch(&nn, i, nn.X, y_true);
+    uo_nn_feed_forward(&nn);
+
+    float mse = uo_nn_calculate_loss(&nn, y_true);
+    float rmse = sqrt(mse);
+
+    if (rmse > 0.1)
+    {
+      uo_file_mmap_close(file_mmap);
+      if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+      return false;
+    }
+  }
+
+  uo_file_mmap_close(file_mmap);
+  if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+  return true;
+}
 
 void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true)
 {

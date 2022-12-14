@@ -14,6 +14,7 @@ extern "C"
   {
     uo_nn_value **graph;
     size_t graph_size;
+    void *state;
   } uo_nn;
 
   typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true);
@@ -25,7 +26,7 @@ extern "C"
 
   //uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
 
-  //bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size);
+  bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size);
 
   bool uo_test_nn_train_xor(char *test_data_dir);
 
