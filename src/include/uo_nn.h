@@ -14,10 +14,16 @@ extern "C"
   {
     uo_nn_value **graph;
     size_t graph_size;
+    uo_tensor **inputs;
+    size_t input_count;
+    uo_tensor **outputs;
+    size_t output_count;
+    uo_nn_value **parameters;
+    size_t parameter_count;
     void *state;
   } uo_nn;
 
-  typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true);
+  typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true);
   typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error, float learning_rate);
 
   //void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index);
@@ -31,6 +37,14 @@ extern "C"
   bool uo_test_nn_train_xor(char *test_data_dir);
 
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
+
+  static inline void uo_nn_update_parameters(uo_nn *nn)
+  {
+    for (size_t i = 0; i < nn->parameter_count; ++i)
+    {
+      uo_nn_value_update_adam(nn->parameters[i]);
+    }
+  }
 
 #ifdef __cplusplus
 }

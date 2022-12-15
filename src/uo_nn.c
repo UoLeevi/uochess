@@ -688,9 +688,9 @@ typedef struct uo_nn_eval_state
   size_t buf_size;
 } uo_nn_eval_state;
 
-void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true)
+void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true)
 {
-  size_t batch_size = (*inputs)->dim_sizes[0];
+  size_t batch_size = (*nn->inputs)->dim_sizes[0];
 
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
@@ -793,6 +793,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   allocated_mem[allocated_mem_count++] = state.buf;
 
   uo_nn nn;
+  uo_tensor *inputs[6];
 
   if (nn_init_filepath)
   {
@@ -800,48 +801,77 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   }
   else
   {
+    uo_rand_init(time(NULL));
+
+    // Input
+    uo_tensor *X = inputs[0] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x = uo_nn_value_create(X, NULL, 0);
+
     // Layer 1
-    uo_nn_node_position position_node;
-    uo_nn_node_weights W1_t = { { "weights", .m = sizeof(uo_nn_position) / sizeof(uint32_t), .n = 127 } };
-    uo_nn_node swish1;
+    uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 2, 2 });
+    uo_tensor_set_rand(W1, 0, 0, W1->element_count, &((float) { -0.5 }), &((float) { 0.5 }));
+    uo_nn_value *w1 = uo_nn_value_create(W1, NULL, 0);
+    uo_nn_adam_params *w1_adam = uo_nn_value_adam_params_create(w1);
+
+    uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, 2 });
+    uo_tensor_set_rand(B1, 0, 0, B1->element_count, &((float) { -0.5 }), &((float) { 0.5 }));
+    uo_nn_value *b1 = uo_nn_value_create(B1, NULL, 0);
+    uo_nn_adam_params *b1_adam = uo_nn_value_adam_params_create(b1);
+
+    uo_nn_value *xw1 = uo_nn_value_op_matmul(x, w1, NULL);
+    uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1, NULL);
+    uo_nn_value *a1 = uo_nn_value_op_tanh(z1, NULL);
 
     // Layer 2
-    uo_nn_node_weights W2_t = { { "weights", .m = W1_t.base.n + 1, .n = 8 } };
-    uo_nn_node matmul2;
-    uo_nn_node swish2;
+    uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { 2, 1 });
+    uo_tensor_set_rand(W2, 0, 0, W2->element_count, &((float) { -0.5 }), &((float) { 0.5 }));
+    uo_nn_value *w2 = uo_nn_value_create(W2, NULL, 0);
+    uo_nn_adam_params *w2_adam = uo_nn_value_adam_params_create(w2);
 
-    // Layer 3
-    uo_nn_node_weights W3_t = { { "weights", .m = W2_t.base.n + 1, .n = 1 } };
-    uo_nn_node matmul3;
-    uo_nn_node tanh3;
+    uo_tensor *B2 = uo_tensor_create('s', 2, (size_t[]) { 1, 1 });
+    uo_tensor_set_rand(B2, 0, 0, B2->element_count, &((float) { -0.5 }), &((float) { 0.5 }));
+    uo_nn_value *b2 = uo_nn_value_create(B2, NULL, 0);
+    uo_nn_adam_params *b2_adam = uo_nn_value_adam_params_create(b2);
 
-    uo_nn_node *graph[] =
-    {
-      // Layer 1
-      &position_node, &W1_t,
-      &swish1, &position_node,
+    uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2, NULL);
+    uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2, NULL);
+    uo_nn_value *a2 = uo_nn_value_op_tanh(z2, NULL);
 
-      // Layer 2
-      &matmul2, &swish1, &W2_t,
-      &swish2, &matmul2,
+    uo_nn_value *y_pred = a2;
 
-      // Layer 3
-      &matmul3, &swish2, &W3_t,
-      &tanh3, &matmul3,
+    uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
 
-      NULL
-    };
-
-
-
-    uo_nn_init(&nn, batch_size, graph);
+    nn.graph_size = 20; // max size
+    nn.graph = uo_nn_value_create_graph(y_pred, &nn.graph_size);
   }
 
   nn.state = &state;
 
   if (!iterations) iterations = 1000;
 
-  bool passed = uo_nn_train(&nn, uo_nn_train_eval_select_batch, pow(0.1, 2), 10, iterations, uo_nn_train_eval_report_progress, 100, learning_rate, batch_size);
+  uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
+
+  uo_nn_train_eval_select_batch(&nn, 0, inputs, y_true);
+  uo_nn_graph_forward(nn.graph, nn.graph_size);
+  float loss_avg = uo_nn_loss_mse(*nn.outputs, y_true->data.s);
+
+  for (size_t i = 1; i < 1000000; ++i)
+  {
+    uo_nn_train_eval_select_batch(&nn, i, y_true);
+    uo_nn_graph_forward(nn.graph, nn.graph_size);
+
+    float loss = uo_nn_loss_mse(*nn.outputs, y_true->data.s);
+
+    loss_avg = loss_avg * 0.95 + loss * 0.05;
+
+    if (loss_avg < 0.0001) break;
+
+    uo_nn_loss_grad_mse(*nn.outputs, y_true->data.s);
+    uo_nn_graph_backward(nn.graph, nn.graph_size);
+    uo_nn_update_parameters(&nn);
+  }
+
+  bool passed = loss_avg < 0.0001;
 
   if (!passed)
   {
@@ -855,7 +885,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   for (size_t i = 0; i < 1000; ++i)
   {
-    uo_nn_train_eval_select_batch(&nn, i, nn.X, y_true);
+    uo_nn_train_eval_select_batch(&nn, i, inputs, y_true);
     uo_nn_feed_forward(&nn);
 
     float mse = uo_nn_calculate_loss(&nn, y_true);
@@ -876,9 +906,9 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   return true;
 }
 
-void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, uo_tensor **inputs, uo_tensor *y_true)
+void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, uo_tensor *y_true)
 {
-  uo_tensor *X = *inputs;
+  uo_tensor *X = *nn->inputs;
 
   for (size_t j = 0; j < X->dim_sizes[0]; ++j)
   {
@@ -952,18 +982,27 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn nn = {
     .graph = graph,
-    .graph_size = graph_size
+    .graph_size = graph_size,
+    .inputs = (uo_tensor * []) { X },
+    .input_count = 1,
+    .outputs = (uo_tensor * []) { y_pred->tensor },
+    .output_count = 1,
+    .parameters = (uo_nn_value * []) {
+      b2_adam,
+      w2_adam,
+      b1_adam,
+      w1_adam
+    },
+    .parameter_count = 4
   };
 
-  uo_tensor *inputs[] = { X };
-
-  uo_nn_select_batch_test_xor(&nn, 0, inputs, y_true);
+  uo_nn_select_batch_test_xor(&nn, 0, y_true);
   uo_nn_graph_forward(nn.graph, nn.graph_size);
   float loss_avg = uo_nn_loss_mse(y_pred, y_true->data.s);
 
   for (size_t i = 1; i < 1000000; ++i)
   {
-    uo_nn_select_batch_test_xor(&nn, i, inputs, y_true);
+    uo_nn_select_batch_test_xor(&nn, i, y_true);
     uo_nn_graph_forward(nn.graph, nn.graph_size);
 
     float loss = uo_nn_loss_mse(y_pred, y_true->data.s);
