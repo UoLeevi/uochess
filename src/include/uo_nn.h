@@ -16,9 +16,9 @@ extern "C"
     size_t graph_size;
     uo_tensor **inputs;
     size_t input_count;
-    uo_tensor **outputs;
+    uo_nn_value **outputs;
     size_t output_count;
-    uo_nn_value **parameters;
+    uo_nn_adam_params **parameters;
     size_t parameter_count;
     void *state;
   } uo_nn;
@@ -44,6 +44,16 @@ extern "C"
     {
       uo_nn_value_update_adam(nn->parameters[i]);
     }
+  }
+
+  static inline void uo_nn_forward(uo_nn *nn)
+  {
+    uo_nn_graph_forward(nn->graph, nn->graph_size);
+  }
+
+  static inline void uo_nn_backward(uo_nn *nn)
+  {
+    uo_nn_graph_backward(nn->graph, nn->graph_size);
   }
 
 #ifdef __cplusplus
