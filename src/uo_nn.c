@@ -884,32 +884,30 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   if (!passed)
   {
     uo_file_mmap_close(file_mmap);
-    if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+    //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
     while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
     return false;
   }
-
-  float *y_true = uo_alloca(batch_size * sizeof(float));
 
   for (size_t i = 0; i < 1000; ++i)
   {
     uo_nn_train_eval_select_batch(&nn, i, y_true);
     uo_nn_forward(&nn);
 
-    float mse = uo_nn_calculate_loss(&nn, y_true);
+    float mse = uo_nn_loss_mse(*nn.outputs, y_true->data.s);
     float rmse = sqrt(mse);
 
     if (rmse > 0.1)
     {
       uo_file_mmap_close(file_mmap);
-      if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+      //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
       while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
       return false;
     }
   }
 
   uo_file_mmap_close(file_mmap);
-  if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+  //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
   while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
   return true;
 }
