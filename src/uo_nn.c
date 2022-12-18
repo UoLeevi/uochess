@@ -691,6 +691,9 @@ typedef struct uo_nn_eval_state
 void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true)
 {
   size_t batch_size = (*nn->inputs)->dim_sizes[0];
+  uo_tensor *own_floats = nn->inputs[0];
+  uo_tensor *enemy_floats = nn->inputs[1];
+  uo_tensor *shared_floats = nn->inputs[2];
 
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
@@ -703,7 +706,7 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
   char *fen = strchr(ptr, '\n') + 1;
   char *eval = strchr(fen, ',') + 1;
 
-  //uo_position position;
+  uo_position position;
 
   //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
   //uo_nn_save_to_file(nn, tempnnfile);
@@ -715,7 +718,7 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
     uint8_t color = uo_nn_load_fen(nn, fen, j);
     assert(color == uo_white || color == uo_black);
 
-    //uo_position_from_fen(&position, fen);
+    uo_position_from_fen(&position, fen);
     //uo_nn_load_position(&nn2, &position, j);
 
     //float win_prob;
