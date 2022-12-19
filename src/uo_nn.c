@@ -692,8 +692,11 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
 {
   size_t batch_size = (*nn->inputs)->dim_sizes[0];
   uo_tensor *own_floats = nn->inputs[0];
-  uo_tensor *enemy_floats = nn->inputs[1];
-  uo_tensor *shared_floats = nn->inputs[2];
+  uo_tensor *own_mask = nn->inputs[1];
+  uo_tensor *enemy_floats = nn->inputs[2];
+  uo_tensor *enemy_mask = nn->inputs[3];
+  uo_tensor *shared_floats = nn->inputs[4];
+  uo_tensor *shared_mask = nn->inputs[5];
 
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
@@ -715,10 +718,23 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
 
   for (size_t j = 0; j < batch_size; ++j)
   {
-    uint8_t color = uo_nn_load_fen(nn, fen, j);
+    uo_position_from_fen(&position, fen);
+    uint8_t color = uo_color(position.flags);
+
+    //uint8_t color = uo_nn_load_fen(nn, fen, j);
     assert(color == uo_white || color == uo_black);
 
-    uo_position_from_fen(&position, fen);
+    // Copy position to input tensors
+    {
+      memcpy(own_floats->data.s + j * own_floats->dim_sizes[1], position.nn_input.halves[color].floats.vector, own_floats->dim_sizes[1] * sizeof(float));
+      memcpy(own_mask->data.s + j * own_mask->dim_sizes[1], position.nn_input.halves[color].mask.vector, own_mask->dim_sizes[1] * sizeof(float));
+      memcpy(enemy_floats->data.s + j * enemy_floats->dim_sizes[1], position.nn_input.halves[!color].floats.vector, enemy_floats->dim_sizes[1] * sizeof(float));
+      memcpy(enemy_mask->data.s + j * enemy_mask->dim_sizes[1], position.nn_input.halves[!color].mask.vector, enemy_mask->dim_sizes[1] * sizeof(float));
+      memcpy(shared_floats->data.s + j * shared_floats->dim_sizes[1], position.nn_input.shared.floats.vector, shared_floats->dim_sizes[1] * sizeof(float));
+      memcpy(shared_mask->data.s + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(float));
+    }
+
+
     //uo_nn_load_position(&nn2, &position, j);
 
     //float win_prob;
