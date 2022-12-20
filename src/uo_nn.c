@@ -695,8 +695,7 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
   uo_tensor *own_mask = nn->inputs[1];
   uo_tensor *enemy_floats = nn->inputs[2];
   uo_tensor *enemy_mask = nn->inputs[3];
-  uo_tensor *shared_floats = nn->inputs[4];
-  uo_tensor *shared_mask = nn->inputs[5];
+  uo_tensor *shared_mask = nn->inputs[4];
 
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
@@ -730,7 +729,6 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
       memcpy(own_mask->data.s + j * own_mask->dim_sizes[1], position.nn_input.halves[color].mask.vector, own_mask->dim_sizes[1] * sizeof(float));
       memcpy(enemy_floats->data.s + j * enemy_floats->dim_sizes[1], position.nn_input.halves[!color].floats.vector, enemy_floats->dim_sizes[1] * sizeof(float));
       memcpy(enemy_mask->data.s + j * enemy_mask->dim_sizes[1], position.nn_input.halves[!color].mask.vector, enemy_mask->dim_sizes[1] * sizeof(float));
-      memcpy(shared_floats->data.s + j * shared_floats->dim_sizes[1], position.nn_input.shared.floats.vector, shared_floats->dim_sizes[1] * sizeof(float));
       memcpy(shared_mask->data.s + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(float));
     }
 
@@ -821,7 +819,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   {
     uo_rand_init(time(NULL));
 
-    nn.input_count = 6;
+    nn.input_count = 5;
     nn.inputs = uo_alloca(nn.input_count * sizeof(uo_tensor *));
 
     nn.output_count = 1;
@@ -830,9 +828,21 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     nn.parameter_count = 4;
     nn.parameters = uo_alloca(nn.parameter_count * sizeof(uo_nn_value *));
 
-    // Input
-    uo_tensor *X = nn.inputs[0] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 2 });
-    uo_nn_value *x = uo_nn_value_create(X, NULL, 0);
+    // Inputs
+    uo_tensor *X_own_floats = nn.inputs[0] = uo_tensor_create('s', 5, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x_own_floats = uo_nn_value_create(X_own_floats, NULL, 0);
+
+    uo_tensor *X_own_mask = nn.inputs[1] = uo_tensor_create('u', 370, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x_own_mask = uo_nn_value_create(X_own_mask, NULL, 0);
+
+    uo_tensor *X_enemy_floats = nn.inputs[2] = uo_tensor_create('s', 5, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x_enemy_floats = uo_nn_value_create(X_enemy_floats, NULL, 0);
+
+    uo_tensor *X_enemy_mask = nn.inputs[3] = uo_tensor_create('u', 370, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x_enemy_mask = uo_nn_value_create(X_enemy_mask, NULL, 0);
+
+    uo_tensor *X_shared_mask = nn.inputs[4] = uo_tensor_create('u', 72, (size_t[]) { batch_size, 2 });
+    uo_nn_value *x_shared_mask = uo_nn_value_create(X_shared_mask, NULL, 0);
 
     // Layer 1
     uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 2, 2 });

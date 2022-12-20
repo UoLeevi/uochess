@@ -105,15 +105,6 @@ extern "C"
         uint32_t enpassant_file[8];
       } features;
     } mask;
-
-    union
-    {
-      float vector[1];
-      struct
-      {
-        float bias;
-      } features;
-    } floats;
   } uo_nn_input_shared;
 
   typedef struct uo_nn_position
