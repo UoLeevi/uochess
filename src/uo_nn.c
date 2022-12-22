@@ -865,7 +865,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_value *b1 = uo_nn_value_create(B1, NULL, 0);
     uo_nn_adam_params *b1_adam = nn.parameters[1] = uo_nn_value_adam_params_create(b1);
 
-    uo_nn_value *xw1 = uo_nn_value_op_matmul(x, w1, NULL);
+    uo_nn_value *xw1_own_material = uo_nn_value_op_matmul(x_own_material, w1_material, NULL);
+    uo_nn_value *xw1_enemy_material = uo_nn_value_op_matmul(x_enemy_material, w1_material, NULL);
+
+
     uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1, NULL);
     uo_nn_value *a1 = uo_nn_value_op_tanh(z1, NULL);
 
