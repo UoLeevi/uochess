@@ -9,6 +9,7 @@ extern "C"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
   typedef struct uo_nn_value uo_nn_value;
 
@@ -44,6 +45,7 @@ extern "C"
     uo_tensor_data grad;
     uo_nn_value_function *forward;
     uo_nn_value_function *backward;
+    void *attributes;
     size_t children_count;
     uo_nn_value *children[];
   } uo_nn_value;
@@ -138,6 +140,7 @@ extern "C"
   }
 
   uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c);
+  uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c);
   uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y);
   uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x, uo_nn_value *y);

@@ -6,7 +6,6 @@
 #include <math.h>
 #include <stdint.h>
 
-
 void uo_nn_value_build_topo(uo_nn_value *self, uo_nn_value **topo, size_t *topo_count, uo_nn_value **visited, size_t *visited_count)
 {
   for (size_t j = 0; j < *visited_count; ++j)
@@ -230,7 +229,7 @@ void uo_tensor_set_rand(uo_tensor *tensor, size_t index, size_t offset, size_t c
   }
 }
 
-uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count)
+uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count, size_t attributes_size)
 {
   size_t base_size = sizeof(uo_nn_value);
   size_t children_size = sizeof(uo_nn_value *) * children_count;
@@ -258,7 +257,7 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
       return NULL;
   }
 
-  void *mem = calloc(1, base_size + children_size + elements_size);
+  void *mem = calloc(1, base_size + children_size + elements_size + attributes_size);
   uo_nn_value *value = mem;
   value->op = op;
   value->tensor = tensor;
@@ -266,6 +265,9 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 
   mem = (void *)(((char *)mem) + base_size + children_size);
   value->grad.ptr = mem;
+
+  mem = (void *)(((char *)mem) + elements_size);
+  value->attributes = mem;
 
   return value;
 }
@@ -299,7 +301,7 @@ uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *a_mask, uo_nn_value *b, uo_nn_v
         b->tensor->dim_sizes[1]
     });
 
-    output = uo_nn_value_create(C, "MaskSum", 2);
+    output = uo_nn_value_create(C, "MaskSum", 2, 0);
   }
 
   output->forward = uo_nn_value_op_forward_masksum;
@@ -308,6 +310,118 @@ uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *a_mask, uo_nn_value *b, uo_nn_v
   output->children[1] = b;
 
   return output;
+}
+
+#pragma endregion
+
+#pragma region Gemm
+
+void uo_nn_value_op_forward_gemm(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C = c->tensor->data.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  struct
+  {
+    float alpha;
+    float beta;
+    bool ta;
+    bool tb;
+  } *attributes = c->attributes;
+
+  uo_gemm(attributes->ta, attributes->tb, m_C, n_C, n_A, attributes->alpha,
+    A, n_A,
+    B, n_B,
+    attributes->beta,
+    C, n_C);
+}
+
+void uo_nn_value_op_backward_gemm(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  float *A_grad = a->grad.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  float *B_grad = b->grad.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C_grad = c->grad.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  struct
+  {
+    float alpha;
+    float beta;
+    bool ta;
+    bool tb;
+  } *attributes = c->attributes;
+
+  uo_gemm(!attributes->ta, false, m_B, n_B, m_A, attributes->alpha,
+    A, n_A,
+    C_grad, n_C,
+    attributes->beta,
+    B_grad, n_B);
+
+  uo_gemm(false, !attributes->tb, m_A, n_A, n_B, attributes->alpha,
+    C_grad, n_C,
+    B, n_B,
+    attributes->beta,
+    A_grad, n_A);
+}
+
+uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c, float alpha, float beta, bool ta, bool tb)
+{
+  if (c == NULL)
+  {
+    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+      a->tensor->dim_sizes[0],
+        b->tensor->dim_sizes[1]
+    });
+
+    struct
+    {
+      float alpha;
+      float beta;
+      bool ta;
+      bool tb;
+    } attributes = {
+      .alpha = alpha,
+      .beta = beta,
+      .ta = ta,
+      .tb = tb
+    };
+
+    c = uo_nn_value_create(C, "Gemm", 2, sizeof attributes);
+    memcpy(c->attributes, &attributes, sizeof attributes);
+  }
+
+  c->forward = uo_nn_value_op_forward_gemm;
+  c->backward = uo_nn_value_op_backward_gemm;
+  c->children[0] = a;
+  c->children[1] = b;
+
+  return c;
 }
 
 #pragma endregion
@@ -381,7 +495,7 @@ uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *
         b->tensor->dim_sizes[1]
     });
 
-    c = uo_nn_value_create(C, "MatMul", 2);
+    c = uo_nn_value_create(C, "MatMul", 2, 0);
   }
 
   c->forward = uo_nn_value_op_forward_matmul;
@@ -532,7 +646,7 @@ uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
         uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
     });
 
-    c = uo_nn_value_create(C, "Add", 2);
+    c = uo_nn_value_create(C, "Add", 2, 0);
   }
 
   c->forward = uo_nn_value_op_forward_add;
@@ -590,7 +704,7 @@ uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
         x->tensor->dim_sizes[1]
     });
 
-    y = uo_nn_value_create(Y, "Relu", 1);
+    y = uo_nn_value_create(Y, "Relu", 1, 0);
   }
 
   y->forward = uo_nn_value_op_forward_relu;
@@ -641,7 +755,7 @@ uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x, uo_nn_value *y)
         x->tensor->dim_sizes[1]
     });
 
-    y = uo_nn_value_create(Y, "Tanh", 1);
+    y = uo_nn_value_create(Y, "Tanh", 1, 0);
   }
 
   y->forward = uo_nn_value_op_forward_tanh;
