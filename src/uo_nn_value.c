@@ -292,17 +292,13 @@ void uo_nn_value_op_backward_masksum(uo_nn_value *self)
   // TODO
 }
 
-uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *a_mask, uo_nn_value *b, uo_nn_value *output)
+uo_nn_value *uo_nn_value_op_masksum(uo_nn_value *a_mask, uo_nn_value *b)
 {
-  if (output == NULL)
-  {
-    uo_tensor *C = uo_tensor_create(b->tensor->type, 2, (size_t[]) {
-      a_mask->tensor->dim_sizes[0],
-        b->tensor->dim_sizes[1]
-    });
-
-    output = uo_nn_value_create(C, "MaskSum", 2, 0);
-  }
+  uo_tensor *C = uo_tensor_create(b->tensor->type, 2, (size_t[]) {
+    a_mask->tensor->dim_sizes[0],
+      b->tensor->dim_sizes[1]
+  });
+  uo_nn_value *output = uo_nn_value_create(C, "MaskSum", 2, 0);
 
   output->forward = uo_nn_value_op_forward_masksum;
   output->backward = uo_nn_value_op_backward_masksum;
@@ -390,31 +386,28 @@ void uo_nn_value_op_backward_gemm(uo_nn_value *self)
     A_grad, n_A);
 }
 
-uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c, float alpha, float beta, bool ta, bool tb)
+uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb)
 {
-  if (c == NULL)
+  uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+    a->tensor->dim_sizes[0],
+      b->tensor->dim_sizes[1]
+  });
+
+  struct
   {
-    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
-      a->tensor->dim_sizes[0],
-        b->tensor->dim_sizes[1]
-    });
+    float alpha;
+    float beta;
+    bool ta;
+    bool tb;
+  } attributes = {
+    .alpha = alpha,
+    .beta = beta,
+    .ta = ta,
+    .tb = tb
+  };
 
-    struct
-    {
-      float alpha;
-      float beta;
-      bool ta;
-      bool tb;
-    } attributes = {
-      .alpha = alpha,
-      .beta = beta,
-      .ta = ta,
-      .tb = tb
-    };
-
-    c = uo_nn_value_create(C, "Gemm", 2, sizeof attributes);
-    memcpy(c->attributes, &attributes, sizeof attributes);
-  }
+  uo_nn_value *c = uo_nn_value_create(C, "Gemm", 2, sizeof attributes);
+  memcpy(c->attributes, &attributes, sizeof attributes);
 
   c->forward = uo_nn_value_op_forward_gemm;
   c->backward = uo_nn_value_op_backward_gemm;
@@ -486,17 +479,13 @@ void uo_nn_value_op_backward_matmul(uo_nn_value *self)
     A_grad, n_A);
 }
 
-uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
+uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b)
 {
-  if (c == NULL)
-  {
-    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
-      a->tensor->dim_sizes[0],
-        b->tensor->dim_sizes[1]
-    });
-
-    c = uo_nn_value_create(C, "MatMul", 2, 0);
-  }
+  uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+    a->tensor->dim_sizes[0],
+      b->tensor->dim_sizes[1]
+  });
+  uo_nn_value *c = uo_nn_value_create(C, "MatMul", 2, 0);
 
   c->forward = uo_nn_value_op_forward_matmul;
   c->backward = uo_nn_value_op_backward_matmul;
@@ -637,20 +626,173 @@ void uo_nn_value_op_backward_add(uo_nn_value *self)
   }
 }
 
-uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b, uo_nn_value *c)
+uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b)
 {
-  if (c == NULL)
-  {
-    uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
-      uo_max(a->tensor->dim_sizes[0], b->tensor->dim_sizes[0]),
-        uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
-    });
-
-    c = uo_nn_value_create(C, "Add", 2, 0);
-  }
+  uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+    uo_max(a->tensor->dim_sizes[0], b->tensor->dim_sizes[0]),
+      uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
+  });
+  uo_nn_value *c = uo_nn_value_create(C, "Add", 2, 0);
 
   c->forward = uo_nn_value_op_forward_add;
   c->backward = uo_nn_value_op_backward_add;
+  c->children[0] = a;
+  c->children[1] = b;
+
+  return c;
+}
+
+#pragma endregion
+
+
+#pragma region Concat
+
+void uo_nn_value_op_forward_concat(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C = c->tensor->data.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  if (m_A == m_B && n_A == n_B)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      C[i] = A[i] + B[i];
+    }
+  }
+  else if (m_A == m_B && n_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      C[i] = A[i % m_A] + B[i];
+    }
+  }
+  else if (n_A == n_B && m_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      C[i] = A[i % n_A] + B[i];
+    }
+  }
+  else if (m_A == m_B && n_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      C[i] = A[i] + B[i % m_B];
+    }
+  }
+  else if (n_A == n_B && m_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      C[i] = A[i] + B[i % n_B];
+    }
+  }
+  else
+  {
+    // sizes not compatible
+    exit(-1);
+  }
+}
+
+void uo_nn_value_op_backward_concat(uo_nn_value *self)
+{
+  uo_nn_value *a = self->children[0];
+  uo_nn_value *b = self->children[1];
+  uo_nn_value *c = self;
+
+  float *A = a->tensor->data.s;
+  float *A_grad = a->grad.s;
+  size_t m_A = a->tensor->dim_sizes[0];
+  size_t n_A = a->tensor->dim_sizes[1];
+
+  float *B = b->tensor->data.s;
+  float *B_grad = b->grad.s;
+  size_t m_B = b->tensor->dim_sizes[0];
+  size_t n_B = b->tensor->dim_sizes[1];
+
+  float *C_grad = c->grad.s;
+  size_t m_C = c->tensor->dim_sizes[0];
+  size_t n_C = c->tensor->dim_sizes[1];
+
+  if (m_A == m_B && n_A == n_B)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (m_A == m_B && n_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i % m_A] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (n_A == n_B && m_A == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i % n_A] += C_grad[i];
+      B_grad[i] += C_grad[i];
+    }
+  }
+  else if (m_A == m_B && n_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i % m_B] += C_grad[i];
+    }
+  }
+  else if (n_A == n_B && m_B == 1)
+  {
+    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    {
+      A_grad[i] += C_grad[i];
+      B_grad[i % n_B] += C_grad[i];
+    }
+  }
+  else
+  {
+    // sizes not compatible
+    exit(-1);
+  }
+}
+
+uo_nn_value *uo_nn_value_op_concat(uo_nn_value *a, uo_nn_value *b, int axis)
+{
+  uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
+    uo_max(a->tensor->dim_sizes[0], b->tensor->dim_sizes[0]),
+      uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
+  });
+
+  struct
+  {
+    int axis;
+  } attributes = {
+    .axis = axis
+  };
+
+  uo_nn_value *c = uo_nn_value_create(C, "Concat", 2, sizeof attributes);
+  memcpy(c->attributes, &attributes, sizeof attributes);
+
+  c->forward = uo_nn_value_op_forward_concat;
+  c->backward = uo_nn_value_op_backward_concat;
   c->children[0] = a;
   c->children[1] = b;
 
@@ -695,17 +837,13 @@ void uo_nn_value_op_backward_relu(uo_nn_value *self)
   }
 }
 
-uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x, uo_nn_value *y)
+uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x)
 {
-  if (y == NULL)
-  {
-    uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
-      x->tensor->dim_sizes[0],
-        x->tensor->dim_sizes[1]
-    });
-
-    y = uo_nn_value_create(Y, "Relu", 1, 0);
-  }
+  uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
+    x->tensor->dim_sizes[0],
+      x->tensor->dim_sizes[1]
+  });
+  uo_nn_value *y = uo_nn_value_create(Y, "Relu", 1, 0);
 
   y->forward = uo_nn_value_op_forward_relu;
   y->backward = uo_nn_value_op_backward_relu;
@@ -746,17 +884,13 @@ void uo_nn_value_op_backward_tanh(uo_nn_value *self)
   uo_vec_mapfunc_mul_ps(y->tensor->data.s, y->grad.s, x->grad.s, y->tensor->element_count, uo_nn_function_tanh_d);
 }
 
-uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x, uo_nn_value *y)
+uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x)
 {
-  if (y == NULL)
-  {
-    uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
-      x->tensor->dim_sizes[0],
-        x->tensor->dim_sizes[1]
-    });
-
-    y = uo_nn_value_create(Y, "Tanh", 1, 0);
-  }
+  uo_tensor *Y = uo_tensor_create('s', 2, (size_t[]) {
+    x->tensor->dim_sizes[0],
+      x->tensor->dim_sizes[1]
+  });
+  uo_nn_value *y = uo_nn_value_create(Y, "Tanh", 1, 0);
 
   y->forward = uo_nn_value_op_forward_tanh;
   y->backward = uo_nn_value_op_backward_tanh;
