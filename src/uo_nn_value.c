@@ -40,6 +40,7 @@ uo_tensor *uo_tensor_create(char type, size_t dimension_count, size_t *dim_sizes
 {
   size_t base_size = sizeof(uo_tensor) + dimension_count * sizeof(size_t);
   size_t element_count = 1;
+  size_t element_size;
 
   for (size_t i = 0; i < dimension_count; ++i)
   {
@@ -51,29 +52,32 @@ uo_tensor *uo_tensor_create(char type, size_t dimension_count, size_t *dim_sizes
   switch (type)
   {
     case 's':
-      size += sizeof(float) * element_count;
+      element_size = sizeof(float);
       break;
 
     case 'd':
-      size += sizeof(double) * element_count;
+      element_size = sizeof(double);
       break;
 
     case 'i':
-      size += sizeof(int32_t) * element_count;
+      element_size = sizeof(int32_t);
       break;
 
     case 'u':
-      size += sizeof(uint32_t) * element_count;
+      element_size = sizeof(uint32_t);
       break;
 
     default:
       return NULL;
   }
 
+  size += element_size * element_count;
+
   void *mem = malloc(size);
   uo_tensor *tensor = mem;
   tensor->type = type;
   tensor->dimension_count = dimension_count;
+  tensor->element_size = element_size;
   tensor->element_count = element_count;
   tensor->data.ptr = ((char *)mem) + base_size;
 
@@ -665,45 +669,32 @@ void uo_nn_value_op_forward_concat(uo_nn_value *self)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  if (m_A == m_B && n_A == n_B)
+  if (m_C > m_A) // axis == 0
   {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      C[i] = A[i] + B[i];
-    }
+    size_t a_elements_size = a->tensor->element_count * a->tensor->element_size;
+    memcpy(C, A, a_elements_size);
+    memcpy(C + a_elements_size, B, b->tensor->element_count * b->tensor->element_size);
   }
-  else if (m_A == m_B && n_A == 1)
+  else // axis == 1
   {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    char *ptr_A = a->tensor->data.ptr;
+    size_t row_size_A = n_A * a->tensor->element_size;
+
+    char *ptr_B = b->tensor->data.ptr;
+    size_t row_size_B = n_B * b->tensor->element_size;
+
+    char *ptr_C = c->tensor->data.ptr;
+
+    for (size_t i = 0; i < m_C; ++i)
     {
-      C[i] = A[i % m_A] + B[i];
+      memcpy(ptr_C, ptr_A, row_size_A);
+      ptr_A += row_size_A;
+      ptr_C += row_size_A;
+
+      memcpy(ptr_C, ptr_B, row_size_B);
+      ptr_B += row_size_B;
+      ptr_C += row_size_B;
     }
-  }
-  else if (n_A == n_B && m_A == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      C[i] = A[i % n_A] + B[i];
-    }
-  }
-  else if (m_A == m_B && n_B == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      C[i] = A[i] + B[i % m_B];
-    }
-  }
-  else if (n_A == n_B && m_B == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      C[i] = A[i] + B[i % n_B];
-    }
-  }
-  else
-  {
-    // sizes not compatible
-    exit(-1);
   }
 }
 
@@ -727,69 +718,46 @@ void uo_nn_value_op_backward_concat(uo_nn_value *self)
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  if (m_A == m_B && n_A == n_B)
+  if (m_C > m_A) // axis == 0
   {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      A_grad[i] += C_grad[i];
-      B_grad[i] += C_grad[i];
-    }
+    size_t a_elements_size = a->tensor->element_count * a->tensor->element_size;
+    memcpy(A_grad, C_grad, a_elements_size);
+    memcpy(B_grad, C_grad + a_elements_size, b->tensor->element_count * b->tensor->element_size);
   }
-  else if (m_A == m_B && n_A == 1)
+  else // axis == 1
   {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
+    char *ptr_A = a->grad.ptr;
+    size_t row_size_A = n_A * a->tensor->element_size;
+
+    char *ptr_B = b->grad.ptr;
+    size_t row_size_B = n_B * b->tensor->element_size;
+
+    char *ptr_C = c->grad.ptr;
+
+    for (size_t i = 0; i < m_C; ++i)
     {
-      A_grad[i % m_A] += C_grad[i];
-      B_grad[i] += C_grad[i];
+      memcpy(ptr_A, ptr_C, row_size_A);
+      ptr_A += row_size_A;
+      ptr_C += row_size_A;
+
+      memcpy(ptr_B, ptr_C, row_size_B);
+      ptr_B += row_size_B;
+      ptr_C += row_size_B;
     }
-  }
-  else if (n_A == n_B && m_A == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      A_grad[i % n_A] += C_grad[i];
-      B_grad[i] += C_grad[i];
-    }
-  }
-  else if (m_A == m_B && n_B == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      A_grad[i] += C_grad[i];
-      B_grad[i % m_B] += C_grad[i];
-    }
-  }
-  else if (n_A == n_B && m_B == 1)
-  {
-    for (size_t i = 0; i < c->tensor->element_count; ++i)
-    {
-      A_grad[i] += C_grad[i];
-      B_grad[i % n_B] += C_grad[i];
-    }
-  }
-  else
-  {
-    // sizes not compatible
-    exit(-1);
   }
 }
 
 uo_nn_value *uo_nn_value_op_concat(uo_nn_value *a, uo_nn_value *b, int axis)
 {
-  uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
-    uo_max(a->tensor->dim_sizes[0], b->tensor->dim_sizes[0]),
-      uo_max(a->tensor->dim_sizes[1], b->tensor->dim_sizes[1])
-  });
-
-  struct
+  size_t dim_sizes[2] =
   {
-    int axis;
-  } attributes = {
-    .axis = axis
+    a->tensor->dim_sizes[0],
+    a->tensor->dim_sizes[1]
   };
 
-  uo_nn_value *c = uo_nn_value_create(C, "Concat", 2, sizeof attributes);
-  memcpy(c->attributes, &attributes, sizeof attributes);
+  dim_sizes[axis] += a->tensor->dim_sizes[axis];
+  uo_tensor *C = uo_tensor_create('s', 2, dim_sizes);
+  uo_nn_value *c = uo_nn_value_create(C, "Concat", 2, 0);
 
   c->forward = uo_nn_value_op_forward_concat;
   c->backward = uo_nn_value_op_backward_concat;

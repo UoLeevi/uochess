@@ -33,6 +33,7 @@ extern "C"
     */
     char type;
     size_t dimension_count;
+    size_t element_size;
     size_t element_count;
     uo_tensor_data data;
     size_t dim_sizes[];
