@@ -887,9 +887,9 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_value *b2 = uo_nn_value_create(B2, NULL, 0);
     uo_nn_adam_params *b2_adam = nn.parameters[3] = uo_nn_value_adam_params_create(b2);
 
-    uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2, NULL);
-    uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2, NULL);
-    uo_nn_value *a2 = uo_nn_value_op_tanh(z2, NULL);
+    uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2);
+    uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2);
+    uo_nn_value *a2 = uo_nn_value_op_tanh(z2);
 
     uo_nn_value *y_pred = nn.outputs[0] = a2;
 

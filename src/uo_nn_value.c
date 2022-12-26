@@ -720,29 +720,29 @@ void uo_nn_value_op_backward_concat(uo_nn_value *self)
 
   if (m_C > m_A) // axis == 0
   {
-    size_t a_elements_size = a->tensor->element_count * a->tensor->element_size;
-    memcpy(A_grad, C_grad, a_elements_size);
-    memcpy(B_grad, C_grad + a_elements_size, b->tensor->element_count * b->tensor->element_size);
+    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    {
+      *A_grad++ += *C_grad++;
+    }
+
+    for (size_t i = 0; i < b->tensor->element_count; ++i)
+    {
+      *B_grad++ += *C_grad++;
+    }
   }
   else // axis == 1
   {
-    char *ptr_A = a->grad.ptr;
-    size_t row_size_A = n_A * a->tensor->element_size;
-
-    char *ptr_B = b->grad.ptr;
-    size_t row_size_B = n_B * b->tensor->element_size;
-
-    char *ptr_C = c->grad.ptr;
-
     for (size_t i = 0; i < m_C; ++i)
     {
-      memcpy(ptr_A, ptr_C, row_size_A);
-      ptr_A += row_size_A;
-      ptr_C += row_size_A;
+      for (size_t j = 0; j < n_A; ++j)
+      {
+        *A_grad++ += *C_grad++;
+      }
 
-      memcpy(ptr_B, ptr_C, row_size_B);
-      ptr_B += row_size_B;
-      ptr_C += row_size_B;
+      for (size_t j = 0; j < n_B; ++j)
+      {
+        *B_grad++ += *C_grad++;
+      }
     }
   }
 }
