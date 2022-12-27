@@ -15,7 +15,8 @@ extern "C"
 
   typedef void (uo_nn_value_function)(uo_nn_value *node);
 
-  typedef union uo_tensor_data {
+  typedef union uo_tensor_data
+  {
     void *ptr;
     float *s;
     double *d;
@@ -143,7 +144,7 @@ extern "C"
   uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b);
   uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b);
-  uo_nn_value *uo_nn_value_op_concat(uo_nn_value *a, uo_nn_value *b, int axis);
+  uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value** values);
   uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x);
   uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x);
 

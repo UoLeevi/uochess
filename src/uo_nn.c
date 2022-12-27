@@ -873,6 +873,8 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
     uo_nn_value *xw1_shared = uo_nn_value_op_matmul(x_shared_mask, w1_shared_mask);
 
+
+
     uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1);
     uo_nn_value *a1 = uo_nn_value_op_tanh(z1);
 

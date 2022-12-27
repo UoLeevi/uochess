@@ -653,116 +653,108 @@ uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b)
 
 void uo_nn_value_op_forward_concat(uo_nn_value *self)
 {
-  uo_nn_value *a = self->children[0];
-  uo_nn_value *b = self->children[1];
   uo_nn_value *c = self;
-
-  float *A = a->tensor->data.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
-
-  float *B = b->tensor->data.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
 
   float *C = c->tensor->data.s;
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  if (m_C > m_A) // axis == 0
+  if (m_C > c->children[0]->tensor->dim_sizes[0]) // axis == 0
   {
-    size_t a_elements_size = a->tensor->element_count * a->tensor->element_size;
-    memcpy(C, A, a_elements_size);
-    memcpy(C + a_elements_size, B, b->tensor->element_count * b->tensor->element_size);
+    for (size_t k = 0; k < c->children_count; ++k)
+    {
+      size_t size = c->children[k]->tensor->element_count * c->children[k]->tensor->element_size;
+      memcpy(C, c->children[k]->tensor->data.ptr, size);
+    }
   }
   else // axis == 1
   {
-    char *ptr_A = a->tensor->data.ptr;
-    size_t row_size_A = n_A * a->tensor->element_size;
+    char **ptrs = uo_alloca(c->children_count * sizeof * ptrs);
+    size_t *row_sizes = uo_alloca(c->children_count * sizeof * row_sizes);
 
-    char *ptr_B = b->tensor->data.ptr;
-    size_t row_size_B = n_B * b->tensor->element_size;
+    for (size_t k = 0; k < c->children_count; ++k)
+    {
+      ptrs[k] = c->children[k]->tensor->data.ptr;
+      row_sizes[k] = c->children[k]->tensor->dim_sizes[1] * c->children[k]->tensor->element_size;
+    }
 
     char *ptr_C = c->tensor->data.ptr;
 
     for (size_t i = 0; i < m_C; ++i)
     {
-      memcpy(ptr_C, ptr_A, row_size_A);
-      ptr_A += row_size_A;
-      ptr_C += row_size_A;
+      for (size_t k = 0; k < c->children_count; ++k)
+      {
+        ptrs[k] = c->children[k]->tensor->data.ptr;
+        row_sizes[k] = c->children[k]->tensor->dim_sizes[1] * c->children[k]->tensor->element_size;
 
-      memcpy(ptr_C, ptr_B, row_size_B);
-      ptr_B += row_size_B;
-      ptr_C += row_size_B;
+        memcpy(ptr_C, ptrs[k], row_sizes[k]);
+        ptrs[k] += row_sizes[k];
+        ptr_C += row_sizes[k];
+      }
     }
   }
 }
 
 void uo_nn_value_op_backward_concat(uo_nn_value *self)
 {
-  uo_nn_value *a = self->children[0];
-  uo_nn_value *b = self->children[1];
   uo_nn_value *c = self;
-
-  float *A = a->tensor->data.s;
-  float *A_grad = a->grad.s;
-  size_t m_A = a->tensor->dim_sizes[0];
-  size_t n_A = a->tensor->dim_sizes[1];
-
-  float *B = b->tensor->data.s;
-  float *B_grad = b->grad.s;
-  size_t m_B = b->tensor->dim_sizes[0];
-  size_t n_B = b->tensor->dim_sizes[1];
 
   float *C_grad = c->grad.s;
   size_t m_C = c->tensor->dim_sizes[0];
   size_t n_C = c->tensor->dim_sizes[1];
 
-  if (m_C > m_A) // axis == 0
+  if (m_C > self->children[0]->tensor->dim_sizes[0]) // axis == 0
   {
-    for (size_t i = 0; i < a->tensor->element_count; ++i)
+    for (size_t k = 0; k < c->children_count; ++k)
     {
-      *A_grad++ += *C_grad++;
-    }
-
-    for (size_t i = 0; i < b->tensor->element_count; ++i)
-    {
-      *B_grad++ += *C_grad++;
+      float *grad = c->children[k]->grad.s;
+      size_t m = c->children[k]->tensor->dim_sizes[0];
+      for (size_t i = 0; i < m; ++i)
+      {
+        *grad++ = *C_grad++;
+      }
     }
   }
   else // axis == 1
   {
     for (size_t i = 0; i < m_C; ++i)
     {
-      for (size_t j = 0; j < n_A; ++j)
+      for (size_t k = 0; k < c->children_count; ++k)
       {
-        *A_grad++ += *C_grad++;
-      }
-
-      for (size_t j = 0; j < n_B; ++j)
-      {
-        *B_grad++ += *C_grad++;
+        float *grad = c->children[k]->grad.s;
+        size_t n = c->children[k]->tensor->dim_sizes[1];
+        for (size_t j = 0; j < n; ++j)
+        {
+          *grad++ += *C_grad++;
+        }
       }
     }
   }
 }
 
-uo_nn_value *uo_nn_value_op_concat(uo_nn_value *a, uo_nn_value *b, int axis)
+uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value **values)
 {
   size_t dim_sizes[2] =
   {
-    a->tensor->dim_sizes[0],
-    a->tensor->dim_sizes[1]
+    values[0]->tensor->dim_sizes[0],
+    values[0]->tensor->dim_sizes[1]
   };
 
-  dim_sizes[axis] += a->tensor->dim_sizes[axis];
+  for (size_t i = 1; i < count; ++i)
+  {
+    dim_sizes[axis] += values[i]->tensor->dim_sizes[axis];
+  }
+
   uo_tensor *C = uo_tensor_create('s', 2, dim_sizes);
-  uo_nn_value *c = uo_nn_value_create(C, "Concat", 2, 0);
+  uo_nn_value *c = uo_nn_value_create(C, "Concat", count, 0);
 
   c->forward = uo_nn_value_op_forward_concat;
   c->backward = uo_nn_value_op_backward_concat;
-  c->children[0] = a;
-  c->children[1] = b;
+
+  for (size_t i = 0; i < count; ++i)
+  {
+    c->children[i] = values[i];
+  }
 
   return c;
 }
