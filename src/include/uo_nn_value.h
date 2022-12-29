@@ -77,9 +77,11 @@ extern "C"
 
   void uo_tensor_set1(uo_tensor *tensor, size_t index, size_t offset, size_t count, const void *value);
 
+  void uo_tensor_set_rand_s(uo_tensor *tensor, size_t index, size_t offset, size_t count, float min, float max);
+
   void uo_tensor_set_rand(uo_tensor *tensor, size_t index, size_t offset, size_t count, const void *min, const void *max);
 
-  uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count);
+  uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count, size_t attributes_size);
 
   static inline void uo_nn_value_zero_grad(uo_nn_value *nn_value)
   {

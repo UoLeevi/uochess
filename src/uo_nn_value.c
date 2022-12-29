@@ -177,6 +177,18 @@ void uo_tensor_set1(uo_tensor *tensor, size_t index, size_t offset, size_t count
   }
 }
 
+void uo_tensor_set_rand_s(uo_tensor *tensor, size_t index, size_t offset, size_t count, float min, float max)
+{
+  ++offset;
+
+  for (size_t i = index; i < count; ++i)
+  {
+    float rand_s = uo_rand_between(min, max);
+
+    tensor->data.s[i * offset] = rand_s;
+  }
+}
+
 void uo_tensor_set_rand(uo_tensor *tensor, size_t index, size_t offset, size_t count, const void *min, const void *max)
 {
   ++offset;

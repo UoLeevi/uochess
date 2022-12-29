@@ -905,8 +905,6 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
     uo_score_R * uo_popcnt(position->R) +
     uo_score_Q * uo_popcnt(position->Q));
 
-  position->nn_input.shared.floats.features.bias = 1.0f;
-
   return position;
 }
 
