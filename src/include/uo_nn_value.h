@@ -144,6 +144,7 @@ extern "C"
   }
 
   uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b);
+  uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b);
   uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value** values);

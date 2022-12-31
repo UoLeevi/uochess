@@ -868,10 +868,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_value *xw1_own_material = uo_nn_value_op_gemm(x_own_material, w1_material, 1.0, 0.0, false, false);
     uo_nn_value *xw1_enemy_material = uo_nn_value_op_gemm(x_enemy_material, w1_material, -1.0, 0.0, false, false);
 
-    uo_nn_value *xw1_own_piece_placement = uo_nn_value_op_gemm(x_own_mask, w1_mask, 1.0, 0.0, false, false);
-    uo_nn_value *xw1_enemy_piece_placement = uo_nn_value_op_gemm(x_enemy_mask, w1_mask, -1.0, 0.0, false, false);
+    uo_nn_value *xw1_own_piece_placement = uo_nn_value_op_gemm_a_mask(x_own_mask, w1_mask, 1.0, 0.0, false, false);
+    uo_nn_value *xw1_enemy_piece_placement = uo_nn_value_op_gemm_a_mask(x_enemy_mask, w1_mask, -1.0, 0.0, false, false);
 
-    uo_nn_value *xw1_shared = uo_nn_value_op_matmul(x_shared_mask, w1_shared_mask);
+    uo_nn_value *xw1_shared = uo_nn_value_op_gemm_a_mask(x_shared_mask, w1_shared_mask, 1.0, 0.0, false, false);
 
     uo_nn_value *xw1 = uo_nn_value_op_concat(1, 5, (uo_nn_value * []) {
       xw1_own_material,
