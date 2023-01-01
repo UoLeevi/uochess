@@ -845,33 +845,28 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_value *x_shared_mask = uo_nn_value_create(X_shared_mask, NULL, 0, 0);
 
     // Layer 1
-    uo_tensor *W1_material = uo_tensor_create('s', 2, (size_t[]) { X_own_material->dim_sizes[1], 64 });
+    uo_tensor *W1_material = uo_tensor_create('s', 2, (size_t[]) { X_own_material->dim_sizes[1], 4 });
     uo_tensor_set_rand_s(W1_material, 0, 0, W1_material->element_count, -0.5, 0.5);
     uo_nn_value *w1_material = uo_nn_value_create(W1_material, NULL, 0, 0);
     uo_nn_adam_params *w1_material_adam = nn.parameters[0] = uo_nn_value_adam_params_create(w1_material);
 
-    uo_tensor *W1_mask = uo_tensor_create('s', 2, (size_t[]) { X_own_mask->dim_sizes[1], 64 });
+    uo_tensor *W1_mask = uo_tensor_create('s', 2, (size_t[]) { X_own_mask->dim_sizes[1], 32 });
     uo_tensor_set_rand_s(W1_mask, 0, 0, W1_mask->element_count, -0.5, 0.5);
     uo_nn_value *w1_mask = uo_nn_value_create(W1_mask, NULL, 0, 0);
     uo_nn_adam_params *w1_mask_adam = nn.parameters[0] = uo_nn_value_adam_params_create(w1_mask);
 
-    uo_tensor *W1_shared_mask = uo_tensor_create('s', 2, (size_t[]) { X_shared_mask->dim_sizes[1], 64 });
+    uo_tensor *W1_shared_mask = uo_tensor_create('s', 2, (size_t[]) { X_shared_mask->dim_sizes[1], 4 });
     uo_tensor_set_rand_s(W1_shared_mask, 0, 0, W1_shared_mask->element_count, -0.5, 0.5);
     uo_nn_value *w1_shared_mask = uo_nn_value_create(W1_shared_mask, NULL, 0, 0);
     uo_nn_adam_params *w1_shared_mask_adam = nn.parameters[0] = uo_nn_value_adam_params_create(w1_shared_mask);
 
-    uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, 64 });
-    uo_tensor_set_rand_s(B1, 0, 0, B1->element_count, -0.5, 0.5);
-    uo_nn_value *b1 = uo_nn_value_create(B1, NULL, 0, 0);
-    uo_nn_adam_params *b1_adam = nn.parameters[1] = uo_nn_value_adam_params_create(b1);
+    uo_nn_value *xw1_own_material = uo_nn_value_op_gemm(x_own_material, w1_material, 1.0, 1.0, false, false);
+    uo_nn_value *xw1_enemy_material = uo_nn_value_op_gemm(x_enemy_material, w1_material, -1.0, 1.0, false, false);
 
-    uo_nn_value *xw1_own_material = uo_nn_value_op_gemm(x_own_material, w1_material, 1.0, 0.0, false, false);
-    uo_nn_value *xw1_enemy_material = uo_nn_value_op_gemm(x_enemy_material, w1_material, -1.0, 0.0, false, false);
+    uo_nn_value *xw1_own_piece_placement = uo_nn_value_op_gemm_a_mask(x_own_mask, w1_mask, 1.0, 1.0, false, false);
+    uo_nn_value *xw1_enemy_piece_placement = uo_nn_value_op_gemm_a_mask(x_enemy_mask, w1_mask, -1.0, 1.0, false, false);
 
-    uo_nn_value *xw1_own_piece_placement = uo_nn_value_op_gemm_a_mask(x_own_mask, w1_mask, 1.0, 0.0, false, false);
-    uo_nn_value *xw1_enemy_piece_placement = uo_nn_value_op_gemm_a_mask(x_enemy_mask, w1_mask, -1.0, 0.0, false, false);
-
-    uo_nn_value *xw1_shared = uo_nn_value_op_gemm_a_mask(x_shared_mask, w1_shared_mask, 1.0, 0.0, false, false);
+    uo_nn_value *xw1_shared = uo_nn_value_op_gemm_a_mask(x_shared_mask, w1_shared_mask, 1.0, 1.0, false, false);
 
     uo_nn_value *xw1 = uo_nn_value_op_concat(1, 5, (uo_nn_value * []) {
       xw1_own_material,
@@ -881,11 +876,16 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
         xw1_shared
     });
 
+    uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, xw1->tensor->dim_sizes[1] });
+    uo_tensor_set_rand_s(B1, 0, 0, B1->element_count, -0.5, 0.5);
+    uo_nn_value *b1 = uo_nn_value_create(B1, NULL, 0, 0);
+    uo_nn_adam_params *b1_adam = nn.parameters[1] = uo_nn_value_adam_params_create(b1);
+
     uo_nn_value *z1 = uo_nn_value_op_add(xw1, b1);
     uo_nn_value *a1 = uo_nn_value_op_tanh(z1);
 
     // Layer 2
-    uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { 32, 1 });
+    uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { a1->tensor->dim_sizes[1], 1 });
     uo_tensor_set_rand_s(W2, 0, 0, W2->element_count, -0.5, 0.5);
     uo_nn_value *w2 = uo_nn_value_create(W2, NULL, 0, 0);
     uo_nn_adam_params *w2_adam = nn.parameters[2] = uo_nn_value_adam_params_create(w2);
