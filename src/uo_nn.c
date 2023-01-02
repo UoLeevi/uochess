@@ -919,6 +919,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   for (size_t i = 1; i < 1000000; ++i)
   {
+    uo_nn_reset(&nn);
     uo_nn_train_eval_select_batch(&nn, i, y_true);
     uo_nn_forward(&nn);
 
@@ -945,6 +946,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   for (size_t i = 0; i < 1000; ++i)
   {
+    uo_nn_reset(&nn);
     uo_nn_train_eval_select_batch(&nn, i, y_true);
     uo_nn_forward(&nn);
 
@@ -1056,12 +1058,14 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     .parameter_count = 4
   };
 
+  uo_nn_reset(&nn);
   uo_nn_select_batch_test_xor(&nn, 0, y_true);
   uo_nn_forward(&nn);
   float loss_avg = uo_nn_loss_mse(y_pred, y_true->data.s);
 
   for (size_t i = 1; i < 1000000; ++i)
   {
+    uo_nn_reset(&nn);
     uo_nn_select_batch_test_xor(&nn, i, y_true);
     uo_nn_forward(&nn);
 

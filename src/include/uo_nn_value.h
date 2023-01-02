@@ -47,6 +47,7 @@ extern "C"
     uo_tensor_data grad;
     uo_nn_value_function *forward;
     uo_nn_value_function *backward;
+    uo_nn_value_function *reset;
     void *attributes;
     size_t children_count;
     uo_nn_value *children[];
@@ -112,6 +113,11 @@ extern "C"
     memset(nn_value->grad.ptr, 0, nn_value->tensor->element_count * element_size);
   }
 
+  static inline void uo_nn_value_reset(uo_nn_value *nn_value)
+  {
+    if (nn_value->reset) nn_value->reset(nn_value);
+  }
+
   static inline void uo_nn_value_forward(uo_nn_value *nn_value)
   {
     if (nn_value->forward) nn_value->forward(nn_value);
@@ -143,11 +149,20 @@ extern "C"
     }
   }
 
+  static inline void uo_nn_graph_reset(uo_nn_value **graph, size_t size)
+  {
+    for (size_t i = 0; i < size; ++i)
+    {
+      uo_nn_value_reset(graph[i]);
+    }
+  }
+
+
   uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b);
   uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
   uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b);
-  uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value** values);
+  uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value **values);
   uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x);
   uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x);
 

@@ -290,6 +290,11 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 
 #pragma region GemmAMask
 
+void uo_nn_value_op_reset_gemm_a_mask(uo_nn_value *self)
+{
+  memset(self->tensor->data.ptr, 0, self->tensor->element_count * self->tensor->element_size);
+}
+
 void uo_nn_value_op_forward_gemm_a_mask(uo_nn_value *self)
 {
   uo_nn_value *a = self->children[0];
@@ -387,6 +392,7 @@ uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float al
   uo_nn_value *c = uo_nn_value_create(C, "GemmAMask", 2, sizeof attributes);
   memcpy(c->attributes, &attributes, sizeof attributes);
 
+  c->reset = uo_nn_value_op_reset_gemm_a_mask;
   c->forward = uo_nn_value_op_forward_gemm_a_mask;
   c->backward = uo_nn_value_op_backward_gemm_a_mask;
   c->children[0] = a;
@@ -398,6 +404,11 @@ uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float al
 #pragma endregion
 
 #pragma region Gemm
+
+void uo_nn_value_op_reset_gemm(uo_nn_value *self)
+{
+  memset(self->tensor->data.ptr, 0, self->tensor->element_count * self->tensor->element_size);
+}
 
 void uo_nn_value_op_forward_gemm(uo_nn_value *self)
 {
@@ -496,6 +507,7 @@ uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, fl
   uo_nn_value *c = uo_nn_value_create(C, "Gemm", 2, sizeof attributes);
   memcpy(c->attributes, &attributes, sizeof attributes);
 
+  c->reset = uo_nn_value_op_reset_gemm;
   c->forward = uo_nn_value_op_forward_gemm;
   c->backward = uo_nn_value_op_backward_gemm;
   c->children[0] = a;

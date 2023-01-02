@@ -46,6 +46,11 @@ extern "C"
     }
   }
 
+  static inline void uo_nn_reset(uo_nn *nn)
+  {
+    uo_nn_graph_reset(nn->graph, nn->graph_size);
+  }
+
   static inline void uo_nn_forward(uo_nn *nn)
   {
     uo_nn_graph_forward(nn->graph, nn->graph_size);
