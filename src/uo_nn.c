@@ -717,29 +717,7 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
 
   for (size_t j = 0; j < batch_size; ++j)
   {
-    uo_position_from_fen(&position, fen);
-    uint8_t color = uo_color(position.flags);
-
-    //uint8_t color = uo_nn_load_fen(nn, fen, j);
-    assert(color == uo_white || color == uo_black);
-
-    // Copy position to input tensors
-    {
-      memcpy(own_floats->data.s + j * own_floats->dim_sizes[1], position.nn_input.halves[color].floats.vector, own_floats->dim_sizes[1] * sizeof(float));
-      memcpy(own_mask->data.s + j * own_mask->dim_sizes[1], position.nn_input.halves[color].mask.vector, own_mask->dim_sizes[1] * sizeof(float));
-      memcpy(enemy_floats->data.s + j * enemy_floats->dim_sizes[1], position.nn_input.halves[!color].floats.vector, enemy_floats->dim_sizes[1] * sizeof(float));
-      memcpy(enemy_mask->data.s + j * enemy_mask->dim_sizes[1], position.nn_input.halves[!color].mask.vector, enemy_mask->dim_sizes[1] * sizeof(float));
-      memcpy(shared_mask->data.s + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(float));
-    }
-
-
-    //uo_nn_load_position(&nn2, &position, j);
-
-    //float win_prob;
-    float q_score;
-
     bool matein = eval[0] == '#';
-
     if (matein)
     {
       // Let's skip positions which lead to mate
@@ -752,19 +730,37 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_tru
       --j;
       continue;
     }
-    else
+
+    uo_position_from_fen(&position, fen);
+    uint8_t color = uo_color(position.flags);
+
+    //uint8_t color = uo_nn_load_fen(nn, fen, j);
+    assert(color == uo_white || color == uo_black);
+
+    // Copy position to input tensors
     {
-      char *end;
-      float score = (float)strtol(eval, &end, 10);
-
-      if (color == uo_black) score = -score;
-
-      q_score = uo_score_centipawn_to_q_score(score);
-      //win_prob = uo_score_centipawn_to_win_prob(score);
-
-      fen = strchr(end, '\n') + 1;
-      eval = strchr(fen, ',') + 1;
+      memcpy(own_floats->data.s + j * own_floats->dim_sizes[1], position.nn_input.halves[color].floats.vector, own_floats->dim_sizes[1] * sizeof(float));
+      memcpy(own_mask->data.u + j * own_mask->dim_sizes[1], position.nn_input.halves[color].mask.vector, own_mask->dim_sizes[1] * sizeof(float));
+      memcpy(enemy_floats->data.s + j * enemy_floats->dim_sizes[1], position.nn_input.halves[!color].floats.vector, enemy_floats->dim_sizes[1] * sizeof(float));
+      memcpy(enemy_mask->data.u + j * enemy_mask->dim_sizes[1], position.nn_input.halves[!color].mask.vector, enemy_mask->dim_sizes[1] * sizeof(float));
+      memcpy(shared_mask->data.u + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(float));
     }
+
+    //uo_nn_load_position(&nn2, &position, j);
+
+    //float win_prob;
+    float q_score;
+
+    char *end;
+    float score = (float)strtol(eval, &end, 10);
+
+    if (color == uo_black) score = -score;
+
+    q_score = uo_score_centipawn_to_q_score(score);
+    //win_prob = uo_score_centipawn_to_win_prob(score);
+
+    fen = strchr(end, '\n') + 1;
+    eval = strchr(fen, ',') + 1;
 
     //y_true->data.s[j] = win_prob;
     y_true->data.s[j] = q_score;
@@ -890,12 +886,13 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_value *w2 = uo_nn_value_create(W2, NULL, 0, 0);
     uo_nn_adam_params *w2_adam = nn.parameters[2] = uo_nn_value_adam_params_create(w2);
 
-    uo_tensor *B2 = uo_tensor_create('s', 2, (size_t[]) { 1, 1 });
+    uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2);
+
+    uo_tensor *B2 = uo_tensor_create('s', 2, (size_t[]) { 1, xw2->tensor->dim_sizes[1] });
     uo_tensor_set_rand_s(B2, 0, 0, B2->element_count, -0.5, 0.5);
     uo_nn_value *b2 = uo_nn_value_create(B2, NULL, 0, 0);
     uo_nn_adam_params *b2_adam = nn.parameters[3] = uo_nn_value_adam_params_create(b2);
 
-    uo_nn_value *xw2 = uo_nn_value_op_matmul(a1, w2);
     uo_nn_value *z2 = uo_nn_value_op_add(xw2, b2);
     uo_nn_value *a2 = uo_nn_value_op_tanh(z2);
 
