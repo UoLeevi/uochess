@@ -28,7 +28,7 @@ extern "C"
 
   //void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index);
 
-  //int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position);
+  int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position);
 
   //uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
 

@@ -85,7 +85,7 @@ extern "C"
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
-    //uo_nn *nn;
+    uo_nn *nn;
     uo_search_params search_params;
     struct
     {
