@@ -825,19 +825,19 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     nn.parameters = uo_alloca(nn.parameter_count * sizeof(uo_nn_value *));
 
     // Inputs
-    uo_tensor *X_own_material = nn.inputs[0] = uo_tensor_create('s', 5, (size_t[]) { batch_size, 2 });
+    uo_tensor *X_own_material = nn.inputs[0] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 5 });
     uo_nn_value *x_own_material = uo_nn_value_create(X_own_material, NULL, 0, 0);
 
-    uo_tensor *X_own_mask = nn.inputs[1] = uo_tensor_create('u', 370, (size_t[]) { batch_size, 2 });
+    uo_tensor *X_own_mask = nn.inputs[1] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 370 });
     uo_nn_value *x_own_mask = uo_nn_value_create(X_own_mask, NULL, 0, 0);
 
-    uo_tensor *X_enemy_material = nn.inputs[2] = uo_tensor_create('s', 5, (size_t[]) { batch_size, 2 });
+    uo_tensor *X_enemy_material = nn.inputs[2] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 5 });
     uo_nn_value *x_enemy_material = uo_nn_value_create(X_enemy_material, NULL, 0, 0);
 
-    uo_tensor *X_enemy_mask = nn.inputs[3] = uo_tensor_create('u', 370, (size_t[]) { batch_size, 2 });
+    uo_tensor *X_enemy_mask = nn.inputs[3] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 370 });
     uo_nn_value *x_enemy_mask = uo_nn_value_create(X_enemy_mask, NULL, 0, 0);
 
-    uo_tensor *X_shared_mask = nn.inputs[4] = uo_tensor_create('u', 72, (size_t[]) { batch_size, 2 });
+    uo_tensor *X_shared_mask = nn.inputs[4] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 72 });
     uo_nn_value *x_shared_mask = uo_nn_value_create(X_shared_mask, NULL, 0, 0);
 
     // Layer 1
