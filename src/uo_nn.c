@@ -898,9 +898,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
     uo_nn_value *y_pred = nn.outputs[0] = a2;
 
-    uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
-
-    nn.graph_size = 20; // max size
+    nn.graph_size = 100; // max size
     nn.graph = uo_nn_value_create_graph(y_pred, &nn.graph_size);
   }
 
