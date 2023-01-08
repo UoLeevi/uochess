@@ -14,6 +14,8 @@ extern "C"
   typedef struct uo_nn_value uo_nn_value;
 
   typedef void (uo_nn_value_function)(uo_nn_value *node);
+  typedef void (uo_nn_value_print_function)(uo_nn_value *node, FILE *const fp);
+  typedef void (uo_nn_value_parse_function)(uo_nn_value *node, const char *);
 
   typedef union uo_tensor_data
   {
@@ -48,6 +50,8 @@ extern "C"
     uo_nn_value_function *forward;
     uo_nn_value_function *backward;
     uo_nn_value_function *reset;
+    uo_nn_value_print_function *print;
+    uo_nn_value_parse_function *parse;
     void *attributes;
     size_t children_count;
     uo_nn_value *children[];
@@ -157,6 +161,7 @@ extern "C"
     }
   }
 
+  void uo_print_nn_graph(FILE *const fp, uo_nn_value **graph, size_t size);
 
   uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b);
   uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
@@ -174,7 +179,7 @@ extern "C"
 
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

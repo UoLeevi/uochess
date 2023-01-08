@@ -288,6 +288,54 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
   return value;
 }
 
+void uo_print_nn_graph(FILE *const fp, uo_nn_value **graph, size_t size)
+  {
+    fprintf(fp, "graph {\n");
+
+    for (size_t i = 0; i < size; ++i)
+    {
+      uo_nn_value *nn_value = graph[i];
+
+      fprintf(fp, "node {\n");
+      fprintf(fp, "- op: %s\n", nn_value->op ? nn_value->op : "-");
+      fprintf(fp, "- children_count: %d\n", nn_value->children_count);
+
+      if (nn_value->children_count)
+      {
+        fprintf(fp, "- children: [");
+        for (size_t j = 0; j < nn_value->children_count; ++j)
+        {
+          if (j)
+          {
+            fprintf(fp, ",");
+          }
+
+          for (size_t k = 0; k < i; ++k)
+          {
+            if (graph[k] == nn_value->children[j])
+            {
+              fprintf(fp, " $%d", k);
+              break;
+            }
+          }
+        }
+        fprintf(fp, " ]\n");
+      }
+
+      fprintf(fp, "- type: %c\n", nn_value->tensor->type);
+      fprintf(fp, "- data: ");
+
+      // TODO: handle different types
+      uo_print_matrix(fp, nn_value->tensor->data.s, nn_value->tensor->dim_sizes[0], nn_value->tensor->dim_sizes[1]);
+
+      // TODO: print attributes
+
+      fprintf(fp, "}\n");
+    }
+
+    fprintf(fp, "}\n");
+  }
+
 #pragma region GemmAMask
 
 void uo_nn_value_op_reset_gemm_a_mask(uo_nn_value *self)

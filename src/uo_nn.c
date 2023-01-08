@@ -924,6 +924,11 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
     if (loss_avg < 0.0001) break;
 
+    if (i % 1000 == 0)
+    {
+      uo_nn_train_eval_report_progress(&nn, i, loss_avg, learning_rate);
+    }
+
     uo_nn_loss_grad_mse(*nn.outputs, y_true->data.s);
     uo_nn_backward(&nn);
     uo_nn_update_parameters(&nn);
