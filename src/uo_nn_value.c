@@ -532,6 +532,16 @@ void uo_nn_value_op_backward_gemm(uo_nn_value *self)
     A_grad, n_A);
 }
 
+void uo_nn_value_op_print_gemm(uo_nn_value *node, FILE *const fp)
+{
+  // TODO
+}
+
+uo_nn_value *uo_nn_value_op_parse_gemm(char **ptr)
+{
+  // TODO
+}
+
 uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb)
 {
   uo_tensor *C = uo_tensor_create('s', 2, (size_t[]) {
@@ -558,6 +568,7 @@ uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, fl
   c->reset = uo_nn_value_op_reset_gemm;
   c->forward = uo_nn_value_op_forward_gemm;
   c->backward = uo_nn_value_op_backward_gemm;
+  c->print = uo_nn_value_op_print_gemm;
   c->children[0] = a;
   c->children[1] = b;
 
@@ -1097,4 +1108,14 @@ void uo_nn_value_update_adam(uo_nn_adam_params *params)
   }
 
   params->t++;
+}
+
+uo_nn_value *uo_nn_value_parse(const char *op, char **ptr)
+{
+  if (strcmp(op, "Gemm") == 0)
+  {
+    return uo_nn_value_op_parse_gemm(ptr);
+  }
+
+  exit(1);
 }
