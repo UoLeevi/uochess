@@ -289,52 +289,52 @@ uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t childr
 }
 
 void uo_print_nn_graph(FILE *const fp, uo_nn_value **graph, size_t size)
+{
+  fprintf(fp, "graph {\n");
+
+  for (size_t i = 0; i < size; ++i)
   {
-    fprintf(fp, "graph {\n");
+    uo_nn_value *nn_value = graph[i];
 
-    for (size_t i = 0; i < size; ++i)
+    fprintf(fp, "node {\n");
+    fprintf(fp, "- op: %s\n", nn_value->op ? nn_value->op : "-");
+    fprintf(fp, "- children_count: %d\n", nn_value->children_count);
+
+    if (nn_value->children_count)
     {
-      uo_nn_value *nn_value = graph[i];
-
-      fprintf(fp, "node {\n");
-      fprintf(fp, "- op: %s\n", nn_value->op ? nn_value->op : "-");
-      fprintf(fp, "- children_count: %d\n", nn_value->children_count);
-
-      if (nn_value->children_count)
+      fprintf(fp, "- children: [");
+      for (size_t j = 0; j < nn_value->children_count; ++j)
       {
-        fprintf(fp, "- children: [");
-        for (size_t j = 0; j < nn_value->children_count; ++j)
+        if (j)
         {
-          if (j)
-          {
-            fprintf(fp, ",");
-          }
+          fprintf(fp, ",");
+        }
 
-          for (size_t k = 0; k < i; ++k)
+        for (size_t k = 0; k < i; ++k)
+        {
+          if (graph[k] == nn_value->children[j])
           {
-            if (graph[k] == nn_value->children[j])
-            {
-              fprintf(fp, " $%d", k);
-              break;
-            }
+            fprintf(fp, " $%d", k);
+            break;
           }
         }
-        fprintf(fp, " ]\n");
       }
-
-      fprintf(fp, "- type: %c\n", nn_value->tensor->type);
-      fprintf(fp, "- data: ");
-
-      // TODO: handle different types
-      uo_print_matrix(fp, nn_value->tensor->data.s, nn_value->tensor->dim_sizes[0], nn_value->tensor->dim_sizes[1]);
-
-      // TODO: print attributes
-
-      fprintf(fp, "}\n");
+      fprintf(fp, " ]\n");
     }
+
+    fprintf(fp, "- type: %c\n", nn_value->tensor->type);
+    fprintf(fp, "- data: ");
+
+    // TODO: handle different types
+    uo_print_matrix(fp, nn_value->tensor->data.s, nn_value->tensor->dim_sizes[0], nn_value->tensor->dim_sizes[1]);
+
+    // TODO: print attributes
 
     fprintf(fp, "}\n");
   }
+
+  fprintf(fp, "}\n");
+}
 
 #pragma region GemmAMask
 
@@ -534,12 +534,71 @@ void uo_nn_value_op_backward_gemm(uo_nn_value *self)
 
 void uo_nn_value_op_print_gemm(uo_nn_value *node, FILE *const fp)
 {
-  // TODO
+  // TODO: Print references to inputs, not the actual matricies
+
+  uo_tensor *A = node->children[0];
+  fprintf(fp, "\n  - A (%d x %d): ", A->dim_sizes[0], A->dim_sizes[1]);
+  uo_print_matrix(fp, A->data.s, A->dim_sizes[0], A->dim_sizes[1]);
+
+  uo_tensor *B = node->children[1];
+  fprintf(fp, "\n  - B (%d x %d): ", B->dim_sizes[0], B->dim_sizes[1]);
+  uo_print_matrix(fp, B->data.s, B->dim_sizes[0], B->dim_sizes[1]);
+
+  struct
+  {
+    float alpha;
+    float beta;
+    bool ta;
+    bool tb;
+  } *attributes = node->attributes;
+
+  fprintf(fp, "\n  - attributes: ");
+  fprintf(fp, "\n    - alpha: %12.9g", attributes->alpha);
+  fprintf(fp, "\n    - beta: %12.9g", attributes->beta);
+  fprintf(fp, "\n    - ta: %s", attributes->ta ? "true" : "false");
+  fprintf(fp, "\n    - tb: %s", attributes->tb ? "true" : "false");
 }
 
-uo_nn_value *uo_nn_value_op_parse_gemm(char **ptr)
+uo_nn_value *uo_nn_value_op_parse_gemm(const char **ptr)
 {
-  // TODO
+  // TODO: Do not parse inputs as matricies. Use references instead.
+
+  const char *ptr_A = strstr(ptr, "  - A (");
+  size_t m_A;
+  size_t n_A;
+  sscanf(ptr_A, "  - A (%d x %d): ", &m_A, &n_A);
+  ptr_A = strstr(ptr_A, "): ") + 3;
+  uo_tensor *A = uo_tensor_create('s', 2, (size_t[]) { m_A, n_A });
+  uo_parse_matrix(ptr_A, A->data.s, m_A, n_A);
+  uo_nn_value *a = uo_nn_value_create(A, NULL, 0, 0);
+
+  const char *ptr_B = strstr(ptr, "  - B (");
+  size_t m_B;
+  size_t n_B;
+  sscanf(ptr_B, "  - B (%d x %d): ", &m_B, &n_B);
+  ptr_B = strstr(ptr_B, "): ") + 3;
+  uo_tensor *B = uo_tensor_create('s', 2, (size_t[]) { m_B, n_B });
+  uo_parse_matrix(ptr_B, B->data.s, m_B, n_B);
+  uo_nn_value *b = uo_nn_value_create(B, NULL, 0, 0);
+
+  const char *ptr_attributes = strstr(ptr, "  - attributes: ");
+
+  float alpha;
+  const char *ptr_alpha = strstr(ptr_attributes, "    - alpha: ");
+  sscanf(ptr_alpha, "    - alpha: %f", &alpha);
+
+  float beta;
+  const char *ptr_beta = strstr(ptr_attributes, "    - beta: ");
+  sscanf(ptr_beta, "    - beta: %f", &beta);
+
+  const char *ptr_ta = strstr(ptr_attributes, "    - ta: ");
+  bool ta = ptr_ta[11] == 't';
+
+  bool tb;
+  const char *ptr_tb = strstr(ptr_attributes, "    - tb: ");
+  bool tb = ptr_tb[11] == 't';
+
+  return uo_nn_value_op_gemm(a, b, alpha,beta,ta,tb);
 }
 
 uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb)

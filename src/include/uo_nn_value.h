@@ -15,7 +15,7 @@ extern "C"
 
   typedef void (uo_nn_value_function)(uo_nn_value *node);
   typedef void (uo_nn_value_print_function)(uo_nn_value *node, FILE *const fp);
-  typedef uo_nn_value *(uo_nn_value_parse_function)(char **ptr);
+  typedef uo_nn_value *(uo_nn_value_parse_function)(const char **ptr);
 
   typedef union uo_tensor_data
   {

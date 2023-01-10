@@ -345,7 +345,7 @@ void uo_print_matrix(FILE *const fp, float *A, size_t m, size_t n)
   {
     for (size_t j = 0; j < n; ++j)
     {
-      fprintf(fp, " %12.6g ", A[i * n + j]);
+      fprintf(fp, " %12.9g ", A[i * n + j]);
     }
 
     fprintf(fp, i + 1 == m ? "]" : ";\n");
