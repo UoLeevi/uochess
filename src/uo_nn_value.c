@@ -336,6 +336,52 @@ void uo_print_nn_graph(FILE *const fp, uo_nn_value **graph, size_t size)
   fprintf(fp, "}\n");
 }
 
+void uo_nn_value_op_print_tensor(uo_nn_value **node, uo_nn_value **graph, FILE *const fp)
+{
+  uo_tensor *tensor = (*node)->tensor;
+
+  fprintf(fp, "\n  - type: %c", tensor->type);
+  fprintf(fp, "\n  - dimension_count: %d", tensor->dimension_count);
+  fprintf(fp, "\n  - dim_sizes: %d", tensor->dim_sizes[0]);
+  for (size_t i = 1; i < tensor->dimension_count; ++i)
+  {
+    fprintf(fp, " x %d", tensor->dim_sizes[i]);
+  }
+
+  fprintf(fp, "\n  - data:");
+
+  switch (tensor->type)
+  {
+    case 's': {
+      for (size_t i = 0; i < tensor->element_count; ++i)
+      {
+        fprintf(fp, " %.9g", tensor->data.s[i]);
+      }
+    }
+
+    case 'd': {
+      for (size_t i = 0; i < tensor->element_count; ++i)
+      {
+        fprintf(fp, " %.17g", tensor->data.d[i]);
+      }
+    }
+
+    case 'i': {
+      for (size_t i = 0; i < tensor->element_count; ++i)
+      {
+        fprintf(fp, " %d", tensor->data.i[i]);
+      }
+    }
+
+    case 'u': {
+      for (size_t i = 0; i < tensor->element_count; ++i)
+      {
+        fprintf(fp, " %d", tensor->data.u[i]);
+      }
+    }
+  }
+}
+
 #pragma region GemmAMask
 
 void uo_nn_value_op_reset_gemm_a_mask(uo_nn_value *self)
@@ -532,17 +578,27 @@ void uo_nn_value_op_backward_gemm(uo_nn_value *self)
     A_grad, n_A);
 }
 
-void uo_nn_value_op_print_gemm(uo_nn_value *node, FILE *const fp)
+void uo_nn_value_op_print_gemm(uo_nn_value **node, uo_nn_value **graph, FILE *const fp)
 {
-  // TODO: Print references to inputs, not the actual matricies
+  uo_nn_value *c = *node;
 
-  uo_tensor *A = node->children[0];
-  fprintf(fp, "\n  - A (%d x %d): ", A->dim_sizes[0], A->dim_sizes[1]);
-  uo_print_matrix(fp, A->data.s, A->dim_sizes[0], A->dim_sizes[1]);
+  fprintf(fp, "\n  - children_count: %d", c->children_count);
+  fprintf(fp, "\n  - children:");
 
-  uo_tensor *B = node->children[1];
-  fprintf(fp, "\n  - B (%d x %d): ", B->dim_sizes[0], B->dim_sizes[1]);
-  uo_print_matrix(fp, B->data.s, B->dim_sizes[0], B->dim_sizes[1]);
+  for (size_t i = 0; i < c->children_count; ++i)
+  {
+    uo_nn_value **child = graph;
+    while (child < node)
+    {
+      if (*child == c->children[i])
+      {
+        fprintf(fp, " $%d", graph - child);
+        break;
+      }
+
+      ++child;
+    }
+  }
 
   struct
   {
@@ -550,36 +606,32 @@ void uo_nn_value_op_print_gemm(uo_nn_value *node, FILE *const fp)
     float beta;
     bool ta;
     bool tb;
-  } *attributes = node->attributes;
+  } *attributes = c->attributes;
 
   fprintf(fp, "\n  - attributes: ");
-  fprintf(fp, "\n    - alpha: %12.9g", attributes->alpha);
-  fprintf(fp, "\n    - beta: %12.9g", attributes->beta);
+  fprintf(fp, "\n    - alpha: %.9g", attributes->alpha);
+  fprintf(fp, "\n    - beta: %.9g", attributes->beta);
   fprintf(fp, "\n    - ta: %s", attributes->ta ? "true" : "false");
   fprintf(fp, "\n    - tb: %s", attributes->tb ? "true" : "false");
 }
 
-uo_nn_value *uo_nn_value_op_parse_gemm(const char **ptr)
+void uo_nn_value_op_parse_gemm(uo_nn_value **node, uo_nn_value **graph, const char **ptr)
 {
   // TODO: Do not parse inputs as matricies. Use references instead.
 
-  const char *ptr_A = strstr(ptr, "  - A (");
-  size_t m_A;
-  size_t n_A;
-  sscanf(ptr_A, "  - A (%d x %d): ", &m_A, &n_A);
-  ptr_A = strstr(ptr_A, "): ") + 3;
-  uo_tensor *A = uo_tensor_create('s', 2, (size_t[]) { m_A, n_A });
-  uo_parse_matrix(ptr_A, A->data.s, m_A, n_A);
-  uo_nn_value *a = uo_nn_value_create(A, NULL, 0, 0);
+  size_t children_count;
+  const char *ptr_children_count = strstr(*ptr, "  - children_count: ");
+  sscanf(ptr_children_count, "  - children_count: &d", &children_count);
 
-  const char *ptr_B = strstr(ptr, "  - B (");
-  size_t m_B;
-  size_t n_B;
-  sscanf(ptr_B, "  - B (%d x %d): ", &m_B, &n_B);
-  ptr_B = strstr(ptr_B, "): ") + 3;
-  uo_tensor *B = uo_tensor_create('s', 2, (size_t[]) { m_B, n_B });
-  uo_parse_matrix(ptr_B, B->data.s, m_B, n_B);
-  uo_nn_value *b = uo_nn_value_create(B, NULL, 0, 0);
+  uo_nn_value **children = uo_alloca(children_count * sizeof(uo_nn_value *));
+  const char *ptr_children = strstr(*ptr, "  - children: ");
+  ptr_children += strlen("  - children: $");
+  for (size_t i = 0; i < children_count; ++i)
+  {
+    size_t child_index = strtoul(ptr_children, &ptr_children, 10);
+    children[i] = graph[child_index];
+    ptr_children += strlen(" $");
+  }
 
   const char *ptr_attributes = strstr(ptr, "  - attributes: ");
 
@@ -598,7 +650,7 @@ uo_nn_value *uo_nn_value_op_parse_gemm(const char **ptr)
   const char *ptr_tb = strstr(ptr_attributes, "    - tb: ");
   bool tb = ptr_tb[11] == 't';
 
-  return uo_nn_value_op_gemm(a, b, alpha,beta,ta,tb);
+  *node = uo_nn_value_op_gemm(children[0], children[1], alpha, beta, ta, tb);
 }
 
 uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb)
