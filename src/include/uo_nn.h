@@ -6,20 +6,20 @@ extern "C"
 {
 #endif
 
-#include "uo_nn_value.h"
+#include "uo_nn_node.h"
 #include "uo_math.h"
 #include "uo_position.h"
 
   typedef struct uo_nn
   {
-    uo_nn_value **graph;
+    uo_nn_node **graph;
     size_t graph_size;
-    uo_tensor **inputs;
+    uo_nn_node **inputs;
     size_t input_count;
-    uo_nn_value **outputs;
+    uo_nn_node **outputs;
     size_t output_count;
-    uo_nn_adam_params **parameters;
-    size_t parameter_count;
+    uo_nn_adam_params **initializers;
+    size_t initializer_count;
     void *state;
   } uo_nn;
 
@@ -30,7 +30,7 @@ extern "C"
 
   int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position);
 
-  //uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
+  uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
 
   bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size);
 
@@ -38,11 +38,11 @@ extern "C"
 
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
-  static inline void uo_nn_update_parameters(uo_nn *nn)
+  static inline void uo_nn_update_initializers(uo_nn *nn)
   {
-    for (size_t i = 0; i < nn->parameter_count; ++i)
+    for (size_t i = 0; i < nn->initializer_count; ++i)
     {
-      uo_nn_value_update_adam(nn->parameters[i]);
+      uo_nn_node_update_adam(nn->initializers[i]);
     }
   }
 

@@ -10,12 +10,13 @@ extern "C"
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
 
-  typedef struct uo_nn_value uo_nn_value;
+  typedef struct uo_nn_node uo_nn_node;
 
-  typedef void (uo_nn_value_function)(uo_nn_value *node);
-  typedef void (uo_nn_value_print_function)(uo_nn_value **node, uo_nn_value **graph, FILE *const fp);
-  typedef void (uo_nn_value_parse_function)(uo_nn_value **node, uo_nn_value **graph, const char **ptr);
+  typedef void (uo_nn_node_function)(uo_nn_node *node);
+  typedef void (uo_nn_node_print_function)(uo_nn_node **node, uo_nn_node **graph, FILE *const fp);
+  typedef void (uo_nn_node_parse_function)(uo_nn_node **node, uo_nn_node **graph, const char **ptr);
 
   typedef union uo_tensor_data
   {
@@ -42,23 +43,24 @@ extern "C"
     size_t dim_sizes[];
   } uo_tensor;
 
-  typedef struct uo_nn_value
+  typedef struct uo_nn_node
   {
-    const char *op;
+    const char *op_type;
+    const char *name;
     uo_tensor *tensor;
     uo_tensor_data grad;
-    uo_nn_value_function *forward;
-    uo_nn_value_function *backward;
-    uo_nn_value_function *reset;
-    uo_nn_value_print_function *print;
+    uo_nn_node_function *forward;
+    uo_nn_node_function *backward;
+    uo_nn_node_function *reset;
+    uo_nn_node_print_function *print;
     void *attributes;
     size_t children_count;
-    uo_nn_value *children[];
-  } uo_nn_value;
+    uo_nn_node *children[];
+  } uo_nn_node;
 
   typedef struct uo_nn_adam_params
   {
-    uo_nn_value *value;
+    uo_nn_node *value;
     size_t t;
 
     float lr;
@@ -73,7 +75,7 @@ extern "C"
     float *v_hat; // bias-corrected second moment matrix, m x n
   } uo_nn_adam_params;
 
-  uo_nn_value **uo_nn_value_create_graph(uo_nn_value *self, size_t *size);
+  uo_nn_node **uo_nn_node_create_graph(uo_nn_node *self, size_t *size);
 
   uo_tensor *uo_tensor_create(char type, size_t dimension_count, size_t *dim_sizes);
 
@@ -85,9 +87,11 @@ extern "C"
 
   void uo_tensor_set_rand(uo_tensor *tensor, size_t index, size_t offset, size_t count, const void *min, const void *max);
 
-  uo_nn_value *uo_nn_value_create(uo_tensor *tensor, const char *op, size_t children_count, size_t attributes_size);
+  uo_nn_node *uo_nn_node_input_tensor_create(const char *name, char type, size_t dimension_count, size_t *dim_sizes);
 
-  static inline void uo_nn_value_zero_grad(uo_nn_value *nn_value)
+  uo_nn_node *uo_nn_node_create(const char *name, uo_tensor *tensor, const char *op_type, size_t children_count, size_t attributes_size);
+
+  static inline void uo_nn_node_zero_grad(uo_nn_node *nn_value)
   {
     size_t element_size;
 
@@ -116,67 +120,67 @@ extern "C"
     memset(nn_value->grad.ptr, 0, nn_value->tensor->element_count * element_size);
   }
 
-  static inline void uo_nn_value_reset(uo_nn_value *nn_value)
+  static inline void uo_nn_node_reset(uo_nn_node *nn_value)
   {
     if (nn_value->reset) nn_value->reset(nn_value);
   }
 
-  static inline void uo_nn_value_forward(uo_nn_value *nn_value)
+  static inline void uo_nn_node_forward(uo_nn_node *nn_value)
   {
     if (nn_value->forward) nn_value->forward(nn_value);
   }
 
-  static inline void uo_nn_value_backward(uo_nn_value *nn_value)
+  static inline void uo_nn_node_backward(uo_nn_node *nn_value)
   {
     if (nn_value->backward) nn_value->backward(nn_value);
   }
 
-  static inline void uo_nn_graph_backward(uo_nn_value **graph, size_t size)
+  static inline void uo_nn_graph_backward(uo_nn_node **graph, size_t size)
   {
     for (size_t i = 0; i < size - 1; ++i)
     {
-      uo_nn_value_zero_grad(graph[i]);
+      uo_nn_node_zero_grad(graph[i]);
     }
 
     while (size)
     {
-      uo_nn_value_backward(graph[--size]);
+      uo_nn_node_backward(graph[--size]);
     }
   }
 
-  static inline void uo_nn_graph_forward(uo_nn_value **graph, size_t size)
+  static inline void uo_nn_graph_forward(uo_nn_node **graph, size_t size)
   {
     for (size_t i = 0; i < size; ++i)
     {
-      uo_nn_value_forward(graph[i]);
+      uo_nn_node_forward(graph[i]);
     }
   }
 
-  static inline void uo_nn_graph_reset(uo_nn_value **graph, size_t size)
+  static inline void uo_nn_graph_reset(uo_nn_node **graph, size_t size)
   {
     for (size_t i = 0; i < size; ++i)
     {
-      uo_nn_value_reset(graph[i]);
+      uo_nn_node_reset(graph[i]);
     }
   }
 
-  void uo_print_nn_graph(FILE *const fp, uo_nn_value **graph, size_t size);
+  void uo_print_nn_graph(FILE *const fp, uo_nn_node **graph, size_t size);
 
-  uo_nn_value *uo_nn_value_parse(const char *op, char **ptr);
+  uo_nn_node *uo_nn_node_parse(const char *op_type, char **ptr);
 
-  uo_nn_value *uo_nn_value_op_matmul(uo_nn_value *a, uo_nn_value *b);
-  uo_nn_value *uo_nn_value_op_gemm_a_mask(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
-  uo_nn_value *uo_nn_value_op_gemm(uo_nn_value *a, uo_nn_value *b, float alpha, float beta, bool ta, bool tb);
-  uo_nn_value *uo_nn_value_op_add(uo_nn_value *a, uo_nn_value *b);
-  uo_nn_value *uo_nn_value_op_concat(int axis, size_t count, uo_nn_value **values);
-  uo_nn_value *uo_nn_value_op_relu(uo_nn_value *x);
-  uo_nn_value *uo_nn_value_op_tanh(uo_nn_value *x);
+  uo_nn_node *uo_nn_node_op_type_matmul(uo_nn_node *a, uo_nn_node *b);
+  uo_nn_node *uo_nn_node_op_gemm_a_mask(uo_nn_node *a, uo_nn_node *b, float alpha, float beta, bool ta, bool tb);
+  uo_nn_node *uo_nn_node_op_gemm(uo_nn_node *a, uo_nn_node *b, float alpha, float beta, bool ta, bool tb);
+  uo_nn_node *uo_nn_node_op_add(uo_nn_node *a, uo_nn_node *b);
+  uo_nn_node *uo_nn_node_op_concat(int axis, size_t count, uo_nn_node **values);
+  uo_nn_node *uo_nn_node_op_relu(uo_nn_node *x);
+  uo_nn_node *uo_nn_node_op_tanh(uo_nn_node *x);
 
-  float uo_nn_loss_mse(uo_nn_value *y_pred, float *y_true);
-  void uo_nn_loss_grad_mse(uo_nn_value *y_pred, float *y_true);
+  float uo_nn_loss_mse(uo_nn_node *y_pred, float *y_true);
+  void uo_nn_loss_grad_mse(uo_nn_node *y_pred, float *y_true);
 
-  uo_nn_adam_params *uo_nn_value_adam_params_create(uo_nn_value *value);
-  void uo_nn_value_update_adam(uo_nn_adam_params *params);
+  uo_nn_adam_params *uo_nn_node_adam_params_create(uo_nn_node *value);
+  void uo_nn_node_update_adam(uo_nn_adam_params *params);
 
 
 #ifdef __cplusplus
