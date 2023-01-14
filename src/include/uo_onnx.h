@@ -59,7 +59,7 @@ struct \
     // with the real components appearing in odd numbered positions,
     // and the corresponding imaginary component appearing in the
     // subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
-    // is encoded as [1.0, 2.0 ,3.0 ,4.0]
+    // is encoded as [1.0, 2.0, 3.0, 4.0]
     // When this field is present, the data_type field MUST be FLOAT or COMPLEX64.
     uo_arrayof(float) float_data;
 
@@ -86,7 +86,7 @@ struct \
     // with the real components appearing in odd numbered positions,
     // and the corresponding imaginary component appearing in the
     // subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
-    // is encoded as [1.0, 2.0 ,3.0 ,4.0]
+    // is encoded as [1.0, 2.0, 3.0, 4.0]
     // When this field is present, the data_type field MUST be DOUBLE or COMPLEX128
     uo_arrayof(double) double_data;
 
@@ -95,6 +95,19 @@ struct \
     // UINT32 or UINT64
     uo_arrayof(uint64_t) uint64_data;
   } uo_onnx_tensor_data;
+
+  // Defines a tensor shape. A dimension can be either an integer value
+  // or a symbolic variable. A symbolic variable represents an unknown
+  // dimension.
+  typedef struct uo_onnx_tensor_shape
+  {
+    uo_arrayof(struct
+    {
+      size_t dim_value;
+      char *dim_param;
+      char *denotation;
+    }) dim;
+  } uo_onnx_tensor_shape;
 
   // OK
   typedef struct uo_onnx_tensor
@@ -235,15 +248,19 @@ struct \
   } uo_onnx_attribute;
 
   // see: https://onnx.ai/onnx/api/classes.html#nodeproto
+
+  typedef struct uo_onnx_node uo_onnx_node;
+
+  // OK
   typedef struct uo_onnx_node
   {
     char *name;
     char *doc_string;
     char *op_type;
     char *domain;
-    uo_onnx_node **inputs;
-    uo_onnx_node **outputs;
-    uo_onnx_attribute **attributes;
+    uo_arrayof(uo_onnx_node *) inputs;
+    uo_arrayof(uo_onnx_node *) outputs;
+    uo_arrayof(uo_onnx_attribute *) attributes;
   } uo_onnx_node;
 
   // see: https://onnx.ai/onnx/api/classes.html#graphproto
@@ -258,22 +275,13 @@ struct \
     //size_t sparse_initializer_count;
     //uo_onnx_node **sparse_initializers;
 
-    uo_onnx_node **inputs;
+    uo_arrayof(uo_onnx_node *) inputs;
+    uo_arrayof(uo_onnx_node *) initializers;
+    uo_arrayof(uo_onnx_node *) outputs;
 
-    size_t initializer_count;
-    uo_onnx_node **initializers;
+    // The nodes in the graph, sorted topologically.
+    uo_arrayof(uo_onnx_node *) nodes;
 
-    size_t output_count;
-    uo_onnx_node **outputs;
-
-    size_t node_count;
-    uo_onnx_node **nodes;
-
-    size_t attribute_count;
-    uo_onnx_attribute **attributes;
-
-    size_t graph_size;
-    uo_onnx_node **graph;
   } uo_onnx_graph;
 
   uo_onnx_attribute *uo_onnx_helper_make_attribute(char *name, uo_onnx_attribute_type type, uo_onnx_attribute_value value);
