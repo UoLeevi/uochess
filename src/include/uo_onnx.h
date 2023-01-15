@@ -10,6 +10,7 @@ extern "C"
 #include <stdint.h>
 
   typedef struct uo_onnx_type uo_onnx_type;
+  typedef struct uo_onnx_graph uo_onnx_graph;
 
 #define uo_arrayof(type) \
 struct \
@@ -18,6 +19,7 @@ struct \
   size_t count;\
 }
 
+  // incorrect
   typedef enum uo_onnx_type_denotation
   {
     uo_onnx_MAP,
@@ -222,18 +224,18 @@ struct \
     float f;
     uint64_t i;
     char *s;
-    void *t;
-    void *g;
-    void *sparse_tensor;
-    void *tp;
+    uo_onnx_tensor *t;
+    uo_onnx_graph *g;
+    uo_onnx_tensor *sparse_tensor;
+    uo_onnx_type *tp;
 
     uo_arrayof(float) floats;
     uo_arrayof(uint64_t) ints;
     uo_arrayof(char *) strings;
-    void **tensors;
-    void *graphs;
-    void **sparse_tensors;
-    void **type_protos;
+    uo_arrayof(uo_onnx_tensor *) tensors;
+    uo_arrayof(uo_onnx_graph *) graphs;
+    uo_arrayof(uo_onnx_tensor *) sparse_tensors;
+    uo_arrayof(uo_onnx_type *) type_protos;
   } uo_onnx_attribute_value;
 
   // see: https://onnx.ai/onnx/api/classes.html#attributeproto
