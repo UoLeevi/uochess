@@ -260,10 +260,33 @@ struct \
     char *doc_string;
     char *op_type;
     char *domain;
-    uo_arrayof(uo_onnx_node *) inputs;
-    uo_arrayof(uo_onnx_node *) outputs;
+    uo_arrayof(char *) inputs;
+    uo_arrayof(char *) outputs;
     uo_arrayof(uo_onnx_attribute *) attributes;
   } uo_onnx_node;
+
+  typedef enum uo_onnx_graph_node_type
+  {
+    uo_onnx_graph_node_type_INPUT,
+    uo_onnx_graph_node_type_INITIALIZER,
+    uo_onnx_graph_node_type_NODE,
+  } uo_onnx_graph_node_type;
+
+  typedef struct uo_onnx_graph_node
+  {
+    char *name;
+    uo_onnx_graph_node_type type;
+    union
+    {
+      uo_onnx_valueinfo *valueinfo;
+      uo_onnx_valueinfo *node;
+    };
+    uo_onnx_tensor tensor;
+    uo_onnx_tensor grad;
+    uo_arrayof(uo_onnx_graph_node *) inputs;
+    uo_arrayof(uo_onnx_graph_node *) outputs;
+    uo_arrayof(uo_onnx_attribute *) attributes;
+  } uo_onnx_graph_node;
 
   // see: https://onnx.ai/onnx/api/classes.html#graphproto
   typedef struct uo_onnx_graph
