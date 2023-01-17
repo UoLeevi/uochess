@@ -86,5 +86,55 @@ uo_onnx_attribute *uo_onnx_helper_make_attribute(char *name, uo_onnx_attribute_t
 
 uo_onnx_node *uo_onnx_helper_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes)
 {
+  size_t input_count = 0;
+  while (inputs[input_count])
+  {
+    ++input_count;
+  }
+  size_t inputs_size = sizeof(char *) * input_count;
 
+  size_t output_count = 0;
+  while (outputs[output_count])
+  {
+    ++output_count;
+  }
+  size_t outputs_size = sizeof(char *) * output_count;
+
+  size_t attribute_count = 0;
+  while (attributes[attribute_count])
+  {
+    ++attribute_count;
+  }
+  size_t attributes_size = sizeof(uo_onnx_attribute *) * attribute_count;
+
+  size_t op_type_len = strlen(op_type);
+  size_t name_len = strlen(name);
+  char *mem = calloc(1, sizeof(uo_onnx_node) + inputs_size + outputs_size + attributes_size + op_type_len + 1 + name_len + 1);
+
+  uo_onnx_node *node = (void *)mem;
+
+  mem += sizeof(uo_onnx_node);
+  node->inputs.items = mem;
+  node->inputs.count = input_count;
+  memcpy(mem, inputs, inputs_size);
+
+  mem += inputs_size;
+  node->outputs.items = mem;
+  node->outputs.count = output_count;
+  memcpy(mem, outputs, outputs_size);
+
+  mem += outputs_size;
+  node->attributes.items = mem;
+  node->attributes.count = attribute_count;
+  memcpy(mem, attributes, attributes_size);
+
+  mem += attributes_size;
+  node->op_type = mem;
+  memcpy(mem, op_type, op_type_len);
+
+  mem += op_type_len + 1;
+  node->name = mem;
+  memcpy(mem, name, name_len);
+
+  return node;
 }
