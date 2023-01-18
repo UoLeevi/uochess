@@ -309,9 +309,9 @@ struct \
 
   } uo_onnx_graph;
 
-  uo_onnx_attribute *uo_onnx_helper_make_attribute(char *name, uo_onnx_attribute_type type, uo_onnx_attribute_value value);
+  uo_onnx_attribute *uo_onnx_make_attribute(char *name, uo_onnx_attribute_type type, uo_onnx_attribute_value value);
 
-  uo_onnx_node *uo_onnx_helper_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes);
+  uo_onnx_node *uo_onnx_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes);
 
 
 #ifdef __cplusplus

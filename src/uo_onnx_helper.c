@@ -1,9 +1,9 @@
-#include "uo_onnx.h"
+#include "uo_onnx_helper.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-uo_onnx_attribute *uo_onnx_helper_make_attribute(char *name, uo_onnx_attribute_type type, uo_onnx_attribute_value value)
+uo_onnx_attribute *uo_onnx_make_attribute(char *name, uo_onnx_attribute_type type, uo_onnx_attribute_value value)
 {
   uo_onnx_attribute *attribute;
   size_t name_len = strlen(name);
@@ -84,7 +84,7 @@ uo_onnx_attribute *uo_onnx_helper_make_attribute(char *name, uo_onnx_attribute_t
   }
 }
 
-uo_onnx_node *uo_onnx_helper_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes)
+uo_onnx_node *uo_onnx_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes)
 {
   size_t input_count = 0;
   while (inputs[input_count])
