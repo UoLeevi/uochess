@@ -12,7 +12,7 @@ extern "C"
 
   uo_onnx_node *uo_onnx_make_node(const char *op_type, const char **inputs, const char **outputs, const char *name, uo_onnx_attribute **attributes);
 
-  uo_onnx_graph *uo_onnx_make_graph(uo_onnx_node **nodes, const char *name, uo_onnx_valueinfo **inputs, uo_onnx_valueinfo **outputs, uo_onnx_tensor **initializer);
+  uo_onnx_graph *uo_onnx_make_graph(uo_onnx_node **nodes, const char *name, uo_onnx_valueinfo **inputs, uo_onnx_valueinfo **outputs, uo_onnx_tensor **initializers);
 
 #ifdef __cplusplus
 }

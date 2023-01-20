@@ -139,3 +139,67 @@ uo_onnx_node *uo_onnx_make_node(const char *op_type, const char **inputs, const 
   return node;
 }
 
+uo_onnx_graph *uo_onnx_make_graph(uo_onnx_node **nodes, const char *name, uo_onnx_valueinfo **inputs, uo_onnx_valueinfo **outputs, uo_onnx_tensor **initializers)
+{
+  size_t node_count = 0;
+  while (nodes[node_count])
+  {
+    ++node_count;
+  }
+  size_t nodes_size = sizeof(uo_onnx_node *) * node_count;
+
+  size_t input_count = 0;
+  while (inputs[input_count])
+  {
+    ++input_count;
+  }
+  size_t inputs_size = sizeof(uo_onnx_valueinfo *) * input_count;
+
+  size_t output_count = 0;
+  while (outputs[output_count])
+  {
+    ++output_count;
+  }
+  size_t outputs_size = sizeof(uo_onnx_valueinfo *) * output_count;
+
+  size_t initializer_count = 0;
+  while (initializers[initializer_count])
+  {
+    ++initializer_count;
+  }
+  size_t initializers_size = sizeof(uo_onnx_valueinfo *) * initializer_count;
+
+  size_t name_len = strlen(name);
+  char *mem = calloc(1, sizeof(uo_onnx_graph) + nodes_size + inputs_size + outputs_size + initializers_size + name_len + 1);
+
+  uo_onnx_graph *graph = (void *)mem;
+
+  mem += sizeof(uo_onnx_node);
+  graph->nodes.items = mem;
+  graph->nodes.count = input_count;
+  memcpy(mem, nodes, inputs_size);
+
+  graph->inputs.items = mem;
+  graph->inputs.count = input_count;
+  memcpy(mem, inputs, inputs_size);
+
+  mem += inputs_size;
+  graph->outputs.items = mem;
+  graph->outputs.count = output_count;
+  memcpy(mem, outputs, outputs_size);
+
+  mem += outputs_size;
+  graph->initializers.items = mem;
+  graph->initializers.count = initializer_count;
+  memcpy(mem, initializers, initializers_size);
+
+  mem += initializers_size;
+
+  graph->name = mem;
+  memcpy(mem, name, name_len);
+
+  // TODO:
+  // - topologically sort nodes and make graph structure to be better suitable for execution
+
+  return graph;
+}
