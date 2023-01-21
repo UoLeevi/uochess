@@ -8,6 +8,7 @@ extern "C"
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
   typedef struct uo_onnx_type uo_onnx_type;
   typedef struct uo_onnx_graph uo_onnx_graph;
@@ -272,8 +273,15 @@ struct \
     uo_onnx_graph_node_type_NODE,
   } uo_onnx_graph_node_type;
 
+  typedef struct uo_onnx_graph_node uo_onnx_graph_node;
+
+  typedef void (uo_onnx_graph_node_function)(uo_onnx_graph_node *node);
+  typedef void (uo_onnx_graph_node_print_function)(uo_onnx_graph_node **node, uo_onnx_graph_node **graph, FILE *const fp);
+  typedef void (uo_onnx_graph_node_parse_function)(uo_onnx_graph_node **node, uo_onnx_graph_node **graph, const char **ptr);
+
   typedef struct uo_onnx_graph_node
   {
+    const char *name;
     char *name;
     uo_onnx_graph_node_type type;
     union
@@ -281,10 +289,13 @@ struct \
       uo_onnx_valueinfo *valueinfo;
       uo_onnx_valueinfo *node;
     };
-    uo_onnx_tensor tensor;
-    uo_onnx_tensor grad;
+    uo_onnx_tensor *tensor;
+    uo_onnx_tensor_data grad;
+    uo_onnx_graph_node_function *forward;
+    uo_onnx_graph_node_function *backward;
+    uo_onnx_graph_node_function *reset;
+    uo_onnx_graph_node_print_function *print;
     uo_arrayof(uo_onnx_graph_node *) inputs;
-    uo_arrayof(uo_onnx_graph_node *) outputs;
     uo_arrayof(uo_onnx_attribute *) attributes;
   } uo_onnx_graph_node;
 
