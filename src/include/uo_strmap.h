@@ -16,7 +16,7 @@ extern "C"
 
   typedef struct uo_strmap_entry {
     char *key;
-    size_t value;
+    void *value;
     size_t is_occupied;
     size_t is_deleted;
   } uo_strmap_entry;
@@ -90,6 +90,12 @@ extern "C"
     return strmap;
   }
 
+  static inline void uo_strmap_free(uo_strmap *strmap)
+  {
+    free(strmap->table);
+    free(strmap);
+  }
+
   static inline void uo_strmap_rehash(uo_strmap *strmap)
   {
     size_t old_size = strmap->size;
@@ -118,7 +124,7 @@ extern "C"
     free(old_table);
   }
 
-  static inline void uo_strmap_add(uo_strmap *strmap, char *key, size_t value)
+  static inline void uo_strmap_add(uo_strmap *strmap, char *key, void *value)
   {
     if (((float)strmap->occupied + strmap->deleted) / strmap->size >= UO_STRMAP_LOAD_FACTOR)
     {
@@ -150,7 +156,7 @@ extern "C"
     strmap->occupied++;
   }
 
-  static inline size_t uo_strmap_get(uo_strmap *strmap, char *key)
+  static inline void *uo_strmap_get(uo_strmap *strmap, char *key)
   {
     size_t index = uo_strmap_hash(strmap, key);
     while (strmap->table[index].is_occupied)
@@ -168,7 +174,7 @@ extern "C"
 
       index = (index + 1) % strmap->size;
     }
-    return -1;
+    return NULL;
   }
 
   static inline void uo_strmap_remove(uo_strmap *strmap, char *key)
