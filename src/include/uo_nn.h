@@ -10,6 +10,8 @@ extern "C"
 #include "uo_math.h"
 #include "uo_position.h"
 
+#include <tensorflow/c/c_api.h>
+
   typedef struct uo_nn
   {
     uo_nn_node **graph;

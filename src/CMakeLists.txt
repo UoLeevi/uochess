@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.21.0)
 
 find_package(Threads)
+find_package(TensorFlow REQUIRED)
 
 add_executable(uochess
     uochess.c
@@ -27,7 +28,8 @@ target_include_directories(uochess
 
 target_link_libraries(uochess
     PRIVATE
-        ${CMAKE_THREAD_LIBS_INIT})
+        ${CMAKE_THREAD_LIBS_INIT}
+        TensorFlow::TensorFlow)
 
 target_compile_features(uochess
     PUBLIC
