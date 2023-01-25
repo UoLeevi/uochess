@@ -6,7 +6,8 @@
       "UO_OPT_NNDIR": "nn",
       "UO_OPT_EVALFILE": "nn/nn-test-eval.nnuo",
       "UO_OPT_THREADS": "4",
-      "UO_OPT_HASH": "256"
+      "UO_OPT_HASH": "256",
+      "TensorFlow_DIR": "C:/Users/uotin/Downloads/libtensorflow-gpu-windows-x86_64-2.10.0"
     }
   ],
   "configurations": [
@@ -50,6 +51,11 @@
           "name": "CMAKE_C_COMPILER",
           "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
           "type": "FILEPATH"
+        },
+        {
+          "name": "TensorFlow_DIR",
+          "value": "C:\\Users\\uotin\\Downloads\\libtensorflow-gpu-windows-x86_64-2.10.0",
+          "type": "FILEPATH"
         }
       ],
       "inheritEnvironments": []
@@ -72,6 +78,11 @@
         {
           "name": "CMAKE_C_COMPILER",
           "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "TensorFlow_DIR",
+          "value": "C:\\Users\\uotin\\Downloads\\libtensorflow-gpu-windows-x86_64-2.10.0",
           "type": "FILEPATH"
         }
       ],
