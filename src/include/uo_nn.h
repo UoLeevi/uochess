@@ -10,20 +10,7 @@ extern "C"
 #include "uo_math.h"
 #include "uo_position.h"
 
-#include <tensorflow/c/c_api.h>
-
-  typedef struct uo_nn
-  {
-    uo_nn_node **graph;
-    size_t graph_size;
-    uo_nn_node **inputs;
-    size_t input_count;
-    uo_nn_node **outputs;
-    size_t output_count;
-    uo_nn_adam_params **initializers;
-    size_t initializer_count;
-    void *state;
-  } uo_nn;
+  typedef struct uo_nn uo_nn;
 
   typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true);
   typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error, float learning_rate);
@@ -40,28 +27,28 @@ extern "C"
 
   void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
-  static inline void uo_nn_update_initializers(uo_nn *nn)
-  {
-    for (size_t i = 0; i < nn->initializer_count; ++i)
-    {
-      uo_nn_node_update_adam(nn->initializers[i]);
-    }
-  }
+  //static inline void uo_nn_update_initializers(uo_nn *nn)
+  //{
+  //  for (size_t i = 0; i < nn->initializer_count; ++i)
+  //  {
+  //    uo_nn_node_update_adam(nn->initializers[i]);
+  //  }
+  //}
 
-  static inline void uo_nn_reset(uo_nn *nn)
-  {
-    uo_nn_graph_reset(nn->graph, nn->graph_size);
-  }
+  //static inline void uo_nn_reset(uo_nn *nn)
+  //{
+  //  uo_nn_graph_reset(nn->graph, nn->graph_size);
+  //}
 
-  static inline void uo_nn_forward(uo_nn *nn)
-  {
-    uo_nn_graph_forward(nn->graph, nn->graph_size);
-  }
+  //static inline void uo_nn_forward(uo_nn *nn)
+  //{
+  //  uo_nn_graph_forward(nn->graph, nn->graph_size);
+  //}
 
-  static inline void uo_nn_backward(uo_nn *nn)
-  {
-    uo_nn_graph_backward(nn->graph, nn->graph_size);
-  }
+  //static inline void uo_nn_backward(uo_nn *nn)
+  //{
+  //  uo_nn_graph_backward(nn->graph, nn->graph_size);
+  //}
 
 #ifdef __cplusplus
 }

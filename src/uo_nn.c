@@ -5,6 +5,8 @@
 #include "uo_util.h"
 #include "uo_engine.h"
 
+#include <tensorflow/c/c_api.h>
+
 #include <stdbool.h>
 #include <math.h>
 #include <stdio.h>
@@ -22,6 +24,21 @@
 #define uo_score_centipawn_to_q_score(cp) (atanf(score / 111.714640912f) / 1.5620688421f)
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
+
+typedef struct uo_nn
+{
+  uo_nn_node **graph;
+  size_t graph_size;
+  uo_nn_node **inputs;
+  size_t input_count;
+  uo_nn_node **outputs;
+  size_t output_count;
+  uo_nn_adam_params **initializers;
+  size_t initializer_count;
+  void *state;
+} uo_nn;
+
+static TF_Library* tf_library;
 
 void uo_print_nn(FILE *const fp, uo_nn *nn)
 {
@@ -606,32 +623,40 @@ void uo_nn_save_to_file(uo_nn *nn, char *filepath)
 //  return uo_score_q_score_to_centipawn(*nn->y);
 //  //return uo_score_win_prob_to_centipawn(*nn->y);
 //}
-//
-//uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
-//{
-//  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-//  if (!file_mmap) return NULL;
-//
-//  if (nn == NULL)
-//  {
-//    nn = malloc(sizeof * nn);
-//  }
-//
-//
-//
-//  
-//  uo_file_mmap_close(file_mmap);
-//
-//  return nn;
-//}
-//
+
+uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
+{
+  if (!tf_library)
+  {
+    char *library_filename = getenv("TensorFlow_LIBFILE");
+
+    TF_Status* status = TF_NewStatus();
+    tf_library = TF_LoadLibrary(library_filename, status);
+  }
+
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+  if (!file_mmap) return NULL;
+
+  if (nn == NULL)
+  {
+    nn = malloc(sizeof * nn);
+  }
+
+
+
+
+  uo_file_mmap_close(file_mmap);
+
+  return nn;
+}
+
 //typedef struct uo_nn_eval_state
 //{
 //  uo_file_mmap *file_mmap;
 //  char *buf;
 //  size_t buf_size;
 //} uo_nn_eval_state;
-//
+
 //void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true)
 //{
 //  size_t batch_size = (*nn->inputs)->tensor->dim_sizes[0];
@@ -712,7 +737,7 @@ void uo_nn_save_to_file(uo_nn *nn, char *filepath)
 //
 //  //assert(memcmp(nn->X, nn2.X, nn2.batch_size * nn2.n_X * sizeof(float)) == 0);
 //}
-//
+
 //void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
 //{
 //  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
@@ -720,22 +745,22 @@ void uo_nn_save_to_file(uo_nn *nn, char *filepath)
 
 bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size)
 {
-  //void *allocated_mem[3];
-  //size_t allocated_mem_count = 0;
+  void *allocated_mem[3];
+  size_t allocated_mem_count = 0;
 
-  //if (!dataset_filepath)
-  //{
-  //  if (!*engine_options.dataset_dir) return false;
-  //  dataset_filepath = uo_aprintf("%s/dataset_depth_6.csv", engine_options.dataset_dir);
-  //  allocated_mem[allocated_mem_count++] = dataset_filepath;
-  //}
+  if (!dataset_filepath)
+  {
+    if (!*engine_options.dataset_dir) return false;
+    dataset_filepath = uo_aprintf("%s/dataset_depth_6.csv", engine_options.dataset_dir);
+    allocated_mem[allocated_mem_count++] = dataset_filepath;
+  }
 
-  //uo_file_mmap *file_mmap = uo_file_mmap_open_read(dataset_filepath);
-  //if (!file_mmap)
-  //{
-  //  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-  //  return false;
-  //}
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(dataset_filepath);
+  if (!file_mmap)
+  {
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
 
   //uo_rand_init(time(NULL));
 
@@ -926,22 +951,23 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 //    X->data.s[j * X->dim_sizes[1] + 1] = x1;
 //  }
 //}
-//
-//void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error, float learning_rate)
-//{
-//  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
-//}
+
+void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error, float learning_rate)
+{
+  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
+}
 
 bool uo_test_nn_train_xor(char *test_data_dir)
 {
-  //if (!test_data_dir) return false;
+  if (!test_data_dir) return false;
 
-  ////char *filepath = buf;
+  void *allocated_mem[1];
+  size_t allocated_mem_count = 0;
 
-  ////strcpy(filepath, test_data_dir);
-  ////strcpy(filepath + strlen(test_data_dir), "/nn-test-xor.nnuo");
+  char *filepath = uo_aprintf("%s/nn-test-xor.nnuo", test_data_dir);
+  allocated_mem[allocated_mem_count++] = filepath;
 
-  //uo_rand_init(time(NULL));
+  uo_rand_init(time(NULL));
 
   //size_t batch_size = 256;
 

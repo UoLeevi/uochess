@@ -21,7 +21,7 @@ add_executable(uochess
 
 target_include_directories(uochess
     PRIVATE
-        include
+        "include"
         "${TensorFlow_DIR}/include")
 
 target_link_libraries(uochess

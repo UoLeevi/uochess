@@ -64,7 +64,7 @@ extern "C"
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
-    //uo_nn *nn;
+    uo_nn *nn;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {

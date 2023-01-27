@@ -286,7 +286,7 @@ void uo_engine_init()
 
     if (eval_filename)
     {
-      //thread->nn = uo_nn_read_from_file(NULL, eval_filename, 1);
+      thread->nn = uo_nn_read_from_file(NULL, eval_filename, 1);
     }
 
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
