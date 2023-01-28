@@ -38,8 +38,6 @@ typedef struct uo_nn
   void *state;
 } uo_nn;
 
-static TF_Library* tf_library;
-
 void uo_print_nn(FILE *const fp, uo_nn *nn)
 {
   fprintf(fp,
@@ -626,14 +624,6 @@ void uo_nn_save_to_file(uo_nn *nn, char *filepath)
 
 uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
 {
-  if (!tf_library)
-  {
-    char *library_filename = getenv("TensorFlow_LIBFILE");
-
-    TF_Status* status = TF_NewStatus();
-    tf_library = TF_LoadLibrary(library_filename, status);
-  }
-
   uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
   if (!file_mmap) return NULL;
 

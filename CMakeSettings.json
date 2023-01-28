@@ -6,9 +6,7 @@
       "UO_OPT_NNDIR": "nn",
       "UO_OPT_EVALFILE": "nn/nn-test-eval.nnuo",
       "UO_OPT_THREADS": "4",
-      "UO_OPT_HASH": "256",
-      "TensorFlow_DIR": "C:/Users/uotin/Downloads/libtensorflow-gpu-windows-x86_64-2.10.0",
-      "TensorFlow_LIBFILE": "C:/Users/uotin/Downloads/libtensorflow-gpu-windows-x86_64-2.10.0/lib/tensorflow.dll"
+      "UO_OPT_HASH": "256"
     }
   ],
   "configurations": [
