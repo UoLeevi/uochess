@@ -36,6 +36,13 @@ typedef struct uo_nn
   uo_nn_adam_params **initializers;
   size_t initializer_count;
   void *state;
+
+  struct
+  {
+    TF_SessionOptions *options;
+    TF_Session *session;
+    TF_Graph *graph;
+  } tf;
 } uo_nn;
 
 void uo_print_nn(FILE *const fp, uo_nn *nn)
@@ -959,11 +966,21 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_rand_init(time(NULL));
 
-  //size_t batch_size = 256;
+  size_t batch_size = 256;
 
-  //// Input
-  //uo_tensor *X = uo_tensor_create('s', 2, (size_t[]) { batch_size, 2 });
-  //uo_nn_node *x = uo_nn_node_create(X, NULL, 0, 0);
+  uo_nn nn;
+  nn.tf.options = TF_NewSessionOptions();
+  nn.tf.graph = TF_NewGraph();
+  nn.tf.session = TF_NewSession(nn.tf.graph, nn.tf.session, NULL);
+
+  // Input
+  TF_OperationDescription *op_desc = TF_NewOperation(nn.tf.graph, "MatMul", "matmul");
+
+  TF_Input x = { op_desc, 0 };
+  TF_Input w = { op_desc, 1 };
+  TF_Output z = { op_desc, 0 };
+
+  uo_tensor *X = 
 
   //// Layer 1
   //uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 2, 2 });
