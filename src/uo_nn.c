@@ -969,18 +969,15 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   size_t batch_size = 256;
 
   uo_nn nn;
-  nn.tf.options = TF_NewSessionOptions();
-  nn.tf.graph = TF_NewGraph();
-  nn.tf.session = TF_NewSession(nn.tf.graph, nn.tf.session, NULL);
 
-  // Input
-  TF_OperationDescription *op_desc = TF_NewOperation(nn.tf.graph, "MatMul", "matmul");
+  // Initialize a new TensorFlow session
+  TF_SessionOptions* options = nn.tf.options = TF_NewSessionOptions();
+  TF_Graph *graph = nn.tf.graph = TF_NewGraph();
+  TF_Session* session = nn.tf.session = TF_NewSession(graph, session, NULL);
 
-  TF_Input x = { op_desc, 0 };
-  TF_Input w = { op_desc, 1 };
-  TF_Output z = { op_desc, 0 };
-
-  uo_tensor *X = 
+  // TODO:
+  // Model needs to be defined using Python API and saved to a file.
+  // Here we would load that model and train it.
 
   //// Layer 1
   //uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 2, 2 });
