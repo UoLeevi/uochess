@@ -39,9 +39,9 @@ typedef struct uo_nn
 
   struct
   {
-    TF_SessionOptions *options;
     TF_Session *session;
     TF_Graph *graph;
+    TF_Status *status;
   } tf;
 } uo_nn;
 
@@ -970,10 +970,30 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn nn;
 
-  // Initialize a new TensorFlow session
-  TF_SessionOptions* options = nn.tf.options = TF_NewSessionOptions();
-  TF_Graph *graph = nn.tf.graph = TF_NewGraph();
-  TF_Session* session = nn.tf.session = TF_NewSession(graph, session, NULL);
+  {
+    // Initialize a new TensorFlow session
+    TF_Graph *graph = nn.tf.graph = TF_NewGraph();
+    TF_SessionOptions *options = TF_NewSessionOptions();
+    nn.tf.status = TF_NewStatus();
+    TF_Session *session = nn.tf.session = TF_NewSession(graph, options, nn.tf.status);
+    TF_DeleteSessionOptions(options);
+    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+  }
+
+  {
+    // Import graph
+    uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+    if (!file_mmap) return false;
+    TF_Buffer *graph_def = TF_NewBufferFromString(file_mmap->ptr, file_mmap->size);
+    uo_file_mmap_close(file_mmap);
+    if (graph_def == NULL) return 0;
+    TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
+    TF_GraphImportGraphDef(nn.tf.graph, graph_def, options, nn.tf.status);
+    TF_DeleteImportGraphDefOptions(options);
+    TF_DeleteBuffer(graph_def);
+    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+  }
+
 
   // TODO:
   // Model needs to be defined using Python API and saved to a file.
