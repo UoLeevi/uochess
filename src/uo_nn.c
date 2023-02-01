@@ -42,6 +42,17 @@ typedef struct uo_nn
     TF_Session *session;
     TF_Graph *graph;
     TF_Status *status;
+
+    TF_Output input;
+    TF_Output target;
+    TF_Output output;
+
+    TF_Operation *init_op;
+    TF_Operation *train_op;
+    TF_Operation *save_op;
+    TF_Operation *restore_op;
+
+    TF_Output checkpoint_file;
   } tf;
 } uo_nn;
 
@@ -970,6 +981,8 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn nn;
 
+  // see: https://gist.github.com/asimshankar/7c9f8a9b04323e93bb217109da8c7ad2
+
   {
     // Initialize a new TensorFlow session
     TF_Graph *graph = nn.tf.graph = TF_NewGraph();
@@ -994,63 +1007,38 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     if (TF_GetCode(nn.tf.status) != TF_OK) return false;
   }
 
+  {
+    // Handles to the interesting operations in the graph.
+    nn.tf.input.oper = TF_GraphOperationByName(nn.tf.graph, "input");
+    nn.tf.input.index = 0;
+    nn.tf.target.oper = TF_GraphOperationByName(nn.tf.graph, "target");
+    nn.tf.target.index = 0;
+    nn.tf.output.oper = TF_GraphOperationByName(nn.tf.graph, "output");
+    nn.tf.output.index = 0;
 
-  // TODO:
-  // Model needs to be defined using Python API and saved to a file.
-  // Here we would load that model and train it.
+    nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
+    nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
+    nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
+    nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
 
-  //// Layer 1
-  //uo_tensor *W1 = uo_tensor_create('s', 2, (size_t[]) { 2, 2 });
-  //uo_tensor_set_rand_s(W1, 0, 0, W1->element_count, -0.5, 0.5);
-  //uo_nn_node *w1 = uo_nn_node_create(W1, NULL, 0, 0);
-  //uo_nn_adam_params *w1_adam = uo_nn_node_adam_params_create(w1);
+    nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
+    nn.tf.checkpoint_file.index = 0;
+  }
 
-  //uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, 2 });
-  //uo_tensor_set_rand_s(B1, 0, 0, B1->element_count, -0.5, 0.5);
-  //uo_nn_node *b1 = uo_nn_node_create(B1, NULL, 0, 0);
-  //uo_nn_adam_params *b1_adam = uo_nn_node_adam_params_create(b1);
+  {
+    // Initialize model
+    TF_SessionRun(nn.tf.session, NULL,
+      /* No inputs */
+      NULL, NULL, 0,
+      /* No outputs */
+      NULL, NULL, 0,
+      /* Just the init operation */
+      nn.tf.init_op, 1,
+      /* No metadata */
+      NULL, nn.tf.status);
 
-  //uo_nn_node *xw1 = uo_nn_node_op_matmul(x, w1);
-  //uo_nn_node *z1 = uo_nn_node_op_add(xw1, b1);
-  //uo_nn_node *a1 = uo_nn_node_op_tanh(z1);
-
-  //// Layer 2
-  //uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { 2, 1 });
-  //uo_tensor_set_rand_s(W2, 0, 0, W2->element_count, -0.5, 0.5);
-  //uo_nn_node *w2 = uo_nn_node_create(W2, NULL, 0, 0);
-  //uo_nn_adam_params *w2_adam = uo_nn_node_adam_params_create(w2);
-
-  //uo_tensor *B2 = uo_tensor_create('s', 2, (size_t[]) { 1, 1 });
-  //uo_tensor_set_rand_s(B2, 0, 0, B2->element_count, -0.5, 0.5);
-  //uo_nn_node *b2 = uo_nn_node_create(B2, NULL, 0, 0);
-  //uo_nn_adam_params *b2_adam = uo_nn_node_adam_params_create(b2);
-
-  //uo_nn_node *xw2 = uo_nn_node_op_matmul(a1, w2);
-  //uo_nn_node *z2 = uo_nn_node_op_add(xw2, b2);
-  //uo_nn_node *a2 = uo_nn_node_op_tanh(z2);
-
-  //uo_nn_node *y_pred = a2;
-
-  //uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
-
-  //size_t graph_size = 20; // max size
-  //uo_nn_node **graph = uo_nn_node_create_graph(y_pred, &graph_size);
-
-  //uo_nn nn = {
-  //  .graph = graph,
-  //  .graph_size = graph_size,
-  //  .inputs = (uo_tensor * []) { X },
-  //  .input_count = 1,
-  //  .outputs = (uo_nn_node * []) { y_pred },
-  //  .output_count = 1,
-  //  .initializers = (uo_nn_adam_params * []) {
-  //    b2_adam,
-  //    w2_adam,
-  //    b1_adam,
-  //    w1_adam
-  //  },
-  //  .initializer_count = 4
-  //};
+    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+  }
 
   //uo_nn_reset(&nn);
   //uo_nn_select_batch_test_xor(&nn, 0, y_true);
