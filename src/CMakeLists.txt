@@ -56,6 +56,10 @@ add_custom_target(copy-runtime-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/nn" "${CMAKE_BINARY_DIR}/bin/nn"
     DEPENDS uochess)
 
+add_custom_command(TARGET uochess
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy "${TensorFlow_DIR}/lib/tensorflow.dll" "${CMAKE_BINARY_DIR}/bin/")
+
 add_test(NAME "Test all"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
 

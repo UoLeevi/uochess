@@ -47,12 +47,12 @@ typedef struct uo_nn
     TF_Output target;
     TF_Output output;
 
-    TF_Operation *init_op;
-    TF_Operation *train_op;
-    TF_Operation *save_op;
-    TF_Operation *restore_op;
+    //TF_Operation *init_op;
+    //TF_Operation *train_op;
+    //TF_Operation *save_op;
+    //TF_Operation *restore_op;
 
-    TF_Output checkpoint_file;
+    //TF_Output checkpoint_file;
   } tf;
 } uo_nn;
 
@@ -972,7 +972,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   void *allocated_mem[1];
   size_t allocated_mem_count = 0;
 
-  char *filepath = uo_aprintf("%s/nn-test-xor.nnuo", test_data_dir);
+  char *filepath = uo_aprintf("%s/model_xor.json", engine_options.nn_dir);
   allocated_mem[allocated_mem_count++] = filepath;
 
   uo_rand_init(time(NULL));
@@ -1016,28 +1016,28 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     nn.tf.output.oper = TF_GraphOperationByName(nn.tf.graph, "output");
     nn.tf.output.index = 0;
 
-    nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
-    nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
-    nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
-    nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
+    //nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
+    //nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
+    //nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
+    //nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
 
-    nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
-    nn.tf.checkpoint_file.index = 0;
+    //nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
+    //nn.tf.checkpoint_file.index = 0;
   }
 
   {
-    // Initialize model
-    TF_SessionRun(nn.tf.session, NULL,
-      /* No inputs */
-      NULL, NULL, 0,
-      /* No outputs */
-      NULL, NULL, 0,
-      /* Just the init operation */
-      nn.tf.init_op, 1,
-      /* No metadata */
-      NULL, nn.tf.status);
+    //// Initialize model
+    //TF_SessionRun(nn.tf.session, NULL,
+    //  /* No inputs */
+    //  NULL, NULL, 0,
+    //  /* No outputs */
+    //  NULL, NULL, 0,
+    //  /* Just the init operation */
+    //  nn.tf.init_op, 1,
+    //  /* No metadata */
+    //  NULL, nn.tf.status);
 
-    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+    //if (TF_GetCode(nn.tf.status) != TF_OK) return false;
   }
 
   //uo_nn_reset(&nn);
