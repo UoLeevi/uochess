@@ -72,6 +72,9 @@ add_test(NAME "Test matmul"
 add_test(NAME "Test nn_train_xor"
     COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train_xor)
 
+set_tests_properties("Test nn_train_xor"
+    PROPERTIES ENVIRONMENT "UO_OPT_NNDIR=nn")
+
 install(DIRECTORY conf/
     DESTINATION bin)
 
