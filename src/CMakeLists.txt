@@ -61,16 +61,20 @@ add_custom_command(TARGET uochess
   COMMAND ${CMAKE_COMMAND} -E copy "${TensorFlow_DIR}/lib/tensorflow.dll" "${CMAKE_BINARY_DIR}/bin/")
 
 add_test(NAME "Test all"
-    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data)
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 add_test(NAME "Test move_generation"
-    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation)
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 add_test(NAME "Test matmul"
-    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul)
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 add_test(NAME "Test nn_train_xor"
-    COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train_xor)
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname nn_train_xor
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 set_tests_properties("Test nn_train_xor"
     PROPERTIES ENVIRONMENT "UO_OPT_NNDIR=nn")
