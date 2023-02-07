@@ -972,8 +972,8 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   void *allocated_mem[1];
   size_t allocated_mem_count = 0;
 
-  char *filepath = uo_aprintf("%s/model_xor.json", engine_options.nn_dir);
-  allocated_mem[allocated_mem_count++] = filepath;
+  char *model_dirpath = uo_aprintf("%s/model_xor", engine_options.nn_dir);
+  allocated_mem[allocated_mem_count++] = model_dirpath;
 
   uo_rand_init(time(NULL));
 
@@ -981,49 +981,55 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   uo_nn nn;
 
-  // see: https://gist.github.com/asimshankar/7c9f8a9b04323e93bb217109da8c7ad2
+  TF_SessionOptions *options = TF_NewSessionOptions();
+  nn.tf.status = TF_NewStatus();
+  TF_Session *session = nn.tf.session = TF_LoadSessionFromSavedModel(options, NULL, model_dirpath, NULL, 0, NULL, NULL, nn.tf.status);
+  TF_DeleteSessionOptions(options);
+  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
 
-  {
-    // Initialize a new TensorFlow session
-    TF_Graph *graph = nn.tf.graph = TF_NewGraph();
-    TF_SessionOptions *options = TF_NewSessionOptions();
-    nn.tf.status = TF_NewStatus();
-    TF_Session *session = nn.tf.session = TF_NewSession(graph, options, nn.tf.status);
-    TF_DeleteSessionOptions(options);
-    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-  }
+  //// see: https://gist.github.com/asimshankar/7c9f8a9b04323e93bb217109da8c7ad2
 
-  {
-    // Import graph
-    uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-    if (!file_mmap) return false;
-    TF_Buffer *graph_def = TF_NewBufferFromString(file_mmap->ptr, file_mmap->size);
-    uo_file_mmap_close(file_mmap);
-    if (graph_def == NULL) return 0;
-    TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
-    TF_GraphImportGraphDef(nn.tf.graph, graph_def, options, nn.tf.status);
-    TF_DeleteImportGraphDefOptions(options);
-    TF_DeleteBuffer(graph_def);
-    if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-  }
+  //{
+  //  // Initialize a new TensorFlow session
+  //  TF_Graph *graph = nn.tf.graph = TF_NewGraph();
+  //  TF_SessionOptions *options = TF_NewSessionOptions();
+  //  nn.tf.status = TF_NewStatus();
+  //  TF_Session *session = nn.tf.session = TF_NewSession(graph, options, nn.tf.status);
+  //  TF_DeleteSessionOptions(options);
+  //  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+  //}
 
-  {
-    // Handles to the interesting operations in the graph.
-    nn.tf.input.oper = TF_GraphOperationByName(nn.tf.graph, "input");
-    nn.tf.input.index = 0;
-    nn.tf.target.oper = TF_GraphOperationByName(nn.tf.graph, "target");
-    nn.tf.target.index = 0;
-    nn.tf.output.oper = TF_GraphOperationByName(nn.tf.graph, "output");
-    nn.tf.output.index = 0;
+  //{
+  //  // Import graph
+  //  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+  //  if (!file_mmap) return false;
+  //  TF_Buffer *graph_def = TF_NewBufferFromString(file_mmap->ptr, file_mmap->size);
+  //  uo_file_mmap_close(file_mmap);
+  //  if (graph_def == NULL) return 0;
+  //  TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
+  //  TF_GraphImportGraphDef(nn.tf.graph, graph_def, options, nn.tf.status);
+  //  TF_DeleteImportGraphDefOptions(options);
+  //  TF_DeleteBuffer(graph_def);
+  //  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
+  //}
 
-    //nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
-    //nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
-    //nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
-    //nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
+  //{
+  //  // Handles to the interesting operations in the graph.
+  //  nn.tf.input.oper = TF_GraphOperationByName(nn.tf.graph, "input");
+  //  nn.tf.input.index = 0;
+  //  nn.tf.target.oper = TF_GraphOperationByName(nn.tf.graph, "target");
+  //  nn.tf.target.index = 0;
+  //  nn.tf.output.oper = TF_GraphOperationByName(nn.tf.graph, "output");
+  //  nn.tf.output.index = 0;
 
-    //nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
-    //nn.tf.checkpoint_file.index = 0;
-  }
+  //  //nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
+  //  //nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
+  //  //nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
+  //  //nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
+
+  //  //nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
+  //  //nn.tf.checkpoint_file.index = 0;
+  //}
 
   {
     //// Initialize model

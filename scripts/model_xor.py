@@ -18,9 +18,6 @@ model = tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
 # Compile the model
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-# Serialize the model to a string
-model_string = model.to_json()
+# Save the model as a TensorFlow SavedModel
+tf.keras.models.save_model(model, 'src/nn/model_xor')
 
-# Write the model string to a file
-with open("src/nn/model_xor.json", "w") as f:
-    f.write(model_string)
