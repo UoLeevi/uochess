@@ -983,7 +983,12 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   TF_SessionOptions *options = TF_NewSessionOptions();
   nn.tf.status = TF_NewStatus();
-  TF_Session *session = nn.tf.session = TF_LoadSessionFromSavedModel(options, NULL, model_dirpath, NULL, 0, NULL, NULL, nn.tf.status);
+  nn.tf.graph = TF_NewGraph();
+
+  char *tags[] = { "serve" };
+  int ntags = 1;
+
+  TF_Session *session = nn.tf.session = TF_LoadSessionFromSavedModel(options, NULL, model_dirpath, tags, ntags, nn.tf.graph, NULL, nn.tf.status);
   TF_DeleteSessionOptions(options);
   if (TF_GetCode(nn.tf.status) != TF_OK) return false;
 
