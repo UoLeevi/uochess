@@ -985,7 +985,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   nn.tf.status = TF_NewStatus();
   nn.tf.graph = TF_NewGraph();
 
-  char *tags[] = { "serve" };
+  char *tags[] = { "train" };
   int ntags = 1;
 
   TF_Session *session = nn.tf.session = TF_LoadSessionFromSavedModel(options, NULL, model_dirpath, tags, ntags, nn.tf.graph, NULL, nn.tf.status);
