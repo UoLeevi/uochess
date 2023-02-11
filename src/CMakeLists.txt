@@ -6,6 +6,24 @@ find_library(TENSORFLOW_LIBRARY
     NAMES tensorflow
     HINTS "${TensorFlow_DIR}/lib")
 
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
+add_executable(uo_nntest uo_nntest.cpp)
+target_link_libraries(uo_nntest "${TORCH_LIBRARIES}")
+
+# The following code block is suggested to be used on Windows.
+# According to https://github.com/pytorch/pytorch/issues/25457,
+# the DLLs need to be copied to avoid memory errors.
+if (MSVC)
+  file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+  add_custom_command(TARGET uo_nntest
+                     POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     ${TORCH_DLLS}
+                     $<TARGET_FILE_DIR:uo_nntest>)
+endif (MSVC)
+
 add_executable(uochess
     uochess.c
     uo_bitboard.c

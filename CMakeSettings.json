@@ -55,6 +55,11 @@
           "name": "TensorFlow_DIR",
           "value": "C:\\Users\\uotin\\Downloads\\libtensorflow-gpu-windows-x86_64-2.10.0",
           "type": "FILEPATH"
+        },
+        {
+          "name": "Torch_DIR",
+          "value": "C:\\Users\\uotin\\Downloads\\libtorch-win-shared-with-deps-1.13.1+cu116\\libtorch",
+          "type": "FILEPATH"
         }
       ],
       "inheritEnvironments": []
@@ -82,6 +87,11 @@
         {
           "name": "TensorFlow_DIR",
           "value": "C:\\Users\\uotin\\Downloads\\libtensorflow-gpu-windows-x86_64-2.10.0",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "Torch_DIR",
+          "value": "C:\\Users\\uotin\\Downloads\\libtorch-win-shared-with-deps-1.13.1+cu116\\libtorch",
           "type": "FILEPATH"
         }
       ],
