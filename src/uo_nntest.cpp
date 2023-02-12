@@ -1,34 +1,31 @@
+#include <stdio.h>
 #include <torch/torch.h>
-#include <iostream>
 
-int main() {
-  // Load the trained model
-  torch::nn::Sequential model(torch::nn::Linear(10, 10), torch::nn::Linear(10, 1));
-  torch::load(model, "model.pt");
+int main(int argc, char **argv) {
+  // Load the network from disk
+  torch::nn::Module net;
+  torch::load(net, "src/nn/model_xor.pt");
 
-  // Initialize the optimizer
-  torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(0.01));
+  // Initialize the loss function and optimizer
+  torch::nn::BCELoss criterion;
+  torch::optim::SGD optimizer(net->parameters(), torch::optim::SGDOptions(0.1));
 
-  // Continue the training process
-  for (int epoch = 0; epoch < 100; epoch++) {
-    // Generate a set of inputs and expected outputs
-    // ...
-    torch::Tensor inputs = torch::from_blob(inputs, /*shape=*/{ batch_size, 10 }, torch::kFloat32);
-    torch::Tensor targets = torch::from_blob(targets, /*shape=*/{ batch_size, 1 }, torch::kFloat32);
-
-    // Zero the gradient buffers
+  // Train the network
+  torch::Tensor inputs = torch::tensor({ {0, 0}, {0, 1}, {1, 0}, {1, 1} }, torch::kFloat32);
+  torch::Tensor targets = torch::tensor({ {0}, {1}, {1}, {0} }, torch::kFloat32);
+  for (int epoch = 0; epoch < 10000; ++epoch) {
     optimizer.zero_grad();
-
-    // Forward pass
-    torch::Tensor outputs = model->forward(inputs);
-    torch::Tensor loss = torch::binary_cross_entropy(outputs, targets);
-
-    // Backward pass and optimization
+    torch::Tensor outputs = net->forward(inputs);
+    torch::Tensor loss = criterion(outputs, targets);
     loss.backward();
     optimizer.step();
   }
 
-  // Save the updated model
-  torch::save(model, "model.pt");
+  // Test the network
+  torch::Tensor test_inputs = torch::tensor({ {0, 0}, {0, 1}, {1, 0}, {1, 1} }, torch::kFloat32);
+  torch::Tensor test_outputs = net->forward(test_inputs);
+  printf("%.2f, %.2f, %.2f, %.2f\n", test_outputs[0].item<float>(), test_outputs[1].item<float>(),
+    test_outputs[2].item<float>(), test_outputs[3].item<float>());
+
   return 0;
 }

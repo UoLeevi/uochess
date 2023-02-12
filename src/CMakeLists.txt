@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 3.21.0)
 
 find_package(Threads)
 
-find_library(TENSORFLOW_LIBRARY
-    NAMES tensorflow
-    HINTS "${TensorFlow_DIR}/lib")
-
-find_package(Torch REQUIRED)
+find_package(Torch REQUIRED HINT "${Torch_DIR}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(uo_nntest uo_nntest.cpp)
@@ -44,12 +40,11 @@ add_executable(uochess
 target_include_directories(uochess
     PRIVATE
         "include"
-        "${TensorFlow_DIR}/include")
+        "${Torch_DIR}/include")
 
 target_link_libraries(uochess
     PRIVATE
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${TENSORFLOW_LIBRARY})
+        ${CMAKE_THREAD_LIBS_INIT})
 
 target_compile_features(uochess
     PUBLIC
@@ -73,10 +68,6 @@ endif()
 add_custom_target(copy-runtime-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/nn" "${CMAKE_BINARY_DIR}/bin/nn"
     DEPENDS uochess)
-
-add_custom_command(TARGET uochess
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy "${TensorFlow_DIR}/lib/tensorflow.dll" "${CMAKE_BINARY_DIR}/bin/")
 
 add_test(NAME "Test all"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data
