@@ -5,7 +5,13 @@ find_package(Threads)
 find_package(Torch REQUIRED HINT "${Torch_DIR}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-add_executable(uo_nntest uo_nntest.cpp)
+add_library(uo_nntest uo_nntest.cpp)
+
+target_include_directories(uo_nntest
+  PRIVATE
+  "include/uo_nn"
+  "${Torch_DIR}/include")
+
 target_link_libraries(uo_nntest "${TORCH_LIBRARIES}")
 
 # The following code block is suggested to be used on Windows.
@@ -14,60 +20,60 @@ target_link_libraries(uo_nntest "${TORCH_LIBRARIES}")
 if (MSVC)
   file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
   add_custom_command(TARGET uo_nntest
-                     POST_BUILD
-                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                     ${TORCH_DLLS}
-                     $<TARGET_FILE_DIR:uo_nntest>)
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${TORCH_DLLS}
+    $<TARGET_FILE_DIR:uo_nntest>)
 endif (MSVC)
 
 add_executable(uochess
-    uochess.c
-    uo_bitboard.c
-    uo_position.c
-    uo_square.c
-    uo_search.c
-    uo_zobrist.c
-    uo_evaluation.c
-    uo_thread.c
-    uo_misc.c
-    uo_uci.c
-    uo_engine.c
-    uo_nn.c
-    uo_nn_funcs.c
-    uo_math.c
-    uo_test.c)
+  uochess.c
+  uo_bitboard.c
+  uo_position.c
+  uo_square.c
+  uo_search.c
+  uo_zobrist.c
+  uo_evaluation.c
+  uo_thread.c
+  uo_misc.c
+  uo_uci.c
+  uo_engine.c
+  uo_nn.c
+  uo_nn_funcs.c
+  uo_math.c
+  uo_test.c)
 
 target_include_directories(uochess
-    PRIVATE
-        "include"
-        "${Torch_DIR}/include")
+  PRIVATE
+    "include")
 
 target_link_libraries(uochess
-    PRIVATE
-        ${CMAKE_THREAD_LIBS_INIT})
+  PRIVATE
+    ${CMAKE_THREAD_LIBS_INIT}
+    uo_nntest)
 
 target_compile_features(uochess
-    PUBLIC
-        c_std_11)
+  PUBLIC
+    c_std_11)
 
 set_target_properties(uochess PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
   VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-    target_compile_options(uochess
-        PRIVATE -mavx -mavx2 -mbmi2 -mpopcnt)
+  target_compile_options(uochess
+    PRIVATE -mavx -mavx2 -mbmi2 -mpopcnt)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    target_compile_options(uochess
-        PRIVATE /QxKABYLAKE)
+  target_compile_options(uochess
+    PRIVATE /QxKABYLAKE)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    target_compile_options(uochess
-        PRIVATE /arch:AVX2 /volatile:iso)
+  target_compile_options(uochess
+    PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
 add_custom_target(copy-runtime-files ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/nn" "${CMAKE_BINARY_DIR}/bin/nn"
-    DEPENDS uochess)
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/nn" "${CMAKE_BINARY_DIR}/bin/nn"
+  DEPENDS uochess)
 
 add_test(NAME "Test all"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data
@@ -86,13 +92,13 @@ add_test(NAME "Test nn_train_xor"
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
 
 set_tests_properties("Test nn_train_xor"
-    PROPERTIES ENVIRONMENT "UO_OPT_NNDIR=nn")
+  PROPERTIES ENVIRONMENT "UO_OPT_NNDIR=nn")
 
 install(DIRECTORY conf/
-    DESTINATION bin)
+  DESTINATION bin)
 
 install(TARGETS uochess
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include)
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include)

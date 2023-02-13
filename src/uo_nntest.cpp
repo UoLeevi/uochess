@@ -1,31 +1,82 @@
-#include <stdio.h>
+#include "uo_nn/uo_nntest.h"
+
 #include <torch/torch.h>
+#include <iostream>
+#include <cstdlib>
 
-int main(int argc, char **argv) {
-  // Load the network from disk
-  torch::nn::Module net;
-  torch::load(net, "src/nn/model_xor.pt");
 
-  // Initialize the loss function and optimizer
-  torch::nn::BCELoss criterion;
-  torch::optim::SGD optimizer(net->parameters(), torch::optim::SGDOptions(0.1));
+typedef struct uo_nn2
+{
+  void *model;
+} uo_nn2;
 
-  // Train the network
-  torch::Tensor inputs = torch::tensor({ {0, 0}, {0, 1}, {1, 0}, {1, 1} }, torch::kFloat32);
-  torch::Tensor targets = torch::tensor({ {0}, {1}, {1}, {0} }, torch::kFloat32);
-  for (int epoch = 0; epoch < 10000; ++epoch) {
+
+class XORModel : public torch::nn::Module {
+public:
+  XORModel() {
+    fc1 = register_module("fc1", torch::nn::Linear(2, 2));
+    fc2 = register_module("fc2", torch::nn::Linear(2, 1));
+  }
+
+  torch::Tensor forward(torch::Tensor x) {
+    x = torch::relu(fc1->forward(x));
+    x = torch::sigmoid(fc2->forward(x));
+    return x;
+  }
+
+  torch::nn::Linear fc1, fc2;
+};
+
+
+int main() {
+  XORModel model;
+
+  // Generate some data
+  torch::Tensor x = torch::tensor({ {0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0} }, torch::kFloat32);
+  torch::Tensor y = torch::tensor({ {0.0}, {1.0}, {1.0}, {0.0} }, torch::kFloat32);
+
+  // Define the loss function and optimizer
+  torch::nn::BCELoss loss_fn;
+  torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(0.1));
+
+  // Train the model
+  for (size_t epoch = 0; epoch < 100; ++epoch) {
+    // Zero the gradients
     optimizer.zero_grad();
-    torch::Tensor outputs = net->forward(inputs);
-    torch::Tensor loss = criterion(outputs, targets);
+
+    // Make a forward pass
+    auto y_pred = model.forward(x);
+
+    // Compute the loss
+    auto loss = loss_fn(y_pred, y);
+    std::cout << "Epoch: " << epoch << " | Loss: " << loss.item<float>() << std::endl;
+
+    // Backpropagate the gradients
     loss.backward();
+
+    // Update the parameters
     optimizer.step();
   }
 
-  // Test the network
-  torch::Tensor test_inputs = torch::tensor({ {0, 0}, {0, 1}, {1, 0}, {1, 1} }, torch::kFloat32);
-  torch::Tensor test_outputs = net->forward(test_inputs);
-  printf("%.2f, %.2f, %.2f, %.2f\n", test_outputs[0].item<float>(), test_outputs[1].item<float>(),
-    test_outputs[2].item<float>(), test_outputs[3].item<float>());
+  // Predict using the trained model
+  auto y_pred = model.forward(x);
+  std::cout << "Final prediction: " << y_pred << std::endl;
 
   return 0;
 }
+
+uo_nn2 *uo_nn2_create_xor()
+{
+}
+
+void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index);
+
+void *uo_nn2_output_data_ptr(uo_nn2 *nn, int output_index);
+
+void uo_nn2_zero_grad(uo_nn2 *nn);
+
+void uo_nn2_forward(uo_nn2 *nn);
+
+void uo_nn2_backward(uo_nn2 *nn);
+
+void uo_nn2_update_parameters(uo_nn2 *nn);
