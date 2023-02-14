@@ -7,6 +7,8 @@
 
 typedef struct uo_nn2
 {
+  void **input_tensors;
+  void **output_tensors;
   void *model;
 } uo_nn2;
 
@@ -67,9 +69,16 @@ int main() {
 
 uo_nn2 *uo_nn2_create_xor()
 {
+  uo_nn2 *nn = (uo_nn2 *)std::malloc(sizeof uo_nn2);
+  nn->model = new XORModel();
+  return nn;
 }
 
-void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index);
+void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index)
+{
+  XORModel *model = (XORModel *)nn->model;
+  
+}
 
 void *uo_nn2_output_data_ptr(uo_nn2 *nn, int output_index);
 
