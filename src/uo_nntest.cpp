@@ -69,15 +69,27 @@ int main() {
 
 uo_nn2 *uo_nn2_create_xor()
 {
-  uo_nn2 *nn = (uo_nn2 *)std::malloc(sizeof uo_nn2);
+  char *mem = (char *)std::malloc(sizeof(uo_nn2) + 2 * sizeof(torch::Tensor));
+
+  uo_nn2 *nn = (uo_nn2 *)mem;
+  mem += sizeof(uo_nn2);
+
+  nn->input_tensors = (void **)mem;
+  mem += sizeof(torch::Tensor) * 1;
+
+  nn->output_tensors = (void **)mem;
+  mem += sizeof(torch::Tensor) * 1;
+
   nn->model = new XORModel();
+  nn->input_tensors[0] = (void *)torch::tensor({ {0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0} }, torch::kFloat32)
+
   return nn;
 }
 
 void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index)
 {
   XORModel *model = (XORModel *)nn->model;
-  
+
 }
 
 void *uo_nn2_output_data_ptr(uo_nn2 *nn, int output_index);
