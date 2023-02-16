@@ -7,9 +7,9 @@
 
 typedef struct uo_nn2
 {
-  void **input_tensors;
-  void **output_tensors;
-  void *model;
+  torch::Tensor *input_tensors;
+  torch::Tensor *output_tensors;
+  torch::nn::Module *model;
 } uo_nn2;
 
 
@@ -67,32 +67,35 @@ int main() {
   return 0;
 }
 
-uo_nn2 *uo_nn2_create_xor()
+uo_nn2 *uo_nn2_create_xor(size_t batch_size)
 {
   char *mem = (char *)std::malloc(sizeof(uo_nn2) + 2 * sizeof(torch::Tensor));
 
   uo_nn2 *nn = (uo_nn2 *)mem;
   mem += sizeof(uo_nn2);
 
-  nn->input_tensors = (void **)mem;
+  nn->input_tensors = (torch::Tensor *)mem;
   mem += sizeof(torch::Tensor) * 1;
 
-  nn->output_tensors = (void **)mem;
+  nn->output_tensors = (torch::Tensor *)mem;
   mem += sizeof(torch::Tensor) * 1;
 
   nn->model = new XORModel();
-  nn->input_tensors[0] = (void *)torch::tensor({ {0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0} }, torch::kFloat32)
+
+  nn->input_tensors[0] = torch::zeros({ batch_size, 2 });
 
   return nn;
 }
 
 void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index)
 {
-  XORModel *model = (XORModel *)nn->model;
-
+  return nn->input_tensors[input_index].data_ptr();
 }
 
-void *uo_nn2_output_data_ptr(uo_nn2 *nn, int output_index);
+void *uo_nn2_output_data_ptr(uo_nn2 *nn, int output_index)
+{
+  return nn->output_tensors[output_index].data_ptr();
+}
 
 void uo_nn2_zero_grad(uo_nn2 *nn);
 
