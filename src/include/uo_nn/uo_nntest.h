@@ -8,7 +8,9 @@ extern "C"
 
   typedef struct uo_nn2 uo_nn2;
 
-  uo_nn2 *uo_nn2_create_xor();
+  uo_nn2 *uo_nn2_create_xor(size_t batch_size);
+
+  void uo_nn2_init_optimizer(uo_nn2 *nn);
 
   void *uo_nn2_input_data_ptr(uo_nn2 *nn, int input_index);
 
@@ -19,8 +21,6 @@ extern "C"
   void uo_nn2_forward(uo_nn2 *nn);
 
   void uo_nn2_backward(uo_nn2 *nn);
-
-  void uo_nn2_update_parameters(uo_nn2 *nn);
 
 #ifdef __cplusplus
 }

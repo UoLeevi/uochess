@@ -5,8 +5,6 @@
 #include "uo_util.h"
 #include "uo_engine.h"
 
-#include <tensorflow/c/c_api.h>
-
 #include <stdbool.h>
 #include <math.h>
 #include <stdio.h>
@@ -37,23 +35,6 @@ typedef struct uo_nn
   size_t initializer_count;
   void *state;
 
-  struct
-  {
-    TF_Session *session;
-    TF_Graph *graph;
-    TF_Status *status;
-
-    TF_Output input;
-    TF_Output target;
-    TF_Output output;
-
-    //TF_Operation *init_op;
-    //TF_Operation *train_op;
-    //TF_Operation *save_op;
-    //TF_Operation *restore_op;
-
-    //TF_Output checkpoint_file;
-  } tf;
 } uo_nn;
 
 void uo_print_nn(FILE *const fp, uo_nn *nn)
@@ -978,78 +959,6 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   uo_rand_init(time(NULL));
 
   size_t batch_size = 256;
-
-  uo_nn nn;
-
-  TF_SessionOptions *options = TF_NewSessionOptions();
-  nn.tf.status = TF_NewStatus();
-  nn.tf.graph = TF_NewGraph();
-
-  char *tags[] = { "train" };
-  int ntags = 1;
-
-  TF_Session *session = nn.tf.session = TF_LoadSessionFromSavedModel(options, NULL, model_dirpath, tags, ntags, nn.tf.graph, NULL, nn.tf.status);
-  TF_DeleteSessionOptions(options);
-  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-
-  //// see: https://gist.github.com/asimshankar/7c9f8a9b04323e93bb217109da8c7ad2
-
-  //{
-  //  // Initialize a new TensorFlow session
-  //  TF_Graph *graph = nn.tf.graph = TF_NewGraph();
-  //  TF_SessionOptions *options = TF_NewSessionOptions();
-  //  nn.tf.status = TF_NewStatus();
-  //  TF_Session *session = nn.tf.session = TF_NewSession(graph, options, nn.tf.status);
-  //  TF_DeleteSessionOptions(options);
-  //  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-  //}
-
-  //{
-  //  // Import graph
-  //  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-  //  if (!file_mmap) return false;
-  //  TF_Buffer *graph_def = TF_NewBufferFromString(file_mmap->ptr, file_mmap->size);
-  //  uo_file_mmap_close(file_mmap);
-  //  if (graph_def == NULL) return 0;
-  //  TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
-  //  TF_GraphImportGraphDef(nn.tf.graph, graph_def, options, nn.tf.status);
-  //  TF_DeleteImportGraphDefOptions(options);
-  //  TF_DeleteBuffer(graph_def);
-  //  if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-  //}
-
-  //{
-  //  // Handles to the interesting operations in the graph.
-  //  nn.tf.input.oper = TF_GraphOperationByName(nn.tf.graph, "input");
-  //  nn.tf.input.index = 0;
-  //  nn.tf.target.oper = TF_GraphOperationByName(nn.tf.graph, "target");
-  //  nn.tf.target.index = 0;
-  //  nn.tf.output.oper = TF_GraphOperationByName(nn.tf.graph, "output");
-  //  nn.tf.output.index = 0;
-
-  //  //nn.tf.init_op = TF_GraphOperationByName(nn.tf.graph, "init");
-  //  //nn.tf.train_op = TF_GraphOperationByName(nn.tf.graph, "train");
-  //  //nn.tf.save_op = TF_GraphOperationByName(nn.tf.graph, "save/control_dependency");
-  //  //nn.tf.restore_op = TF_GraphOperationByName(nn.tf.graph, "save/restore_all");
-
-  //  //nn.tf.checkpoint_file.oper = TF_GraphOperationByName(nn.tf.graph, "save/Const");
-  //  //nn.tf.checkpoint_file.index = 0;
-  //}
-
-  {
-    //// Initialize model
-    //TF_SessionRun(nn.tf.session, NULL,
-    //  /* No inputs */
-    //  NULL, NULL, 0,
-    //  /* No outputs */
-    //  NULL, NULL, 0,
-    //  /* Just the init operation */
-    //  nn.tf.init_op, 1,
-    //  /* No metadata */
-    //  NULL, nn.tf.status);
-
-    //if (TF_GetCode(nn.tf.status) != TF_OK) return false;
-  }
 
   //uo_nn_reset(&nn);
   //uo_nn_select_batch_test_xor(&nn, 0, y_true);

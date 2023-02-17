@@ -5,11 +5,12 @@ find_package(Threads)
 find_package(Torch REQUIRED HINT "${Torch_DIR}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-add_library(uo_nntest uo_nntest.cpp)
+add_library(uo_nntest
+  uo_nntest.cpp
+  "include/uo_nn/uo_nntest.h")
 
 target_include_directories(uo_nntest
   PRIVATE
-  "include/uo_nn"
   "${Torch_DIR}/include")
 
 target_link_libraries(uo_nntest "${TORCH_LIBRARIES}")
