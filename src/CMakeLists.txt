@@ -5,26 +5,28 @@ find_package(Threads)
 find_package(Torch REQUIRED HINT "${Torch_DIR}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
-add_library(uo_nntest
-  uo_nntest.cpp
-  "include/uo_nn/uo_nntest.h")
+add_library(uo_nn_impl
+  "uo_nn_impl.cpp"
+  "include/uo_nn.h")
 
-target_include_directories(uo_nntest
+target_include_directories(uo_nn_impl
   PRIVATE
   "${Torch_DIR}/include")
 
-target_link_libraries(uo_nntest "${TORCH_LIBRARIES}")
+target_link_libraries(uo_nn_impl "${TORCH_LIBRARIES}")
+
+
 
 # The following code block is suggested to be used on Windows.
 # According to https://github.com/pytorch/pytorch/issues/25457,
 # the DLLs need to be copied to avoid memory errors.
 if (MSVC)
   file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
-  add_custom_command(TARGET uo_nntest
+  add_custom_command(TARGET uo_nn_impl
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${TORCH_DLLS}
-    $<TARGET_FILE_DIR:uo_nntest>)
+    "${CMAKE_BINARY_DIR}/bin/")
 endif (MSVC)
 
 add_executable(uochess
@@ -51,7 +53,7 @@ target_include_directories(uochess
 target_link_libraries(uochess
   PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
-    uo_nntest)
+    uo_nn_impl)
 
 target_compile_features(uochess
   PUBLIC

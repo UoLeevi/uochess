@@ -23,20 +23,6 @@
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
-typedef struct uo_nn
-{
-  uo_nn_node **graph;
-  size_t graph_size;
-  uo_nn_node **inputs;
-  size_t input_count;
-  uo_nn_node **outputs;
-  size_t output_count;
-  uo_nn_adam_params **initializers;
-  size_t initializer_count;
-  void *state;
-
-} uo_nn;
-
 void uo_print_nn(FILE *const fp, uo_nn *nn)
 {
   fprintf(fp,
@@ -58,560 +44,6 @@ void uo_nn_save_to_file(uo_nn *nn, char *filepath)
   uo_print_nn(fp, nn);
   fclose(fp);
 }
-
-//void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index)
-//{
-//  size_t n_X = nn->n_X;
-//  float *input = nn->X + n_X * index;
-//
-//  uo_nn_position *position_input = (uo_nn_position *)(void *)input;
-//  memset(position_input, 0, sizeof(uo_nn_position));
-//
-//  // Step 1. Piece configuration
-//
-//  for (uo_square square = 0; square < 64; ++square)
-//  {
-//    uo_piece piece = position->board[square];
-//
-//    if (piece <= 1)
-//    {
-//      // Empty square
-//      position_input->data.empty[square] = 1.0f;
-//      continue;
-//    }
-//
-//    switch (piece)
-//    {
-//      case uo_piece__P:
-//        position_input->data.piece_placement.own.P[square] = 1.0f;
-//        position_input->data.material.own.P += 1.0f;
-//        break;
-//
-//      case uo_piece__N:
-//        position_input->data.piece_placement.own.N[square] = 1.0f;
-//        position_input->data.material.own.N += 1.0f;
-//        break;
-//
-//      case uo_piece__B:
-//        position_input->data.piece_placement.own.B[square] = 1.0f;
-//        position_input->data.material.own.B += 1.0f;
-//        break;
-//
-//      case uo_piece__R:
-//        position_input->data.piece_placement.own.R[square] = 1.0f;
-//        position_input->data.material.own.R += 1.0f;
-//        break;
-//
-//      case uo_piece__Q:
-//        position_input->data.piece_placement.own.Q[square] = 1.0f;
-//        position_input->data.material.own.Q += 1.0f;
-//        break;
-//
-//      case uo_piece__K:
-//        position_input->data.piece_placement.own.K[square] = 1.0f;
-//        break;
-//
-//      case uo_piece__p:
-//        position_input->data.piece_placement.enemy.P[square] = 1.0f;
-//        position_input->data.material.enemy.P += 1.0f;
-//        break;
-//
-//      case uo_piece__n:
-//        position_input->data.piece_placement.enemy.N[square] = 1.0f;
-//        position_input->data.material.enemy.N += 1.0f;
-//        break;
-//
-//      case uo_piece__b:
-//        position_input->data.piece_placement.enemy.B[square] = 1.0f;
-//        position_input->data.material.enemy.B += 1.0f;
-//        break;
-//
-//      case uo_piece__r:
-//        position_input->data.piece_placement.enemy.R[square] = 1.0f;
-//        position_input->data.material.enemy.R += 1.0f;
-//        break;
-//
-//      case uo_piece__q:
-//        position_input->data.piece_placement.enemy.Q[square] = 1.0f;
-//        position_input->data.material.enemy.Q += 1.0f;
-//        break;
-//
-//      case uo_piece__k:
-//        position_input->data.piece_placement.enemy.K[square] = 1.0f;
-//        break;
-//    }
-//  }
-//
-//  // Step 2. Castling
-//  position_input->data.castling.own_K = uo_position_flags_castling_OO(position->flags);
-//  position_input->data.castling.own_Q = uo_position_flags_castling_OOO(position->flags);
-//  position_input->data.castling.enemy_K = uo_position_flags_castling_enemy_OO(position->flags);
-//  position_input->data.castling.enemy_Q = uo_position_flags_castling_enemy_OOO(position->flags);
-//
-//  // Step 3. Enpassant
-//  size_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
-//
-//  if (enpassant_file)
-//  {
-//    position_input->data.enpassant[enpassant_file - 1] = 1.0f;
-//  }
-//}
-
-//int8_t uo_nn_load_fen(uo_nn *nn, const char *fen, size_t index)
-//{
-//  char piece_placement[72];
-//  char active_color;
-//  char castling[5];
-//  char enpassant[3];
-//  int rule50;
-//  int fullmove;
-//
-//  int count = sscanf(fen, "%71s %c %4s %2s %d %d",
-//    piece_placement, &active_color,
-//    castling, enpassant,
-//    &rule50, &fullmove);
-//
-//  if (count != 6)
-//  {
-//    return -1;
-//  }
-//
-//  size_t n_X = nn->n_X;
-//  float *input = nn->X + n_X * index;
-//
-//  uo_nn_position *position_input = (uo_nn_position *)(void *)input;
-//  memset(position_input, 0, sizeof(uo_nn_position));
-//
-//  uint8_t color = active_color == 'b' ? uo_black : uo_white;
-//  size_t flip_if_black = color == uo_black ? 56 : 0;
-//
-//  // Step 1. Piece placement
-//
-//  char *ptr = piece_placement;
-//
-//  char c;
-//
-//  // loop by rank
-//  for (int i = 7; i >= 0; --i)
-//  {
-//    // loop by file
-//    for (int j = 0; j < 8; ++j)
-//    {
-//      uo_square square = (i * 8 + j) ^ flip_if_black;
-//
-//      c = *ptr++;
-//
-//      // empty squares
-//      if (c > '0' && c <= ('8' - j))
-//      {
-//        size_t empty_count = c - '0';
-//        j += empty_count - 1;
-//
-//        while (empty_count--)
-//        {
-//          position_input->data.empty[square + empty_count] = 1.0f;
-//        }
-//
-//        continue;
-//      }
-//
-//      uo_piece piece = uo_piece_from_char(c);
-//
-//      if (!piece)
-//      {
-//        return -1;
-//      }
-//
-//      piece ^= color;
-//
-//      switch (piece)
-//      {
-//        case uo_piece__P:
-//          position_input->data.piece_placement.own.P[square] = 1.0f;
-//          position_input->data.material.own.P += 1.0f;
-//          break;
-//
-//        case uo_piece__N:
-//          position_input->data.piece_placement.own.N[square] = 1.0f;
-//          position_input->data.material.own.N += 1.0f;
-//          break;
-//
-//        case uo_piece__B:
-//          position_input->data.piece_placement.own.B[square] = 1.0f;
-//          position_input->data.material.own.B += 1.0f;
-//          break;
-//
-//        case uo_piece__R:
-//          position_input->data.piece_placement.own.R[square] = 1.0f;
-//          position_input->data.material.own.R += 1.0f;
-//          break;
-//
-//        case uo_piece__Q:
-//          position_input->data.piece_placement.own.Q[square] = 1.0f;
-//          position_input->data.material.own.Q += 1.0f;
-//          break;
-//
-//        case uo_piece__K:
-//          position_input->data.piece_placement.own.K[square] = 1.0f;
-//          break;
-//
-//        case uo_piece__p:
-//          position_input->data.piece_placement.enemy.P[square] = 1.0f;
-//          position_input->data.material.enemy.P += 1.0f;
-//          break;
-//
-//        case uo_piece__n:
-//          position_input->data.piece_placement.enemy.N[square] = 1.0f;
-//          position_input->data.material.enemy.N += 1.0f;
-//          break;
-//
-//        case uo_piece__b:
-//          position_input->data.piece_placement.enemy.B[square] = 1.0f;
-//          position_input->data.material.enemy.B += 1.0f;
-//          break;
-//
-//        case uo_piece__r:
-//          position_input->data.piece_placement.enemy.R[square] = 1.0f;
-//          position_input->data.material.enemy.R += 1.0f;
-//          break;
-//
-//        case uo_piece__q:
-//          position_input->data.piece_placement.enemy.Q[square] = 1.0f;
-//          position_input->data.material.enemy.Q += 1.0f;
-//          break;
-//
-//        case uo_piece__k:
-//          position_input->data.piece_placement.enemy.K[square] = 1.0f;
-//          break;
-//      }
-//    }
-//
-//    c = *ptr++;
-//
-//    if (i != 0 && c != '/')
-//    {
-//      return -1;
-//    }
-//  }
-//
-//  // Step 2. Castling rights
-//
-//  ptr = castling;
-//  c = *ptr++;
-//
-//  if (c == '-')
-//  {
-//    c = *ptr++;
-//  }
-//  else
-//  {
-//    if (color == uo_white)
-//    {
-//      if (c == 'K')
-//      {
-//        position_input->data.castling.own_K = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'Q')
-//      {
-//        position_input->data.castling.own_Q = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'k')
-//      {
-//        position_input->data.castling.enemy_K = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'q')
-//      {
-//        position_input->data.castling.enemy_Q = 1.0f;
-//        c = *ptr++;
-//      }
-//    }
-//    else
-//    {
-//      if (c == 'K')
-//      {
-//        position_input->data.castling.enemy_K = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'Q')
-//      {
-//        position_input->data.castling.enemy_Q = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'k')
-//      {
-//        position_input->data.castling.own_K = 1.0f;
-//        c = *ptr++;
-//      }
-//
-//      if (c == 'q')
-//      {
-//        position_input->data.castling.own_Q = 1.0f;
-//        c = *ptr++;
-//      }
-//    }
-//  }
-//
-//  // Step 3. Enpassant
-//
-//  ptr = enpassant;
-//  c = *ptr++;
-//
-//  if (c != '-')
-//  {
-//    uint8_t file = c - 'a';
-//    if (file < 0 || file >= 8)
-//    {
-//      return -1;
-//    }
-//
-//    c = *ptr++;
-//    uint8_t rank = c - '1';
-//    if (rank < 0 || rank >= 8)
-//    {
-//      return -1;
-//    }
-//
-//    position_input->data.enpassant[file] = 1.0f;
-//  }
-//
-//  return color;
-//}
-
-//// see: http://ufldl.stanford.edu/tutorial/supervised/DebuggingGradientChecking/
-//bool uo_nn_check_gradients(uo_nn *nn, uo_nn_layer *layer, float *d, float *y_true)
-//{
-//  size_t m;
-//  size_t n;
-//  float *val;
-//  size_t feed_forward_layer_index = layer - nn->layers;
-//
-//  bool is_output_layer = layer->A == nn->y;
-//  // For hidden layers, ignore bias terms when computing derivatives
-//  int bias_offset = is_output_layer ? 0 : 1;
-//
-//  if (d == layer->dW_t)
-//  {
-//    val = layer->W_t;
-//    m = layer->n_W;
-//    n = layer->m_W;
-//    bias_offset = 0;
-//  }
-//  else if (d == layer->dA)
-//  {
-//    val = layer->A;
-//    m = nn->batch_size;
-//    n = layer->n_W;
-//    ++feed_forward_layer_index;
-//  }
-//  else if (d == layer->dZ)
-//  {
-//    val = layer->Z;
-//    m = nn->batch_size;
-//    n = layer->n_W;
-//    ++feed_forward_layer_index;
-//  }
-//  else
-//  {
-//    return false;
-//  }
-//
-//  bool passed = true;
-//  float epsilon = 1e-4f;
-//
-//  for (size_t i = 0; i < m; ++i)
-//  {
-//    for (size_t j = 0; j < n; ++j)
-//    {
-//      size_t index = i * (n + bias_offset) + j;
-//      float val_ij = val[index];
-//
-//      // Step 1. Add epsilon and feed forward
-//
-//      val[index] = val_ij + epsilon;
-//
-//      if (val == layer->Z && layer->func.activation.f)
-//      {
-//        bool is_output_layer = layer - nn->layers == nn->layer_count;
-//        // For hidden layers, let's leave room for bias terms when computing output matrix
-//        int bias_offset = is_output_layer ? 0 : 1;
-//        size_t n_W = layer->n_W;
-//        size_t n_A = n_W + bias_offset;
-//        float *Z = layer->Z;
-//        float *A = layer->A;
-//        uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
-//      }
-//
-//      for (size_t layer_index = feed_forward_layer_index; layer_index <= nn->layer_count; ++layer_index)
-//      {
-//        uo_nn_layer_feed_forward(nn, nn->layers + layer_index);
-//      }
-//
-//      float loss_plus = uo_nn_calculate_loss(nn, y_true);
-//
-//      // Step 2. Subtract epsilon and feed forward
-//
-//      val[index] = val_ij - epsilon;
-//
-//      if (val == layer->Z && layer->func.activation.f)
-//      {
-//        bool is_output_layer = layer - nn->layers == nn->layer_count;
-//        // For hidden layers, let's leave room for bias terms when computing output matrix
-//        int bias_offset = is_output_layer ? 0 : 1;
-//        size_t n_W = layer->n_W;
-//        size_t n_A = n_W + bias_offset;
-//        float *Z = layer->Z;
-//        float *A = layer->A;
-//        uo_vec_mapfunc_ps(Z, A, nn->batch_size * n_A, layer->func.activation.f);
-//      }
-//
-//      for (size_t layer_index = feed_forward_layer_index; layer_index <= nn->layer_count; ++layer_index)
-//      {
-//        uo_nn_layer_feed_forward(nn, nn->layers + layer_index);
-//      }
-//
-//      float loss_minus = uo_nn_calculate_loss(nn, y_true);
-//
-//      // Step 3. Restore previous value
-//
-//      val[index] = val_ij;
-//
-//      // Step 4. Compute numeric gradient and compare to calculated gradient
-//
-//      float grad_num = (loss_plus - loss_minus) / (2.0f * epsilon);
-//      float grad_calc = d[index];
-//
-//      float diff = grad_num - grad_calc;
-//      if (diff < 0.0f) diff = -diff;
-//
-//      passed &= diff < 1e-2;
-//    }
-//  }
-//
-//  return passed;
-//}
-
-//bool uo_nn_train(uo_nn *nn, uo_nn_select_batch *select_batch, float error_threshold, size_t error_sample_size, size_t max_iterations, uo_nn_report *report, size_t report_interval, float learning_rate, size_t batch_size)
-//{
-//  if (batch_size && nn->batch_size != batch_size)
-//  {
-//    uo_nn_change_batch_size(nn, batch_size);
-//  }
-//
-//  char *nn_filepath = NULL;
-//
-//  size_t output_size = nn->batch_size * nn->n_y;
-//  float avg_error, prev_avg_err, min_avg_err;
-//  const size_t adam_reset_count_threshold = 6;
-//  size_t adam_reset_counter = 0;
-//
-//  float *y_true = malloc(output_size * sizeof(float));
-//
-//  select_batch(nn, 0, nn->X, y_true);
-//  uo_nn_feed_forward(nn);
-//
-//  float loss = uo_nn_calculate_loss(nn, y_true);
-//
-//  if (isnan(loss))
-//  {
-//    free(y_true);
-//    return false;
-//  }
-//
-//  float lr_multiplier = learning_rate > 0.0f ? learning_rate / uo_nn_adam_learning_rate : 1.0f;
-//  prev_avg_err = min_avg_err = avg_error = loss;
-//
-//  for (size_t i = 1; i < max_iterations; ++i)
-//  {
-//    select_batch(nn, i, nn->X, y_true);
-//    uo_nn_feed_forward(nn);
-//
-//    float loss = uo_nn_calculate_loss(nn, y_true);
-//
-//    if (isnan(loss))
-//    {
-//      free(y_true);
-//      return false;
-//    }
-//
-//    avg_error -= avg_error / error_sample_size;
-//    avg_error += loss / error_sample_size;
-//
-//    if (i > error_sample_size && avg_error < error_threshold)
-//    {
-//      report(nn, i, avg_error, lr_multiplier * uo_nn_adam_learning_rate);
-//      free(y_true);
-//      return true;
-//    }
-//
-//    if (i % report_interval == 0)
-//    {
-//      report(nn, i, avg_error, lr_multiplier * uo_nn_adam_learning_rate);
-//
-//      if (avg_error > prev_avg_err)
-//      {
-//        ++adam_reset_counter;
-//
-//        if (adam_reset_counter == adam_reset_count_threshold)
-//        {
-//          // Reset adam weights if loss keeps increasing
-//          prev_avg_err = avg_error = loss;
-//          adam_reset_counter = 0;
-//          nn->adam.t = 1;
-//          for (size_t layer_index = 1; layer_index < nn->layer_count; ++layer_index)
-//          {
-//            uo_nn_layer *layer = nn->layers + layer_index;
-//            memset(layer->adam.m, 0, layer->m_W * layer->n_W * sizeof(float));
-//          }
-//
-//          lr_multiplier *= 0.75f;
-//          lr_multiplier = uo_max(lr_multiplier, 1e-10);
-//        }
-//      }
-//      else
-//      {
-//        adam_reset_counter = 0;
-//
-//        if (avg_error < min_avg_err)
-//        {
-//          lr_multiplier *= 1.025f;
-//          min_avg_err = avg_error;
-//
-//          if (*engine_options.nn_dir)
-//          {
-//            free(nn_filepath);
-//            char timestamp[13];
-//            uo_timestr(timestamp);
-//            nn_filepath = uo_aprintf("%s/nn-eval-%s.nnuo", engine_options.nn_dir, timestamp);
-//            uo_nn_save_to_file(nn, nn_filepath);
-//          }
-//        }
-//      }
-//
-//      prev_avg_err = avg_error;
-//    }
-//
-//    uo_nn_backprop(nn, y_true, lr_multiplier);
-//  }
-//
-//  if (nn_filepath)
-//  {
-//    // Load best version from file
-//    uo_nn_free(nn);
-//    uo_nn_read_from_file(nn, nn_filepath, batch_size);
-//    free(nn_filepath);
-//  }
-//
-//  free(y_true);
-//  return false;
-//}
 
 //int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position)
 //{
@@ -670,8 +102,8 @@ uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
 //
 //  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
 //  //uo_nn_save_to_file(nn, tempnnfile);
-//  //uo_nn nn2;
-//  //uo_nn_read_from_file(&nn2, tempnnfile, batch_size);
+//  //uo_nn nn;
+//  //uo_nn_read_from_file(&nn, tempnnfile, batch_size);
 //
 //  for (size_t j = 0; j < batch_size; ++j)
 //  {
@@ -704,7 +136,7 @@ uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
 //      memcpy(shared_mask->data.u + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(uint32_t));
 //    }
 //
-//    //uo_nn_load_position(&nn2, &position, j);
+//    //uo_nn_load_position(&nn, &position, j);
 //
 //    //float win_prob;
 //    float q_score;
@@ -724,7 +156,7 @@ uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
 //    y_true->data.s[j] = q_score;
 //  }
 //
-//  //assert(memcmp(nn->X, nn2.X, nn2.batch_size * nn2.n_X * sizeof(float)) == 0);
+//  //assert(memcmp(nn->X, nn.X, nn.batch_size * nn.n_X * sizeof(float)) == 0);
 //}
 
 //void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
@@ -926,20 +358,21 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   //return true;
 }
 
-//void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration, uo_tensor *y_true)
-//{
-//  uo_tensor *X = *nn->inputs;
-//
-//  for (size_t j = 0; j < X->dim_sizes[0]; ++j)
-//  {
-//    float x0 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
-//    float x1 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
-//    float y = (int)x0 ^ (int)x1;
-//    y_true->data.s[j] = y;
-//    X->data.s[j * X->dim_sizes[1]] = x0;
-//    X->data.s[j * X->dim_sizes[1] + 1] = x1;
-//  }
-//}
+void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration)
+{
+  float *X = nn->inputs->data;
+  float *Y_true = nn->true_outputs->data;
+
+  for (size_t i = 0; i < nn->batch_size; ++i)
+  {
+    float x0 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
+    float x1 = uo_rand_percent() > 0.5f ? 1.0 : 0.0;
+    float y = (int)x0 ^ (int)x1;
+    Y_true[i] = y;
+    X[i * 2] = x0;
+    X[i * 2 + 1] = x1;
+  }
+}
 
 void uo_nn_report_test_xor(uo_nn *nn, size_t iteration, float error, float learning_rate)
 {
@@ -960,35 +393,39 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
   size_t batch_size = 256;
 
-  //uo_nn_reset(&nn);
-  //uo_nn_select_batch_test_xor(&nn, 0, y_true);
-  //uo_nn_forward(&nn);
-  //float loss_avg = uo_nn_loss_mse(y_pred, y_true->data.s);
+  uo_nn *nn = uo_nn_create_xor(batch_size);
+  uo_nn_init_optimizer(nn);
 
-  //for (size_t i = 1; i < 1000000; ++i)
-  //{
-  //  uo_nn_reset(&nn);
-  //  uo_nn_select_batch_test_xor(&nn, i, y_true);
-  //  uo_nn_forward(&nn);
+  uo_nn_select_batch_test_xor(nn, 0);
 
-  //  float loss = uo_nn_loss_mse(y_pred, y_true->data.s);
+  uo_nn_forward(nn);
+  float loss_avg = uo_nn_compute_loss(nn);
 
-  //  loss_avg = loss_avg * 0.95 + loss * 0.05;
+  for (size_t i = 1; i < 10000; ++i)
+  {
+    uo_nn_select_batch_test_xor(nn, i);
+    uo_nn_forward(nn);
 
-  //  if (loss_avg < 0.0001) break;
+    float loss = uo_nn_compute_loss(nn);
+    loss_avg = loss_avg * 0.95 + loss * 0.05;
 
-  //  uo_nn_loss_grad_mse(y_pred, y_true->data.s);
-  //  uo_nn_backward(&nn);
-  //  uo_nn_update_initializers(&nn);
-  //}
+    if (loss_avg < 0.0001) break;
 
-  //bool passed = loss_avg < 0.0001;
+    if (i % 100 == 0)
+    {
+      uo_nn_report_test_xor(nn, i, loss_avg, 0);
+    }
 
-  //if (!passed)
-  //{
-  //  //uo_print_nn(stdout, &nn);
-  //  return false;
-  //}
+    uo_nn_backward(nn);
+  }
+
+  bool passed = loss_avg < 0.0001;
+
+  if (!passed)
+  {
+    //uo_print_nn(stdout, &nn);
+    return false;
+  }
 
   //uo_print_nn(stdout, &nn);
   //uo_nn_save_to_file(&nn, filepath);
