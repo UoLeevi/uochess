@@ -8,11 +8,15 @@ struct XORModel : torch::nn::Module {
 public:
   XORModel()
   {
-    W1 = register_parameter("W1", torch::randn({ 2, 8 }));
-    b1 = register_parameter("b1", torch::randn(2));
+    size_t n_input = 2;
+    size_t n_hidden_1 = 8;
+    size_t n_output = 1;
 
-    W2 = register_parameter("W2", torch::randn({ 8, 1 }));
-    b2 = register_parameter("b2", torch::randn(1));
+    W1 = register_parameter("W1", torch::randn({ n_input, n_hidden_1 }));
+    b1 = register_parameter("b1", torch::randn(n_hidden_1));
+
+    W2 = register_parameter("W2", torch::randn({ n_hidden_1, n_output }));
+    b2 = register_parameter("b2", torch::randn(n_output));
   }
 
   torch::Tensor forward(torch::Tensor x) {
