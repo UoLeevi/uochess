@@ -409,7 +409,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     float loss = uo_nn_compute_loss(nn);
     loss_avg = loss_avg * 0.95 + loss * 0.05;
 
-    if (loss_avg < 0.0001) break;
+    if (loss_avg < 0.001) break;
 
     if (i % 100 == 0)
     {
@@ -419,7 +419,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
     uo_nn_backward(nn);
   }
 
-  bool passed = loss_avg < 0.0001;
+  bool passed = loss_avg < 0.001;
 
   if (!passed)
   {

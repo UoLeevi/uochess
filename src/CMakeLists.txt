@@ -6,12 +6,12 @@ find_package(Torch REQUIRED HINT "${Torch_DIR}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_library(uo_nn_impl
-  "uo_nn_impl.cpp"
-  "include/uo_nn.h")
+  "uo_nn_impl.cpp")
 
 target_include_directories(uo_nn_impl
   PRIVATE
-  "${Torch_DIR}/include")
+    "include"
+    "${Torch_DIR}/include")
 
 target_link_libraries(uo_nn_impl "${TORCH_LIBRARIES}")
 

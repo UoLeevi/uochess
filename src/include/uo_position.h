@@ -57,22 +57,22 @@ extern "C"
   {
     union
     {
-      uint32_t vector[368 + 2];
+      uint8_t vector[368 + 2];
       struct
       {
         struct
         {
-          uint32_t K[64];
-          uint32_t Q[64];
-          uint32_t R[64];
-          uint32_t B[64];
-          uint32_t N[64];
-          uint32_t P[48];
+          uint8_t K[64];
+          uint8_t Q[64];
+          uint8_t R[64];
+          uint8_t B[64];
+          uint8_t N[64];
+          uint8_t P[48];
         } piece_placement;
         struct
         {
-          uint32_t K;
-          uint32_t Q;
+          uint8_t K;
+          uint8_t Q;
         } castling;
       } features;
     } mask;
@@ -98,11 +98,11 @@ extern "C"
   {
     union
     {
-      uint32_t vector[64 + 8];
+      uint8_t vector[64 + 8];
       struct
       {
-        uint32_t empty_squares[64];
-        uint32_t enpassant_file[8];
+        uint8_t empty_squares[64];
+        uint8_t enpassant_file[8];
       } features;
     } mask;
   } uo_nn_input_shared;
@@ -295,7 +295,7 @@ extern "C"
 
 #pragma endregion
 
-  static inline uint32_t *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square)
+  static inline uint8_t *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square)
   {
     int piece_color = uo_color(piece);
     int flip_if_black = piece_color == uo_black ? 56 : 0;

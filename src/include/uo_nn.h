@@ -6,6 +6,8 @@ extern "C"
 {
 #endif
 
+#include "uo_position.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 
