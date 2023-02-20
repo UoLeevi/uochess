@@ -71,13 +71,10 @@ public:
     torch::Tensor zeros_mask_shared = torch::zeros_like(W1_mask_shared);
     torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, zeros_mask_shared);
 
-    torch::Tensor zeros_mask_enemy = torch::zeros_like(W1_mask_enemy);
-    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, zeros_mask_enemy);
-
     torch::Tensor x_floats_own = torch::mm(input_floats_own, W1_floats_own);
     torch::Tensor x_floats_enemy = torch::mm(input_floats_enemy, W1_floats_enemy);
 
-    torch::Tensor x = torch::concat({ x_mask_own, x_mask_enemy, x_mask_shared, x_mask_enemy, x_floats_enemy }, -1);
+    torch::Tensor x = torch::concat({ x_mask_own, x_mask_enemy, x_mask_shared, x_floats_own, x_floats_enemy }, -1);
 
 
     x = torch::addmm(b1, x, W1);
