@@ -62,25 +62,37 @@ public:
       input_floats_enemy = input_floats_white;
     }
 
-    torch::Tensor zeros_mask_own = torch::zeros_like(W1_mask_own);
-    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zeros_mask_own);
+    torch::Tensor zero = torch::zeros(1);
 
-    torch::Tensor zeros_mask_enemy = torch::zeros_like(W1_mask_enemy);
-    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, zeros_mask_enemy);
-    
-    torch::Tensor zeros_mask_shared = torch::zeros_like(W1_mask_shared);
-    torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, zeros_mask_shared);
+    // (n_input_half_mask x n_hidden_1)
+    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
+    // (1 x n_hidden_1)
+    torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
+
+    // (n_input_half_mask x n_hidden_1)
+    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, zero);
+    // (1 x n_hidden_1)
+    torch::Tensor x_mask_enemy_sum = torch::sum(x_mask_enemy, 0, true);
+
+    // (n_input_shared_mask x n_hidden_1)
+    torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, zero);
+    // (1 x n_hidden_1)
+    torch::Tensor x_mask_shared_sum = torch::sum(x_mask_shared, 0, true);
 
     torch::Tensor x_floats_own = torch::mm(input_floats_own, W1_floats_own);
+    // (1 x n_hidden_1)
     torch::Tensor x_floats_enemy = torch::mm(input_floats_enemy, W1_floats_enemy);
 
-    torch::Tensor x = torch::concat({ x_mask_own, x_mask_enemy, x_mask_shared, x_floats_own, x_floats_enemy }, -1);
+    torch::Tensor x;
+    x = torch::add(x_mask_own_sum, x_mask_enemy_sum);
+    x = torch::add(x, x_mask_shared_sum);
+    x = torch::add(x, x_floats_own);
+    x = torch::add(x, x_floats_enemy);
+    x = torch::add(x, b1);
+    x = torch::tanh(x);
 
-
-    x = torch::addmm(b1, x, W1);
-    x = torch::relu(x);
     x = torch::addmm(b2, x, W2);
-    x = torch::sigmoid(x);
+    x = torch::tanh(x);
     return x;
   }
 
