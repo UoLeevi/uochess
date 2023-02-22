@@ -6,13 +6,12 @@ extern "C"
 {
 #endif
 
-#include "uo_position.h"
-
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
   typedef struct uo_nn_impl uo_nn_impl;
-  
+
   typedef struct uo_nn_data
   {
     void *data;
@@ -31,6 +30,66 @@ extern "C"
     uo_nn_impl *impl;
     void *state;
   } uo_nn;
+
+  typedef struct uo_nn_input_half
+  {
+    union
+    {
+      uint8_t vector[368 + 2];
+      struct
+      {
+        struct
+        {
+          uint8_t K[64];
+          uint8_t Q[64];
+          uint8_t R[64];
+          uint8_t B[64];
+          uint8_t N[64];
+          uint8_t P[48];
+        } piece_placement;
+        struct
+        {
+          uint8_t K;
+          uint8_t Q;
+        } castling;
+      } features;
+    } mask;
+
+    union
+    {
+      float vector[5];
+      struct
+      {
+        struct
+        {
+          float P;
+          float N;
+          float B;
+          float R;
+          float Q;
+        } material;
+      } features;
+    } floats;
+  } uo_nn_input_half;
+
+  typedef struct uo_nn_input_shared
+  {
+    union
+    {
+      uint8_t vector[64 + 8];
+      struct
+      {
+        uint8_t empty_squares[64];
+        uint8_t enpassant_file[8];
+      } features;
+    } mask;
+  } uo_nn_input_shared;
+
+  typedef struct uo_nn_position
+  {
+    uo_nn_input_half halves[2];
+    uo_nn_input_shared shared;
+  } uo_nn_position;
 
   uo_nn *uo_nn_create_xor(size_t batch_size);
 

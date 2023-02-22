@@ -1,4 +1,5 @@
 #include "uo_nn.h"
+#include "uo_def.h"
 
 #include <torch/torch.h>
 #include <iostream>
