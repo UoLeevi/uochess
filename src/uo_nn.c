@@ -183,7 +183,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     return false;
   }
 
-  //uo_rand_init(time(NULL));
+  uo_rand_init(time(NULL));
 
   //if (!batch_size) batch_size = 0x100;
 
@@ -195,102 +195,18 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   //allocated_mem[allocated_mem_count++] = state.buf;
 
-  //uo_nn nn;
+  uo_nn nn;
 
-  //if (nn_init_filepath)
-  //{
-  //  //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
-  //}
-  //else
-  //{
-  //  uo_rand_init(time(NULL));
+  if (nn_init_filepath)
+  {
+    //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
+  }
+  else
+  {
+    uo_rand_init(time(NULL));
 
-  //  nn.input_count = 5;
-  //  nn.inputs = uo_alloca(nn.input_count * sizeof(uo_tensor *));
-
-  //  nn.output_count = 1;
-  //  nn.outputs = uo_alloca(nn.output_count * sizeof(uo_nn_node *));
-
-  //  nn.initializer_count = 4;
-  //  nn.initializers = uo_alloca(nn.initializer_count * sizeof(uo_nn_node *));
-
-  //  // Inputs
-  //  uo_tensor *X_own_material = nn.inputs[0] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 5 });
-  //  uo_nn_node *x_own_material = uo_nn_node_create(X_own_material, NULL, 0, 0);
-
-  //  uo_tensor *X_own_mask = nn.inputs[1] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 370 });
-  //  uo_nn_node *x_own_mask = uo_nn_node_create(X_own_mask, NULL, 0, 0);
-
-  //  uo_tensor *X_enemy_material = nn.inputs[2] = uo_tensor_create('s', 2, (size_t[]) { batch_size, 5 });
-  //  uo_nn_node *x_enemy_material = uo_nn_node_create(X_enemy_material, NULL, 0, 0);
-
-  //  uo_tensor *X_enemy_mask = nn.inputs[3] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 370 });
-  //  uo_nn_node *x_enemy_mask = uo_nn_node_create(X_enemy_mask, NULL, 0, 0);
-
-  //  uo_tensor *X_shared_mask = nn.inputs[4] = uo_tensor_create('u', 2, (size_t[]) { batch_size, 72 });
-  //  uo_nn_node *x_shared_mask = uo_nn_node_create(X_shared_mask, NULL, 0, 0);
-
-  //  // Layer 1
-  //  uo_tensor *W1_material = uo_tensor_create('s', 2, (size_t[]) { X_own_material->dim_sizes[1], 4 });
-  //  uo_tensor_set_rand_s(W1_material, 0, 0, W1_material->element_count, -0.5, 0.5);
-  //  uo_nn_node *w1_material = uo_nn_node_create(W1_material, NULL, 0, 0);
-  //  uo_nn_adam_params *w1_material_adam = nn.initializers[0] = uo_nn_node_adam_params_create(w1_material);
-
-  //  uo_tensor *W1_mask = uo_tensor_create('s', 2, (size_t[]) { X_own_mask->dim_sizes[1], 32 });
-  //  uo_tensor_set_rand_s(W1_mask, 0, 0, W1_mask->element_count, -0.5, 0.5);
-  //  uo_nn_node *w1_mask = uo_nn_node_create(W1_mask, NULL, 0, 0);
-  //  uo_nn_adam_params *w1_mask_adam = nn.initializers[0] = uo_nn_node_adam_params_create(w1_mask);
-
-  //  uo_tensor *W1_shared_mask = uo_tensor_create('s', 2, (size_t[]) { X_shared_mask->dim_sizes[1], 4 });
-  //  uo_tensor_set_rand_s(W1_shared_mask, 0, 0, W1_shared_mask->element_count, -0.5, 0.5);
-  //  uo_nn_node *w1_shared_mask = uo_nn_node_create(W1_shared_mask, NULL, 0, 0);
-  //  uo_nn_adam_params *w1_shared_mask_adam = nn.initializers[0] = uo_nn_node_adam_params_create(w1_shared_mask);
-
-  //  uo_nn_node *xw1_own_material = uo_nn_node_op_gemm(x_own_material, w1_material, 1.0, 1.0, false, false);
-  //  uo_nn_node *xw1_enemy_material = uo_nn_node_op_gemm(x_enemy_material, w1_material, -1.0, 1.0, false, false);
-
-  //  uo_nn_node *xw1_own_piece_placement = uo_nn_node_op_gemm_a_mask(x_own_mask, w1_mask, 1.0, 1.0, false, false);
-  //  uo_nn_node *xw1_enemy_piece_placement = uo_nn_node_op_gemm_a_mask(x_enemy_mask, w1_mask, -1.0, 1.0, false, false);
-
-  //  uo_nn_node *xw1_shared = uo_nn_node_op_gemm_a_mask(x_shared_mask, w1_shared_mask, 1.0, 1.0, false, false);
-
-  //  uo_nn_node *xw1 = uo_nn_node_op_concat(1, 5, (uo_nn_node * []) {
-  //    xw1_own_material,
-  //      xw1_enemy_material,
-  //      xw1_own_piece_placement,
-  //      xw1_enemy_piece_placement,
-  //      xw1_shared
-  //  });
-
-  //  uo_tensor *B1 = uo_tensor_create('s', 2, (size_t[]) { 1, xw1->tensor->dim_sizes[1] });
-  //  uo_tensor_set_rand_s(B1, 0, 0, B1->element_count, -0.5, 0.5);
-  //  uo_nn_node *b1 = uo_nn_node_create(B1, NULL, 0, 0);
-  //  uo_nn_adam_params *b1_adam = nn.initializers[1] = uo_nn_node_adam_params_create(b1);
-
-  //  uo_nn_node *z1 = uo_nn_node_op_add(xw1, b1);
-  //  uo_nn_node *a1 = uo_nn_node_op_tanh(z1);
-
-  //  // Layer 2
-  //  uo_tensor *W2 = uo_tensor_create('s', 2, (size_t[]) { a1->tensor->dim_sizes[1], 1 });
-  //  uo_tensor_set_rand_s(W2, 0, 0, W2->element_count, -0.5, 0.5);
-  //  uo_nn_node *w2 = uo_nn_node_create(W2, NULL, 0, 0);
-  //  uo_nn_adam_params *w2_adam = nn.initializers[2] = uo_nn_node_adam_params_create(w2);
-
-  //  uo_nn_node *xw2 = uo_nn_node_op_matmul(a1, w2);
-
-  //  uo_tensor *B2 = uo_tensor_create('s', 2, (size_t[]) { 1, xw2->tensor->dim_sizes[1] });
-  //  uo_tensor_set_rand_s(B2, 0, 0, B2->element_count, -0.5, 0.5);
-  //  uo_nn_node *b2 = uo_nn_node_create(B2, NULL, 0, 0);
-  //  uo_nn_adam_params *b2_adam = nn.initializers[3] = uo_nn_node_adam_params_create(b2);
-
-  //  uo_nn_node *z2 = uo_nn_node_op_add(xw2, b2);
-  //  uo_nn_node *a2 = uo_nn_node_op_tanh(z2);
-
-  //  uo_nn_node *y_pred = nn.outputs[0] = a2;
-
-  //  nn.graph_size = 100; // max size
-  //  nn.graph = uo_nn_node_create_graph(y_pred, &nn.graph_size);
-  //}
+    // TODO
+  }
 
   //nn.state = &state;
 
