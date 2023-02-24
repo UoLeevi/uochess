@@ -4,8 +4,14 @@
 #include <torch/torch.h>
 #include <iostream>
 #include <cstdlib>
+#include <cstdarg>
 
-struct ChessEvalModel : torch::nn::Module {
+struct Model : torch::nn::Module
+{
+  virtual torch::Tensor forward(va_list args) = 0;
+};
+
+struct ChessEvalModel : Model {
 public:
   ChessEvalModel(uo_nn_position *nn_input)
   {
@@ -42,7 +48,9 @@ public:
     output = torch::empty({ 1, n_output });
   }
 
-  torch::Tensor forward(uint8_t color) {
+  torch::Tensor forward(va_list args) {
+    uint8_t color = va_arg(args, uint8_t);
+
     torch::Tensor input_mask_own;
     torch::Tensor input_floats_own;
     torch::Tensor input_mask_enemy;
@@ -110,7 +118,7 @@ public:
   torch::Tensor output;
 };
 
-struct XORModel : torch::nn::Module {
+struct XORModel : Model {
 public:
   XORModel()
   {
@@ -125,7 +133,9 @@ public:
     b2 = register_parameter("b2", torch::randn(n_output));
   }
 
-  torch::Tensor forward(torch::Tensor x) {
+  torch::Tensor forward(va_list args) {
+    torch::Tensor x = va_arg(args, torch::Tensor);
+
     x = torch::addmm(b1, x, W1);
     x = torch::relu(x);
     x = torch::addmm(b2, x, W2);
@@ -143,7 +153,7 @@ typedef struct uo_nn_impl
   torch::Tensor *output_tensors;
   torch::Tensor *true_output_tensors;
   torch::Tensor *loss_tensors;
-  XORModel *model;
+  Model *model;
   torch::optim::Optimizer *optimizer;
 } uo_nn_impl;
 
@@ -186,10 +196,16 @@ void uo_nn_init_optimizer(uo_nn *nn)
   nn->impl->optimizer = new torch::optim::SGD(nn->impl->model->parameters(), torch::optim::SGDOptions(0.1));
 }
 
-void uo_nn_forward(uo_nn *nn)
+void uo_nn_forward(uo_nn *nn, ...)
 {
-  nn->impl->output_tensors[0] = nn->impl->model->forward(nn->impl->input_tensors[0]);
+  // TODO:
+  va_list args;
+  va_start(args, nn);
+
+  nn->impl->output_tensors[0] = nn->impl->model->forward(args);
   nn->outputs[0].data = nn->impl->output_tensors[0].data_ptr();
+
+  va_end(args);
 }
 
 float uo_nn_compute_loss(uo_nn *nn)

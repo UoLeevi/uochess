@@ -71,98 +71,83 @@ uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
   return nn;
 }
 
-//typedef struct uo_nn_eval_state
-//{
-//  uo_file_mmap *file_mmap;
-//  char *buf;
-//  size_t buf_size;
-//} uo_nn_eval_state;
+typedef struct uo_nn_eval_state
+{
+  uo_file_mmap *file_mmap;
+  uo_position position;
+  char *buf;
+  size_t buf_size;
+} uo_nn_eval_state;
 
-//void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true)
-//{
-//  size_t batch_size = (*nn->inputs)->tensor->dim_sizes[0];
-//  uo_tensor *own_floats = nn->inputs[0];
-//  uo_tensor *own_mask = nn->inputs[1];
-//  uo_tensor *enemy_floats = nn->inputs[2];
-//  uo_tensor *enemy_mask = nn->inputs[3];
-//  uo_tensor *shared_mask = nn->inputs[4];
-//
-//  uo_nn_eval_state *state = nn->state;
-//  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
-//  i += iteration;
-//  i %= state->file_mmap->size - batch_size * 160;
-//
-//  char *ptr = state->buf;
-//  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
-//
-//  char *fen = strchr(ptr, '\n') + 1;
-//  char *eval = strchr(fen, ',') + 1;
-//
-//  uo_position position;
-//
-//  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
-//  //uo_nn_save_to_file(nn, tempnnfile);
-//  //uo_nn nn;
-//  //uo_nn_read_from_file(&nn, tempnnfile, batch_size);
-//
-//  for (size_t j = 0; j < batch_size; ++j)
-//  {
-//    bool matein = eval[0] == '#';
-//    if (matein)
-//    {
-//      // Let's skip positions which lead to mate
-//
-//      ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
-//      //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
-//      fen = strchr(eval, '\n') + 1;
-//      eval = strchr(fen, ',') + 1;
-//
-//      --j;
-//      continue;
-//    }
-//
-//    uo_position_from_fen(&position, fen);
-//    uint8_t color = uo_color(position.flags);
-//
-//    //uint8_t color = uo_nn_load_fen(nn, fen, j);
-//    assert(color == uo_white || color == uo_black);
-//
-//    // Copy position to input tensors
-//    {
-//      memcpy(own_floats->data.s + j * own_floats->dim_sizes[1], position.nn_input.halves[color].floats.vector, own_floats->dim_sizes[1] * sizeof(float));
-//      memcpy(own_mask->data.u + j * own_mask->dim_sizes[1], position.nn_input.halves[color].mask.vector, own_mask->dim_sizes[1] * sizeof(uint32_t));
-//      memcpy(enemy_floats->data.s + j * enemy_floats->dim_sizes[1], position.nn_input.halves[!color].floats.vector, enemy_floats->dim_sizes[1] * sizeof(float));
-//      memcpy(enemy_mask->data.u + j * enemy_mask->dim_sizes[1], position.nn_input.halves[!color].mask.vector, enemy_mask->dim_sizes[1] * sizeof(uint32_t));
-//      memcpy(shared_mask->data.u + j * shared_mask->dim_sizes[1], position.nn_input.shared.mask.vector, shared_mask->dim_sizes[1] * sizeof(uint32_t));
-//    }
-//
-//    //uo_nn_load_position(&nn, &position, j);
-//
-//    //float win_prob;
-//    float q_score;
-//
-//    char *end;
-//    float score = (float)strtol(eval, &end, 10);
-//
-//    if (color == uo_black) score = -score;
-//
-//    q_score = uo_score_centipawn_to_q_score(score);
-//    //win_prob = uo_score_centipawn_to_win_prob(score);
-//
-//    fen = strchr(end, '\n') + 1;
-//    eval = strchr(fen, ',') + 1;
-//
-//    //y_true->data.s[j] = win_prob;
-//    y_true->data.s[j] = q_score;
-//  }
-//
-//  //assert(memcmp(nn->X, nn.X, nn.batch_size * nn.n_X * sizeof(float)) == 0);
-//}
+void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration)
+{
+  float *Y_true = nn->true_outputs->data;
 
-//void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
-//{
-//  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
-//}
+  size_t batch_size = nn->batch_size;
+
+  uo_nn_eval_state *state = nn->state;
+  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
+  i += iteration;
+  i %= state->file_mmap->size - batch_size * 160;
+
+  char *ptr = state->buf;
+  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
+
+  char *fen = strchr(ptr, '\n') + 1;
+  char *eval = strchr(fen, ',') + 1;
+
+  //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
+  //uo_nn_save_to_file(nn, tempnnfile);
+  //uo_nn nn;
+  //uo_nn_read_from_file(&nn, tempnnfile, batch_size);
+
+  for (size_t j = 0; j < batch_size; ++j)
+  {
+    bool matein = eval[0] == '#';
+    if (matein)
+    {
+      // Let's skip positions which lead to mate
+
+      ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
+      //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
+      fen = strchr(eval, '\n') + 1;
+      eval = strchr(fen, ',') + 1;
+
+      --j;
+      continue;
+    }
+
+    uo_position_from_fen(&state->position, fen);
+    uint8_t color = uo_color(state->position.flags);
+
+    //uint8_t color = uo_nn_load_fen(nn, fen, j);
+    assert(color == uo_white || color == uo_black);
+
+    //float win_prob;
+    float q_score;
+
+    char *end;
+    float score = (float)strtol(eval, &end, 10);
+
+    if (color == uo_black) score = -score;
+
+    q_score = uo_score_centipawn_to_q_score(score);
+    //win_prob = uo_score_centipawn_to_win_prob(score);
+
+    fen = strchr(end, '\n') + 1;
+    eval = strchr(fen, ',') + 1;
+
+    //Y_true[j] = win_prob;
+    Y_true[j] = q_score;
+  }
+
+  //assert(memcmp(nn->X, nn.X, nn.batch_size * nn.n_X * sizeof(float)) == 0);
+}
+
+void uo_nn_train_eval_report_progress(uo_nn *nn, size_t iteration, float error, float learning_rate)
+{
+  printf("iteration: %zu, error: %g, learning_rate: %g\n", iteration, error, learning_rate);
+}
 
 bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size)
 {
@@ -187,15 +172,15 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   //if (!batch_size) batch_size = 0x100;
 
-  //uo_nn_eval_state state = {
-  //  .file_mmap = file_mmap,
-  //  .buf_size = batch_size * 100,
-  //  .buf = malloc(batch_size * 100),
-  //};
+  uo_nn_eval_state state = {
+    .file_mmap = file_mmap,
+    .buf_size = batch_size * 100,
+    .buf = malloc(batch_size * 100),
+  };
 
-  //allocated_mem[allocated_mem_count++] = state.buf;
+  allocated_mem[allocated_mem_count++] = state.buf;
 
-  uo_nn nn;
+  uo_nn *nn;
 
   if (nn_init_filepath)
   {
@@ -208,47 +193,49 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     // TODO
   }
 
-  //nn.state = &state;
+  nn->state = &state;
 
   //if (!iterations) iterations = 1000;
 
-  //uo_tensor *y_true = uo_tensor_create('s', 2, (size_t[]) { batch_size, 1 });
+  uo_rand_init(time(NULL));
 
-  //uo_nn_train_eval_select_batch(&nn, 0, y_true);
-  //uo_nn_forward(&nn);
-  //float loss_avg = uo_nn_loss_mse(*nn.outputs, y_true->data.s);
+  size_t batch_size = 256;
 
-  //for (size_t i = 1; i < 1000000; ++i)
-  //{
-  //  uo_nn_reset(&nn);
-  //  uo_nn_train_eval_select_batch(&nn, i, y_true);
-  //  uo_nn_forward(&nn);
+  uo_nn *nn = uo_nn_create_xor(batch_size);
+  uo_nn_init_optimizer(nn);
 
-  //  float loss = uo_nn_loss_mse(*nn.outputs, y_true->data.s);
+  uo_nn_train_eval_select_batch(nn, 0);
 
-  //  loss_avg = loss_avg * 0.95 + loss * 0.05;
+  uo_nn_forward(nn);
+  float loss_avg = uo_nn_compute_loss(nn);
 
-  //  if (loss_avg < 0.0001) break;
+  for (size_t i = 1; i < 10000; ++i)
+  {
+    uo_nn_train_eval_select_batch(nn, i);
+    uo_nn_forward(nn);
 
-  //  if (i % 1000 == 0)
-  //  {
-  //    uo_nn_train_eval_report_progress(&nn, i, loss_avg, learning_rate);
-  //  }
+    float loss = uo_nn_compute_loss(nn);
+    loss_avg = loss_avg * 0.95 + loss * 0.05;
 
-  //  uo_nn_loss_grad_mse(*nn.outputs, y_true->data.s);
-  //  uo_nn_backward(&nn);
-  //  uo_nn_update_initializers(&nn);
-  //}
+    if (loss_avg < 0.001) break;
 
-  //bool passed = loss_avg < 0.0001;
+    if (i % 100 == 0)
+    {
+      uo_nn_train_eval_report_progress(nn, i, loss_avg, 0);
+    }
 
-  //if (!passed)
-  //{
-  //  uo_file_mmap_close(file_mmap);
-  //  //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
-  //  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-  //  return false;
-  //}
+    uo_nn_backward(nn);
+  }
+
+  bool passed = loss_avg < 0.001;
+
+  if (!passed)
+  {
+    uo_file_mmap_close(file_mmap);
+    //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
 
   //for (size_t i = 0; i < 1000; ++i)
   //{
@@ -268,10 +255,10 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   //  }
   //}
 
-  //uo_file_mmap_close(file_mmap);
-  ////if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
-  //while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-  //return true;
+  uo_file_mmap_close(file_mmap);
+  //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+  return true;
 }
 
 void uo_nn_select_batch_test_xor(uo_nn *nn, size_t iteration)

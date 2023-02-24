@@ -95,7 +95,7 @@ extern "C"
 
   void uo_nn_init_optimizer(uo_nn *nn);
 
-  void uo_nn_forward(uo_nn *nn);
+  void uo_nn_forward(uo_nn *nn, ...);
 
   float uo_nn_compute_loss(uo_nn *nn);
 
