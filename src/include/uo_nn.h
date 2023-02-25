@@ -91,6 +91,8 @@ extern "C"
     uo_nn_input_shared shared;
   } uo_nn_position;
 
+  uo_nn *uo_nn_create_chess_eval(uo_nn_position *nn_input);
+
   uo_nn *uo_nn_create_xor(size_t batch_size);
 
   void uo_nn_init_optimizer(uo_nn *nn);

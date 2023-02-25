@@ -53,7 +53,7 @@
         },
         {
           "name": "Torch_DIR",
-          "value": "C:\\Users\\uotin\\Downloads\\libtorch-win-shared-with-deps-1.13.1+cu116\\libtorch\\share\\cmake\\Torch",
+          "value": "C:\\Users\\uotin\\Downloads\\libtorch-win-shared-with-deps-debug-1.13.1+cu116\\libtorch\\share\\cmake\\Torch",
           "type": "FILEPATH"
         }
       ],

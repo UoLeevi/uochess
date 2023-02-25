@@ -172,10 +172,13 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   //if (!batch_size) batch_size = 0x100;
 
+  size_t buf_size = 0x1000;
+
   uo_nn_eval_state state = {
-    .file_mmap = file_mmap,
-    .buf_size = batch_size * 100,
-    .buf = malloc(batch_size * 100),
+  .file_mmap = file_mmap,
+  .buf_size = buf_size,
+  .buf = malloc(buf_size),
+  .position = 0
   };
 
   allocated_mem[allocated_mem_count++] = state.buf;
@@ -185,34 +188,32 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   if (nn_init_filepath)
   {
     //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
+    nn = uo_nn_create_chess_eval(&state.position.nn_input);
   }
   else
   {
-    uo_rand_init(time(NULL));
-
-    // TODO
+    nn = uo_nn_create_chess_eval(&state.position.nn_input);
   }
 
   nn->state = &state;
 
-  //if (!iterations) iterations = 1000;
+  if (!iterations) iterations = 1000;
 
   uo_rand_init(time(NULL));
 
-  size_t batch_size = 256;
+  //size_t batch_size = 256;
 
-  uo_nn *nn = uo_nn_create_xor(batch_size);
   uo_nn_init_optimizer(nn);
 
   uo_nn_train_eval_select_batch(nn, 0);
 
-  uo_nn_forward(nn);
+  uo_nn_forward(nn, (int)uo_color(state.position.flags));
   float loss_avg = uo_nn_compute_loss(nn);
 
-  for (size_t i = 1; i < 10000; ++i)
+  for (size_t i = 1; i < iterations; ++i)
   {
     uo_nn_train_eval_select_batch(nn, i);
-    uo_nn_forward(nn);
+    uo_nn_forward(nn, (int)uo_color(state.position.flags));
 
     float loss = uo_nn_compute_loss(nn);
     loss_avg = loss_avg * 0.95 + loss * 0.05;

@@ -49,7 +49,7 @@ public:
   }
 
   torch::Tensor forward(va_list args) {
-    uint8_t color = va_arg(args, uint8_t);
+    int color = va_arg(args, int);
 
     torch::Tensor input_mask_own;
     torch::Tensor input_floats_own;
@@ -74,6 +74,11 @@ public:
     torch::Tensor zero = torch::zeros(1);
 
     // (n_input_half_mask x n_hidden_1)
+    auto input_mask_own_ptr = input_mask_own.data_ptr();
+    auto W1_mask_own_ptr = W1_mask_own.data_ptr();
+    auto zero_ptr = zero.data_ptr();
+
+
     torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
     // (1 x n_hidden_1)
     torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
@@ -101,8 +106,9 @@ public:
     x = torch::tanh(x);
 
     x = torch::addmm(b2, x, W2);
-    x = torch::tanh(x);
-    return x;
+    x = torch::tanh_out(output, x);
+
+    return output;
   }
 
   torch::Tensor W1_mask_own, W1_floats_own;
@@ -120,11 +126,16 @@ public:
 
 struct XORModel : Model {
 public:
-  XORModel()
+  XORModel(size_t batch_size)
   {
     size_t n_input = 2;
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
+
+    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+
+    input = torch::zeros({ batch_size, n_input }, options);
+    output = torch::empty({ batch_size, n_output }, options);
 
     W1 = register_parameter("W1", torch::randn({ n_input, n_hidden_1 }));
     b1 = register_parameter("b1", torch::randn(n_hidden_1));
@@ -134,17 +145,19 @@ public:
   }
 
   torch::Tensor forward(va_list args) {
-    torch::Tensor x = va_arg(args, torch::Tensor);
-
-    x = torch::addmm(b1, x, W1);
+    torch::Tensor x = torch::addmm(b1, input, W1);
     x = torch::relu(x);
     x = torch::addmm(b2, x, W2);
-    x = torch::sigmoid(x);
-    return x;
+
+    torch::sigmoid_out(output, x);
+    return output;
   }
 
   torch::Tensor W1, b1;
   torch::Tensor W2, b2;
+
+  torch::Tensor input;
+  torch::Tensor output;
 };
 
 typedef struct uo_nn_impl
@@ -157,23 +170,54 @@ typedef struct uo_nn_impl
   torch::optim::Optimizer *optimizer;
 } uo_nn_impl;
 
+uo_nn *uo_nn_create_chess_eval(uo_nn_position *nn_input)
+{
+  uo_nn *nn = new uo_nn();
+  nn->batch_size = 1;
+
+  uo_nn_impl *impl = nn->impl = new uo_nn_impl();
+  impl->model = new ChessEvalModel(nn_input);
+
+  auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+
+  nn->input_count = 0;
+
+  nn->output_count = 1;
+  impl->output_tensors = new torch::Tensor[nn->output_count];
+  impl->true_output_tensors = new torch::Tensor[nn->output_count];
+  nn->outputs = new uo_nn_data[nn->output_count];
+  nn->true_outputs = new uo_nn_data[nn->output_count];
+  new (&impl->true_output_tensors[0]) torch::Tensor(torch::zeros({ 1, 1 }, options));
+  nn->true_outputs[0].data = impl->true_output_tensors[0].data_ptr();
+
+  nn->loss_count = 1;
+  impl->loss_tensors = new torch::Tensor[nn->loss_count];
+  nn->loss = new uo_nn_data[nn->loss_count];
+
+  return nn;
+}
+
 uo_nn *uo_nn_create_xor(size_t batch_size)
 {
   uo_nn *nn = new uo_nn();
   nn->batch_size = batch_size;
 
   uo_nn_impl *impl = nn->impl = new uo_nn_impl();
+  XORModel *model= new XORModel(batch_size);
+  impl->model = model;
 
   auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
   nn->input_count = 1;
   impl->input_tensors = new torch::Tensor[nn->input_count];
+  impl->input_tensors[0] = model->input;
   nn->inputs = new uo_nn_data[nn->input_count];
-  new (&impl->input_tensors[0]) torch::Tensor(torch::zeros({ batch_size, 2 }, options));
   nn->inputs[0].data = impl->input_tensors[0].data_ptr();
 
   nn->output_count = 1;
   impl->output_tensors = new torch::Tensor[nn->output_count];
+  impl->output_tensors[0] = model->output;
+
   impl->true_output_tensors = new torch::Tensor[nn->output_count];
   nn->outputs = new uo_nn_data[nn->output_count];
   nn->true_outputs = new uo_nn_data[nn->output_count];
@@ -184,21 +228,16 @@ uo_nn *uo_nn_create_xor(size_t batch_size)
   impl->loss_tensors = new torch::Tensor[nn->loss_count];
   nn->loss = new uo_nn_data[nn->loss_count];
 
-  impl->model = new XORModel();
-
   return nn;
 }
 
 void uo_nn_init_optimizer(uo_nn *nn)
 {
-  // Define the loss function and optimizer
-  //nn->loss_fn = torch::nn::BCELoss;
   nn->impl->optimizer = new torch::optim::SGD(nn->impl->model->parameters(), torch::optim::SGDOptions(0.1));
 }
 
 void uo_nn_forward(uo_nn *nn, ...)
 {
-  // TODO:
   va_list args;
   va_start(args, nn);
 
