@@ -21,16 +21,13 @@ public:
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
 
-    auto options_mask = torch::TensorOptions().dtype(torch::kBool).device(torch::kCPU);
-    auto options_floats = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+    input_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.vector, { n_input_half_mask }, torch::kBool);
+    input_floats_white = torch::from_blob(&nn_input->halves[uo_white].floats.vector, { 1, n_input_half_floats }, torch::kFloat32);
 
-    input_mask_white = torch::from_blob(nn_input->halves[uo_white].mask.vector, { n_input_half_mask }, options_mask);
-    input_floats_white = torch::from_blob(nn_input->halves[uo_white].floats.vector, { 1, n_input_half_floats }, options_floats);
+    input_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.vector, { n_input_half_mask }, torch::kBool);
+    input_floats_black = torch::from_blob(&nn_input->halves[uo_black].floats.vector, { 1, n_input_half_floats }, torch::kFloat32);
 
-    input_mask_black = torch::from_blob(nn_input->halves[uo_black].mask.vector, { n_input_half_mask }, options_mask);
-    input_floats_black = torch::from_blob(nn_input->halves[uo_black].floats.vector, { 1, n_input_half_floats }, options_floats);
-
-    input_mask_shared = torch::from_blob(nn_input->shared.mask.vector, { n_input_shared_mask }, options_mask);
+    input_mask_shared = torch::from_blob(&nn_input->shared.mask.vector, { n_input_shared_mask }, torch::kBool);
 
     W1_mask_own = register_parameter("W1_mask_own", torch::randn({ n_input_half_mask, n_hidden_1 }));
     W1_floats_own = register_parameter("W1_floats_own", torch::randn({ n_input_half_floats, n_hidden_1 }));
@@ -77,7 +74,6 @@ public:
     auto input_mask_own_ptr = input_mask_own.data_ptr();
     auto W1_mask_own_ptr = W1_mask_own.data_ptr();
     auto zero_ptr = zero.data_ptr();
-
 
     torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
     // (1 x n_hidden_1)
