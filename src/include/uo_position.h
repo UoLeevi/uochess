@@ -236,7 +236,7 @@ extern "C"
 
 #pragma endregion
 
-  static inline uint8_t *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square)
+  static inline bool *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square)
   {
     int piece_color = uo_color(piece);
     int flip_if_black = piece_color == uo_black ? 56 : 0;

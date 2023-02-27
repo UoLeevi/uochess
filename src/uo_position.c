@@ -311,14 +311,14 @@ static inline void uo_position_do_move(uo_position *position, uo_square square_f
   position->own ^= bitboard_from | bitboard_to;
 
   uo_piece piece_colored = piece ^ color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 0;
-  *nn_to = 1;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = false;
+  *nn_to = true;
 
   uint8_t flip_if_black = color == uo_black ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = 1;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = 0;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = true;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = false;
 }
 static inline void uo_position_undo_move(uo_position *position, uo_square square_from, uo_square square_to)
 {
@@ -338,14 +338,14 @@ static inline void uo_position_undo_move(uo_position *position, uo_square square
   position->own ^= bitboard_from | bitboard_to;
 
   uo_piece piece_colored = piece ^ !color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 1;
-  *nn_to = 0;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = true;
+  *nn_to = false;
 
   uint8_t flip_if_white = color == uo_white ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = 0;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = 1;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = false;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = true;
 }
 
 static inline void uo_position_do_capture(uo_position *position, uo_square square_from, uo_square square_to)
@@ -371,20 +371,20 @@ static inline void uo_position_do_capture(uo_position *position, uo_square squar
   position->own ^= bitboard_from | bitboard_to;
 
   uo_piece piece_colored = piece ^ color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 0;
-  *nn_to = 1;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = false;
+  *nn_to = true;
 
   uo_piece piece_captured_colored = piece_captured ^ color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
-  *nn_captured = 0;
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) -= 1.0f;
 
   uint8_t flip_if_black = color == uo_black ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = 1;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = true;
 }
 static inline void uo_position_undo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece_captured)
 {
@@ -408,20 +408,20 @@ static inline void uo_position_undo_capture(uo_position *position, uo_square squ
   position->enemy |= bitboard_to;
 
   uo_piece piece_colored = piece ^ !color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 1;
-  *nn_to = 0;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = true;
+  *nn_to = false;
 
   uo_piece piece_captured_colored = piece_captured ^ !color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) += 1.0f;
 
   uint8_t flip_if_white = color == uo_white ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = 0;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = false;
 }
 
 static inline void uo_position_do_enpassant(uo_position *position, uo_square square_from, uo_square square_to)
@@ -440,22 +440,22 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   position->enemy = uo_andn(enpassant, position->enemy);
 
   uo_piece piece_colored = uo_piece__P ^ color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 0;
-  *nn_to = 1;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = false;
+  *nn_to = true;
 
   uo_piece piece_captured_colored = uo_piece__p ^ color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
-  *nn_captured = 0;
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) -= 1.0f;
 
   uint8_t flip_if_black = color == uo_black ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = 1;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = 0;
-  position->nn_input.shared.mask.features.empty_squares[square_piece_captured ^ flip_if_black] = 1;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = true;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = false;
+  position->nn_input.shared.mask.features.empty_squares[square_piece_captured ^ flip_if_black] = true;
 }
 static inline void uo_position_undo_enpassant(uo_position *position, uo_square square_from, uo_square square_to)
 {
@@ -474,22 +474,22 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   position->enemy |= enpassant;
 
   uo_piece piece_colored = uo_piece__P ^ !color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 1;
-  *nn_to = 0;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = true;
+  *nn_to = false;
 
   uo_piece piece_captured_colored = uo_piece__p ^ !color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) += 1.0f;
 
   uint8_t flip_if_white = color == uo_white ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = 0;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = 1;
-  position->nn_input.shared.mask.features.empty_squares[square_piece_captured ^ flip_if_white] = 0;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = false;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = true;
+  position->nn_input.shared.mask.features.empty_squares[square_piece_captured ^ flip_if_white] = false;
 }
 
 static inline void uo_position_do_promo(uo_position *position, uo_square square_from, uo_piece piece)
@@ -514,10 +514,10 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
 
   uo_piece pawn_colored = uo_piece__P ^ color;
   uo_piece piece_colored = piece ^ color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 0;
-  *nn_to = 1;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = false;
+  *nn_to = true;
 
 
   float *nn_pawn_material = uo_position_nn_input_material(position, pawn_colored);
@@ -527,8 +527,8 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
   (*nn_promo_material) += 1.0f;
 
   uint8_t flip_if_black = color == uo_black ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = 1;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = 0;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = true;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_black] = false;
 }
 static inline void uo_position_undo_promo(uo_position *position, uo_square square_from)
 {
@@ -554,10 +554,10 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
 
   uo_piece pawn_colored = uo_piece__P ^ !color;
   uo_piece piece_colored = piece ^ !color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 1;
-  *nn_to = 0;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = true;
+  *nn_to = false;
 
   float *nn_pawn_material = uo_position_nn_input_material(position, pawn_colored);
   (*nn_pawn_material) += 1.0f;
@@ -566,8 +566,8 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
   (*nn_promo_material) -= 1.0f;
 
   uint8_t flip_if_white = color == uo_white ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = 0;
-  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = 1;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = false;
+  position->nn_input.shared.mask.features.empty_squares[square_to ^ flip_if_white] = true;
 }
 
 static inline void uo_position_do_promo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece)
@@ -596,10 +596,10 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
 
   uo_piece pawn_colored = uo_piece__P ^ color;
   uo_piece piece_colored = piece ^ color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 0;
-  *nn_to = 1;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = false;
+  *nn_to = true;
 
   float *nn_pawn_material = uo_position_nn_input_material(position, pawn_colored);
   (*nn_pawn_material) -= 1.0f;
@@ -608,14 +608,14 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
   (*nn_promo_material) += 1.0f;
 
   uo_piece piece_captured_colored = piece_captured ^ color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
-  *nn_captured = 0;
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) -= 1.0f;
 
   uint8_t flip_if_black = color == uo_black ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = 1;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_black] = true;
 }
 static inline void uo_position_undo_promo_capture(uo_position *position, uo_square square_from, uo_square square_to, uo_piece piece_captured)
 {
@@ -642,10 +642,10 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
 
   uo_piece pawn_colored = uo_piece__P ^ !color;
   uo_piece piece_colored = piece ^ !color;
-  uint8_t *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  uint8_t *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
-  *nn_from = 1;
-  *nn_to = 0;
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  *nn_from = true;
+  *nn_to = false;
 
   float *nn_pawn_material = uo_position_nn_input_material(position, pawn_colored);
   (*nn_pawn_material) += 1.0f;
@@ -654,14 +654,14 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   (*nn_promo_material) -= 1.0f;
 
   uo_piece piece_captured_colored = piece_captured ^ !color;
-  uint8_t *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
   (*nn_material) += 1.0f;
 
   uint8_t flip_if_white = color == uo_white ? 56 : 0;
-  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = 0;
+  position->nn_input.shared.mask.features.empty_squares[square_from ^ flip_if_white] = false;
 }
 
 static inline void uo_position_update_checks(uo_position *position)
@@ -766,7 +766,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
 
         while (empty_count--)
         {
-          position->nn_input.shared.mask.features.empty_squares[square + empty_count] = 1;
+          position->nn_input.shared.mask.features.empty_squares[square + empty_count] = true;
         }
 
         continue;
@@ -789,8 +789,8 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
       *bitboard |= mask;
       *bitboard_color |= mask;
 
-      uint8_t *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square);
-      *nn_piece_placement = 1;
+      bool *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square);
+      *nn_piece_placement = true;
 
       float *nn_material = uo_position_nn_input_material(position, piece);
       (*nn_material) += 1.0f;
@@ -830,28 +830,28 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
     if (c == 'K')
     {
       flags = uo_position_flags_update_castling_K(flags, true);
-      position->nn_input.halves[uo_white].mask.features.castling.K = 1;
+      position->nn_input.halves[uo_white].mask.features.castling.K = true;
       c = *ptr++;
     }
 
     if (c == 'Q')
     {
       flags = uo_position_flags_update_castling_Q(flags, true);
-      position->nn_input.halves[uo_white].mask.features.castling.Q = 1;
+      position->nn_input.halves[uo_white].mask.features.castling.Q = true;
       c = *ptr++;
     }
 
     if (c == 'k')
     {
       flags = uo_position_flags_update_castling_k(flags, true);
-      position->nn_input.halves[uo_black].mask.features.castling.K = 1;
+      position->nn_input.halves[uo_black].mask.features.castling.K = true;
       c = *ptr++;
     }
 
     if (c == 'q')
     {
       flags = uo_position_flags_update_castling_q(flags, true);
-      position->nn_input.halves[uo_black].mask.features.castling.Q = 1;
+      position->nn_input.halves[uo_black].mask.features.castling.Q = true;
       c = *ptr++;
     }
   }
@@ -877,7 +877,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
     }
 
     flags = uo_position_flags_update_enpassant_file(flags, file + 1);
-    position->nn_input.shared.mask.features.enpassant_file[file] = 1;
+    position->nn_input.shared.mask.features.enpassant_file[file] = true;
   }
 
   // 5. Halfmove clock

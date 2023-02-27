@@ -75,7 +75,10 @@ public:
     auto W1_mask_own_ptr = W1_mask_own.data_ptr();
     auto zero_ptr = zero.data_ptr();
 
-    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
+    torch::Tensor condition = input_mask_own == true;
+    auto condition_ptr = condition.data_ptr();
+
+    torch::Tensor x_mask_own = torch::where(condition, W1_mask_own, zero);
     // (1 x n_hidden_1)
     torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
 
