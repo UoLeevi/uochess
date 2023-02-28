@@ -68,17 +68,12 @@ public:
       input_floats_enemy = input_floats_white;
     }
 
-    torch::Tensor zero = torch::zeros(1);
+    torch::Tensor zero = torch::zeros(1, torch::kFloat);
 
     // (n_input_half_mask x n_hidden_1)
-    auto input_mask_own_ptr = input_mask_own.data_ptr();
-    auto W1_mask_own_ptr = W1_mask_own.data_ptr();
-    auto zero_ptr = zero.data_ptr();
+    // TODO: Fix exception: The size of tensor a (370) must match the size of tensor b (8) at non-singleton dimension 1
+    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
 
-    torch::Tensor condition = input_mask_own == true;
-    auto condition_ptr = condition.data_ptr();
-
-    torch::Tensor x_mask_own = torch::where(condition, W1_mask_own, zero);
     // (1 x n_hidden_1)
     torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
 
@@ -202,7 +197,7 @@ uo_nn *uo_nn_create_xor(size_t batch_size)
   nn->batch_size = batch_size;
 
   uo_nn_impl *impl = nn->impl = new uo_nn_impl();
-  XORModel *model= new XORModel(batch_size);
+  XORModel *model = new XORModel(batch_size);
   impl->model = model;
 
   auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
