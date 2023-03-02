@@ -21,13 +21,13 @@ public:
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
 
-    input_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.vector, { n_input_half_mask }, torch::kBool);
+    input_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.vector, { n_input_half_mask, 1 }, torch::kBool);
     input_floats_white = torch::from_blob(&nn_input->halves[uo_white].floats.vector, { 1, n_input_half_floats }, torch::kFloat32);
 
-    input_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.vector, { n_input_half_mask }, torch::kBool);
+    input_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.vector, { n_input_half_mask, 1 }, torch::kBool);
     input_floats_black = torch::from_blob(&nn_input->halves[uo_black].floats.vector, { 1, n_input_half_floats }, torch::kFloat32);
 
-    input_mask_shared = torch::from_blob(&nn_input->shared.mask.vector, { n_input_shared_mask }, torch::kBool);
+    input_mask_shared = torch::from_blob(&nn_input->shared.mask.vector, { n_input_shared_mask, 1 }, torch::kBool);
 
     W1_mask_own = register_parameter("W1_mask_own", torch::randn({ n_input_half_mask, n_hidden_1 }));
     W1_floats_own = register_parameter("W1_floats_own", torch::randn({ n_input_half_floats, n_hidden_1 }));
@@ -41,8 +41,6 @@ public:
 
     W2 = register_parameter("W2", torch::randn({ n_hidden_1, n_output }));
     b2 = register_parameter("b2", torch::randn(n_output));
-
-    output = torch::empty({ 1, n_output });
   }
 
   torch::Tensor forward(va_list args) {
@@ -71,7 +69,6 @@ public:
     torch::Tensor zero = torch::zeros(1, torch::kFloat);
 
     // (n_input_half_mask x n_hidden_1)
-    // TODO: Fix exception: The size of tensor a (370) must match the size of tensor b (8) at non-singleton dimension 1
     torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
 
     // (1 x n_hidden_1)
@@ -100,7 +97,8 @@ public:
     x = torch::tanh(x);
 
     x = torch::addmm(b2, x, W2);
-    x = torch::tanh_out(output, x);
+
+    output = torch::tanh(x);
 
     return output;
   }
