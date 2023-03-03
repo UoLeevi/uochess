@@ -197,7 +197,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   nn->state = &state;
 
-  if (!iterations) iterations = 1000;
+  if (!iterations) iterations = 10000;
 
   uo_rand_init(time(NULL));
 

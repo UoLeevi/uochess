@@ -9,6 +9,9 @@
 struct Model : torch::nn::Module
 {
   virtual torch::Tensor forward(va_list args) = 0;
+  virtual torch::Tensor loss(torch::Tensor y_pred, torch::Tensor y_true) = 0;
+  virtual void init_optimizer(void) = 0;
+  torch::optim::Optimizer *optimizer;
 };
 
 struct ChessEvalModel : Model {
@@ -103,6 +106,17 @@ public:
     return output;
   }
 
+  torch::Tensor loss(torch::Tensor y_pred, torch::Tensor y_true)
+  {
+    torch::nn::MSELoss loss_fn;
+    return loss_fn(y_pred, y_true);
+  }
+
+  void init_optimizer()
+  {
+    optimizer = new torch::optim::SGD(parameters(), torch::optim::SGDOptions(0.01));
+  }
+
   torch::Tensor W1_mask_own, W1_floats_own;
   torch::Tensor W1_mask_enemy, W1_floats_enemy;
   torch::Tensor W1_mask_shared;
@@ -145,6 +159,17 @@ public:
     return output;
   }
 
+  torch::Tensor loss(torch::Tensor y_pred, torch::Tensor y_true)
+  {
+    torch::nn::BCELoss loss_fn;
+    return loss_fn(y_pred, y_true);
+  }
+
+  void init_optimizer()
+  {
+    optimizer = new torch::optim::SGD(parameters(), torch::optim::SGDOptions(0.01));
+  }
+
   torch::Tensor W1, b1;
   torch::Tensor W2, b2;
 
@@ -159,7 +184,6 @@ typedef struct uo_nn_impl
   torch::Tensor *true_output_tensors;
   torch::Tensor *loss_tensors;
   Model *model;
-  torch::optim::Optimizer *optimizer;
 } uo_nn_impl;
 
 uo_nn *uo_nn_create_chess_eval(uo_nn_position *nn_input)
@@ -225,7 +249,7 @@ uo_nn *uo_nn_create_xor(size_t batch_size)
 
 void uo_nn_init_optimizer(uo_nn *nn)
 {
-  nn->impl->optimizer = new torch::optim::SGD(nn->impl->model->parameters(), torch::optim::SGDOptions(0.1));
+  nn->impl->model->init_optimizer();
 }
 
 void uo_nn_forward(uo_nn *nn, ...)
@@ -241,16 +265,15 @@ void uo_nn_forward(uo_nn *nn, ...)
 
 float uo_nn_compute_loss(uo_nn *nn)
 {
-  torch::nn::BCELoss loss_fn;
-  torch::Tensor loss = nn->impl->loss_tensors[0] = loss_fn(nn->impl->output_tensors[0], nn->impl->true_output_tensors[0]);
+  torch::Tensor loss = nn->impl->loss_tensors[0] = nn->impl->model->loss(nn->impl->output_tensors[0], nn->impl->true_output_tensors[0]);
   nn->loss[0].data = loss.data_ptr();
   return loss.item<float>();
 }
 
 void uo_nn_backward(uo_nn *nn)
 {
-  nn->impl->optimizer->zero_grad();
+  nn->impl->model->optimizer->zero_grad();
   nn->impl->loss_tensors[0].backward();
-  nn->impl->optimizer->step();
+  nn->impl->model->optimizer->step();
 }
 
