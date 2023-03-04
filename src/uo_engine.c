@@ -286,7 +286,20 @@ void uo_engine_init()
 
     if (eval_filename)
     {
-      thread->nn = uo_nn_read_from_file(NULL, eval_filename, 1);
+      bool file_exists = false;
+
+      FILE *file;
+      if ((file = fopen(eval_filename, "rb")))
+      {
+        fclose(file);
+        file_exists = true;
+      }
+
+      if (file_exists)
+      {
+        thread->nn = uo_nn_create_chess_eval(&thread->position.nn_input);
+        uo_nn_load_parameters_from_file(thread->nn, eval_filename);
+      }
     }
 
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);

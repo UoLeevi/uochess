@@ -4,7 +4,7 @@
       "UO_OPT_TESTDATADIR": "${projectDir}/test_data",
       "UO_OPT_DATASETDIR": "${projectDir}/datasets",
       "UO_OPT_NNDIR": "nn",
-      "UO_OPT_EVALFILE": "nn/nn-test-eval.nnuo",
+      "UO_OPT_EVALFILE": "nn/nn-eval-test.pt",
       "UO_OPT_THREADS": "4",
       "UO_OPT_HASH": "256"
     }

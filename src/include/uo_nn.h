@@ -95,6 +95,10 @@ extern "C"
 
   uo_nn *uo_nn_create_xor(size_t batch_size);
 
+  void uo_nn_save_parameters_to_file(uo_nn *nn, char *filepath);
+
+  void uo_nn_load_parameters_from_file(uo_nn *nn, char *filepath);
+
   void uo_nn_init_optimizer(uo_nn *nn);
 
   void uo_nn_forward(uo_nn *nn, ...);
@@ -105,14 +109,7 @@ extern "C"
 
   typedef struct uo_nn uo_nn;
 
-  //typedef void uo_nn_select_batch(uo_nn *nn, size_t iteration, uo_tensor *y_true);
-  //typedef void uo_nn_report(uo_nn *nn, size_t iteration, float error, float learning_rate);
-
-  //void uo_nn_load_position(uo_nn *nn, const uo_position *position, size_t index);
-
-  //int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position);
-
-  uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size);
+  int16_t uo_nn_evaluate(uo_nn *nn, uint8_t color);
 
   bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_output_file, float learning_rate, size_t iterations, size_t batch_size);
 

@@ -186,6 +186,37 @@ typedef struct uo_nn_impl
   Model *model;
 } uo_nn_impl;
 
+void uo_nn_save_parameters_to_file(uo_nn *nn, char *filepath)
+{
+  // Save model state
+  Model *model = nn->impl->model;
+  torch::serialize::OutputArchive output_model_archive;
+  model->to(torch::kCPU);
+  model->save(output_model_archive);
+  output_model_archive.save_to(filepath);
+
+  //// Save optimizer state
+  //torch::optim::Optimizer *optimizer = model->optimizer;
+  //torch::serialize::OutputArchive optimizer_output_archive;
+  //optimizer->save(optimizer_output_archive);
+  //optimizer_output_archive.save_to(optim_state_dict_path);
+}
+
+void uo_nn_load_parameters_from_file(uo_nn *nn, char *filepath)
+{
+  // Load model state
+  Model *model = nn->impl->model;
+  torch::serialize::InputArchive model_input_archive;
+  model_input_archive.load_from(filepath);
+  model->load(model_input_archive);
+
+  //// Load optimizer state
+  //torch::optim::Optimizer *optimizer = model->optimizer;
+  //torch::serialize::InputArchive optimizer_input_archive;
+  //optimizer_input_archive.load_from(optimizer_filepath);
+  //optimizer->load(optimizer_input_archive);
+}
+
 uo_nn *uo_nn_create_chess_eval(uo_nn_position *nn_input)
 {
   uo_nn *nn = new uo_nn();

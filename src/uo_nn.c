@@ -23,52 +23,12 @@
 #define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
 #define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
-void uo_print_nn(FILE *const fp, uo_nn *nn)
+int16_t uo_nn_evaluate(uo_nn *nn, uint8_t color)
 {
-  fprintf(fp,
-    "ir_version: 3\n"
-    "producer_name: \"uochess\"\n");
-
-  //uo_print_nn_graph(fp, nn->graph, nn->graph_size);
-
-  fprintf(fp,
-    "opset_import {\n"
-    "  domain: \"\"\n"
-    "  version: 7\n"
-    "}\n");
-}
-
-void uo_nn_save_to_file(uo_nn *nn, char *filepath)
-{
-  FILE *fp = fopen(filepath, "w");
-  uo_print_nn(fp, nn);
-  fclose(fp);
-}
-
-//int16_t uo_nn_evaluate(uo_nn *nn, const uo_position *position)
-//{
-//  uo_nn_load_position(nn, position, 0);
-//  uo_nn_feed_forward(nn);
-//  return uo_score_q_score_to_centipawn(*nn->y);
-//  //return uo_score_win_prob_to_centipawn(*nn->y);
-//}
-
-uo_nn *uo_nn_read_from_file(uo_nn *nn, char *filepath, size_t batch_size)
-{
-  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-  if (!file_mmap) return NULL;
-
-  if (nn == NULL)
-  {
-    nn = malloc(sizeof * nn);
-  }
-
-
-
-
-  uo_file_mmap_close(file_mmap);
-
-  return nn;
+  uo_nn_forward(nn, (int)color);
+  float *y = nn->outputs[0].data;
+  return uo_score_q_score_to_centipawn(*y);
+  //return uo_score_win_prob_to_centipawn(*nn->y);
 }
 
 typedef struct uo_nn_eval_state
@@ -183,16 +143,11 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   allocated_mem[allocated_mem_count++] = state.buf;
 
-  uo_nn *nn;
+  uo_nn *nn = uo_nn_create_chess_eval(&state.position.nn_input);
 
   if (nn_init_filepath)
   {
-    //uo_nn_read_from_file(&nn, nn_init_filepath, batch_size);
-    nn = uo_nn_create_chess_eval(&state.position.nn_input);
-  }
-  else
-  {
-    nn = uo_nn_create_chess_eval(&state.position.nn_input);
+    uo_nn_load_parameters_from_file(nn, nn_init_filepath);
   }
 
   nn->state = &state;
@@ -233,7 +188,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   if (!passed)
   {
     uo_file_mmap_close(file_mmap);
-    //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+    if (nn_output_file) uo_nn_save_parameters_to_file(nn, nn_output_file);
     while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
     return false;
   }
@@ -257,7 +212,7 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
   //}
 
   uo_file_mmap_close(file_mmap);
-  //if (nn_output_file) uo_nn_save_to_file(&nn, nn_output_file);
+  if (nn_output_file) uo_nn_save_parameters_to_file(nn, nn_output_file);
   while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
   return true;
 }
