@@ -43,7 +43,7 @@ void uo_engine_load_default_options()
     }
   }
 
-  strcpy(engine_options.eval_filename, "nn/nn-test-eval.nnuo");
+  strcpy(engine_options.eval_filename, "nn/nn-eval-test.pt");
   envopt = getenv("UO_OPT_EVALFILE");
   if (envopt)
   {
@@ -286,20 +286,7 @@ void uo_engine_init()
 
     if (eval_filename)
     {
-      bool file_exists = false;
-
-      FILE *file;
-      if ((file = fopen(eval_filename, "rb")))
-      {
-        fclose(file);
-        file_exists = true;
-      }
-
-      if (file_exists)
-      {
-        thread->nn = uo_nn_create_chess_eval(&thread->position.nn_input);
-        uo_nn_load_parameters_from_file(thread->nn, eval_filename);
-      }
+      thread->nn = uo_nn_load_from_file(&thread->position.nn_input, eval_filename);
     }
 
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
@@ -315,7 +302,7 @@ void uo_engine_init()
   // neural network used for evaluation
   if (eval_filename)
   {
-    //engine.nn = uo_nn_read_from_file(NULL, eval_filename, 1);
+    engine.nn = uo_nn_load_from_file(&engine.position.nn_input, eval_filename);
   }
 
   // load startpos

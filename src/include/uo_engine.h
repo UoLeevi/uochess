@@ -38,6 +38,7 @@ extern "C"
     int16_t value;
     size_t nodes;
     size_t depth;
+    bool incomplete;
     uo_move *line;
   } uo_search_queue_item;
 

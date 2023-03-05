@@ -93,13 +93,15 @@ extern "C"
 
   uo_nn *uo_nn_create_chess_eval(uo_nn_position *nn_input);
 
+  uo_nn *uo_nn_load_from_file(uo_nn_position *nn_input, char *filepath);
+
   uo_nn *uo_nn_create_xor(size_t batch_size);
 
   void uo_nn_save_parameters_to_file(uo_nn *nn, char *filepath);
 
   void uo_nn_load_parameters_from_file(uo_nn *nn, char *filepath);
 
-  void uo_nn_init_optimizer(uo_nn *nn);
+  void uo_nn_init_optimizer(uo_nn *nn, ...);
 
   void uo_nn_forward(uo_nn *nn, ...);
 

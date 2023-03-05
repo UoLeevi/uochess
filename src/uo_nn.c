@@ -31,6 +31,28 @@ int16_t uo_nn_evaluate(uo_nn *nn, uint8_t color)
   //return uo_score_win_prob_to_centipawn(*nn->y);
 }
 
+uo_nn *uo_nn_load_from_file(uo_nn_position *nn_input, char *filepath)
+{
+  bool file_exists = false;
+
+  FILE *file;
+  if ((file = fopen(filepath, "rb")))
+  {
+    fclose(file);
+    file_exists = true;
+  }
+
+  if (!file_exists)
+  {
+    return NULL;
+  }
+
+  uo_nn *nn = uo_nn_create_chess_eval(nn_input);
+  uo_nn_load_parameters_from_file(nn, filepath);
+
+  return nn;
+}
+
 typedef struct uo_nn_eval_state
 {
   uo_file_mmap *file_mmap;
@@ -48,10 +70,10 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration)
   uo_nn_eval_state *state = nn->state;
   size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
   i += iteration;
-  i %= state->file_mmap->size - batch_size * 160;
+  i %= state->file_mmap->size - batch_size * 160 + 160;
 
   char *ptr = state->buf;
-  memcpy(ptr, state->file_mmap->ptr + i, state->buf_size);
+  memcpy(ptr, state->file_mmap->ptr + i, batch_size * 160 + 160);
 
   char *fen = strchr(ptr, '\n') + 1;
   char *eval = strchr(fen, ',') + 1;
@@ -71,6 +93,18 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration)
       ////win_prob = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : 0.0f;
       //q_score = (eval[1] == '+' && color == uo_white) || (eval[1] == '-' && color == uo_black) ? 1.0f : -1.0f;
       fen = strchr(eval, '\n') + 1;
+
+      if (!fen)
+      {
+        i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
+        i += iteration;
+        i %= state->file_mmap->size - batch_size * 160 + 160;
+
+        char *ptr = state->buf;
+        memcpy(ptr, state->file_mmap->ptr + i, batch_size * 160 + 160);
+        fen = strchr(ptr, '\n') + 1;
+      }
+
       eval = strchr(fen, ',') + 1;
 
       --j;
@@ -154,11 +188,13 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
 
   if (!iterations) iterations = 10000;
 
+  if (learning_rate == 0.0) learning_rate = 0.01;
+
   uo_rand_init(time(NULL));
 
   //size_t batch_size = 256;
 
-  uo_nn_init_optimizer(nn);
+  uo_nn_init_optimizer(nn, (double)learning_rate);
 
   uo_nn_train_eval_select_batch(nn, 0);
 
@@ -171,13 +207,13 @@ bool uo_nn_train_eval(char *dataset_filepath, char *nn_init_filepath, char *nn_o
     uo_nn_forward(nn, (int)uo_color(state.position.flags));
 
     float loss = uo_nn_compute_loss(nn);
-    loss_avg = loss_avg * 0.95 + loss * 0.05;
+    loss_avg = loss_avg * 0.99 + loss * 0.01;
 
     if (loss_avg < 0.001) break;
 
     if (i % 100 == 0)
     {
-      uo_nn_train_eval_report_progress(nn, i, loss_avg, 0);
+      uo_nn_train_eval_report_progress(nn, i, loss_avg, learning_rate);
     }
 
     uo_nn_backward(nn);
@@ -251,9 +287,10 @@ bool uo_test_nn_train_xor(char *test_data_dir)
   uo_rand_init(time(NULL));
 
   size_t batch_size = 256;
+  float learning_rate = 0.1;
 
   uo_nn *nn = uo_nn_create_xor(batch_size);
-  uo_nn_init_optimizer(nn);
+  uo_nn_init_optimizer(nn, (double)learning_rate);
 
   uo_nn_select_batch_test_xor(nn, 0);
 
@@ -272,7 +309,7 @@ bool uo_test_nn_train_xor(char *test_data_dir)
 
     if (i % 100 == 0)
     {
-      uo_nn_report_test_xor(nn, i, loss_avg, 0);
+      uo_nn_report_test_xor(nn, i, loss_avg, learning_rate);
     }
 
     uo_nn_backward(nn);
