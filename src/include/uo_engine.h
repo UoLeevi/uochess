@@ -225,7 +225,7 @@ extern "C"
       // Let's only store entries to transposition table when search is not terminated early
 
       if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type == uo_tentry_type__lower_bound))
-    {
+      {
         abtentry->data.depth = abtentry->depth;
         abtentry->data.bestmove = abtentry->bestmove;
         abtentry->data.value = uo_score_adjust_for_mate_to_ttable(position, abtentry->value);
@@ -235,7 +235,7 @@ extern "C"
           uo_tentry_type__exact;
 
         uo_ttable_set(&engine.ttable, position, &abtentry->data);
-    }
+      }
     }
 
     return abtentry->value;
@@ -256,7 +256,7 @@ extern "C"
     return uo_engine_is_stopped() || (thread->owner && uo_atomic_load(&thread->cutoff));
   }
 
-  void uo_engine_start_search();
+  void uo_engine_start_search(void);
 
   static inline void uo_engine_reset_search_params(uint8_t seach_type)
   {

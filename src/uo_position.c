@@ -252,15 +252,53 @@ static inline void uo_position_set_flags(uo_position *position, uo_position_flag
 {
   uint64_t key = position->key;
 
-  uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
-  key ^= uo_zobrist_enpassant_file[enpassant_file];
-  enpassant_file = uo_position_flags_enpassant_file(flags);
-  key ^= uo_zobrist_enpassant_file[enpassant_file];
+  uint8_t enpassant_file_prev = uo_position_flags_enpassant_file(position->flags);
+  uint8_t enpassant_file_next = uo_position_flags_enpassant_file(flags);
 
-  uint8_t castling = uo_position_flags_castling(position->flags);
-  key ^= uo_zobrist_castling[castling];
-  castling = uo_position_flags_castling(flags);
-  key ^= uo_zobrist_castling[castling];
+  if (enpassant_file_prev != enpassant_file_next)
+  {
+    if (enpassant_file_prev)
+    {
+      position->nn_input.shared.mask.features.enpassant_file[enpassant_file_prev - 1] = false;
+    }
+
+    if (enpassant_file_next)
+    {
+      position->nn_input.shared.mask.features.enpassant_file[enpassant_file_next - 1] = true;
+    }
+
+    key ^= uo_zobrist_enpassant_file[enpassant_file_prev] ^ uo_zobrist_enpassant_file[enpassant_file_next];
+  }
+
+  uint8_t castling_prev = uo_position_flags_castling(position->flags);
+  uint8_t castling_next = uo_position_flags_castling(flags);
+  uint8_t castling_diff = castling_prev ^ castling_next;
+
+  if (castling_diff)
+  {
+    key ^= uo_zobrist_castling[castling_prev] ^ uo_zobrist_castling[castling_next];
+
+    if (castling_diff & 1)
+    {
+      position->nn_input.halves[uo_white].mask.features.castling.K ^= true;
+    }
+
+    if (castling_diff & 2)
+    {
+      position->nn_input.halves[uo_white].mask.features.castling.Q ^= true;
+    }
+
+    if (castling_diff & 4)
+    {
+      position->nn_input.halves[uo_black].mask.features.castling.K ^= true;
+    }
+
+    if (castling_diff & 8)
+    {
+      position->nn_input.halves[uo_black].mask.features.castling.Q ^= true;
+    }
+  }
+
 
   position->key = key;
   position->flags = flags;
@@ -766,7 +804,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
 
         while (empty_count--)
         {
-          position->nn_input.shared.mask.features.empty_squares[square + empty_count] = true;
+          position->nn_input.shared.mask.features.empty_squares[square - empty_count] = true;
         }
 
         continue;
@@ -1075,10 +1113,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
   stack->key = position->key;
 
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
-  if (enpassant_file)
-  {
-    position->nn_input.shared.mask.features.enpassant_file[enpassant_file - 1] = 0.0;
-  }
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uint8_t rule50 = uo_position_flags_rule50(flags);
@@ -1122,14 +1156,12 @@ void uo_position_make_move(uo_position *position, uo_move move)
           {
             uint8_t enpassant_file = uo_square_file(square_to);
             flags = uo_position_flags_update_enpassant_file(flags, enpassant_file + 1);
-            position->nn_input.shared.mask.features.enpassant_file[enpassant_file] = 1;
           }
         }
         else
         {
           uint8_t enpassant_file = uo_square_file(square_to);
           flags = uo_position_flags_update_enpassant_file(flags, enpassant_file + 1);
-          position->nn_input.shared.mask.features.enpassant_file[enpassant_file] = 1;
         }
       }
       break;
@@ -1218,12 +1250,10 @@ void uo_position_make_move(uo_position *position, uo_move move)
       {
         case uo_square__a8:
           flags = uo_position_flags_update_castling_q(flags, false);
-          position->nn_input.halves[!uo_color(position->flags)].mask.features.castling.Q = 0;
           break;
 
         case uo_square__h8:
           flags = uo_position_flags_update_castling_k(flags, false);
-          position->nn_input.halves[!uo_color(position->flags)].mask.features.castling.K = 0;
           break;
       }
     }
@@ -1237,8 +1267,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
     case uo_piece__K:
       flags = uo_position_flags_update_castling_own(flags, 0);
-      position->nn_input.halves[uo_color(position->flags)].mask.features.castling.K = 0;
-      position->nn_input.halves[uo_color(position->flags)].mask.features.castling.Q = 0;
       break;
 
     case uo_piece__R:
@@ -1246,12 +1274,10 @@ void uo_position_make_move(uo_position *position, uo_move move)
       {
         case uo_square__a1:
           flags = uo_position_flags_update_castling_Q(flags, false);
-          position->nn_input.halves[uo_color(position->flags)].mask.features.castling.Q = 0;
           break;
 
         case uo_square__h1:
           flags = uo_position_flags_update_castling_K(flags, false);
-          position->nn_input.halves[uo_color(position->flags)].mask.features.castling.K = 0;
           break;
       }
   }
@@ -2318,8 +2344,11 @@ size_t uo_position_perft(uo_position *position, size_t depth)
 
   size_t node_count = 0;
 
+  // DEBUG
   //char fen_before_make[90];
   //char fen_after_unmake[90];
+  uo_nn_position nn_input_before_move;
+  memcpy(&nn_input_before_move, &position->nn_input, sizeof nn_input_before_move);
 
   //uo_position_print_fen(position, fen_before_make);
 
@@ -2336,30 +2365,44 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     node_count += uo_position_perft(position, depth - 1);
     uo_position_unmake_move(position);
     //assert(thread->position.key == key);
+    bool white_floats = memcmp(&nn_input_before_move.halves[uo_white].floats, &position->nn_input.halves[uo_white].floats, sizeof nn_input_before_move.halves[uo_white].floats) == 0;
+    bool black_floats = memcmp(&nn_input_before_move.halves[uo_black].floats, &position->nn_input.halves[uo_black].floats, sizeof nn_input_before_move.halves[uo_black].floats) == 0;
+    bool shared_mask = memcmp(&nn_input_before_move.shared.mask, &position->nn_input.shared.mask, sizeof nn_input_before_move.shared.mask) == 0;
+    bool white_mask = memcmp(&nn_input_before_move.halves[uo_white].mask, &position->nn_input.halves[uo_white].mask, sizeof nn_input_before_move.halves[uo_white].mask) == 0;
+    bool black_mask = memcmp(&nn_input_before_move.halves[uo_black].mask, &position->nn_input.halves[uo_black].mask, sizeof nn_input_before_move.halves[uo_black].mask) == 0;
 
-  //  uo_position_print_fen(position, fen_after_unmake);
+    bool white_mask_P = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.P, &position->nn_input.halves[uo_white].mask.features.piece_placement.P, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.P) == 0;
+    bool white_mask_N = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.N, &position->nn_input.halves[uo_white].mask.features.piece_placement.N, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.N) == 0;
+    bool white_mask_B = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.B, &position->nn_input.halves[uo_white].mask.features.piece_placement.B, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.B) == 0;
+    bool white_mask_R = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.R, &position->nn_input.halves[uo_white].mask.features.piece_placement.R, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.R) == 0;
+    bool white_mask_Q = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.Q, &position->nn_input.halves[uo_white].mask.features.piece_placement.Q, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.Q) == 0;
+    bool white_mask_K = memcmp(&nn_input_before_move.halves[uo_white].mask.features.piece_placement.K, &position->nn_input.halves[uo_white].mask.features.piece_placement.K, sizeof nn_input_before_move.halves[uo_white].mask.features.piece_placement.K) == 0;
+    bool white_mask_castling = memcmp(&nn_input_before_move.halves[uo_white].mask.features.castling, &position->nn_input.halves[uo_white].mask.features.castling, sizeof nn_input_before_move.halves[uo_white].mask.features.castling) == 0;
 
-  //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
-  //  {
-  //    uo_position position;
-  //    uo_position_from_fen(&position, fen_before_make);
+    assert(white_floats && black_floats && white_mask && black_mask && shared_mask);
+    //uo_position_print_fen(position, fen_after_unmake);
 
-  //    uo_position_print_move(position, move, buf);
-  //    printf("error when unmaking move: %s\n", buf);
-  //    printf("\nbefore make move\n");
-  //    uo_position_print_diagram(&position, buf);
-  //    printf("\n%s", buf);
-  //    printf("\n");
-  //    printf("Fen: %s\n", fen_before_make);
-  //    printf("Key: %" PRIu64 "\n", key);
-  //    printf("\nafter unmake move\n");
-  //    uo_position_print_diagram(position, buf);
-  //    printf("\n%s", buf);
-  //    printf("\n");
-  //    printf("Fen: %s\n", fen_after_unmake);
-  //    printf("Key: %" PRIu64 "\n", thread->position.key);
-  //    printf("\n");
-  //  }
+//  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
+//  {
+//    uo_position position;
+//    uo_position_from_fen(&position, fen_before_make);
+
+//    uo_position_print_move(position, move, buf);
+//    printf("error when unmaking move: %s\n", buf);
+//    printf("\nbefore make move\n");
+//    uo_position_print_diagram(&position, buf);
+//    printf("\n%s", buf);
+//    printf("\n");
+//    printf("Fen: %s\n", fen_before_make);
+//    printf("Key: %" PRIu64 "\n", key);
+//    printf("\nafter unmake move\n");
+//    uo_position_print_diagram(position, buf);
+//    printf("\n%s", buf);
+//    printf("\n");
+//    printf("Fen: %s\n", fen_after_unmake);
+//    printf("Key: %" PRIu64 "\n", thread->position.key);
+//    printf("\n");
+//  }
   }
 
   return node_count;
