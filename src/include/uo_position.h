@@ -243,10 +243,10 @@ extern "C"
     int square_index = square ^ flip_if_black;
 
     int piece_type = uo_piece_type(piece);
-    int piece_offset = piece_type == uo_piece__P ? -8 : 0;
-    int piece_index = 384 - (piece >> 1) * 64 + piece_offset;
+    int square_offset = piece_type == uo_piece__P ? -8 : 0;
+    int piece_index = 384 - (piece >> 1) * 64;
 
-    return position->nn_input.halves[piece_color].mask.vector + piece_index + square_index;
+    return position->nn_input.halves[piece_color].mask.vector + piece_index + square_index + square_offset;
   }
 
   static inline float *uo_position_nn_input_material(uo_position *position, uo_piece piece)
