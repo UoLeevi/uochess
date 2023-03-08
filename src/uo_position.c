@@ -340,7 +340,8 @@ static inline void uo_position_do_move(uo_position *position, uo_square square_f
   board[square_from] = 0;
   board[square_to] = piece;
 
-  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to);
+  uo_piece piece_colored = piece ^ color;
+  position->key ^= uo_zobkey(piece_colored, square_from) ^ uo_zobkey(piece_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -349,9 +350,8 @@ static inline void uo_position_do_move(uo_position *position, uo_square square_f
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece piece_colored = piece ^ color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, color);
   *nn_from = false;
   *nn_to = true;
 
@@ -367,7 +367,8 @@ static inline void uo_position_undo_move(uo_position *position, uo_square square
   board[square_from] = piece;
   board[square_to] = 0;
 
-  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to);
+  uo_piece piece_colored = piece ^ !color;
+  position->key ^= uo_zobkey(piece_colored, square_from) ^ uo_zobkey(piece_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -376,9 +377,8 @@ static inline void uo_position_undo_move(uo_position *position, uo_square square
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece piece_colored = piece ^ !color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, !color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, !color);
   *nn_from = true;
   *nn_to = false;
 
@@ -396,7 +396,9 @@ static inline void uo_position_do_capture(uo_position *position, uo_square squar
   board[square_from] = 0;
   board[square_to] = piece;
 
-  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
+  uo_piece piece_colored = piece ^ color;
+  uo_piece piece_captured_colored = piece_captured ^ color;
+  position->key ^= uo_zobkey(piece_colored, square_from) ^ uo_zobkey(piece_colored, square_to) ^ uo_zobkey(piece_captured_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -409,14 +411,12 @@ static inline void uo_position_do_capture(uo_position *position, uo_square squar
   *bitboard ^= bitboard_from | bitboard_to;
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece piece_colored = piece ^ color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, color);
   *nn_from = false;
   *nn_to = true;
 
-  uo_piece piece_captured_colored = piece_captured ^ color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to, color);
   *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -433,7 +433,9 @@ static inline void uo_position_undo_capture(uo_position *position, uo_square squ
   board[square_from] = piece;
   board[square_to] = piece_captured;
 
-  position->key ^= uo_zobkey(piece, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
+  uo_piece piece_colored = piece ^ !color;
+  uo_piece piece_captured_colored = piece_captured ^ !color;
+  position->key ^= uo_zobkey(piece_colored, square_from) ^ uo_zobkey(piece_colored, square_to) ^ uo_zobkey(piece_captured_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -446,14 +448,12 @@ static inline void uo_position_undo_capture(uo_position *position, uo_square squ
   *bitboard_captured |= bitboard_to;
   position->enemy |= bitboard_to;
 
-  uo_piece piece_colored = piece ^ !color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, !color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, !color);
   *nn_from = true;
   *nn_to = false;
 
-  uo_piece piece_captured_colored = piece_captured ^ !color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to, !color);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -479,13 +479,13 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   position->enemy = uo_andn(enpassant, position->enemy);
 
   uo_piece piece_colored = uo_piece__P ^ color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, color);
   *nn_from = false;
   *nn_to = true;
 
   uo_piece piece_captured_colored = uo_piece__p ^ color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured, color);
   *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -513,13 +513,13 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   position->enemy |= enpassant;
 
   uo_piece piece_colored = uo_piece__P ^ !color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, piece_colored, square_from, !color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, !color);
   *nn_from = true;
   *nn_to = false;
 
   uo_piece piece_captured_colored = uo_piece__p ^ !color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_piece_captured, !color);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -539,7 +539,9 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
   board[square_from] = 0;
   board[square_to] = piece;
 
-  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to);
+  uo_piece pawn_colored = uo_piece__P ^ color;
+  uo_piece piece_colored = piece ^ color;
+  position->key ^= uo_zobkey(pawn_colored, square_from) ^ uo_zobkey(piece_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -551,10 +553,8 @@ static inline void uo_position_do_promo(uo_position *position, uo_square square_
 
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece pawn_colored = uo_piece__P ^ color;
-  uo_piece piece_colored = piece ^ color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from, color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, color);
   *nn_from = false;
   *nn_to = true;
 
@@ -579,7 +579,9 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
   board[square_from] = uo_piece__P;
   board[square_to] = 0;
 
-  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to);
+    uo_piece pawn_colored = uo_piece__P ^ !color;
+  uo_piece piece_colored = piece ^ !color;
+  position->key ^= uo_zobkey(pawn_colored, square_from) ^ uo_zobkey(piece_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -591,10 +593,8 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
 
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece pawn_colored = uo_piece__P ^ !color;
-  uo_piece piece_colored = piece ^ !color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from, !color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, !color);
   *nn_from = true;
   *nn_to = false;
 
@@ -617,7 +617,10 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
   board[square_from] = 0;
   board[square_to] = piece;
 
-  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
+  uo_piece pawn_colored = uo_piece__P ^ color;
+  uo_piece piece_colored = piece ^ color;
+  uo_piece piece_captured_colored = piece_captured ^ color;
+  position->key ^= uo_zobkey(pawn_colored, square_from) ^ uo_zobkey(piece_colored, square_to) ^ uo_zobkey(piece_captured_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -633,10 +636,8 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
 
   position->own ^= bitboard_from | bitboard_to;
 
-  uo_piece pawn_colored = uo_piece__P ^ color;
-  uo_piece piece_colored = piece ^ color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from, color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, color);
   *nn_from = false;
   *nn_to = true;
 
@@ -646,8 +647,7 @@ static inline void uo_position_do_promo_capture(uo_position *position, uo_square
   float *nn_promo_material = uo_position_nn_input_material(position, piece_colored);
   (*nn_promo_material) += 1.0f;
 
-  uo_piece piece_captured_colored = piece_captured ^ color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to, color);
   *nn_captured = false;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -664,7 +664,10 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   board[square_from] = uo_piece__P;
   board[square_to] = piece_captured;
 
-  position->key ^= uo_zobkey(uo_piece__P, square_from) ^ uo_zobkey(piece, square_to) ^ uo_zobkey(piece_captured, square_to);
+  uo_piece pawn_colored = uo_piece__P ^ !color;
+  uo_piece piece_colored = piece ^ !color;
+  uo_piece piece_captured_colored = piece_captured ^ !color;
+  position->key ^= uo_zobkey(pawn_colored, square_from) ^ uo_zobkey(piece_colored, square_to) ^ uo_zobkey(piece_captured_colored, square_to);
 
   uo_bitboard bitboard_from = uo_square_bitboard(square_from);
   uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -679,10 +682,8 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   *bitboard_captured |= bitboard_to;
   position->enemy |= bitboard_to;
 
-  uo_piece pawn_colored = uo_piece__P ^ !color;
-  uo_piece piece_colored = piece ^ !color;
-  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from);
-  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to);
+  bool *nn_from = uo_position_nn_input_piece_placement(position, pawn_colored, square_from, !color);
+  bool *nn_to = uo_position_nn_input_piece_placement(position, piece_colored, square_to, !color);
   *nn_from = true;
   *nn_to = false;
 
@@ -692,8 +693,7 @@ static inline void uo_position_undo_promo_capture(uo_position *position, uo_squa
   float *nn_promo_material = uo_position_nn_input_material(position, piece_colored);
   (*nn_promo_material) -= 1.0f;
 
-  uo_piece piece_captured_colored = piece_captured ^ !color;
-  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to);
+  bool *nn_captured = uo_position_nn_input_piece_placement(position, piece_captured_colored, square_to, !color);
   *nn_captured = 1;
 
   float *nn_material = uo_position_nn_input_material(position, piece_captured_colored);
@@ -828,7 +828,7 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
       *bitboard |= mask;
       *bitboard_color |= mask;
 
-      bool *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square);
+      bool *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square, uo_white);
       *nn_piece_placement = true;
 
       float *nn_material = uo_position_nn_input_material(position, piece);
@@ -2357,7 +2357,12 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     bool black_mask_K = memcmp(&nn_input_before_move.halves[uo_black].mask.features.piece_placement.K, &position->nn_input.halves[uo_black].mask.features.piece_placement.K, sizeof nn_input_before_move.halves[uo_black].mask.features.piece_placement.K) == 0;
     bool black_mask_castling = memcmp(&nn_input_before_move.halves[uo_black].mask.features.castling, &position->nn_input.halves[uo_black].mask.features.castling, sizeof nn_input_before_move.halves[uo_black].mask.features.castling) == 0;
 
-    assert(white_floats && black_floats && white_mask && black_mask && shared_mask);
+    char move_str[6]; 
+    uo_position_print_move(position, move, move_str);
+
+    bool is_valid = white_floats && black_floats && white_mask && black_mask && shared_mask;
+
+    assert(is_valid);
     //uo_position_print_fen(position, fen_after_unmake);
 
 //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
