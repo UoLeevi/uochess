@@ -252,9 +252,9 @@ extern "C"
   static inline float *uo_position_nn_input_material(uo_position *position, uo_piece piece)
   {
     int piece_color = uo_color(piece);
-    int piece_type = uo_piece_type(piece);
+    int piece_index = piece >> 1;
 
-    return position->nn_input.halves[piece_color].floats.vector + piece_type;
+    return position->nn_input.halves[piece_color].floats.vector + piece_index;
   }
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation

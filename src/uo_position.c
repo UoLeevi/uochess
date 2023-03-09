@@ -579,7 +579,7 @@ static inline void uo_position_undo_promo(uo_position *position, uo_square squar
   board[square_from] = uo_piece__P;
   board[square_to] = 0;
 
-    uo_piece pawn_colored = uo_piece__P ^ !color;
+  uo_piece pawn_colored = uo_piece__P ^ !color;
   uo_piece piece_colored = piece ^ !color;
   position->key ^= uo_zobkey(pawn_colored, square_from) ^ uo_zobkey(piece_colored, square_to);
 
@@ -2315,12 +2315,12 @@ size_t uo_position_perft(uo_position *position, size_t depth)
   size_t node_count = 0;
 
   // DEBUG
-  //char fen_before_make[90];
-  //char fen_after_unmake[90];
+  char fen_before_make[90];
+  char fen_after_unmake[90];
   uo_nn_position nn_input_before_move;
   memcpy(&nn_input_before_move, &position->nn_input, sizeof nn_input_before_move);
 
-  //uo_position_print_fen(position, fen_before_make);
+  uo_position_print_fen(position, fen_before_make);
 
   for (size_t i = 0; i < move_count; ++i)
   {
@@ -2357,13 +2357,15 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     bool black_mask_K = memcmp(&nn_input_before_move.halves[uo_black].mask.features.piece_placement.K, &position->nn_input.halves[uo_black].mask.features.piece_placement.K, sizeof nn_input_before_move.halves[uo_black].mask.features.piece_placement.K) == 0;
     bool black_mask_castling = memcmp(&nn_input_before_move.halves[uo_black].mask.features.castling, &position->nn_input.halves[uo_black].mask.features.castling, sizeof nn_input_before_move.halves[uo_black].mask.features.castling) == 0;
 
-    char move_str[6]; 
-    uo_position_print_move(position, move, move_str);
-
     bool is_valid = white_floats && black_floats && white_mask && black_mask && shared_mask;
 
-    assert(is_valid);
-    //uo_position_print_fen(position, fen_after_unmake);
+    if (!is_valid)
+    {
+      char move_str[6];
+      uo_position_print_move(position, move, move_str);
+      uo_position_print_fen(position, fen_after_unmake);
+    }
+
 
 //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
 //  {
