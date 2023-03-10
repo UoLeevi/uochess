@@ -251,9 +251,9 @@ extern "C"
 
   static inline float *uo_position_nn_input_material(uo_position *position, uo_piece piece)
   {
+    assert(uo_piece_type(piece) != uo_piece__K);
     int piece_color = uo_color(piece);
-    int piece_index = piece >> 1;
-
+    int piece_index = (piece >> 1 ) - 1;
     return position->nn_input.halves[piece_color].floats.vector + piece_index;
   }
 

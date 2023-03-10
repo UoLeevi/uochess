@@ -42,12 +42,16 @@ bool uo_position_is_ok(uo_position *position)
     return false;
   }
 
+  uint8_t color_to_move = uo_color(position->flags);
+  uint8_t flip_if_black_to_move = color_to_move == uo_black ? 56 : 0;
+
   for (uo_square square = 0; square < 64; ++square)
   {
+    uo_square square_white_perspective = square ^ flip_if_black_to_move;
     uo_bitboard mask = uo_square_bitboard(square);
     uo_piece piece = position->board[square];
 
-    if (piece <= 1)
+    if (piece <= 1) /* empty square */
     {
       if (position->P & mask)
       {
@@ -78,9 +82,76 @@ bool uo_position_is_ok(uo_position *position)
       {
         return false;
       }
+
+      if (!position->nn_input.shared.mask.features.empty_squares[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_white].mask.features.piece_placement.K[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_white].mask.features.piece_placement.Q[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_white].mask.features.piece_placement.R[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_white].mask.features.piece_placement.B[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_white].mask.features.piece_placement.N[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (square_white_perspective > 7 && square_white_perspective < 48 && position->nn_input.halves[uo_white].mask.features.piece_placement.P[square_white_perspective - 8])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_black].mask.features.piece_placement.K[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_black].mask.features.piece_placement.Q[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_black].mask.features.piece_placement.R[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_black].mask.features.piece_placement.B[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (position->nn_input.halves[uo_black].mask.features.piece_placement.N[square_white_perspective])
+      {
+        return false;
+      }
+
+      if (square_white_perspective > 7 && square_white_perspective < 48 && position->nn_input.halves[uo_black].mask.features.piece_placement.P[square_white_perspective - 8])
+      {
+        return false;
+      }
     }
     else
     {
+      // square is occupied
+
       uo_bitboard *bitboard = uo_position_piece_bitboard(position, piece);
 
       if (!(*bitboard & mask))
@@ -124,6 +195,13 @@ bool uo_position_is_ok(uo_position *position)
       }
 
       if (uo_color(piece) == uo_color_enemy && !(position->enemy & mask))
+      {
+        return false;
+      }
+
+      uo_piece piece_colored = piece ^ color_to_move;
+      bool *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece_colored, square, color_to_move);
+      if (!*nn_piece_placement)
       {
         return false;
       }
@@ -831,8 +909,11 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
       bool *nn_piece_placement = uo_position_nn_input_piece_placement(position, piece, square, uo_white);
       *nn_piece_placement = true;
 
-      float *nn_material = uo_position_nn_input_material(position, piece);
-      (*nn_material) += 1.0f;
+      if (uo_piece_type(piece) != uo_piece__K)
+      {
+        float *nn_material = uo_position_nn_input_material(position, piece);
+        (*nn_material) += 1.0f;
+      }
     }
 
     c = *ptr++;
@@ -943,6 +1024,8 @@ uo_position *uo_position_from_fen(uo_position *position, char *fen)
     uo_score_B * uo_popcnt(position->B) +
     uo_score_R * uo_popcnt(position->R) +
     uo_score_Q * uo_popcnt(position->Q));
+
+  assert(uo_position_is_ok(position));
 
   return position;
 }
@@ -2367,27 +2450,27 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     }
 
 
-//  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
-//  {
-//    uo_position position;
-//    uo_position_from_fen(&position, fen_before_make);
+    //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
+    //  {
+    //    uo_position position;
+    //    uo_position_from_fen(&position, fen_before_make);
 
-//    uo_position_print_move(position, move, buf);
-//    printf("error when unmaking move: %s\n", buf);
-//    printf("\nbefore make move\n");
-//    uo_position_print_diagram(&position, buf);
-//    printf("\n%s", buf);
-//    printf("\n");
-//    printf("Fen: %s\n", fen_before_make);
-//    printf("Key: %" PRIu64 "\n", key);
-//    printf("\nafter unmake move\n");
-//    uo_position_print_diagram(position, buf);
-//    printf("\n%s", buf);
-//    printf("\n");
-//    printf("Fen: %s\n", fen_after_unmake);
-//    printf("Key: %" PRIu64 "\n", thread->position.key);
-//    printf("\n");
-//  }
+    //    uo_position_print_move(position, move, buf);
+    //    printf("error when unmaking move: %s\n", buf);
+    //    printf("\nbefore make move\n");
+    //    uo_position_print_diagram(&position, buf);
+    //    printf("\n%s", buf);
+    //    printf("\n");
+    //    printf("Fen: %s\n", fen_before_make);
+    //    printf("Key: %" PRIu64 "\n", key);
+    //    printf("\nafter unmake move\n");
+    //    uo_position_print_diagram(position, buf);
+    //    printf("\n%s", buf);
+    //    printf("\n");
+    //    printf("Fen: %s\n", fen_after_unmake);
+    //    printf("Key: %" PRIu64 "\n", thread->position.key);
+    //    printf("\n");
+    //  }
   }
 
   return node_count;
