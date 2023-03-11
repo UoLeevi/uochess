@@ -259,7 +259,7 @@ extern "C"
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-  uo_position *uo_position_from_fen(uo_position *position, char *fen);
+  uo_position *uo_position_from_fen(uo_position *position, const char *fen);
 
   static inline void uo_position_reset_root(uo_position *position)
   {

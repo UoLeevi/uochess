@@ -48,6 +48,7 @@ bool uo_position_is_ok(uo_position *position)
   for (uo_square square = 0; square < 64; ++square)
   {
     uo_square square_white_perspective = square ^ flip_if_black_to_move;
+    uo_square square_enemy_perspective = square ^ 56;
     uo_bitboard mask = uo_square_bitboard(square);
     uo_piece piece = position->board[square];
 
@@ -88,62 +89,62 @@ bool uo_position_is_ok(uo_position *position)
         return false;
       }
 
-      if (position->nn_input.halves[uo_white].mask.features.piece_placement.K[square_white_perspective])
+      if (position->nn_input.halves[color_to_move].mask.features.piece_placement.K[square])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_white].mask.features.piece_placement.Q[square_white_perspective])
+      if (position->nn_input.halves[color_to_move].mask.features.piece_placement.Q[square])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_white].mask.features.piece_placement.R[square_white_perspective])
+      if (position->nn_input.halves[color_to_move].mask.features.piece_placement.R[square])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_white].mask.features.piece_placement.B[square_white_perspective])
+      if (position->nn_input.halves[color_to_move].mask.features.piece_placement.B[square])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_white].mask.features.piece_placement.N[square_white_perspective])
+      if (position->nn_input.halves[color_to_move].mask.features.piece_placement.N[square])
       {
         return false;
       }
 
-      if (square_white_perspective > 7 && square_white_perspective < 48 && position->nn_input.halves[uo_white].mask.features.piece_placement.P[square_white_perspective - 8])
+      if (square > 7 && square < 48 && position->nn_input.halves[color_to_move].mask.features.piece_placement.P[square - 8])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_black].mask.features.piece_placement.K[square_white_perspective])
+      if (position->nn_input.halves[!color_to_move].mask.features.piece_placement.K[square_enemy_perspective])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_black].mask.features.piece_placement.Q[square_white_perspective])
+      if (position->nn_input.halves[!color_to_move].mask.features.piece_placement.Q[square_enemy_perspective])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_black].mask.features.piece_placement.R[square_white_perspective])
+      if (position->nn_input.halves[!color_to_move].mask.features.piece_placement.R[square_enemy_perspective])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_black].mask.features.piece_placement.B[square_white_perspective])
+      if (position->nn_input.halves[!color_to_move].mask.features.piece_placement.B[square_enemy_perspective])
       {
         return false;
       }
 
-      if (position->nn_input.halves[uo_black].mask.features.piece_placement.N[square_white_perspective])
+      if (position->nn_input.halves[!color_to_move].mask.features.piece_placement.N[square_enemy_perspective])
       {
         return false;
       }
 
-      if (square_white_perspective > 7 && square_white_perspective < 48 && position->nn_input.halves[uo_black].mask.features.piece_placement.P[square_white_perspective - 8])
+      if (square_enemy_perspective > 7 && square_enemy_perspective < 48 && position->nn_input.halves[!color_to_move].mask.features.piece_placement.P[square_enemy_perspective - 8])
       {
         return false;
       }
@@ -836,7 +837,7 @@ static inline void uo_position_update_checks(uo_position *position)
 
 // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-uo_position *uo_position_from_fen(uo_position *position, char *fen)
+uo_position *uo_position_from_fen(uo_position *position, const char *fen)
 {
   uo_position_flags flags = 0;
   char piece_placement[72];

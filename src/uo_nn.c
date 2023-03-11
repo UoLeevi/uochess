@@ -61,22 +61,38 @@ typedef struct uo_nn_eval_state
   size_t buf_size;
 } uo_nn_eval_state;
 
+void uo_read_fen_and_eval(uo_nn_eval_state *state, size_t batch_size, const char **fen, const char **eval)
+{
+  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
+  i %= state->file_mmap->size - batch_size * 160 + 160;
+  char *ptr = state->buf;
+  memcpy(ptr, state->file_mmap->ptr + i, batch_size * 160 + 160);
+
+  *fen = strchr(ptr, '\n') + 1;
+  if (!*fen)
+  {
+    uo_read_fen_and_eval(state, batch_size, fen, eval);
+    return;
+  }
+
+  *eval = strchr(*fen, ',') + 1;
+  if (!*eval)
+  {
+    uo_read_fen_and_eval(state, batch_size, fen, eval);
+    return;
+  }
+}
+
 void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration)
 {
   float *Y_true = nn->true_outputs->data;
 
-  size_t batch_size = nn->batch_size;
-
   uo_nn_eval_state *state = nn->state;
-  size_t i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
-  i += iteration;
-  i %= state->file_mmap->size - batch_size * 160 + 160;
+  size_t batch_size = nn->batch_size;
+  const char *fen;
+  const char *eval;
 
-  char *ptr = state->buf;
-  memcpy(ptr, state->file_mmap->ptr + i, batch_size * 160 + 160);
-
-  char *fen = strchr(ptr, '\n') + 1;
-  char *eval = strchr(fen, ',') + 1;
+  uo_read_fen_and_eval(state, batch_size, &fen, &eval);
 
   //char *tempnnfile = uo_aprintf("%s/nn-eval-temp.nnuo", engine_options.nn_dir);
   //uo_nn_save_to_file(nn, tempnnfile);
@@ -96,16 +112,16 @@ void uo_nn_train_eval_select_batch(uo_nn *nn, size_t iteration)
 
       if (!fen)
       {
-        i = (size_t)uo_rand_between(0.0f, (float)state->file_mmap->size);
-        i += iteration;
-        i %= state->file_mmap->size - batch_size * 160 + 160;
-
-        char *ptr = state->buf;
-        memcpy(ptr, state->file_mmap->ptr + i, batch_size * 160 + 160);
-        fen = strchr(ptr, '\n') + 1;
+        uo_read_fen_and_eval(state, batch_size, &fen, &eval);
       }
-
-      eval = strchr(fen, ',') + 1;
+      else
+      {
+        eval = strchr(fen, ',') + 1;
+        if (!eval)
+        {
+          uo_read_fen_and_eval(state, batch_size, &fen, &eval);
+        }
+      }
 
       --j;
       continue;
