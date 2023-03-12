@@ -189,6 +189,11 @@ typedef struct uo_nn_impl
   Model *model;
 } uo_nn_impl;
 
+void uo_nn_set_to_evaluation_mode(uo_nn *nn)
+{
+  nn->impl->model->eval();
+}
+
 void uo_nn_save_parameters_to_file(uo_nn *nn, char *filepath)
 {
   // Save model state
