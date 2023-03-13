@@ -72,18 +72,18 @@ public:
     torch::Tensor zero = torch::zeros(1, torch::kFloat);
 
     // (n_input_half_mask x n_hidden_1)
-    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, zero);
+    torch::Tensor x_mask_own = torch::where(input_mask_own, W1_mask_own, 0.0f);
 
     // (1 x n_hidden_1)
     torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
 
     // (n_input_half_mask x n_hidden_1)
-    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, zero);
+    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, 0.0f);
     // (1 x n_hidden_1)
     torch::Tensor x_mask_enemy_sum = torch::sum(x_mask_enemy, 0, true);
 
     // (n_input_shared_mask x n_hidden_1)
-    torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, zero);
+    torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, 0.0f);
     // (1 x n_hidden_1)
     torch::Tensor x_mask_shared_sum = torch::sum(x_mask_shared, 0, true);
 
@@ -124,6 +124,11 @@ public:
   torch::Tensor W1_mask_shared;
   torch::Tensor b1;
   torch::Tensor W2, b2;
+
+  //torch::Tensor input_piece_placement_mask_white, input_castling_mask_white, input_material_floats_white;
+  //torch::Tensor input_piece_placement_mask_black, input_castling_mask_black, input_material_floats_black;
+  //torch::Tensor input_empty_squares_mask;
+  //torch::Tensor input_enpassant_file_mask;
 
   torch::Tensor input_mask_white, input_floats_white;
   torch::Tensor input_mask_black, input_floats_black;
