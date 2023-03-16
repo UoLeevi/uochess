@@ -22,17 +22,27 @@ public:
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
 
-    size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool);
-    input_piece_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement, { n_input_piece_placement_mask_white, 1 }, torch::kBool);
+    size_t n_input_pawn_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
+    assert(n_input_pawn_placement_mask_white == 6 * 8);
+    input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 6, 8 }, torch::kBool);
+
+    size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_white;
+    assert(n_input_pawn_placement_mask_white == 5 * 8 * 8);
+    input_piece_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement, { 5, 8, 8 }, torch::kBool);
 
     size_t n_input_castling_mask_white = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(bool);
-    input_castling_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.castling, { n_input_castling_mask_white, 1 }, torch::kBool);
+    input_castling_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.castling, { n_input_castling_mask_white }, torch::kBool);
 
     size_t n_input_material_floats_white = sizeof(nn_input->halves[0].floats.features.material) / sizeof(float);
     input_material_floats_white = torch::from_blob(&nn_input->halves[uo_white].floats.vector, { 1, n_input_material_floats_white }, torch::kFloat32);
 
-    size_t n_input_piece_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool);
-    input_piece_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement, { n_input_piece_placement_mask_black, 1 }, torch::kBool);
+    size_t n_input_pawn_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
+    assert(n_input_pawn_placement_mask_black == 6 * 8);
+    input_pawn_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement.P, { 6, 8 }, torch::kBool);
+
+    size_t n_input_piece_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_black;
+    assert(n_input_piece_placement_mask_black == 5 * 8 * 8);
+    input_piece_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement, { 5, 8, 8 }, torch::kBool);
 
     size_t n_input_castling_mask_black = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(bool);
     input_castling_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.castling, { n_input_castling_mask_black, 1 }, torch::kBool);
@@ -41,7 +51,8 @@ public:
     input_material_floats_black = torch::from_blob(&nn_input->halves[uo_black].floats.vector, { 1, n_input_material_floats_black }, torch::kFloat32);
 
     size_t n_input_empty_squares_mask = sizeof(nn_input->shared.mask.features.empty_squares) / sizeof(bool);
-    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { n_input_empty_squares_mask, 1 }, torch::kBool);
+    assert(n_input_empty_squares_mask == 8 * 8);
+    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { 8, 8 }, torch::kBool);
 
     size_t n_input_enpassant_file_mask = sizeof(nn_input->shared.mask.features.enpassant_file) / sizeof(bool);
     input_enpassant_file_mask = torch::from_blob(&nn_input->shared.mask.features.enpassant_file, { n_input_enpassant_file_mask, 1 }, torch::kBool);
@@ -63,12 +74,13 @@ public:
   torch::Tensor forward(va_list args) {
     int color = va_arg(args, int);
 
-    torch::Tensor input_piece_placement_mask_own, input_castling_mask_own, input_material_floats_own;
-    torch::Tensor input_piece_placement_mask_enemy, input_castling_mask_enemy, input_material_floats_enemy;
+    torch::Tensor input_piece_placement_mask_own, input_pawn_placement_mask_own, input_castling_mask_own, input_material_floats_own;
+    torch::Tensor input_piece_placement_mask_enemy, input_pawn_placement_mask_enemy, input_castling_mask_enemy, input_material_floats_enemy;
 
     if (color == uo_white)
     {
       input_piece_placement_mask_own = input_piece_placement_mask_white;
+      input_pawn_placement_mask_own = input_pawn_placement_mask_white;
       input_castling_mask_own = input_castling_mask_white;
       input_material_floats_own = input_material_floats_white;
       input_piece_placement_mask_enemy = input_piece_placement_mask_black;
@@ -78,6 +90,7 @@ public:
     else
     {
       input_piece_placement_mask_own = input_piece_placement_mask_black;
+      input_pawn_placement_mask_own = input_pawn_placement_mask_black;
       input_castling_mask_own = input_castling_mask_black;
       input_material_floats_own = input_material_floats_black;
       input_piece_placement_mask_enemy = input_piece_placement_mask_white;
@@ -141,8 +154,8 @@ public:
   torch::Tensor b1;
   torch::Tensor W2, b2;
 
-  torch::Tensor input_piece_placement_mask_white, input_castling_mask_white, input_material_floats_white;
-  torch::Tensor input_piece_placement_mask_black, input_castling_mask_black, input_material_floats_black;
+  torch::Tensor input_piece_placement_mask_white, input_pawn_placement_mask_white, input_castling_mask_white, input_material_floats_white;
+  torch::Tensor input_piece_placement_mask_black, input_pawn_placement_mask_black, input_castling_mask_black, input_material_floats_black;
   torch::Tensor input_empty_squares_mask;
   torch::Tensor input_enpassant_file_mask;
 
