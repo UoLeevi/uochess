@@ -148,9 +148,9 @@ public:
     optimizer = new torch::optim::SGD(parameters(), torch::optim::SGDOptions(learning_rate));
   }
 
-  torch::Tensor W1_mask_own, W1_floats_own;
-  torch::Tensor W1_mask_enemy, W1_floats_enemy;
-  torch::Tensor W1_mask_shared;
+  //torch::Tensor W1_mask_own, W1_floats_own;
+  //torch::Tensor W1_mask_enemy, W1_floats_enemy;
+  //torch::Tensor W1_mask_shared;
   torch::Tensor b1;
   torch::Tensor W2, b2;
 
@@ -158,6 +158,11 @@ public:
   torch::Tensor input_piece_placement_mask_black, input_pawn_placement_mask_black, input_castling_mask_black, input_material_floats_black;
   torch::Tensor input_empty_squares_mask;
   torch::Tensor input_enpassant_file_mask;
+
+  torch::Tensor W_piece_placement_mask_own, W_pawn_placement_mask_own, W_castling_mask_own, W_material_floats_own;
+  torch::Tensor W_piece_placement_mask_enemy, W_pawn_placement_mask_enemy, W_castling_mask_enemy, W_material_floats_enemy;
+  torch::Tensor W_empty_squares_mask;
+  torch::Tensor W_enpassant_file_mask;
 
   //torch::Tensor input_mask_white, input_floats_white;
   //torch::Tensor input_mask_black, input_floats_black;
