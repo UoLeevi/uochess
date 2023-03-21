@@ -16,8 +16,22 @@ struct Model : torch::nn::Module
 
 struct ChessEvalModel : Model {
 public:
-  ChessEvalModel(uo_nn_position *nn_input)
+  ChessEvalModel(uo_nn_position *nn_input) :
+    conv1(torch::nn::Conv2dOptions(num_channels, 64, 3).padding(1)),
+    conv2(torch::nn::Conv2dOptions(64, 128, 3).padding(1)),
+    conv3(torch::nn::Conv2dOptions(128, 256, 3).padding(1)),
+    fc1(256 * 8 * 8, 512),
+    fc2(512, 1)
   {
+    // TODO
+    register_module("conv1", conv1);
+    register_module("conv2", conv2);
+    register_module("conv3", conv3);
+    register_module("fc1", fc1);
+    register_module("fc2", fc2);
+
+
+
     size_t n_input_shared_mask = sizeof(nn_input->shared.mask) / sizeof(bool);
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
@@ -179,6 +193,13 @@ public:
   //torch::Tensor input_mask_shared;
 
   torch::Tensor output;
+
+
+  torch::nn::Conv2d conv1;
+  torch::nn::Conv2d conv2;
+  torch::nn::Conv2d conv3;
+  torch::nn::Linear fc1;
+  torch::nn::Linear fc2;
 };
 
 struct XORModel : Model {
