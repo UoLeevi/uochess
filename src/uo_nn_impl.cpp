@@ -23,7 +23,9 @@ public:
     fc1(256 * 8 * 8, 512),
     fc2(512, 1)
   {
-    // TODO
+    // TODO: somehow make input tensors with different shapes compatible. Maybe pad with zeros
+
+
     register_module("conv1", conv1);
     register_module("conv2", conv2);
     register_module("conv3", conv3);
@@ -158,6 +160,15 @@ public:
     output = torch::tanh(x);
 
     return output;
+
+
+            x = torch::relu(conv1(x));
+        x = torch::relu(conv2(x));
+        x = torch::relu(conv3(x));
+        x = x.view({-1, 256 * board_size * board_size});
+        x = torch::relu(fc1(x));
+        x = fc2(x);
+        return x;
   }
 
   torch::Tensor loss(torch::Tensor y_pred, torch::Tensor y_true)
