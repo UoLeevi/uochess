@@ -120,6 +120,15 @@ public:
       input_material_floats_enemy = input_material_floats_white;
     }
 
+    // Define the padding options
+    std::vector<int64_t> pad_sizes = { 0, 0, 1, 1 };  // pad zeros to the beginning and end of the second dimension
+    torch::nn::functional::PadFuncOptions pad_options(pad_sizes);
+
+    // Pad the tensor using the specified options
+    torch::Tensor padded_input_pawn_placement_mask_own = torch::nn::functional::pad(input_pawn_placement_mask_own, pad_options);
+    torch::Tensor padded_input_pawn_placement_mask_enemy = torch::nn::functional::pad(input_pawn_placement_mask_enemy, pad_options);
+
+
     torch::Tensor x_piece_placement_mask_own = torch::where(input_piece_placement_mask_own, W_piece_placement_mask_own, 0.0f);
     torch::Tensor x_pawn_placement_mask_own = torch::where(input_pawn_placement_mask_own, W_pawn_placement_mask_own, 0.0f);
     torch::Tensor x_castling_mask_own = torch::where(input_castling_mask_own, W_castling_mask_own, 0.0f);
@@ -162,13 +171,13 @@ public:
     return output;
 
 
-            x = torch::relu(conv1(x));
-        x = torch::relu(conv2(x));
-        x = torch::relu(conv3(x));
-        x = x.view({-1, 256 * board_size * board_size});
-        x = torch::relu(fc1(x));
-        x = fc2(x);
-        return x;
+    x = torch::relu(conv1(x));
+    x = torch::relu(conv2(x));
+    x = torch::relu(conv3(x));
+    x = x.view({ -1, 256 * board_size * board_size });
+    x = torch::relu(fc1(x));
+    x = fc2(x);
+    return x;
   }
 
   torch::Tensor loss(torch::Tensor y_pred, torch::Tensor y_true)
