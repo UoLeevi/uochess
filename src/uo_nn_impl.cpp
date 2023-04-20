@@ -40,7 +40,7 @@ public:
 
     size_t n_input_pawn_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
     assert(n_input_pawn_placement_mask_white == 6 * 8);
-    input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 1, 6, 8 }, torch::kBool);
+    input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kBool);
 
     size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_white;
     assert(n_input_pawn_placement_mask_white == 5 * 8 * 8);
@@ -54,7 +54,7 @@ public:
 
     size_t n_input_pawn_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
     assert(n_input_pawn_placement_mask_black == 6 * 8);
-    input_pawn_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement.P, { 1, 6, 8 }, torch::kBool);
+    input_pawn_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kBool);
 
     size_t n_input_piece_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_black;
     assert(n_input_piece_placement_mask_black == 5 * 8 * 8);
@@ -120,11 +120,9 @@ public:
       input_material_floats_enemy = input_material_floats_white;
     }
 
-    // Define the padding options
+    // Pad the pawn placement tensors
     std::vector<int64_t> pad_sizes = { 0, 0, 1, 1 };  // pad zeros to the beginning and end of the second dimension
     torch::nn::functional::PadFuncOptions pad_options(pad_sizes);
-
-    // Pad the tensor using the specified options
     torch::Tensor padded_input_pawn_placement_mask_own = torch::nn::functional::pad(input_pawn_placement_mask_own, pad_options);
     torch::Tensor padded_input_pawn_placement_mask_enemy = torch::nn::functional::pad(input_pawn_placement_mask_enemy, pad_options);
 
