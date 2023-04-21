@@ -68,7 +68,7 @@ public:
 
     size_t n_input_empty_squares_mask = sizeof(nn_input->shared.mask.features.empty_squares) / sizeof(bool);
     assert(n_input_empty_squares_mask == 8 * 8);
-    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { 1, 8, 8 }, torch::kBool);
+    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { 1, 1, 8, 8 }, torch::kBool);
 
     size_t n_input_enpassant_file_mask = sizeof(nn_input->shared.mask.features.enpassant_file) / sizeof(bool);
     input_enpassant_file_mask = torch::from_blob(&nn_input->shared.mask.features.enpassant_file, { 1, n_input_enpassant_file_mask }, torch::kBool);
@@ -125,6 +125,14 @@ public:
     torch::nn::functional::PadFuncOptions pad_options(pad_sizes);
     torch::Tensor padded_input_pawn_placement_mask_own = torch::nn::functional::pad(input_pawn_placement_mask_own, pad_options);
     torch::Tensor padded_input_pawn_placement_mask_enemy = torch::nn::functional::pad(input_pawn_placement_mask_enemy, pad_options);
+
+    torch::Tensor combined_input = torch::cat({
+      padded_input_pawn_placement_mask_own,
+      input_pawn_placement_mask_own,
+      padded_input_pawn_placement_mask_enemy,
+      input_pawn_placement_mask_enemy,
+      input_empty_squares_mask
+    }, 1);
 
 
     torch::Tensor x_piece_placement_mask_own = torch::where(input_piece_placement_mask_own, W_piece_placement_mask_own, 0.0f);
