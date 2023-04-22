@@ -17,7 +17,7 @@ struct Model : torch::nn::Module
 struct ChessEvalModel : Model {
 public:
   ChessEvalModel(uo_nn_position *nn_input) :
-    conv1(torch::nn::Conv2dOptions(num_channels, 64, 3).padding(1)),
+    conv1(torch::nn::Conv2dOptions(13, 64, 3).padding(1)),
     conv2(torch::nn::Conv2dOptions(64, 128, 3).padding(1)),
     conv3(torch::nn::Conv2dOptions(128, 256, 3).padding(1)),
     fc1(256 * 8 * 8, 512),
@@ -134,55 +134,13 @@ public:
       input_empty_squares_mask
     }, 1);
 
-
-    torch::Tensor x_piece_placement_mask_own = torch::where(input_piece_placement_mask_own, W_piece_placement_mask_own, 0.0f);
-    torch::Tensor x_pawn_placement_mask_own = torch::where(input_pawn_placement_mask_own, W_pawn_placement_mask_own, 0.0f);
-    torch::Tensor x_castling_mask_own = torch::where(input_castling_mask_own, W_castling_mask_own, 0.0f);
-    torch::Tensor x_piece_placement_mask_enemy = torch::where(input_piece_placement_mask_enemy, W_piece_placement_mask_enemy, 0.0f);
-    torch::Tensor x_pawn_placement_mask_enemy = torch::where(input_pawn_placement_mask_enemy, W_pawn_placement_mask_enemy, 0.0f);
-    torch::Tensor x_castling_mask_enemy = torch::where(input_castling_mask_enemy, W_castling_mask_enemy, 0.0f);
-
-
-    // (1 x n_hidden_1)
-    torch::Tensor x_mask_own_sum = torch::sum(x_mask_own, 0, true);
-
-    // (n_input_half_mask x n_hidden_1)
-    torch::Tensor x_mask_enemy = torch::where(input_mask_enemy, W1_mask_enemy, 0.0f);
-    // (1 x n_hidden_1)
-    torch::Tensor x_mask_enemy_sum = torch::sum(x_mask_enemy, 0, true);
-
-    // (n_input_shared_mask x n_hidden_1)
-    torch::Tensor x_mask_shared = torch::where(input_mask_shared, W1_mask_shared, 0.0f);
-    // (1 x n_hidden_1)
-    torch::Tensor x_mask_shared_sum = torch::sum(x_mask_shared, 0, true);
-
-    torch::Tensor x_material_floats_own = torch::mm(input_floats_own, W1_floats_own);
-    // (1 x n_hidden_1)
-    torch::Tensor x_material_floats_enemy = torch::mm(input_floats_enemy, W1_floats_enemy);
-
-    torch::Tensor zero = torch::zeros(1, torch::kFloat);
-    torch::Tensor x = zero;
-    x = torch::add(x, x_mask_own_sum);
-    x = torch::add(x, x_mask_enemy_sum);
-    x = torch::add(x, x_mask_shared_sum);
-    x = torch::add(x, x_floats_own);
-    x = torch::add(x, x_floats_enemy);
-    x = torch::add(x, b1);
-    x = torch::tanh(x);
-
-    x = torch::addmm(b2, x, W2);
-
-    output = torch::tanh(x);
-
-    return output;
-
-
-    x = torch::relu(conv1(x));
+    torch::Tensor x = torch::relu(conv1(combined_input));
     x = torch::relu(conv2(x));
     x = torch::relu(conv3(x));
-    x = x.view({ -1, 256 * board_size * board_size });
+    x = x.view({ -1, 256 * 8 * 8 });
     x = torch::relu(fc1(x));
-    x = fc2(x);
+    x = torch::tanh(fc2(x));
+
     return x;
   }
 
