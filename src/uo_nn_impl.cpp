@@ -43,7 +43,7 @@ public:
     input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kBool);
 
     size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_white;
-    assert(n_input_pawn_placement_mask_white == 5 * 8 * 8);
+    assert(n_input_piece_placement_mask_white == 5 * 8 * 8);
     input_piece_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement, { 1, 5, 8, 8 }, torch::kBool);
 
     size_t n_input_castling_mask_white = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(bool);
@@ -72,25 +72,6 @@ public:
 
     size_t n_input_enpassant_file_mask = sizeof(nn_input->shared.mask.features.enpassant_file) / sizeof(bool);
     input_enpassant_file_mask = torch::from_blob(&nn_input->shared.mask.features.enpassant_file, { 1, n_input_enpassant_file_mask }, torch::kBool);
-
-    W_piece_placement_mask_own = register_parameter("W_piece_placement_mask_own", torch::randn_like(input_piece_placement_mask_white));
-    W_pawn_placement_mask_own = register_parameter("W_pawn_placement_mask_own", torch::randn_like(input_pawn_placement_mask_white));
-    W_castling_mask_own = register_parameter("W_castling_mask_own", torch::randn_like(input_castling_mask_white));
-
-    W_piece_placement_mask_enemy = register_parameter("W_piece_placement_mask_enemy", torch::randn_like(input_piece_placement_mask_black));
-    W_pawn_placement_mask_enemy = register_parameter("W_pawn_placement_mask_enemy", torch::randn_like(input_pawn_placement_mask_black));
-    W_castling_mask_enemy = register_parameter("W_castling_mask_enemy", torch::randn_like(input_castling_mask_black));
-
-    W_empty_squares_mask = register_parameter("W_empty_squares_mask", torch::randn_like(input_empty_squares_mask));
-    W_enpassant_file_mask = register_parameter("W_enpassant_file_mask", torch::randn_like(input_enpassant_file_mask));;
-
-    W_material_floats_own = register_parameter("W_material_floats_own", torch::randn({ n_input_material_floats_white, n_hidden_1 }));
-    W_material_floats_enemy = register_parameter("W_material_floats_enemy", torch::randn({ n_input_material_floats_black, n_hidden_1 }));
-
-    b1 = register_parameter("b1", torch::randn(n_hidden_1));
-
-    W2 = register_parameter("W2", torch::randn({ n_hidden_1, n_output }));
-    b2 = register_parameter("b2", torch::randn(n_output));
   }
 
   torch::Tensor forward(va_list args) {
