@@ -87,6 +87,7 @@ public:
       input_castling_mask_own = input_castling_mask_white;
       input_material_floats_own = input_material_floats_white;
       input_piece_placement_mask_enemy = input_piece_placement_mask_black;
+      input_pawn_placement_mask_enemy = input_pawn_placement_mask_black;
       input_castling_mask_enemy = input_castling_mask_black;
       input_material_floats_enemy = input_material_floats_black;
     }
@@ -97,12 +98,13 @@ public:
       input_castling_mask_own = input_castling_mask_black;
       input_material_floats_own = input_material_floats_black;
       input_piece_placement_mask_enemy = input_piece_placement_mask_white;
+      input_pawn_placement_mask_enemy = input_pawn_placement_mask_white;
       input_castling_mask_enemy = input_castling_mask_white;
       input_material_floats_enemy = input_material_floats_white;
     }
 
     // Pad the pawn placement tensors
-    std::vector<int64_t> pad_sizes = { 0, 0, 1, 1 };  // pad zeros to the beginning and end of the second dimension
+    std::vector<int64_t> pad_sizes = { 0, 0, 1, 1, 0, 0, 0, 0 };  // pad zeros to the beginning and end of the second dimension
     torch::nn::functional::PadFuncOptions pad_options(pad_sizes);
     torch::Tensor padded_input_pawn_placement_mask_own = torch::nn::functional::pad(input_pawn_placement_mask_own, pad_options);
     torch::Tensor padded_input_pawn_placement_mask_enemy = torch::nn::functional::pad(input_pawn_placement_mask_enemy, pad_options);
@@ -113,7 +115,7 @@ public:
       padded_input_pawn_placement_mask_enemy,
       input_pawn_placement_mask_enemy,
       input_empty_squares_mask
-    }, 1);
+      }, 1);
 
     torch::Tensor x = torch::relu(conv1(combined_input));
     x = torch::relu(conv2(x));
