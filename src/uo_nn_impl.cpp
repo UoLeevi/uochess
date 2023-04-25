@@ -111,9 +111,9 @@ public:
 
     torch::Tensor combined_input = torch::cat({
       padded_input_pawn_placement_mask_own,
-      input_pawn_placement_mask_own,
+      input_piece_placement_mask_own,
       padded_input_pawn_placement_mask_enemy,
-      input_pawn_placement_mask_enemy,
+      input_piece_placement_mask_enemy,
       input_empty_squares_mask
       }, 1);
 
