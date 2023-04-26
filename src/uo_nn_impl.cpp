@@ -117,7 +117,7 @@ public:
       input_empty_squares_mask
       }, 1);
 
-    torch::Tensor x = torch::relu(conv1(combined_input));
+    torch::Tensor x = torch::relu(conv1(combined_input.to(torch::kFloat)));
     x = torch::relu(conv2(x));
     x = torch::relu(conv3(x));
     x = x.view({ -1, 256 * 8 * 8 });
