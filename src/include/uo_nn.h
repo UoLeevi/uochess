@@ -35,22 +35,22 @@ extern "C"
   {
     union
     {
-      bool vector[368 + 2];
+      float vector[368 + 2];
       struct
       {
         struct
         {
-          bool K[64];
-          bool Q[64];
-          bool R[64];
-          bool B[64];
-          bool N[64];
-          bool P[48];
+          float K[64];
+          float Q[64];
+          float R[64];
+          float B[64];
+          float N[64];
+          float P[48];
         } piece_placement;
         struct
         {
-          bool K;
-          bool Q;
+          float K;
+          float Q;
         } castling;
       } features;
     } mask;
@@ -76,11 +76,11 @@ extern "C"
   {
     union
     {
-      bool vector[64 + 8];
+      float vector[64 + 8];
       struct
       {
-        bool empty_squares[64];
-        bool enpassant_file[8];
+        float empty_squares[64];
+        float enpassant_file[8];
       } features;
     } mask;
   } uo_nn_input_shared;

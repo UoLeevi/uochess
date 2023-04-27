@@ -236,7 +236,7 @@ extern "C"
 
 #pragma endregion
 
-  static inline bool *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square, uint8_t color_to_move)
+  static inline float *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square, uint8_t color_to_move)
   {
     int piece_color = uo_color(piece);
     int flip_if_enemy = piece_color != color_to_move ? 56 : 0;

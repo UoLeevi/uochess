@@ -34,44 +34,44 @@ public:
 
 
 
-    size_t n_input_shared_mask = sizeof(nn_input->shared.mask) / sizeof(bool);
+    size_t n_input_shared_mask = sizeof(nn_input->shared.mask) / sizeof(float);
     size_t n_hidden_1 = 8;
     size_t n_output = 1;
 
-    size_t n_input_pawn_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
+    size_t n_input_pawn_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(float);
     assert(n_input_pawn_placement_mask_white == 6 * 8);
-    input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kBool);
+    input_pawn_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kFloat);
 
-    size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_white;
+    size_t n_input_piece_placement_mask_white = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(float) - n_input_pawn_placement_mask_white;
     assert(n_input_piece_placement_mask_white == 5 * 8 * 8);
-    input_piece_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement, { 1, 5, 8, 8 }, torch::kBool);
+    input_piece_placement_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.piece_placement, { 1, 5, 8, 8 }, torch::kFloat);
 
-    size_t n_input_castling_mask_white = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(bool);
-    input_castling_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.castling, { 1, n_input_castling_mask_white }, torch::kBool);
+    size_t n_input_castling_mask_white = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(float);
+    input_castling_mask_white = torch::from_blob(&nn_input->halves[uo_white].mask.features.castling, { 1, n_input_castling_mask_white }, torch::kFloat);
 
     size_t n_input_material_floats_white = sizeof(nn_input->halves[0].floats.features.material) / sizeof(float);
     input_material_floats_white = torch::from_blob(&nn_input->halves[uo_white].floats.vector, { 1, n_input_material_floats_white }, torch::kFloat32);
 
-    size_t n_input_pawn_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(bool);
+    size_t n_input_pawn_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement.P) / sizeof(float);
     assert(n_input_pawn_placement_mask_black == 6 * 8);
-    input_pawn_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kBool);
+    input_pawn_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement.P, { 1, 1, 6, 8 }, torch::kFloat);
 
-    size_t n_input_piece_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(bool) - n_input_pawn_placement_mask_black;
+    size_t n_input_piece_placement_mask_black = sizeof(nn_input->halves[0].mask.features.piece_placement) / sizeof(float) - n_input_pawn_placement_mask_black;
     assert(n_input_piece_placement_mask_black == 5 * 8 * 8);
-    input_piece_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement, { 1, 5, 8, 8 }, torch::kBool);
+    input_piece_placement_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.piece_placement, { 1, 5, 8, 8 }, torch::kFloat);
 
-    size_t n_input_castling_mask_black = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(bool);
-    input_castling_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.castling, { 1, n_input_castling_mask_black }, torch::kBool);
+    size_t n_input_castling_mask_black = sizeof(nn_input->halves[0].mask.features.castling) / sizeof(float);
+    input_castling_mask_black = torch::from_blob(&nn_input->halves[uo_black].mask.features.castling, { 1, n_input_castling_mask_black }, torch::kFloat);
 
     size_t n_input_material_floats_black = sizeof(nn_input->halves[0].floats.features.material) / sizeof(float);
     input_material_floats_black = torch::from_blob(&nn_input->halves[uo_black].floats.vector, { 1, n_input_material_floats_black }, torch::kFloat32);
 
-    size_t n_input_empty_squares_mask = sizeof(nn_input->shared.mask.features.empty_squares) / sizeof(bool);
+    size_t n_input_empty_squares_mask = sizeof(nn_input->shared.mask.features.empty_squares) / sizeof(float);
     assert(n_input_empty_squares_mask == 8 * 8);
-    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { 1, 1, 8, 8 }, torch::kBool);
+    input_empty_squares_mask = torch::from_blob(&nn_input->shared.mask.features.empty_squares, { 1, 1, 8, 8 }, torch::kFloat);
 
-    size_t n_input_enpassant_file_mask = sizeof(nn_input->shared.mask.features.enpassant_file) / sizeof(bool);
-    input_enpassant_file_mask = torch::from_blob(&nn_input->shared.mask.features.enpassant_file, { 1, n_input_enpassant_file_mask }, torch::kBool);
+    size_t n_input_enpassant_file_mask = sizeof(nn_input->shared.mask.features.enpassant_file) / sizeof(float);
+    input_enpassant_file_mask = torch::from_blob(&nn_input->shared.mask.features.enpassant_file, { 1, n_input_enpassant_file_mask }, torch::kFloat);
   }
 
   torch::Tensor forward(va_list args) {
@@ -117,7 +117,7 @@ public:
       input_empty_squares_mask
       }, 1);
 
-    torch::Tensor x = torch::relu(conv1(combined_input.to(torch::kFloat)));
+    torch::Tensor x = torch::relu(conv1(combined_input));
     x = torch::relu(conv2(x));
     x = torch::relu(conv3(x));
     x = x.view({ -1, 256 * 8 * 8 });
