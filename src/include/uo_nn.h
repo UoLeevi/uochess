@@ -10,6 +10,8 @@ extern "C"
 #include <stddef.h>
 #include <stdint.h>
 
+  // TOOD: nn is way too slow. PyTorch needs to go...
+
   typedef struct uo_nn_impl uo_nn_impl;
 
   typedef struct uo_nn_data
