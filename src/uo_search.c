@@ -274,7 +274,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   if (is_check)
   {
     // Step 8.1. Initialize score to be checkmate
-    int16_t value = -uo_score_checkmate;
+    int16_t value = -uo_score_checkmate + position->ply;
 
     // Step 8.2. Sort moves
     uo_position_sort_moves(&thread->position, 0);
