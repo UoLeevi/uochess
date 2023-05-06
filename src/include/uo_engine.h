@@ -12,7 +12,6 @@ extern "C"
 #include "uo_search.h"
 #include "uo_evaluation.h"
 #include "uo_def.h"
-#include "uo_nn.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -65,7 +64,6 @@ extern "C"
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
-    uo_nn *nn;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {
@@ -86,7 +84,6 @@ extern "C"
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
-    uo_nn *nn;
     uo_search_params search_params;
     struct
     {

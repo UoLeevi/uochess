@@ -11,7 +11,6 @@ extern "C"
 #include "uo_move.h"
 #include "uo_def.h"
 #include "uo_util.h"
-#include "uo_nn.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -96,8 +95,6 @@ extern "C"
     // see: https://www.researchgate.net/publication/220962554_The_Relative_History_Heuristic
     uint32_t hhtable[2 * 6 * 64];
     uint32_t bftable[2 * 6 * 64];
-
-    uo_nn_position nn_input;
 
     struct
     {
@@ -235,27 +232,6 @@ extern "C"
   }
 
 #pragma endregion
-
-  static inline float *uo_position_nn_input_piece_placement(uo_position *position, uo_piece piece, uo_square square, uint8_t color_to_move)
-  {
-    int piece_color = uo_color(piece);
-    int flip_if_enemy = piece_color != color_to_move ? 56 : 0;
-    int square_index = square ^ flip_if_enemy;
-
-    int piece_type = uo_piece_type(piece);
-    int square_offset = piece_type == uo_piece__P ? -8 : 0;
-    int piece_index = 384 - (piece >> 1) * 64;
-
-    return position->nn_input.halves[piece_color].mask.vector + piece_index + square_index + square_offset;
-  }
-
-  static inline float *uo_position_nn_input_material(uo_position *position, uo_piece piece)
-  {
-    assert(uo_piece_type(piece) != uo_piece__K);
-    int piece_color = uo_color(piece);
-    int piece_index = (piece >> 1 ) - 1;
-    return position->nn_input.halves[piece_color].floats.vector + piece_index;
-  }
 
   // see: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1

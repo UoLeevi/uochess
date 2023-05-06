@@ -4,7 +4,6 @@
 #include "uo_evaluation.h"
 #include "uo_def.h"
 #include "uo_global.h"
-#include "uo_nn.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -52,11 +51,7 @@ typedef const struct uo_uci_tokens
     alpha,
     beta,
     checks,
-    nneval,
-    train,
-    randomize,
-    nngen,
-    dataset;
+    randomize;
   struct
   {
     uo_uci_token
@@ -119,11 +114,7 @@ uo_uci_tokens tokens = {
   .alpha = 32,
   .beta = 33,
   .checks = 34,
-  .nneval = 35,
   .randomize = 36,
-  .train = 37,
-  .nngen = 38,
-  .dataset = 39,
   .options = {
     .Threads = 64,
     .Hash = 65,
@@ -388,33 +379,9 @@ static void uo_uci_read_token(void)
     return;
   }
 
-  if (streq(ptr, "nneval"))
-  {
-    token = tokens.nneval;
-    return;
-  }
-
   if (streq(ptr, "randomize"))
   {
     token = tokens.randomize;
-    return;
-  }
-
-  if (streq(ptr, "train"))
-  {
-    token = tokens.train;
-    return;
-  }
-
-  if (streq(ptr, "nngen"))
-  {
-    token = tokens.nngen;
-    return;
-  }
-
-  if (streq(ptr, "dataset"))
-  {
-    token = tokens.dataset;
     return;
   }
 
@@ -996,16 +963,7 @@ static void uo_uci_process_input__ready(void)
     uo_engine_lock_stdout();
     uo_engine_lock_position();
 
-    int16_t value;
-    //if (engine.nn)
-    //{
-    //  uo_nn_load_position(engine.nn, &engine.position, 0);
-    //  value = uo_nn_evaluate(engine.nn, &engine.position);
-    //}
-    //else
-    //{
-     value = uo_position_evaluate(&engine.position);
-    //}
+    int16_t value = uo_position_evaluate(&engine.position);
 
     uint16_t color = uo_color(engine.position.flags) == uo_white ? 1 : -1;
     int16_t score = color * value;
@@ -1024,93 +982,6 @@ static void uo_uci_process_input__ready(void)
     uo_engine_unlock_position();
     uo_engine_unlock_stdout();
   }
-
-  if (uo_uci_match(tokens.nneval))
-  {
-    uo_uci_read_token();
-    if (uo_uci_match(tokens.train))
-    {
-      uo_engine_lock_stdout();
-      uo_engine_lock_position();
-
-      char *line = strtok(NULL, "\n");
-
-      char *arg_nn_file_end;
-      char *arg_nn_file = uo_line_arg_parse(line, "nn_file", 1, &arg_nn_file_end);
-
-      char *arg_nn_out_file_end;
-      char *arg_nn_out_file = uo_line_arg_parse(line, "nn_out_file", 1, &arg_nn_out_file_end);
-
-      char *arg_dataset_file_end;
-      char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
-
-      char *arg_iterations_end;
-      char *arg_iterations = uo_line_arg_parse(line, "iterations", 1, &arg_iterations_end);
-
-      char *arg_learning_rate_end;
-      char *arg_learning_rate = uo_line_arg_parse(line, "learning_rate", 1, &arg_learning_rate_end);
-
-      char *arg_batch_size_end;
-      char *arg_batch_size = uo_line_arg_parse(line, "batch_size", 1, &arg_batch_size_end);
-
-      if (arg_nn_file && arg_nn_file_end) *arg_nn_file_end = '\0';
-      if (arg_nn_out_file && arg_nn_out_file_end) *arg_nn_out_file_end = '\0';
-      if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
-      if (arg_iterations && arg_iterations_end) *arg_iterations_end = '\0';
-      if (arg_learning_rate && arg_learning_rate_end) *arg_learning_rate_end = '\0';
-      if (arg_batch_size && arg_batch_size_end) *arg_batch_size_end = '\0';
-
-      size_t iterations = arg_iterations ? strtoull(arg_iterations, NULL, 10) : 0;
-      float learning_rate = arg_learning_rate ? strtof(arg_learning_rate, NULL) : 0;
-      size_t batch_size = arg_batch_size ? strtoull(arg_batch_size, NULL, 10) : 0;
-
-      bool passed = uo_nn_train_eval(arg_dataset_file, arg_nn_file, arg_nn_out_file, learning_rate, iterations, batch_size);
-
-      printf("\n");
-      fflush(stdout);
-      uo_engine_unlock_position();
-      uo_engine_unlock_stdout();
-
-      return;
-    }
-  }
-
-  if (uo_uci_match(tokens.nngen))
-  {
-    uo_uci_read_token();
-    if (uo_uci_match(tokens.dataset))
-    {
-      uo_engine_lock_stdout();
-      uo_engine_lock_position();
-
-      char *line = strtok(NULL, "\n");
-
-      char *arg_engine_file_end;
-      char *arg_engine_file = uo_line_arg_parse(line, "engine_file", 1, &arg_engine_file_end);
-
-      char *arg_dataset_file_end;
-      char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
-
-      char *arg_positions_end;
-      char *arg_positions = uo_line_arg_parse(line, "positions", 1, &arg_positions_end);
-
-      if (arg_engine_file && arg_engine_file_end) *arg_engine_file_end = '\0';
-      if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
-      if (arg_positions && arg_positions_end) *arg_positions_end = '\0';
-
-      size_t positions = arg_positions ? strtoull(arg_positions, NULL, 10) : 0;
-
-      uo_nn_generate_dataset(arg_dataset_file, arg_engine_file, NULL, positions);
-
-      printf("\n");
-      fflush(stdout);
-      uo_engine_unlock_position();
-      uo_engine_unlock_stdout();
-
-      return;
-    }
-  }
-
 }
 
 static void uo_uci_process_input__go(void)

@@ -4,7 +4,6 @@
 #include "uo_misc.h"
 #include "uo_position.h"
 #include "uo_search.h"
-#include "uo_nn.h"
 
 #include <stdbool.h>
 #include <stddef.h>

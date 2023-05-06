@@ -284,15 +284,6 @@ void uo_engine_init()
       thread->info.secondary_pvs = calloc(engine_options.multipv, sizeof * thread->info.secondary_pvs);
     }
 
-    if (eval_filename)
-    {
-      thread->nn = uo_nn_load_from_file(&thread->position.nn_input, eval_filename);
-      if (thread->nn)
-      {
-        uo_nn_set_to_evaluation_mode(thread->nn);
-      }
-    }
-
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 
@@ -302,16 +293,6 @@ void uo_engine_init()
 
   // multipv
   engine.pv = malloc(engine_options.multipv * sizeof * engine.pv);
-
-  // neural network used for evaluation
-  if (eval_filename)
-  {
-    engine.nn = uo_nn_load_from_file(&engine.position.nn_input, eval_filename);
-    if (engine.nn)
-    {
-      uo_nn_set_to_evaluation_mode(engine.nn);
-    }
-  }
 
   // load startpos
   uo_position_from_fen(&engine.position, uo_fen_startpos);
