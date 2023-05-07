@@ -26,6 +26,6 @@ void uo_zobrist_init()
   }
 
   uo_zobrist_enpassant_file = uo_zobrist;
-  uo_zobrist_castling = uo_zobrist + 16;
+  uo_zobrist_castling = uo_zobrist + 64;
 }
 
