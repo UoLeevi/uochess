@@ -8,6 +8,7 @@
 uint64_t uo_zobrist[0xEull << 6];
 uint64_t *uo_zobrist_castling;
 uint64_t *uo_zobrist_enpassant_file;
+uint64_t uo_zobrist_side_to_move;
 
 static bool init;
 static uint64_t rand_seed = 7109;
@@ -25,7 +26,8 @@ void uo_zobrist_init()
     uo_zobrist[i] = uo_rand_u64();
   }
 
+  uo_zobrist_side_to_move = uo_rand_u64();
   uo_zobrist_enpassant_file = uo_zobrist;
-  uo_zobrist_castling = uo_zobrist + 64;
+  uo_zobrist_castling = uo_zobrist + 56;
 }
 

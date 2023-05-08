@@ -11,6 +11,7 @@ extern "C"
 #include "uo_move.h"
 #include "uo_def.h"
 #include "uo_util.h"
+#include "uo_zobrist.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
