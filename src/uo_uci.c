@@ -663,7 +663,9 @@ static void uo_uci_process_input__ready(void)
         {
           uo_move move = engine.position.movelist.head[i];
           uo_position_print_move(&engine.position, move, buf);
+          assert(engine.position.key == uo_position_calculate_key(&engine.position));
           uo_position_make_move(&engine.position, move);
+          assert(engine.position.key == uo_position_calculate_key(&engine.position));
           size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1);
           uo_position_unmake_move(&engine.position);
           total_node_count += node_count;

@@ -188,11 +188,6 @@ uint64_t uo_position_calculate_key(const uo_position *position)
   uint8_t castling = uo_position_flags_castling(flags);
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
 
-  if (color_to_move == uo_black)
-  {
-    key = uo_bswap(key);
-  }
-
   key ^= uo_zobrist_castling[castling];
   key ^= uo_zobrist_enpassant_file[enpassant_file];
 
@@ -201,7 +196,7 @@ uint64_t uo_position_calculate_key(const uo_position *position)
     uo_piece piece = position->board[square];
     if (piece > 1)
     {
-      key ^= uo_zobkey(piece, square);
+      key ^= uo_zobkey(piece ^ color_to_move, square);
     }
   }
 
@@ -402,7 +397,8 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_square square_piece_captured = square_to - 8;
   board[square_piece_captured] = 0;
 
-  position->key ^= uo_zobkey(uo_piece__p, square_piece_captured);
+  uo_piece piece_captured_colored = uo_piece__p ^ !color;
+  position->key ^= uo_zobkey(piece_captured_colored, square_piece_captured);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P = uo_andn(enpassant, position->P);
@@ -418,7 +414,8 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   uo_square square_piece_captured = square_to - 8;
   position->board[square_piece_captured] = uo_piece__p;
 
-  position->key ^= uo_zobkey(uo_piece__p, square_piece_captured);
+  uo_piece piece_captured_colored = uo_piece__p ^ color;
+  position->key ^= uo_zobkey(piece_captured_colored, square_piece_captured);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
   position->P |= enpassant;
@@ -2111,7 +2108,7 @@ size_t uo_position_print_move(const uo_position *position, uo_move move, char st
 size_t uo_position_perft(uo_position *position, size_t depth)
 {
   size_t move_count = uo_position_generate_moves(position);
-  //uint64_t key = thread->position.key;
+  uint64_t key = position->key;
 
   if (depth == 1)
   {
@@ -2130,15 +2127,18 @@ size_t uo_position_perft(uo_position *position, size_t depth)
   {
     uo_move move = position->movelist.head[i];
     uo_position_make_move(position, move);
+
     //uo_position_print_move(position, move, buf);
     //printf("move: %s\n", buf);
     //uo_position_print_fen(position, buf);
     //printf("%s\n", buf);
     //uo_position_print_diagram(position, buf);
     //printf("%s\n", buf);
+
+    assert(position->key == uo_position_calculate_key(position));
     node_count += uo_position_perft(position, depth - 1);
     uo_position_unmake_move(position);
-    //assert(thread->position.key == key);
+    assert(position->key == key);
 
     //  if (strcmp(fen_before_make, fen_after_unmake) != 0 /* || key != thread->position.key */)
     //  {
