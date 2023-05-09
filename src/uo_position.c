@@ -436,7 +436,7 @@ static inline void uo_position_do_enpassant(uo_position *position, uo_square squ
   uo_square square_piece_captured = square_to - 8;
   board[square_piece_captured] = 0;
 
-  uo_piece piece_captured_colored = uo_piece__p ^ !color;
+  uo_piece piece_captured_colored = uo_piece__p ^ color;
   position->key ^= uo_zobkey(piece_captured_colored, square_piece_captured ^ flip_if_black);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
@@ -455,7 +455,7 @@ static inline void uo_position_undo_enpassant(uo_position *position, uo_square s
   uo_square square_piece_captured = square_to - 8;
   position->board[square_piece_captured] = uo_piece__p;
 
-  uo_piece piece_captured_colored = uo_piece__p ^ color;
+  uo_piece piece_captured_colored = uo_piece__p ^ !color;
   position->key ^= uo_zobkey(piece_captured_colored, square_piece_captured ^ flip_if_white);
 
   uo_bitboard enpassant = uo_square_bitboard(square_piece_captured);
