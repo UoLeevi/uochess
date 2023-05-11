@@ -750,6 +750,11 @@ uo_position *uo_position_from_fen(uo_position *position, const char *fen)
       flags = uo_position_flags_update_castling_q(flags, true);
       c = *ptr++;
     }
+
+    if (active_color == 'b')
+    {
+      flags = uo_position_flags_flip_castling(flags);
+    }
   }
 
   // 4. En passant target square
@@ -786,7 +791,7 @@ uo_position *uo_position_from_fen(uo_position *position, const char *fen)
 
   if (uo_color(position->flags) == uo_black)
   {
-    uo_position_flip_board(position);
+    uo_position_flip_board(position); 
   }
 
   position->key = uo_position_calculate_key(position);
