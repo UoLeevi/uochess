@@ -13,7 +13,7 @@
 const int16_t uo_score_tempo = 25;
 
 // mobility
-const int16_t uo_score_square_access = 10;
+const int16_t uo_score_square_access = 5;
 
 const int16_t uo_score_mobility_P = 5;
 const int16_t uo_score_mobility_N = 1;
@@ -22,17 +22,17 @@ const int16_t uo_score_mobility_R = 1;
 const int16_t uo_score_mobility_Q = 1;
 const int16_t uo_score_mobility_K = 1;
 
-const int16_t uo_score_N_square_attackable_by_P = -20;
-const int16_t uo_score_B_square_attackable_by_P = -10;
-const int16_t uo_score_R_square_attackable_by_P = -30;
-const int16_t uo_score_Q_square_attackable_by_P = -50;
+const int16_t uo_score_N_square_attackable_by_P = -10;
+const int16_t uo_score_B_square_attackable_by_P = -5;
+const int16_t uo_score_R_square_attackable_by_P = -15;
+const int16_t uo_score_Q_square_attackable_by_P = -30;
 const int16_t uo_score_K_square_attackable_by_P = -70;
 
 // space
-const int16_t uo_score_space_P = 15;
+const int16_t uo_score_space_P = 10;
 const int16_t uo_score_space_N = 3;
 const int16_t uo_score_space_B = 3;
-const int16_t uo_score_space_R = 8;
+const int16_t uo_score_space_R = 6;
 const int16_t uo_score_space_Q = 2;
 
 // material
