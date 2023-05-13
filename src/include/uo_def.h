@@ -18,7 +18,7 @@ extern "C"
 #define UO_LAZY_SMP_MIN_DEPTH 3
 #define UO_LAZY_SMP_FREE_THREAD_COUNT 1
 
-#define UO_TTABLE_LOCK_BITS 8 
+#define UO_TTABLE_LOCK_BITS 10 
 
 #define uo_score_draw 0
 #define uo_score_unknown INT16_MIN

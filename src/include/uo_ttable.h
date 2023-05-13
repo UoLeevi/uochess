@@ -11,7 +11,7 @@ extern "C"
 #include "uo_search.h"
 #include "uo_position.h"
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -82,16 +82,6 @@ extern "C"
   {
     free(ttable->entries);
   }
-
-  //static inline void uo_ttable_lock(uo_ttable *ttable)
-  //{
-  //  uo_atomic_compare_exchange_wait(&ttable->busy, 0, 1);
-  //}
-
-  //static inline void uo_ttable_unlock(uo_ttable *ttable)
-  //{
-  //  uo_atomic_store(&ttable->busy, 0);
-  //}
 
   static inline bool uo_ttable_get(uo_ttable *ttable, const uo_position *position, uo_tdata *data)
   {

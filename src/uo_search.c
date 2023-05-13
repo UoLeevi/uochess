@@ -148,15 +148,15 @@ static void uo_search_print_info(uo_engine_thread *thread)
 typedef uint8_t uo_search_quiesce_flags;
 
 #define uo_search_quiesce_flags__checks ((uint8_t)1)
-#define uo_search_quiesce_flags__positive_sse ((uint8_t)2)
-#define uo_search_quiesce_flags__non_negative_sse ((uint8_t)6)
-#define uo_search_quiesce_flags__any_sse ((uint8_t)14)
+#define uo_search_quiesce_flags__positive_see ((uint8_t)2)
+#define uo_search_quiesce_flags__non_negative_see ((uint8_t)6)
+#define uo_search_quiesce_flags__any_see ((uint8_t)14)
 #define uo_search_quiesce_flags__all_moves ((uint8_t)-1)
 
 static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engine_thread *thread, uint8_t depth)
 {
   uo_position *position = &thread->position;
-  uo_search_quiesce_flags flags = uo_search_quiesce_flags__positive_sse;
+  uo_search_quiesce_flags flags = uo_search_quiesce_flags__positive_see;
 
   uint8_t material_percentage = uo_position_material_percentage(position);
 
@@ -170,11 +170,11 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
   }
   else if (material_weighted_depth < 5)
   {
-    flags = uo_search_quiesce_flags__non_negative_sse | uo_search_quiesce_flags__checks;
+    flags = uo_search_quiesce_flags__non_negative_see | uo_search_quiesce_flags__checks;
   }
   else if (material_weighted_depth < 10)
   {
-    flags = uo_search_quiesce_flags__non_negative_sse;
+    flags = uo_search_quiesce_flags__non_negative_see;
   }
 
   return flags;
@@ -182,21 +182,21 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
 
 static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
 {
-  if ((flags & uo_search_quiesce_flags__any_sse) == uo_search_quiesce_flags__positive_sse && !uo_move_is_capture(move))
+  if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__positive_see && !uo_move_is_capture(move))
   {
     return false;
   }
 
   uo_position *position = &thread->position;
 
-  int16_t sse = (flags & uo_search_quiesce_flags__any_sse) == uo_search_quiesce_flags__any_sse
+  int16_t sse = (flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__any_see
     ? 1
-    : uo_position_move_sse(position, move);
+    : uo_position_move_see(position, move);
 
-  bool sufficient_sse = sse > 0
-    || (sse == 0 && ((flags & uo_search_quiesce_flags__non_negative_sse) == uo_search_quiesce_flags__non_negative_sse));
+  bool sufficient_see = sse > 0
+    || (sse == 0 && ((flags & uo_search_quiesce_flags__non_negative_see) == uo_search_quiesce_flags__non_negative_see));
 
-  if (!sufficient_sse)
+  if (!sufficient_see)
   {
     return false;
   }
@@ -567,7 +567,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (depth_reduction)
     {
       // increase reduction for captures with negative SSE
-      if (uo_move_is_capture(move) && uo_position_move_sse(position, move) < 0)
+      if (uo_move_is_capture(move) && uo_position_move_see(position, move) < 0)
       {
         ++depth_reduction;
       }
@@ -1114,11 +1114,11 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
 
   if (value > uo_score_mate_in_threshold)
   {
-    printf("score mate %d ", (uo_score_checkmate - value + 1) >> 1);
+    printf("score mate %d ", ((uo_score_checkmate - value) >> 1) + 1);
   }
   else if (value < -uo_score_mate_in_threshold)
   {
-    printf("score mate %d ", -((uo_score_checkmate + value + 1) >> 1));
+    printf("score mate %d ", -(((uo_score_checkmate + value) >> 1) + 1));
   }
   else
   {

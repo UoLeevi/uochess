@@ -45,7 +45,7 @@ typedef const struct uo_uci_tokens
     mate,
     movetime,
     test,
-    sse,
+    see,
     eval,
     qsearch,
     alpha,
@@ -108,7 +108,7 @@ uo_uci_tokens tokens = {
   .mate = 26,
   .movetime = 27,
   .test = 28,
-  .sse = 29,
+  .see = 29,
   .eval = 30,
   .qsearch = 31,
   .alpha = 32,
@@ -343,9 +343,9 @@ static void uo_uci_read_token(void)
     return;
   }
 
-  if (streq(ptr, "sse"))
+  if (streq(ptr, "see"))
   {
-    token = tokens.sse;
+    token = tokens.see;
     return;
   }
 
@@ -860,7 +860,7 @@ static void uo_uci_process_input__ready(void)
   {
     uo_uci_read_token();
 
-    if (uo_uci_match(tokens.sse))
+    if (uo_uci_match(tokens.see))
     {
       uo_engine_lock_stdout();
       uo_engine_lock_position();
@@ -870,7 +870,7 @@ static void uo_uci_process_input__ready(void)
       for (size_t i = 0; i < move_count; ++i)
       {
         uo_move move = engine.position.movelist.head[i];
-        int16_t gain = uo_position_move_sse(&engine.position, move);
+        int16_t gain = uo_position_move_see(&engine.position, move);
 
         if (gain != 0 || uo_move_is_capture(move))
         {

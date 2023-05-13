@@ -498,7 +498,7 @@ extern "C"
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
-  static inline int16_t uo_position_move_sse(const uo_position *position, uo_move move)
+  static inline int16_t uo_position_move_see(const uo_position *position, uo_move move)
   {
     uo_square square_from = uo_move_square_from(move);
     uo_square square_to = uo_move_square_to(move);
@@ -929,7 +929,7 @@ extern "C"
       uo_move move = position->movelist.head[i];
 
       bool is_tacktical_move = uo_move_is_promotion(move)
-        || (uo_move_is_capture(move) && uo_position_move_sse(position, move) >= 0);
+        || (uo_move_is_capture(move) && uo_position_move_see(position, move) >= 0);
 
       if (is_tacktical_move)
       {
@@ -963,7 +963,7 @@ extern "C"
 
   uo_move uo_position_parse_move(const uo_position *position, char str[5]);
 
-  uo_move uo_position_parse_png_move(uo_position *position, char *png);
+  uo_move uo_position_parse_pgn_move(uo_position *position, char *png);
 
   size_t uo_position_print_move(const uo_position *position, uo_move move, char str[6]);
 
