@@ -252,13 +252,11 @@ extern "C"
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   uo_position *uo_position_from_fen(uo_position *position, const char *fen);
 
-  static inline bool uo_move_cache_is_valid(uo_move_cache *move_cache, const uo_position *position, uo_move move)
+  static inline uo_move_cache *uo_move_cache_get(uo_move_cache move_cache[0x1000], const uo_position *position, uo_move move)
   {
-    return move_cache && move_cache->key == position->key && move_cache->move == move;
-  }
+    if (!move_cache) return false;
+    move_cache += move & 0xFFF;
 
-  static inline void uo_move_cache_set(uo_move_cache *move_cache, const uo_position *position, uo_move move)
-  {
     if (move_cache->key != position->key || move_cache->move != move)
     {
       *move_cache = (uo_move_cache){
@@ -266,6 +264,8 @@ extern "C"
         .move = move
       };
     }
+
+    return move_cache;
   }
 
   static inline void uo_position_reset_root(uo_position *position)
@@ -319,7 +319,9 @@ extern "C"
 
   static inline uo_bitboard uo_position_move_checks(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
-    if (uo_move_cache_is_valid(move_cache, position, move) && move_cache->is_cached.checks)
+    move_cache = uo_move_cache_get(move_cache, position, move);
+
+    if (move_cache && move_cache->is_cached.checks)
     {
       return move_cache->checks;
     }
@@ -415,7 +417,6 @@ extern "C"
 
     if (move_cache)
     {
-      uo_move_cache_set(move_cache, position, move);
       move_cache->is_cached.checks = true;
       move_cache->checks = checks;
     }
@@ -541,7 +542,9 @@ extern "C"
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
   static inline int16_t uo_position_move_see(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
-    if (uo_move_cache_is_valid(move_cache, position, move) && move_cache->is_cached.see)
+    move_cache = uo_move_cache_get(move_cache, position, move);
+
+    if (move_cache && move_cache->is_cached.see)
     {
       return move_cache->see;
     }
@@ -707,7 +710,6 @@ extern "C"
 
     if (move_cache)
     {
-      uo_move_cache_set(move_cache, position, move);
       move_cache->is_cached.see = true;
       move_cache->see = gain[0];
     }
@@ -795,30 +797,32 @@ extern "C"
     return hhscore / bfscore;
   }
 
-  static inline uint16_t uo_position_calculate_tactical_move_score(uo_position *position, uo_move move)
+  static inline uint16_t uo_position_calculate_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
     uo_square move_type = uo_move_get_type(move);
 
+    uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+
+    uint16_t move_score = checks ? 3000 : 0;
+
     if (move_type == uo_move_type__enpassant)
     {
-      return 3000;
+      move_score += 2100;
     }
-
-    if (move_type & uo_move_type__promo)
+    else if (move_type & uo_move_type__promo)
     {
-      return 3000;
+      move_score += 2500 + move_type;
     }
-
-    if (move_type & uo_move_type__x)
+    else if (move_type & uo_move_type__x)
     {
       uo_square square_from = uo_move_square_from(move);
       uo_square square_to = uo_move_square_to(move);
       uo_piece piece = position->board[square_from];
       uo_piece piece_captured = position->board[square_to];
-      return 2000 + uo_piece_value(piece_captured) - uo_piece_value(piece) / 10;
+      move_score += 2000 + uo_piece_value(piece_captured) - uo_piece_value(piece) / 10;
     }
 
-    return 0;
+    return move_score;
   }
 
   static inline int uo_position_partition_moves(uo_position *position, uo_move *movelist, int lo, int hi)
@@ -904,7 +908,7 @@ extern "C"
     uo_position_quicksort_moves(position, movelist, p + 1, hi, depth - 2);
   }
 
-  static inline void uo_position_sort_tactical_moves(uo_position *position)
+  static inline void uo_position_sort_tactical_moves(uo_position *position, uo_move_cache *move_cache)
   {
     uo_move *movelist = position->movelist.head;
     size_t tactical_move_count = position->stack->tactical_move_count;
@@ -913,7 +917,7 @@ extern "C"
     while (i < tactical_move_count)
     {
       uo_move move = movelist[i];
-      uint16_t score = uo_position_calculate_tactical_move_score(position, move);
+      uint16_t score = uo_position_calculate_tactical_move_score(position, move, move_cache);
       position->movelist.move_scores[i] = score;
       ++i;
     }
@@ -932,7 +936,7 @@ extern "C"
     while (i < move_count)
     {
       uo_move move = movelist[i];
-      uint16_t score = uo_position_calculate_tactical_move_score(position, move);
+      uint16_t score = uo_position_calculate_non_tactical_move_score(position, move);
       position->movelist.move_scores[i] = score;
       ++i;
     }
@@ -941,11 +945,11 @@ extern "C"
     uo_position_quicksort_moves(position, movelist, tactical_move_count, move_count - 1, quicksort_depth);
   }
 
-  static inline void uo_position_sort_moves(uo_position *position, uo_move bestmove)
+  static inline void uo_position_sort_moves(uo_position *position, uo_move bestmove, uo_move_cache *move_cache)
   {
     uo_move *movelist = position->movelist.head;
     size_t move_count = position->stack->move_count;
-    uo_position_sort_tactical_moves(position);
+    uo_position_sort_tactical_moves(position, move_cache);
     uo_position_sort_non_tactical_moves(position);
 
     // set bestmove as first
@@ -972,7 +976,7 @@ extern "C"
 
     if (uo_position_is_check(position))
     {
-      return true;
+      return false;
     }
 
     size_t move_count = position->stack->move_count;
@@ -981,10 +985,10 @@ extern "C"
     {
       uo_move move = position->movelist.head[i];
 
-      bool is_tacktical_move = uo_move_is_promotion(move)
+      bool is_tactical_move = uo_move_is_promotion(move)
         || (uo_move_is_capture(move) && uo_position_move_see(position, move, NULL) >= 0);
 
-      if (is_tacktical_move)
+      if (is_tactical_move)
       {
         return false;
       }
@@ -1025,7 +1029,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

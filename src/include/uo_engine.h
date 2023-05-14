@@ -61,10 +61,10 @@ extern "C"
     uo_thread_function *function;
     void *data;
     uo_position position;
-    uo_move_cache move_cache;
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
+    uo_move_cache move_cache[0x1000];
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {
