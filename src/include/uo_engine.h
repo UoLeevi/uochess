@@ -61,6 +61,7 @@ extern "C"
     uo_thread_function *function;
     void *data;
     uo_position position;
+    uo_move_cache move_cache;
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;

@@ -38,6 +38,20 @@ extern "C"
 #define uo_move_history__checks_none uo_bitboard_all
 #define uo_move_history__checks_unknown 0
 
+  typedef struct uo_move_cache
+  {
+    uint64_t key;
+    uo_move move;
+    uo_bitboard checks;
+    int16_t see;
+
+    struct
+    {
+      bool checks;
+      bool see;
+    } is_cached;
+  } uo_move_cache;
+
   typedef struct uo_move_history
   {
     uint64_t key;
@@ -238,6 +252,22 @@ extern "C"
   // example fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
   uo_position *uo_position_from_fen(uo_position *position, const char *fen);
 
+  static inline bool uo_move_cache_is_valid(uo_move_cache *move_cache, const uo_position *position, uo_move move)
+  {
+    return move_cache && move_cache->key == position->key && move_cache->move == move;
+  }
+
+  static inline void uo_move_cache_set(uo_move_cache *move_cache, const uo_position *position, uo_move move)
+  {
+    if (move_cache->key != position->key || move_cache->move != move)
+    {
+      *move_cache = (uo_move_cache){
+        .key = position->key,
+        .move = move
+      };
+    }
+  }
+
   static inline void uo_position_reset_root(uo_position *position)
   {
     position->piece_captured = position->captures;
@@ -287,15 +317,19 @@ extern "C"
     return (uint32_t)100 * (uint32_t)position->material / (uint32_t)uo_score_material_max;
   }
 
-  static inline uo_bitboard uo_position_move_checks(const uo_position *position, uo_move move)
+  static inline uo_bitboard uo_position_move_checks(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
+    if (uo_move_cache_is_valid(move_cache, position, move) && move_cache->is_cached.checks)
+    {
+      return move_cache->checks;
+    }
+
     uo_square square_from = uo_move_square_from(move);
     uo_square square_to = uo_move_square_to(move);
     const uo_piece *board = position->board;
     uo_piece piece = board[square_from];
 
     assert(uo_color(piece) == uo_color_own);
-
 
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -378,6 +412,13 @@ extern "C"
 
     checks |= uo_bitboard_attacks_B(square_enemy_K, occupied) & own_BQ;
     checks |= uo_bitboard_attacks_R(square_enemy_K, occupied) & own_RQ;
+
+    if (move_cache)
+    {
+      uo_move_cache_set(move_cache, position, move);
+      move_cache->is_cached.checks = true;
+      move_cache->checks = checks;
+    }
 
     return checks;
   }
@@ -498,8 +539,13 @@ extern "C"
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm
-  static inline int16_t uo_position_move_see(const uo_position *position, uo_move move)
+  static inline int16_t uo_position_move_see(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
+    if (uo_move_cache_is_valid(move_cache, position, move) && move_cache->is_cached.see)
+    {
+      return move_cache->see;
+    }
+
     uo_square square_from = uo_move_square_from(move);
     uo_square square_to = uo_move_square_to(move);
     const uo_piece *board = position->board;
@@ -657,6 +703,13 @@ extern "C"
     while (--depth)
     {
       gain[depth - 1] = -(gain[depth] > -gain[depth - 1] ? gain[depth] : -gain[depth - 1]);
+    }
+
+    if (move_cache)
+    {
+      uo_move_cache_set(move_cache, position, move);
+      move_cache->is_cached.see = true;
+      move_cache->see = gain[0];
     }
 
     return gain[0];
@@ -929,7 +982,7 @@ extern "C"
       uo_move move = position->movelist.head[i];
 
       bool is_tacktical_move = uo_move_is_promotion(move)
-        || (uo_move_is_capture(move) && uo_position_move_see(position, move) >= 0);
+        || (uo_move_is_capture(move) && uo_position_move_see(position, move, NULL) >= 0);
 
       if (is_tacktical_move)
       {

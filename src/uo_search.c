@@ -155,63 +155,61 @@ typedef uint8_t uo_search_quiesce_flags;
 
 static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engine_thread *thread, uint8_t depth)
 {
-  uo_position *position = &thread->position;
-  uo_search_quiesce_flags flags = uo_search_quiesce_flags__positive_see;
-
-  uint8_t material_percentage = uo_position_material_percentage(position);
-
-  // In endgame, let's examine more checks and captures.
-  // The less material is on the board, the more checks should be examined.
-  size_t material_weighted_depth = depth * material_percentage / 100;
-
-  if (material_weighted_depth < 2)
+  if (depth <= 1)
   {
-    flags = uo_search_quiesce_flags__checks;
+    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__any_see;
   }
-  else if (material_weighted_depth < 5)
+  else if (depth <= 2)
   {
-    flags = uo_search_quiesce_flags__non_negative_see | uo_search_quiesce_flags__checks;
+    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_see;
   }
-  else if (material_weighted_depth < 10)
+  else if (depth <= 3)
   {
-    flags = uo_search_quiesce_flags__non_negative_see;
+    return uo_search_quiesce_flags__non_negative_see;
   }
-
-  return flags;
+  else
+  {
+    return uo_search_quiesce_flags__positive_see;
+  }
 }
 
 static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
 {
-  if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__positive_see && !uo_move_is_capture(move))
-  {
-    return false;
-  }
-
   uo_position *position = &thread->position;
 
-  int16_t sse = (flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__any_see
-    ? 1
-    : uo_position_move_see(position, move);
-
-  bool sufficient_see = sse > 0
-    || (sse == 0 && ((flags & uo_search_quiesce_flags__non_negative_see) == uo_search_quiesce_flags__non_negative_see));
-
-  if (!sufficient_see)
+  if (uo_move_is_capture(move))
   {
-    return false;
-  }
+    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__any_see)
+    {
+      return true;
+    }
 
-  if (uo_move_is_promotion(move)) return true;
-  if (uo_move_is_capture(move)) return true;
+    int16_t see = uo_position_move_see(position, move, &thread->move_cache);
+
+    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__positive_see && see > 0)
+    {
+      return true;
+    }
+
+    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__non_negative_see && see >= 0)
+    {
+      return true;
+    }
+  }
 
   if ((flags & uo_search_quiesce_flags__checks) == uo_search_quiesce_flags__checks)
   {
-    uo_bitboard checks = uo_position_move_checks(position, move);
+    uo_bitboard checks = uo_position_move_checks(position, move, &thread->move_cache);
     if (checks)
     {
       uo_position_update_next_move_checks(position, checks);
       return true;
     }
+  }
+
+  if (uo_move_is_promotion(move))
+  {
+    return true;
   }
 
   return false;
@@ -559,24 +557,31 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       depth <= 4
       // no reduction for expected pv nodes
       || pv
+      // no reduction on the first six moves
+      || i < 6
       // no reduction if position is check
       || uo_position_is_check(position)
+      // no reduction on promotions or captures
+      || uo_move_is_tactical(move)
       ? 0 // no reduction
-      : uo_max(1, depth / 3); // default reduction is one third of depth
+      : i > 10 // slightly larger reduction for later moves
+        ? uo_max(1, depth * 2 / 5)
+        : uo_max(1, depth / 3); // default reduction is one third of depth
 
     if (depth_reduction)
     {
-      // increase reduction for captures with negative SSE
-      if (uo_move_is_capture(move) && uo_position_move_see(position, move) < 0)
+      // increase reduction moves captures with negative SSE
+      if (uo_position_move_see(position, move, &thread->move_cache) < 0)
       {
         ++depth_reduction;
       }
 
       // decrease reduction if move gives a check
-      uo_bitboard checks = uo_position_move_checks(position, move);
+      uo_bitboard checks = uo_position_move_checks(position, move, &thread->move_cache);
+      uo_position_update_next_move_checks(position, checks);
+
       if (checks)
       {
-        uo_position_update_next_move_checks(position, checks);
         --depth_reduction;
       }
     }

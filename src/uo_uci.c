@@ -870,7 +870,7 @@ static void uo_uci_process_input__ready(void)
       for (size_t i = 0; i < move_count; ++i)
       {
         uo_move move = engine.position.movelist.head[i];
-        int16_t gain = uo_position_move_see(&engine.position, move);
+        int16_t gain = uo_position_move_see(&engine.position, move, NULL);
 
         if (gain != 0 || uo_move_is_capture(move))
         {
@@ -899,7 +899,7 @@ static void uo_uci_process_input__ready(void)
       {
         uo_move move = engine.position.movelist.head[i];
 
-        if (uo_position_move_checks(&engine.position, move))
+        if (uo_position_move_checks(&engine.position, move, NULL))
         {
           uo_position_print_move(&engine.position, move, buf);
 
