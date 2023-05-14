@@ -28,26 +28,6 @@ extern "C"
     };
   } uo_tdata;
 
-  typedef struct uo_alphabeta
-  {
-    int16_t alpha;
-    int16_t beta;
-    size_t depth;
-    int16_t value;
-    uint8_t type;
-    uo_move ttmove;
-    uo_move *line;
-    bool pv;
-    uo_tdata data;
-  } uo_alphabeta;
-
-#define uo_alphabeta_type__incomplete 0
-#define uo_alphabeta_type__mate_in 1
-#define uo_alphabeta_type__draw 2
-#define uo_alphabeta_type__exact 3
-#define uo_alphabeta_type__lower_bound 4
-#define uo_alphabeta_type__upper_bound 8
-
   typedef struct uo_engine_thread uo_engine_thread;
 
   typedef struct uo_search_params

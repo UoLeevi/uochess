@@ -142,8 +142,6 @@ extern "C"
     uo_tdata data;
     uo_move bestmove;
     int16_t value;
-    int16_t hardalpha;
-    int16_t hardbeta;
   } uo_abtentry;
 
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
@@ -151,24 +149,13 @@ extern "C"
   {
     bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
-    int16_t value;
+    if (!found) return false;
 
-    if (found)
-    {
-      value = uo_score_adjust_for_mate_from_ttable(position, abtentry->data.value);
-      abtentry->bestmove = abtentry->data.bestmove;
+    int16_t value = uo_score_adjust_for_mate_from_ttable(position, abtentry->data.value);
+    abtentry->bestmove = abtentry->data.bestmove;
 
-      if (abtentry->data.depth < abtentry->depth)
-      {
-        abtentry->hardalpha = -uo_score_checkmate;
-        abtentry->hardbeta = uo_score_checkmate;
-        return false;
-      }
-    }
-    else
+    if (abtentry->data.depth < abtentry->depth)
     {
-      abtentry->hardalpha = -uo_score_checkmate;
-      abtentry->hardbeta = uo_score_checkmate;
       return false;
     }
 
@@ -178,27 +165,22 @@ extern "C"
       return true;
     }
 
+    int16_t alpha = abtentry->alpha;
+    int16_t beta = abtentry->beta;
+
     if (abtentry->data.type == uo_tentry_type__lower_bound)
     {
-      if (value >= abtentry->beta)
-      {
-        abtentry->value = value;
-        return true;
-      }
-
-      abtentry->hardalpha = value;
-      abtentry->hardbeta = uo_score_checkmate;
+      alpha = uo_max(alpha, value);
     }
-    else // if (abtentry->data.type == uo_tentry_type__upper_bound)
+    else
     {
-      if (value <= abtentry->alpha)
-      {
-        abtentry->value = value;
-        return true;
-      }
+      beta = uo_min(beta, value);
+    }
 
-      abtentry->hardalpha = -uo_score_checkmate;
-      abtentry->hardbeta = value;
+    if (alpha >= beta)
+    {
+      abtentry->value = value;
+      return true;
     }
 
     return false;
@@ -206,34 +188,18 @@ extern "C"
 
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-    if (abtentry->value < abtentry->hardalpha)
+
+    if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_tentry_type__exact))
     {
-      abtentry->bestmove = 0;
-      abtentry->value = abtentry->hardalpha;
-    }
+      abtentry->data.depth = abtentry->depth;
+      abtentry->data.bestmove = abtentry->bestmove;
+      abtentry->data.value = uo_score_adjust_for_mate_to_ttable(position, abtentry->value);
+      abtentry->data.type =
+        abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
+        abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
+        uo_tentry_type__exact;
 
-    if (abtentry->value > abtentry->hardbeta)
-    {
-      abtentry->bestmove = 0;
-      abtentry->value = abtentry->hardbeta;
-    }
-
-    if (!uo_engine_is_stopped())
-    {
-      // Let's only store entries to transposition table when search is not terminated early
-
-      if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type == uo_tentry_type__lower_bound))
-      {
-        abtentry->data.depth = abtentry->depth;
-        abtentry->data.bestmove = abtentry->bestmove;
-        abtentry->data.value = uo_score_adjust_for_mate_to_ttable(position, abtentry->value);
-        abtentry->data.type = !abtentry->bestmove ? uo_tentry_type__lower_bound :
-          abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
-          abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
-          uo_tentry_type__exact;
-
-        uo_ttable_set(&engine.ttable, position, &abtentry->data);
-      }
+      uo_ttable_set(&engine.ttable, position, &abtentry->data);
     }
 
     return abtentry->value;

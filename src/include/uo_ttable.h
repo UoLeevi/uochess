@@ -33,12 +33,12 @@ extern "C"
     };
   } uo_tentry;
 
-#define uo_tentry_type__exact uo_alphabeta_type__exact
-#define uo_tentry_type__upper_bound uo_alphabeta_type__upper_bound
-#define uo_tentry_type__lower_bound uo_alphabeta_type__lower_bound
+#define uo_tentry_type__exact 3
+#define uo_tentry_type__upper_bound 8
+#define uo_tentry_type__lower_bound 4
 
-#define uo_ttable_max_probe 5
-#define uo_ttable_expiry_ply 3
+#define uo_ttable_max_probe 4
+#define uo_ttable_expiry_ply 0
 
   typedef struct uo_ttable
   {
