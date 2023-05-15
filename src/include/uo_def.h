@@ -18,6 +18,15 @@ extern "C"
 #define UO_LAZY_SMP_MIN_DEPTH 3
 #define UO_LAZY_SMP_FREE_THREAD_COUNT 1
 
+// Number of moves to look at when checking for mc-prune.
+#define UO_MULTICUT_MOVE_COUNT 12
+
+// Number of cutoffs to cause an mc-prune, C < M.
+#define UO_MULTICUT_CUTOFF_COUNT 3
+
+// Search depth reduction for mc-prune searches.
+#define UO_MULTICUT_DEPTH_REDUCTION 2
+
 #define UO_TTABLE_LOCK_BITS 10 
 
 #define uo_score_draw 0

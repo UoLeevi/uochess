@@ -43,6 +43,8 @@ void uo_engine_load_default_options()
     }
   }
 
+  engine_options.move_overhead = 10;
+
   strcpy(engine_options.eval_filename, "nn/nn-eval-test.pt");
   envopt = getenv("UO_OPT_EVALFILE");
   if (envopt)

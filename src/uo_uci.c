@@ -58,7 +58,8 @@ typedef const struct uo_uci_tokens
       Threads,
       Hash,
       MultiPV,
-      EvalFile;
+      EvalFile,
+      MoveOverhead
   } options;
 } uo_uci_tokens;
 
@@ -119,7 +120,8 @@ uo_uci_tokens tokens = {
     .Threads = 64,
     .Hash = 65,
     .MultiPV = 66,
-    .EvalFile = 67
+    .EvalFile = 67,
+    .MoveOverhead = 68
   }
 };
 
@@ -528,6 +530,7 @@ static void uo_uci_process_input__init(void)
     printf("option name Debug Log File type string default\n");
     printf("option name Threads type spin default %zu min 1 max 254\n", engine_options.threads);
     printf("option name Hash type spin default %zu min 1 max 33554432\n", engine_options.hash_size);
+    printf("option name Move Overhead type spin default %zu min 1 max 5000\n", engine_options.move_overhead);
     printf("option name Clear Hash type button\n");
     printf("option name Ponder type check default false\n");
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
@@ -627,6 +630,12 @@ static void uo_uci_process_input__ready(void)
         size_t capacity = spin * (size_t)1000000 / sizeof * engine.ttable.entries;
         engine_options.hash_size = ((size_t)1 << uo_msb(capacity)) * sizeof * engine.ttable.entries;
         uo_engine_reconfigure();
+      }
+
+      // Move Overhead
+      if (ptr && sscanf(ptr, "Move Overhead value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 5000)
+      {
+        engine_options.move_overhead = spin;
       }
 
       return;
