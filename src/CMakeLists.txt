@@ -17,7 +17,7 @@ add_executable(uochess
   uo_uci.c
   uo_engine.c
   uo_math.c
-  uo_test.c)
+  uo_test.c "uo_book.c")
 
 target_include_directories(uochess
   PRIVATE
