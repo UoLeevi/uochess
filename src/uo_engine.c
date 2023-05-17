@@ -45,6 +45,15 @@ void uo_engine_load_default_options()
 
   engine_options.move_overhead = 10;
 
+  engine_options.use_own_book = true;
+
+  strcpy(engine_options.book_filename, "books/default-book.txt");
+  envopt = getenv("UO_OPT_BOOKFILE");
+  if (envopt)
+  {
+    strcpy(engine_options.book_filename, envopt);
+  }
+
   strcpy(engine_options.eval_filename, "nn/nn-eval-test.pt");
   envopt = getenv("UO_OPT_EVALFILE");
   if (envopt)
@@ -293,6 +302,12 @@ void uo_engine_init()
   size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;
   uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
 
+  // opening book
+  if (engine_options.use_own_book && *engine_options.book_filename)
+  {
+    engine.book = uo_book_create(engine_options.book_filename);
+  }
+
   // multipv
   engine.pv = malloc(engine_options.multipv * sizeof * engine.pv);
 
@@ -306,6 +321,17 @@ void uo_engine_reconfigure()
   uo_ttable_free(&engine.ttable);
   size_t capacity = engine_options.hash_size / sizeof * engine.ttable.entries;
   uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
+
+  // opening book
+  if (engine.book)
+  {
+    uo_book_free(engine.book);
+  }
+
+  if (engine_options.use_own_book && *engine_options.book_filename)
+  {
+    engine.book = uo_book_create(engine_options.book_filename);
+  }
 }
 
 static uo_thread_function *uo_search_thread_run_function[] = {

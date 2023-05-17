@@ -170,6 +170,8 @@ size_t uo_pipe_read(uo_pipe *pipe, char *buffer, size_t len)
 
     return len_read;
   }
+
+  return 0;
 }
 
 size_t uo_pipe_write(uo_pipe *pipe, const char *ptr, size_t len)

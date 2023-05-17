@@ -8,6 +8,7 @@ extern "C"
 
 #include "uo_position.h"
 #include "uo_ttable.h"
+#include "uo_book.h"
 #include "uo_thread.h"
 #include "uo_search.h"
 #include "uo_evaluation.h"
@@ -25,7 +26,9 @@ extern "C"
     uint16_t multipv;
     size_t hash_size;
     size_t move_overhead;
+    bool use_own_book;
     char eval_filename[0x100];
+    char book_filename[0x100];
     char nn_dir[0x100];
     char test_data_dir[0x100];
     char dataset_dir[0x100];
@@ -80,6 +83,7 @@ extern "C"
   {
     uo_ttable ttable;
     uo_tentry *pv;
+    uo_book *book;
     uo_engine_thread *threads;
     size_t thread_count;
     uo_engine_thread_queue thread_queue;
@@ -148,6 +152,19 @@ extern "C"
   // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
   {
+    if (engine.book)
+    {
+      const uo_book_entry *book_entry = uo_book_get(engine.book, position);
+
+      if (book_entry)
+      {
+        int16_t value = uo_score_adjust_for_mate_from_ttable(position, book_entry->value);
+        abtentry->bestmove = book_entry->bestmove;
+        abtentry->depth = book_entry->depth;
+        return true;
+      }
+    }
+
     bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
     if (!found) return false;

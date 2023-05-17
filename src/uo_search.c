@@ -241,12 +241,14 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   ++info->nodes;
   info->seldepth = uo_max(info->seldepth, position->ply);
 
-  // Next two steps can be skipped on the first quisence search node
+  // Next two steps can be skipped on the first quiscence search node
   if (depth > 0)
   {
     // Step 3. Check for draw by 50 move rule or threefold repetition
-    if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+    //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
+    if (uo_position_is_rule50_draw(position) || uo_position_repetition_count(position) == (position->ply ? 1 : 2))
     {
+      // TODO: In case of draw by 50 move rule, check if position is checkmate
       return uo_score_draw;
     }
 
@@ -431,8 +433,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   beta = uo_min(beta, score_checkmate - 1);
 
   // Step 2. Check for draw by 50 move rule or threefold repetition
-  if (uo_position_is_rule50_draw(position) || uo_position_is_repetition_draw(position))
+  //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
+  if (uo_position_is_rule50_draw(position) || uo_position_repetition_count(position) == (position->ply ? 1 : 2))
   {
+    // TODO: In case of draw by 50 move rule, check if position is checkmate
     ++info->nodes;
     return uo_score_draw;
   }

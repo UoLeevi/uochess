@@ -251,7 +251,7 @@ static inline void uo_position_update_repetitions(uo_position *position)
   uo_move_history *stack = position->stack;
 
   int rule50 = uo_position_flags_rule50(position->flags);
-  for (int i = 1; i <= rule50; ++i)
+  for (int i = 4; i <= rule50; i += 2)
   {
     if (stack[-i].key == position->key)
     {
@@ -308,6 +308,12 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   ++position->ply;
   ++position->stack;
   position->stack->moves_generated = false;
+
+  uo_position_flip_board(position);
+  uo_position_update_repetitions(position);
+
+  position->stack->key = position->key;
+  position->stack->flags = position->flags;
 }
 static inline void uo_position_undo_switch_turn(uo_position *position)
 {
@@ -319,6 +325,8 @@ static inline void uo_position_undo_switch_turn(uo_position *position)
   position->movelist.head -= stack->move_count;
   position->pins.updated = false;
   uo_position_set_flags(position, stack->flags);
+
+  assert(position->key == stack->key);
 
   if (uo_move_is_capture(stack->move))
   {
@@ -791,10 +799,12 @@ uo_position *uo_position_from_fen(uo_position *position, const char *fen)
 
   if (uo_color(position->flags) == uo_black)
   {
-    uo_position_flip_board(position); 
+    uo_position_flip_board(position);
   }
 
   position->key = uo_position_calculate_key(position);
+  position->stack->key = position->key;
+  position->stack->flags = position->flags;
 
   uo_position_update_checks(position);
   uo_position_update_pins(position);
@@ -963,6 +973,7 @@ void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src
 void uo_position_make_move(uo_position *position, uo_move move)
 {
   assert(uo_position_is_move_ok(position, move));
+  position->stack->move = move;
 
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
@@ -972,10 +983,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
 
   uo_position_flags flags = position->flags;
 
-  uo_move_history *stack = position->stack;
-  stack->flags = flags;
-  stack->move = move;
-  stack->key = position->key;
 
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
   flags = uo_position_flags_update_enpassant_file(flags, 0);
@@ -1148,8 +1155,6 @@ void uo_position_make_move(uo_position *position, uo_move move)
   }
 
   uo_position_do_switch_turn(position, flags);
-  uo_position_flip_board(position);
-  uo_position_update_repetitions(position);
 
   assert(uo_position_is_ok(position));
 }
@@ -1246,19 +1251,13 @@ void uo_position_unmake_move(uo_position *position)
 void uo_position_make_null_move(uo_position *position)
 {
   assert(uo_position_is_ok(position));
+  position->stack->move = 0;
 
   uo_position_flags flags = position->flags;
-
-  uo_move_history *stack = position->stack;
-  stack->flags = flags;
-  stack->move = 0;
-  stack->repetitions = 0;
-  stack[1].checks = uo_move_history__checks_none;
-
   flags = uo_position_flags_update_enpassant_file(flags, 0);
 
   uo_position_do_switch_turn(position, flags);
-  uo_position_flip_board(position);
+  position->stack->checks = uo_move_history__checks_none;
 
   assert(uo_position_is_ok(position));
 }

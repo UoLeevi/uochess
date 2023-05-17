@@ -32,18 +32,18 @@ extern "C"
     uo_book_entry *entries;
   } uo_book;
 
-  static inline bool uo_book_init(uo_book *book, const char *filepath);
+  uo_book *uo_book_create(const char *filepath);
 
   static inline void uo_book_free(uo_book *book)
   {
-    free(book->entries);
+    free(book);
   }
 
   static inline const uo_book_entry *uo_book_get(uo_book *book, const uo_position *position)
   {
     uint64_t mask = book->hash_mask;
     uint64_t hash = position->key & mask;
-    uint32_t key = (uint32_t)position->key;
+    uint64_t key = position->key;
     uint64_t i = hash;
     uo_book_entry *entry = book->entries + i;
 

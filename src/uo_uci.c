@@ -59,7 +59,9 @@ typedef const struct uo_uci_tokens
       Hash,
       MultiPV,
       EvalFile,
-      MoveOverhead
+      MoveOverhead,
+      OwnBook,
+      BookFile;
   } options;
 } uo_uci_tokens;
 
@@ -121,7 +123,9 @@ uo_uci_tokens tokens = {
     .Hash = 65,
     .MultiPV = 66,
     .EvalFile = 67,
-    .MoveOverhead = 68
+    .MoveOverhead = 68,
+    .OwnBook = 69,
+    .BookFile = 70
   }
 };
 
@@ -533,8 +537,10 @@ static void uo_uci_process_input__init(void)
     printf("option name Move Overhead type spin default %zu min 1 max 5000\n", engine_options.move_overhead);
     printf("option name Clear Hash type button\n");
     printf("option name Ponder type check default false\n");
+    printf("option name OwnBook type check default true\n");
+    printf("option name BookFile type string default %s\n", engine_options.book_filename);
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
-    printf("option name EvalFile type string default %s\n", engine_options.eval_filename);
+    //printf("option name EvalFile type string default %s\n", engine_options.eval_filename);
 
     state = states.options;
     printf("uciok\n");

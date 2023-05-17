@@ -17,7 +17,8 @@ add_executable(uochess
   uo_uci.c
   uo_engine.c
   uo_math.c
-  uo_test.c "uo_book.c")
+  uo_test.c
+  uo_book.c)
 
 target_include_directories(uochess
   PRIVATE
@@ -45,6 +46,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_options(uochess
     PRIVATE /arch:AVX2 /volatile:iso)
 endif()
+
+add_custom_target(copy-runtime-files ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/books" "${CMAKE_BINARY_DIR}/bin/books"
+  DEPENDS uochess)
 
 add_test(NAME "Test all"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data

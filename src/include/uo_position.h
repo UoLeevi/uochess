@@ -287,6 +287,8 @@ extern "C"
     memset(position->stack, 0, (sizeof position->history / sizeof * position->history - relevant_history_count) * sizeof * position->stack);
 
     position->stack->checks = checks;
+    position->stack->key = position->key;
+    position->stack->flags = position->flags;
     position->root_ply += position->ply;
     position->ply = 0;
   }
@@ -434,9 +436,9 @@ extern "C"
     return uo_position_flags_rule50(position->flags) >= 100;
   }
 
-  static inline bool uo_position_is_repetition_draw(const uo_position *position)
+  static inline uint8_t uo_position_repetition_count(const uo_position *position)
   {
-    return position->stack->repetitions == 3;
+    return position->stack->repetitions;
   }
 
   static inline bool uo_position_is_max_depth_reached(const uo_position *position)
@@ -999,7 +1001,7 @@ extern "C"
 
   static inline void uo_position_update_killers(uo_position *position, uo_move move)
   {
-    if (!uo_move_is_capture(move))
+    if (!uo_move_is_capture(move) && position->stack->search.killers[0] != move)
     {
       position->stack->search.killers[1] = position->stack->search.killers[0];
       position->stack->search.killers[0] = move;
