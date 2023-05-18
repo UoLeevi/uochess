@@ -1,1 +1,11 @@
-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1,+10 pv g1f3 d7d5 c2c4 d5c4 e2e3
+# A04 Zukertort Opening
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1,+10 pv g1f3 g8f6 d2d4
+
+# B27 Sicilian Defense
+rnbqkbnr/pp1ppppp/8/2p5/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 2,+40 pv e2e4
+
+# B20 Sicilian Defense
+rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1,+20 pv c7c5
+
+# B23 Sicilian Defense: Closed
+rnbqkbnr/pp1ppppp/8/2p5/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2,+40 pv g7g6 d2d4 c5d4 d1d4 g8f6

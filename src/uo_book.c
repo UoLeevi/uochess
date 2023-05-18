@@ -58,7 +58,7 @@ uo_book *uo_book_create(const char *filepath)
 
   while (ptr)
   {
-    if (strlen(ptr) == 0)
+    if (strlen(ptr) == 0 || *ptr == '#')
     {
       ptr = uo_file_mmap_readline(file_mmap);
       continue;

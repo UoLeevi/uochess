@@ -9,6 +9,7 @@ extern "C"
 #include "uo_position.h"
 #include "uo_ttable.h"
 #include "uo_book.h"
+#include "uo_tb.h"
 #include "uo_thread.h"
 #include "uo_search.h"
 #include "uo_evaluation.h"
@@ -32,6 +33,16 @@ extern "C"
     char nn_dir[0x100];
     char test_data_dir[0x100];
     char dataset_dir[0x100];
+    struct
+    {
+      struct
+      {
+        char dir[0x100];
+        size_t probe_depth;
+        size_t probe_limit;
+        bool rule50;
+      } sygyzy;
+    } tb;
   } uo_engine_options;
 
   typedef struct uo_search_queue_item
@@ -81,6 +92,7 @@ extern "C"
 
   typedef struct uo_engine
   {
+    uo_tb tb;
     uo_ttable ttable;
     uo_tentry *pv;
     uo_book *book;
@@ -158,10 +170,13 @@ extern "C"
 
       if (book_entry)
       {
-        int16_t value = uo_score_adjust_for_mate_from_ttable(position, book_entry->value);
-        abtentry->bestmove = book_entry->bestmove;
-        abtentry->depth = book_entry->depth;
-        return true;
+        if (position->ply || book_entry->bestmove)
+        {
+          int16_t value = uo_score_adjust_for_mate_from_ttable(position, book_entry->value);
+          abtentry->bestmove = book_entry->bestmove;
+          abtentry->depth = book_entry->depth;
+          return true;
+        }
       }
     }
 

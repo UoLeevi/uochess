@@ -13,6 +13,8 @@ extern "C"
 
   bool uo_test_move_generation(uo_position *position, char *test_data_dir);
 
+  bool uo_test_tb_probe(uo_position *position, char *test_data_dir);
+
 #ifdef __cplusplus
 }
 #endif

@@ -37,10 +37,28 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
   // TODO: make better decisions about how much time to use
   if (!movetime && params->time_own)
   {
-    int64_t movetime_max = uo_min(params->time_own / 8, 5000 + (params->time_own + params->time_inc_own - params->time_enemy) / 2);
-    int64_t bestmove_age_reduction = uo_min(movetime_max / 18, 500);
-    int16_t bestmove_age = info->depth - info->bestmove_change_depth;
-    movetime = uo_max(movetime_max - bestmove_age_reduction * bestmove_age, 1);
+    // Difference between own time and opponents time
+    int64_t time_diff = (int64_t)params->time_own - (int64_t)params->time_enemy;
+
+    // Material percentage
+    int64_t material_percentage = uo_position_material_percentage(&thread->position);
+
+    // Estimate of how many moves are left on the game
+    int64_t moves_left = uo_max(material_percentage, 10);
+
+    // Time per move on average
+    int64_t avg_time_per_move = params->time_own / moves_left + params->time_inc_own;
+
+    // Default time to spend is average time per move plus half the difference to opponent's clock
+    movetime = avg_time_per_move + time_diff / 2;
+
+    // If best move is not chaning when doing iterative deepening, let's reduce thinking time
+    int64_t bestmove_age_reduction = uo_max(movetime / 18, 500);
+    int64_t bestmove_age = info->depth - info->bestmove_change_depth;
+    movetime = uo_max(movetime - bestmove_age_reduction * bestmove_age, 1);
+
+    // The minimum time that should be left on the clock is one second
+    movetime = uo_min(movetime, params->time_own - 1000);
   }
 
   if (movetime)

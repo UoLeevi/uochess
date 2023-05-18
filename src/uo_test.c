@@ -4,6 +4,7 @@
 #include "uo_misc.h"
 #include "uo_position.h"
 #include "uo_search.h"
+#include "uo_engine.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -46,7 +47,11 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
 
   while (ptr)
   {
-    if (strlen(ptr) == 0) continue;
+    if (strlen(ptr) == 0)
+    {
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
 
     ptr = uo_strtok(ptr, " ", &token_context);
 
@@ -217,6 +222,115 @@ bool uo_test_move_generation(uo_position *position, char *test_data_dir)
   if (passed)
   {
     printf("TEST 'move_generation' PASSED: total of %zd positions tested.", test_count);
+  }
+
+  return passed;
+}
+
+bool uo_test_tb_probe(uo_position *position, char *test_data_dir)
+{
+  if (!test_data_dir) return false;
+
+  bool passed = true;
+
+  size_t test_count = 0;
+
+  char *filepath = buf;
+
+  strcpy(filepath, test_data_dir);
+  strcpy(filepath + strlen(test_data_dir), "/tb_probe.txt");
+
+  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
+  if (!file_mmap)
+  {
+    printf("Cannot open file '%s'", filepath);
+    return false;
+  }
+
+  size_t move_count;
+
+
+  char *ptr = uo_file_mmap_readline(file_mmap);
+  char *token_context;
+
+  if (!ptr)
+  {
+    printf("Error while reading test data\n");
+    uo_file_mmap_close(file_mmap);
+    return false;
+  }
+
+  char *fen = NULL;
+
+  while (ptr)
+  {
+    if (strlen(ptr) == 0)
+    {
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
+
+    if (sscanf(ptr, "position fen %s", buf) == 1)
+    {
+      fen = ptr + sizeof("position fen ") - 1;
+      if (!uo_position_from_fen(position, fen))
+      {
+        printf("Error while parsing fen '%s'\n", fen);
+        uo_file_mmap_close(file_mmap);
+        return false;
+      }
+
+      uo_position_print_fen(position, buf);
+      assert(strcmp(buf, fen) == 0);
+      fen = buf;
+
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
+
+    int expected;
+    int success;
+
+    if (sscanf(ptr, "wdl %d", &expected) == 1)
+    {
+      int value = uo_tb_probe_wdl(position, &success);
+      if (value != expected)
+      {
+        printf("TEST 'tb_probe' FAILED: WDL probe returned incorrect value %d when %d was expected for fen '%s'\r\n", value, expected, fen);
+        uo_file_mmap_close(file_mmap);
+        return false;
+      }
+
+      ++test_count;
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
+
+    if (sscanf(ptr, "dtz %d", &expected) == 1)
+    {
+      int value = uo_tb_probe_dtz(position, &success);
+      if (value != expected)
+      {
+        printf("TEST 'tb_probe' FAILED: DTZ probe returned incorrect value %d when %d was expected for fen '%s'\r\n", value, expected, fen);
+        uo_file_mmap_close(file_mmap);
+        return false;
+      }
+
+      ++test_count;
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
+
+    printf("Unknown command '%s'\n", ptr);
+    uo_file_mmap_close(file_mmap);
+    return false;
+  }
+
+  uo_file_mmap_close(file_mmap);
+
+  if (passed)
+  {
+    printf("TEST 'tb_probe' PASSED: total of %zd positions tested.", test_count);
   }
 
   return passed;

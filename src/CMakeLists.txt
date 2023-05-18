@@ -18,11 +18,13 @@ add_executable(uochess
   uo_engine.c
   uo_math.c
   uo_test.c
-  uo_book.c)
+  uo_book.c
+  uo_tb.c)
 
 target_include_directories(uochess
   PRIVATE
-    "include")
+    "include"
+    "sygyzy")
 
 target_link_libraries(uochess
   PRIVATE
@@ -34,7 +36,7 @@ target_compile_features(uochess
 
 set_target_properties(uochess PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-  VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+  VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
   target_compile_options(uochess
@@ -47,21 +49,29 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
-add_custom_target(copy-runtime-files ALL
+add_custom_target(copy-runtime-files-sygyzy ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/sygyzy_tables" "${CMAKE_BINARY_DIR}/bin/sygyzy_tables"
+  DEPENDS uochess)
+
+add_custom_target(copy-runtime-files-books ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/books" "${CMAKE_BINARY_DIR}/bin/books"
   DEPENDS uochess)
 
 add_test(NAME "Test all"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 add_test(NAME "Test move_generation"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+add_test(NAME "Test tb_probe"
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname tb_probe
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 add_test(NAME "Test matmul"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/src")
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 install(DIRECTORY conf/
   DESTINATION bin)
