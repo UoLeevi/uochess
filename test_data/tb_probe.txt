@@ -8,6 +8,7 @@ wdl 0
 
 position fen 7k/5K2/8/8/6R1/8/3r4/8 w - - 0 1
 wdl 2
+dtz 1
 
 position fen 7k/5K2/7r/8/6R1/8/8/8 w - - 0 1
 wdl 0
@@ -22,6 +23,7 @@ wdl 0
 
 position fen 7K/5k2/8/8/6r1/8/3R4/8 b - - 0 1
 wdl 2
+dtz 1
 
 position fen 7K/5k2/7R/8/6r1/8/8/8 b - - 0 1
 wdl 0
@@ -30,40 +32,48 @@ wdl 0
 
 position fen 4k3/5r2/8/8/8/8/2BR4/4K3 w - - 0 1
 wdl 2
+dtz 3
 
 position fen 4k3/5r2/B7/8/4K3/8/3R4/8 w - - 0 1
 wdl 0
 
 position fen 4k3/5r2/8/8/4K3/2Q5/3R4/8 w - - 0 1
 wdl 2
+dtz 3
 
 position fen 2R5/6k1/5q2/8/4K3/8/4R3/8 w - - 0 1
 wdl 0
 
 position fen N7/8/8/8/6r1/5k2/8/N6K w - - 0 1
 wdl -2
+dtz -4
 
 # Black to move, black has majority, no captures, no pawns
 
 position fen 4K3/5R2/8/8/8/8/2br4/4k3 b - - 0 1
 wdl 2
+dtz 3
 
 position fen 4K3/5R2/b7/8/4k3/8/3r4/8 b - - 0 1
 wdl 0
 
 position fen 4K3/5R2/8/8/4k3/2q5/3r4/8 b - - 0 1
 wdl 2
+dtz 3
 
 position fen 2r5/6K1/5Q2/8/4k3/8/4r3/8 b - - 0 1
 wdl 0
 
 position fen n7/8/8/8/6R1/5K2/8/n6k b - - 0 1
 wdl -2
+dtz -4
 
 
+# Miscellaneous positions
 
 position fen 8/8/8/3k4/8/6R1/4q1R1/7K w - - 0 1
 wdl 2
+dtz 1
 
 position fen 8/8/8/3k4/8/6R1/4q1R1/7K b - - 0 1
 wdl 0
@@ -73,34 +83,39 @@ wdl 0
 
 position fen 8/8/8/3K4/8/6r1/4Q1r1/7k b - - 0 1
 wdl 2
+dtz 1
 
 position fen 8/8/8/3K4/5Q2/6r1/6r1/7k b - - 0 1
 wdl 0
 
 position fen 8/8/8/3K4/6Q1/6b1/6n1/7k w - - 0 1
 wdl 2
+dtz 1
 
 position fen 8/8/8/3K4/6B1/6b1/6n1/7k w - - 0 1
 wdl 0
 
 position fen 8/8/8/3K4/6B1/6b1/6p1/7k b - - 0 1
 wdl 2
+dtz 1
 
 position fen 8/8/8/3K1P2/8/8/6p1/7k w - - 0 1
 wdl -2
+dtz -2
 
 position fen 8/8/8/3KPP2/8/8/6p1/7k w - - 0 1
 wdl 0
 
 position fen 8/8/8/3KNP2/8/8/6p1/7k b - - 0 1
 wdl 2
+dtz 1
 
 position fen 7k/6p1/8/8/3K1P2/8/8/8 b - - 0 1
 wdl 0
 
 position fen 7k/6p1/5p2/8/5P2/4K3/8/8 b - - 0 1
 wdl 2
-
+dtz 1
 
 position fen 4k3/3p4/8/8/8/8/8/4K3 b - - 0 1
 wdl 2
