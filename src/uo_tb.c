@@ -157,6 +157,23 @@ static uint64_t uo_tb_calculate_material_key_from_pcs(int *pcs, int mirror)
   return key;
 }
 
+// p[i] is to contain the square 0-63 (A1-H8) for a piece of type
+// pc[i], where 1 = white pawn, ..., 14 = black king
+// Pieces of the same type are guaranteed to be consecutive.
+static inline int uo_tb_fill_squares(uo_position *position, uint8_t *pc, bool flip_color, int mirror, int *p, int i)
+{
+  uint8_t color = (pc[i] >> 3) ^ flip_color;
+  uo_piece piece = (pc[i] & 0x07) << 1;
+  uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece) & (color ? position->enemy : position->own);
+  while (bitboard)
+  {
+    uo_square square = uo_bitboard_next_square(&bitboard);
+    p[i++] = square ^ mirror;
+  }
+
+  return i;
+}
+
 // probe_wdl_table and probe_dtz_table require similar adaptations.
 static int uo_tb_probe_wdl_table(uo_position *position, int *success)
 {
@@ -209,72 +226,35 @@ static int uo_tb_probe_wdl_table(uo_position *position, int *success)
     UNLOCK(TB_mutex);
   }
 
-  int bside = 0;
-  int mirror = 0;
-  int cmirror = 0;
+  bool flip = !ptr->symmetric && key != ptr->key;
 
-  if (!ptr->symmetric && key != ptr->key)
-  {
-    cmirror = 8;
-    mirror = 0x38;
-    bside = uo_color(position->flags);
-  }
-
-  // p[i] is to contain the square 0-63 (A1-H8) for a piece of type
-  // pc[i] ^ cmirror, where 1 = white pawn, ..., 14 = black king.
-  // Pieces of the same type are guaranteed to be consecutive.
   if (!ptr->has_pawns)
   {
     struct TBEntry_piece *entry = (struct TBEntry_piece *)ptr;
-    ubyte *pc = entry->pieces[bside];
+    ubyte *pc = entry->pieces[flip];
+
     for (i = 0; i < entry->num;)
     {
-      uint8_t color = (pc[i] ^ cmirror) >> 3;
-      uo_piece piece = ((pc[i] & 0x07) << 1) | color;
-      uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-      while (bitboard)
-      {
-        uo_square square = uo_bitboard_next_square(&bitboard);
-        p[i++] = square;
-      }
+      i = uo_tb_fill_squares(position, pc, flip, 0, p, i);
     }
 
-    idx = encode_piece(entry, entry->norm[bside], p, entry->factor[bside]);
-    res = decompress_pairs(entry->precomp[bside], idx);
+    idx = encode_piece(entry, entry->norm[flip], p, entry->factor[flip]);
+    res = decompress_pairs(entry->precomp[flip], idx);
   }
   else
   {
     struct TBEntry_pawn *entry = (struct TBEntry_pawn *)ptr;
-    int k = entry->file[0].pieces[0][0] ^ cmirror;
-
-    uint8_t color = (k ^ cmirror) >> 3;
-    uo_piece piece = ((k & 0x07) << 1) | color;
-    uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-
-    i = 0;
-    while (bitboard)
-    {
-      uo_square square = uo_bitboard_next_square(&bitboard);
-      p[i++] = square ^ mirror;
-    }
-
+    int i = uo_tb_fill_squares(position, entry->file[0].pieces[0], flip, flip ? 56 : 0, p, 0);
     int f = pawn_file(entry, p);
-    ubyte *pc = entry->file[f].pieces[bside];
+    ubyte *pc = entry->file[f].pieces[flip];
 
-    for (; i < entry->num;)
+    while (i < entry->num)
     {
-      uint8_t color = (pc[i] ^ cmirror) >> 3;
-      uo_piece piece = ((pc[i] & 0x07) << 1) | color;
-      uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-      while (bitboard)
-      {
-        uo_square square = uo_bitboard_next_square(&bitboard);
-        p[i++] = square ^ mirror;
-      }
+      i = uo_tb_fill_squares(position, pc, flip, flip ? 56 : 0, p, i);
     }
 
-    idx = encode_pawn(entry, entry->file[f].norm[bside], p, entry->file[f].factor[bside]);
-    res = decompress_pairs(entry->file[f].precomp[bside], idx);
+    idx = encode_pawn(entry, entry->file[f].norm[flip], p, entry->file[f].factor[flip]);
+    res = decompress_pairs(entry->file[f].precomp[flip], idx);
   }
 
   return (int)res - 2;
@@ -351,37 +331,22 @@ static int uo_tb_probe_dtz_table(uo_position *position, int wdl, int *success)
     return 0;
   }
 
-  int bside = 0;
-  int mirror = 0;
-  int cmirror = 0;
-
-  if (!ptr->symmetric && key != ptr->key)
-  {
-    cmirror = 8;
-    mirror = 0x38;
-    bside = uo_color(position->flags);
-  }
+  bool flip = !ptr->symmetric && key != ptr->key;
 
   if (!ptr->has_pawns)
   {
     struct DTZEntry_piece *entry = (struct DTZEntry_piece *)ptr;
-    if ((entry->flags & 1) != bside && !entry->symmetric)
+    if ((entry->flags & 1) != flip && !entry->symmetric)
     {
       *success = -1;
       return 0;
     }
 
     ubyte *pc = entry->pieces;
+
     for (i = 0; i < entry->num;)
     {
-      uint8_t color = (pc[i] ^ cmirror) >> 3;
-      uo_piece piece = ((pc[i] & 0x07) << 1) | color;
-      uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-      while (bitboard)
-      {
-        uo_square square = uo_bitboard_next_square(&bitboard);
-        p[i++] = square;
-      }
+      i = uo_tb_fill_squares(position, pc, flip, 0, p, i);
     }
 
     idx = encode_piece((struct TBEntry_piece *)entry, entry->norm, p, entry->factor);
@@ -400,31 +365,13 @@ static int uo_tb_probe_dtz_table(uo_position *position, int wdl, int *success)
   else
   {
     struct DTZEntry_pawn *entry = (struct DTZEntry_pawn *)ptr;
-    int k = entry->file[0].pieces[0] ^ cmirror;
-    uint8_t color = (k ^ cmirror) >> 3;
-    uo_piece piece = ((k & 0x07) << 1) | color;
-    uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-
-    i = 0;
-    while (bitboard)
-    {
-      uo_square square = uo_bitboard_next_square(&bitboard);
-      p[i++] = square ^ mirror;
-    }
-
+    int i = uo_tb_fill_squares(position, entry->file[0].pieces, flip, flip ? 56 : 0, p, 0);
     int f = pawn_file((struct TBEntry_pawn *)entry, p);
     ubyte *pc = entry->file[f].pieces;
 
-    for (; i < entry->num;)
+    while (i < entry->num)
     {
-      uint8_t color = (pc[i] ^ cmirror) >> 3;
-      uo_piece piece = ((pc[i] & 0x07) << 1) | color;
-      uo_bitboard bitboard = *uo_position_piece_bitboard(position, piece);
-      while (bitboard)
-      {
-        uo_square square = uo_bitboard_next_square(&bitboard);
-        p[i++] = square ^ mirror;
-      }
+      i = uo_tb_fill_squares(position, pc, flip, flip ? 56 : 0, p, i);
     }
 
     idx = encode_pawn((struct TBEntry_pawn *)entry, entry->file[f].norm, p, entry->file[f].factor);

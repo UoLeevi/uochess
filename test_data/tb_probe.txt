@@ -1,10 +1,77 @@
+# White to move, symmetrical, no captures, no pawns
+
+position fen 8/8/3r4/8/4K1R1/2k5/8/8 w - - 0 1
+wdl 0
+
+position fen 8/8/8/5K2/6R1/2k5/3r4/8 w - - 0 1
+wdl 0
+
+position fen 7k/5K2/8/8/6R1/8/3r4/8 w - - 0 1
+wdl 2
+
+position fen 7k/5K2/7r/8/6R1/8/8/8 w - - 0 1
+wdl 0
+
+# Black to move, symmetrical, no captures, no pawns
+
+position fen 8/8/3R4/8/4k1r1/2K5/8/8 b - - 0 1
+wdl 0
+
+position fen 8/8/8/5k2/6r1/2K5/3R4/8 b - - 0 1
+wdl 0
+
+position fen 7K/5k2/8/8/6r1/8/3R4/8 b - - 0 1
+wdl 2
+
+position fen 7K/5k2/7R/8/6r1/8/8/8 b - - 0 1
+wdl 0
+
+# White to move, white has majority, no captures, no pawns
+
+position fen 4k3/5r2/8/8/8/8/2BR4/4K3 w - - 0 1
+wdl 2
+
+position fen 4k3/5r2/B7/8/4K3/8/3R4/8 w - - 0 1
+wdl 0
+
+position fen 4k3/5r2/8/8/4K3/2Q5/3R4/8 w - - 0 1
+wdl 2
+
+position fen 2R5/6k1/5q2/8/4K3/8/4R3/8 w - - 0 1
+wdl 0
+
+position fen N7/8/8/8/6r1/5k2/8/N6K w - - 0 1
+wdl -2
+
+# Black to move, black has majority, no captures, no pawns
+
+position fen 4K3/5R2/8/8/8/8/2br4/4k3 b - - 0 1
+wdl 2
+
+position fen 4K3/5R2/b7/8/4k3/8/3r4/8 b - - 0 1
+wdl 0
+
+position fen 4K3/5R2/8/8/4k3/2q5/3r4/8 b - - 0 1
+wdl 2
+
+position fen 2r5/6K1/5Q2/8/4k3/8/4r3/8 b - - 0 1
+wdl 0
+
+position fen n7/8/8/8/6R1/5K2/8/n6k b - - 0 1
+wdl -2
+
+
+
+position fen 8/8/8/3k4/8/6R1/4q1R1/7K w - - 0 1
+wdl 2
+
+position fen 8/8/8/3k4/8/6R1/4q1R1/7K b - - 0 1
+wdl 0
+
 position fen 8/8/8/3K4/8/6r1/4Q1r1/7k w - - 0 1
 wdl 0
 
 position fen 8/8/8/3K4/8/6r1/4Q1r1/7k b - - 0 1
-wdl 2
-
-position fen 8/2P5/8/3K4/5Q2/8/4r1r1/7k b - - 0
 wdl 2
 
 position fen 8/8/8/3K4/5Q2/6r1/6r1/7k b - - 0 1

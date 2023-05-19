@@ -270,6 +270,13 @@ bool uo_test_tb_probe(uo_position *position, char *test_data_dir)
       continue;
     }
 
+    if (ptr[0] == '#')
+    {
+      // Comment lines start with '#'
+      ptr = uo_file_mmap_readline(file_mmap);
+      continue;
+    }
+
     if (sscanf(ptr, "position fen %s", buf) == 1)
     {
       fen = ptr + sizeof("position fen ") - 1;
