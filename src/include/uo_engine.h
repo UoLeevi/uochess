@@ -41,7 +41,7 @@ extern "C"
         size_t probe_depth;
         size_t probe_limit;
         bool rule50;
-      } sygyzy;
+      } syzygy;
     } tb;
   } uo_engine_options;
 

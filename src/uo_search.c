@@ -497,23 +497,57 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return uo_engine_store_entry(position, &entry);
   }
 
-  // Step 8. Generate legal moves
+  // Step 8. Tablebase probe
+  if (engine.tb.enabled)
+  {
+    // Do not probe on root node or if search depth is too shallow
+    if (position->ply && depth >= engine.tb.probe_depth)
+    {
+      // Do not probe if 50 move rule, castling or en passant can interfere with the table base result
+      if ((position->flags & 0xFFFE) == 0)
+      {
+        size_t piece_count = uo_popcnt(position->own | position->enemy);
+        size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
+
+        // Do not probe if too many pieces are on the board
+        if (piece_count <= probe_limit)
+        {
+          int success;
+          int wdl = uo_tb_probe_wdl(position, &success);
+
+          if (success)
+          {
+            ++info->tbhits;
+            wdl *= !engine.tb.rule50 || wdl < -1 || wdl > 1;
+            entry.value = wdl * uo_score_wdl_threshold;
+            return uo_engine_store_entry(position, &entry);
+          }
+          else
+          {
+            uo_position_print_fen(position, buf);
+          }
+        }
+      }
+    }
+  }
+
+  // Step 9. Generate legal moves
   size_t move_count = position->stack->moves_generated
     ? position->stack->move_count
     : uo_position_generate_moves(position);
 
-  // Step 9. If there are no legal moves, return draw or checkmate
+  // Step 10. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
     entry.value = uo_position_is_check(position) ? -score_checkmate : 0;
     return uo_engine_store_entry(position, &entry);
   }
 
-  // Step 10. Allocate search entry and principal variation line on the stack
+  // Step 11. Allocate search entry and principal variation line on the stack
   uo_move *line = uo_allocate_line(depth);
   line[0] = 0;
 
-  // Step 11. Null move pruning
+  // Step 12. Null move pruning
   if (!pv
     && depth > 3
     && position->ply > 1
@@ -531,11 +565,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (pass_value >= beta) return pass_value;
   }
 
-  // Step 12. Sort moves and place pv move or transposition table move as first
+  // Step 13. Sort moves and place pv move or transposition table move as first
   uo_move move = pline[0] ? pline[0] : entry.bestmove;
   uo_position_sort_moves(&thread->position, move, thread->move_cache);
 
-  // Step 13. Multi-Cut pruning
+  // Step 14. Multi-Cut pruning
   if (cut && depth > UO_MULTICUT_DEPTH_REDUCTION)
   {
     size_t cutoff_counter = UO_MULTICUT_CUTOFF_COUNT;
@@ -556,7 +590,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  // Step 14. Perform full alpha-beta search for the first move
+  // Step 15. Perform full alpha-beta search for the first move
   entry.bestmove = move = position->movelist.head[0];
   entry.depth = depth;
 
@@ -588,7 +622,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //}
   }
 
-  // 15. Initialize parallel search parameters and result queue
+  // 16. Initialize parallel search parameters and result queue
   size_t parallel_search_count = 0;
   uo_parallel_search_params params = {
     .thread = thread,
@@ -603,13 +637,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   params.line[0] = 0;
 
-  // 16. Search rest of the moves with null window and reduced depth unless they fail-high
+  // 17. Search rest of the moves with null window and reduced depth unless they fail-high
 
   for (size_t i = 1; i < move_count; ++i)
   {
     uo_move move = params.move = position->movelist.head[i];
 
-    // 15.1 Determine search depth reduction
+    // 17.1 Determine search depth reduction
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
 
     size_t depth_reduction =
@@ -638,7 +672,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
     }
 
-    // 16.2 Perform null window search for reduced depth
+    // 17.2 Perform null window search for reduced depth
     size_t depth_lmr = depth - depth_reduction;
     uo_position_make_move(position, move);
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false, true, incomplete);
@@ -650,7 +684,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       return uo_score_unknown;
     }
 
-    // 16.3 If move failed high, perform full re-search
+    // 17.3 If move failed high, perform full re-search
     if (node_value > alpha && node_value < beta)
     {
       bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);

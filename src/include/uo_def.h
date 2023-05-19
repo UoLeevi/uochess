@@ -33,6 +33,7 @@ extern "C"
 #define uo_score_unknown INT16_MIN
 #define uo_score_checkmate INT16_MAX
 #define uo_score_mate_in_threshold (uo_score_checkmate - UO_MAX_PLY)
+#define uo_score_wdl_threshold 10000
 
 #define uo_color(color) ((color) & 1)
 #define uo_color_own 0

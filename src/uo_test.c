@@ -301,6 +301,17 @@ bool uo_test_tb_probe(uo_position *position, char *test_data_dir)
     if (sscanf(ptr, "wdl %d", &expected) == 1)
     {
       int value = uo_tb_probe_wdl(position, &success);
+
+
+      // strcmp(fen, "8/3k4/2pN4/8/8/5Q2/8/5K2 b - - 0 1") == 0
+
+      if (!success)
+      {
+        printf("TEST 'tb_probe' FAILED: WDL probe failed for fen '%s'\r\n", fen);
+        uo_file_mmap_close(file_mmap);
+        return false;
+      }
+
       if (value != expected)
       {
         printf("TEST 'tb_probe' FAILED: WDL probe returned incorrect value %d when %d was expected for fen '%s'\r\n", value, expected, fen);
@@ -316,6 +327,13 @@ bool uo_test_tb_probe(uo_position *position, char *test_data_dir)
     if (sscanf(ptr, "dtz %d", &expected) == 1)
     {
       int value = uo_tb_probe_dtz(position, &success);
+
+      if (!success)
+      {
+        printf("TEST 'tb_probe' FAILED: DTZ probe failed for fen '%s'\r\n", fen);
+        uo_file_mmap_close(file_mmap);
+        return false;
+      }
 
       if (value != expected)
       {

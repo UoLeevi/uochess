@@ -64,6 +64,24 @@ static void uo_tb_print_filename(uo_position *position, char *str, bool mirror)
   *str++ = '\0';
 }
 
+uint64_t uo_tb_material_key_KvK;
+
+static void uo_tb_init_material_keys()
+{
+  uint64_t key = 0;
+  key ^= uo_zobkey(uo_piece__q, 0);
+  key ^= uo_zobkey(uo_piece__r, 0);
+  key ^= uo_zobkey(uo_piece__b, 0);
+  key ^= uo_zobkey(uo_piece__n, 0);
+  key ^= uo_zobkey(uo_piece__p, 0);
+  key ^= uo_zobkey(uo_piece__Q, 0);
+  key ^= uo_zobkey(uo_piece__R, 0);
+  key ^= uo_zobkey(uo_piece__B, 0);
+  key ^= uo_zobkey(uo_piece__N, 0);
+  key ^= uo_zobkey(uo_piece__P, 0);
+  uo_tb_material_key_KvK = key;
+}
+
 static uint64_t uo_tb_calculate_material_key(uo_position *position, bool mirror)
 {
   size_t piece_count_Q = uo_popcnt(position->Q);
@@ -188,7 +206,7 @@ static int uo_tb_probe_wdl_table(uo_position *position, int *success)
   uint64 key = uo_tb_calculate_material_key(position, false);
 
   // Test for KvK.
-  if (!key) return 0;
+  if (key == uo_tb_material_key_KvK) return 0;
 
   hash_entry = TB_hash[key >> (64 - TBHASHBITS)];
 
@@ -367,6 +385,13 @@ static int uo_tb_probe_dtz_table(uo_position *position, int wdl, int *success)
     struct DTZEntry_pawn *entry = (struct DTZEntry_pawn *)ptr;
     int i = uo_tb_fill_squares(position, entry->file[0].pieces, flip, flip ? 56 : 0, p, 0);
     int f = pawn_file((struct TBEntry_pawn *)entry, p);
+
+    if ((entry->flags[f] & 1) != flip)
+    {
+      *success = -1;
+      return 0;
+    }
+
     ubyte *pc = entry->file[f].pieces;
 
     while (i < entry->num)
@@ -400,12 +425,10 @@ static int uo_tb_probe_alpha_beta(uo_position *position, int alpha, int beta, in
     ? position->stack->move_count
     : uo_position_generate_moves(position);
 
-  bool is_check = uo_position_is_check(position);
-
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
-    if (!is_check && !uo_move_is_capture(move)) continue;
+    if (!uo_move_is_capture(move)) continue;
 
     uo_position_make_move(position, move);
     value = -uo_tb_probe_alpha_beta(position, -beta, -alpha, success);
@@ -459,12 +482,10 @@ int uo_tb_probe_wdl(uo_position *position, int *success)
   // capture without ep rights and letting best_ep keep track of still
   // better ep captures if they exist.
 
-  bool is_check = uo_position_is_check(position);
-
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
-    if (!is_check && !uo_move_is_capture(move)) continue;
+    if (!uo_move_is_capture(move)) continue;
 
     uo_position_make_move(position, move);
     int value = -uo_tb_probe_alpha_beta(position, -2, -best_cap, success);
@@ -479,6 +500,7 @@ int uo_tb_probe_wdl(uo_position *position, int *success)
         *success = 2;
         return 2;
       }
+
       if (!uo_move_is_enpassant(move))
       {
         best_cap = value;
@@ -530,8 +552,7 @@ int uo_tb_probe_wdl(uo_position *position, int *success)
     for (; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
-      if (!is_check && uo_move_is_enpassant(move)) continue;
-      break;
+      if (!uo_move_is_enpassant(move)) break;
     }
 
     if (i == move_count)
@@ -597,20 +618,15 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
       ? position->stack->move_count
       : uo_position_generate_moves(position);
 
-    bool is_check = uo_position_is_check(position);
-
     for (size_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
 
-      if (!is_check)
-      {
-        if (uo_move_is_capture(move)) continue;
+      if (uo_move_is_capture(move)) continue;
 
-        uo_square square_from = uo_move_square_from(move);
-        uo_piece piece = position->board[square_from];
-        if (piece != uo_piece__P) continue;
-      }
+      uo_square square_from = uo_move_square_from(move);
+      uo_piece piece = position->board[square_from];
+      if (piece != uo_piece__P) continue;
 
       uo_position_make_move(position, move);
       int value = -uo_tb_probe_wdl(position, success);
@@ -654,8 +670,6 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
     ? position->stack->move_count
     : uo_position_generate_moves(position);
 
-  bool is_check = uo_position_is_check(position);
-
   for (size_t i = 0; i < move_count; ++i)
   {
     // We can skip pawn moves and captures.
@@ -664,14 +678,11 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
 
     uo_move move = position->movelist.head[i];
 
-    if (!is_check)
-    {
-      if (uo_move_is_capture(move)) continue;
+    if (uo_move_is_capture(move)) continue;
 
-      uo_square square_from = uo_move_square_from(move);
-      uo_piece piece = position->board[square_from];
-      if (piece == uo_piece__P) continue;
-    }
+    uo_square square_from = uo_move_square_from(move);
+    uo_piece piece = position->board[square_from];
+    if (piece == uo_piece__P) continue;
 
     uo_position_make_move(position, move);
     int value = -uo_tb_probe_dtz(position, success);
@@ -708,6 +719,7 @@ static int16_t wdl_to_value[5] = {
 
 bool uo_tb_init(uo_tb *tb)
 {
+  uo_tb_init_material_keys();
   init_tablebases(tb->dir);
   return true;
 }

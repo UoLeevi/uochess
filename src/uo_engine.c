@@ -54,15 +54,15 @@ void uo_engine_load_default_options()
     strcpy(engine_options.book_filename, envopt);
   }
 
-  engine_options.tb.sygyzy.probe_depth = 1;
-  engine_options.tb.sygyzy.rule50 = true;
-  engine_options.tb.sygyzy.probe_limit = 7;
+  engine_options.tb.syzygy.probe_depth = 1;
+  engine_options.tb.syzygy.rule50 = true;
+  engine_options.tb.syzygy.probe_limit = 7;
 
-  strcpy(engine_options.tb.sygyzy.dir, "sygyzy_tables");
+  strcpy(engine_options.tb.syzygy.dir, "syzygy_tables");
   envopt = getenv("UO_OPT_SYGYZYPATH");
   if (envopt)
   {
-    strcpy(engine_options.tb.sygyzy.dir, envopt);
+    strcpy(engine_options.tb.syzygy.dir, envopt);
   }
 
   strcpy(engine_options.eval_filename, "nn/nn-eval-test.pt");
@@ -319,14 +319,14 @@ void uo_engine_init()
     engine.book = uo_book_create(engine_options.book_filename);
   }
 
-  // sygyzy
-  engine.tb.enabled = *engine_options.tb.sygyzy.dir != '\0';
+  // syzygy
+  engine.tb.enabled = *engine_options.tb.syzygy.dir != '\0';
   if (engine.tb.enabled)
   {
-    strcpy(engine.tb.dir, engine_options.tb.sygyzy.dir);
-    engine.tb.probe_limit = engine_options.tb.sygyzy.probe_limit;
-    engine.tb.probe_depth = engine_options.tb.sygyzy.probe_depth;
-    engine.tb.rule50 = engine_options.tb.sygyzy.rule50;
+    strcpy(engine.tb.dir, engine_options.tb.syzygy.dir);
+    engine.tb.probe_limit = engine_options.tb.syzygy.probe_limit;
+    engine.tb.probe_depth = engine_options.tb.syzygy.probe_depth;
+    engine.tb.rule50 = engine_options.tb.syzygy.rule50;
     uo_tb_init(&engine.tb);
   }
 

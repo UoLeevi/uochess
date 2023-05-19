@@ -548,7 +548,7 @@ static void uo_uci_process_input__init(void)
     printf("option name OwnBook type check default true\n");
     printf("option name BookFile type string default %s\n", engine_options.book_filename);
     printf("option name MultiPV type spin default 1 min 1 max 500\n");
-    printf("option name SyzygyPath type string default %s\n", engine_options.tb.sygyzy.dir);
+    printf("option name SyzygyPath type string default %s\n", engine_options.tb.syzygy.dir);
     printf("option name SyzygyProbeDepth type spin default 1 min 1 max 100\n");
     printf("option name Syzygy50MoveRule type check default true\n");
     printf("option name SyzygyProbeLimit type spin default 7 min 0 max 7\n");
@@ -683,13 +683,13 @@ static void uo_uci_process_input__ready(void)
       // SyzygyPath
       if (ptr && sscanf(ptr, "SyzygyPath value %255s", filepath) == 1)
       {
-        strcpy(engine_options.tb.sygyzy.dir, filepath);
+        strcpy(engine_options.tb.syzygy.dir, filepath);
       }
 
       // SyzygyProbeDepth
       if (ptr && sscanf(ptr, "SyzygyProbeDepth value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 100)
       {
-        engine_options.tb.sygyzy.probe_depth = spin;
+        engine_options.tb.syzygy.probe_depth = spin;
       }
 
       // Syzygy50MoveRule
@@ -697,18 +697,18 @@ static void uo_uci_process_input__ready(void)
       {
         if (strcmp(check, "true") == 0)
         {
-          engine_options.tb.sygyzy.rule50 = true;
+          engine_options.tb.syzygy.rule50 = true;
         }
         else if (strcmp(check, "false") == 0)
         {
-          engine_options.tb.sygyzy.rule50 = false;
+          engine_options.tb.syzygy.rule50 = false;
         }
       }
 
       // SyzygyProbeLimit
       if (ptr && sscanf(ptr, "SyzygyProbeLimit value %" PRIi64, &spin) == 1 && spin >= 0 && spin <= 7)
       {
-        engine_options.tb.sygyzy.probe_limit = spin;
+        engine_options.tb.syzygy.probe_limit = spin;
       }
 
       return;

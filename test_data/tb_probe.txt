@@ -132,3 +132,81 @@ dtz 9
 position fen 4k3/8/6q1/8/8/2R5/8/4K3 w - - 0 1
 wdl -2
 dtz -46
+
+position fen 3k4/8/2p5/8/8/4Kb2/3Q4/8 b - - 0 1
+wdl -2
+dtz -14
+
+position fen 8/3k4/2pN4/8/8/5Q2/8/5K2 b - - 0 1
+wdl -2
+dtz -6
+
+position fen 3k4/8/2p2q2/8/8/5Q2/8/5K2 w - - 0 1
+wdl 2
+dtz 1
+
+position fen 2k5/8/8/8/3qpK2/5P2/8/8 w - - 0 1
+wdl -2
+dtz -2
+
+position fen 1q6/2k5/2Q5/8/8/5PK1/8/8 b - - 0 1
+wdl 2
+dtz 1
+
+position fen 8/2k5/2Q1KP2/8/8/8/8/7q b - - 0 1
+wdl 2
+dtz 1
+
+position fen 8/3k4/2p2q2/8/4Q1K1/8/8/8 w - - 0 1
+wdl 0
+
+position fen 6k1/5R2/8/8/8/8/2p3q1/4K3 w - - 0 1
+wdl -2
+dtz -34
+
+position fen 4k3/2P3Q1/8/8/8/8/8/5K2 b - - 0 1
+wdl 0
+
+position fen 4k3/2P3Q1/8/8/8/8/5r2/6K1 b - - 0 1
+wdl -2
+dtz -34
+
+position fen 8/1p6/1P6/8/6k1/8/5N2/K7 b - - 0 1
+wdl -2
+dtz -46
+
+position fen 8/N7/PkP5/8/8/8/8/7K b - - 0 1
+wdl -2
+dtz -12
+
+position fen 1B5Q/2K5/8/8/8/8/2p5/k7 b - - 0 1
+wdl -2
+dtz -23
+
+position fen 8/5RN1/1K6/8/8/8/1p6/1k6 w - - 0 1
+wdl 2
+dtz 29
+
+position fen 8/1P6/Pk6/P7/8/8/8/K7 b - - 0 1
+wdl -2
+dtz -15
+
+position fen 8/8/8/8/1R6/3K4/8/1k4b1 b - - 0 1
+wdl -2
+dtz -36
+
+# Cursed win
+
+position fen K7/N7/k7/8/3p4/8/N7/8 w - - 0 1
+wdl 1
+dtz 164
+
+# Blessed loss
+
+position fen K3R3/2k5/8/3P4/8/8/1b6/8 b - - 0 1
+wdl -1
+dtz -106
+
+position fen 8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1
+wdl -1
+dtz -101

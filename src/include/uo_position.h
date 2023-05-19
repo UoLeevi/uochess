@@ -25,9 +25,9 @@ extern "C"
       0 w
       1 b
     rule50: 7
-      1-100
+      0-100
     enpassant_file : 4
-      1-8
+      0-8
     castling: 4
       1 K - h1
       2 Q - a1

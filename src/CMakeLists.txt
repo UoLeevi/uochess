@@ -24,7 +24,7 @@ add_executable(uochess
 target_include_directories(uochess
   PRIVATE
     "include"
-    "sygyzy")
+    "syzygy")
 
 target_link_libraries(uochess
   PRIVATE
@@ -49,8 +49,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
-add_custom_target(copy-runtime-files-sygyzy ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/sygyzy_tables" "${CMAKE_BINARY_DIR}/bin/sygyzy_tables"
+add_custom_target(copy-runtime-files-syzygy ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/syzygy_tables" "${CMAKE_BINARY_DIR}/bin/syzygy_tables"
   DEPENDS uochess)
 
 add_custom_target(copy-runtime-files-books ALL
