@@ -5,6 +5,8 @@
 #ifndef TBCORE_H
 #define TBCORE_H
 
+#include "uo_thread.h"
+
 #ifndef _MSC_VER
 #include <pthread.h>
 #define SEP_CHAR ':'
@@ -15,20 +17,6 @@
 #define SEP_CHAR ';'
 #define FD HANDLE
 #define FD_ERR INVALID_HANDLE_VALUE
-#endif
-
-#ifndef _MSC_VER
-#define LOCK_T pthread_mutex_t
-#define LOCK_INIT(x) pthread_mutex_init(&(x), NULL)
-#define LOCK_DESTROY(x) pthread_mutex_destroy(&(x))
-#define LOCK(x) pthread_mutex_lock(&(x))
-#define UNLOCK(x) pthread_mutex_unlock(&(x))
-#else
-#define LOCK_T HANDLE
-#define LOCK_INIT(x) do { x = CreateMutex(NULL, FALSE, NULL); } while (0)
-#define LOCK_DESTROY(x) CloseHandle(x)
-#define LOCK(x) WaitForSingleObject(x, INFINITE)
-#define UNLOCK(x) ReleaseMutex(x)
 #endif
 
 #define WDLSUFFIX ".rtbw"

@@ -464,7 +464,8 @@ static void uo_uci__position(void)
   }
   else if (uo_uci_match(tokens.randomize))
   {
-    uo_position_randomize(&engine.position);
+    ptr = strtok(NULL, " \n");
+    uo_position_randomize(&engine.position, ptr);
   }
   else
   {

@@ -195,6 +195,14 @@ position fen 8/8/8/8/1R6/3K4/8/1k4b1 b - - 0 1
 wdl -2
 dtz -36
 
+position fen 4r2k/8/8/3P3K/8/8/8/8 w - - 0 1
+wdl -2
+dtz -4
+
+position fen 5K2/8/8/3Q4/8/7n/8/2k5 b - - 0 1
+wdl -2
+dtz -4
+
 # Cursed win
 
 position fen K7/N7/k7/8/3p4/8/N7/8 w - - 0 1

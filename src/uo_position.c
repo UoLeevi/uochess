@@ -918,7 +918,7 @@ size_t uo_position_print_diagram(uo_position *position, char diagram[663])
   return ptr - diagram;
 }
 
-void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src)
+void uo_position_copy(uo_position *uo_restrict dst, const uo_position *uo_restrict src)
 {
   size_t movelist_advance = src->movelist.head - src->movelist.moves;
   size_t generated_move_count = src->stack->moves_generated ? src->stack->move_count : 0;
@@ -1275,6 +1275,7 @@ static inline void uo_movegenlist_insert_tactical_move(uo_movegenlist *movegenli
 static inline size_t uo_movegenlist_count_and_pack_generated_moves(uo_movegenlist *movegenlist, uo_move_history *stack)
 {
   stack->moves_generated = true;
+  stack->skipped_move_count = 0;
   size_t tactical_move_count = stack->tactical_move_count = movegenlist->moves.tactical.head - movegenlist->moves.tactical.root;
   size_t non_tactical_move_count = movegenlist->moves.non_tactical.head - movegenlist->moves.non_tactical.root;
   size_t move_count = stack->move_count = tactical_move_count + non_tactical_move_count;
@@ -1393,10 +1394,6 @@ size_t uo_position_generate_moves(uo_position *position)
         }
       }
 
-      stack->moves_generated = true;
-
-      size_t move_count = uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
-      stack->move_count = move_count;
       return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
     }
 
@@ -2183,7 +2180,7 @@ size_t uo_position_perft(uo_position *position, size_t depth)
   return node_count;
 }
 
-uo_position *uo_position_randomize(uo_position *position)
+uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */)
 {
   // Step 1. Clear position
   memset(position, 0, sizeof * position);
@@ -2199,21 +2196,73 @@ uo_position *uo_position_randomize(uo_position *position)
     ++position->root_ply;
   }
 
-  // Step 3. Piece placement
+  // Step 3. Piece count
+
+  size_t count_own_P = 0;
+  size_t count_own_Q = 0;
+  size_t count_own_R = 0;
+  size_t count_own_B = 0;
+  size_t count_own_N = 0;
+
+  size_t count_enemy_P = 0;
+  size_t count_enemy_Q = 0;
+  size_t count_enemy_R = 0;
+  size_t count_enemy_B = 0;
+  size_t count_enemy_N = 0;
+
+  if (pieces)
+  {
+    const char *ptr = pieces;
+
+    while (*ptr)
+    {
+      switch (*ptr++)
+      {
+        case 'K': break;
+        case 'P': ++count_own_P; break;
+        case 'Q': ++count_own_Q; break;
+        case 'R': ++count_own_R; break;
+        case 'B': ++count_own_B; break;
+        case 'N': ++count_own_N; break;
+        case 'v': goto break_while;
+        default: return NULL; // Invalid 'pieces' string
+      }
+    }
+
+  break_while:
+
+    while (*ptr)
+    {
+      switch (*ptr++)
+      {
+        case 'K': break;
+        case 'P': ++count_enemy_P; break;
+        case 'Q': ++count_enemy_Q; break;
+        case 'R': ++count_enemy_R; break;
+        case 'B': ++count_enemy_B; break;
+        case 'N': ++count_enemy_N; break;
+        default: return NULL; // Invalid 'pieces' string
+      }
+    }
+  }
+  else
+  {
+    count_own_P = uo_rand_between_excl(0, 8);
+    count_own_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
+    count_own_R = uo_rand_between_excl(0, 2);
+    count_own_B = uo_rand_between_excl(0, 2);
+    count_own_N = uo_rand_between_excl(0, 2);
+
+    count_enemy_P = uo_rand_between_excl(0, 8);
+    count_enemy_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
+    count_enemy_R = uo_rand_between_excl(0, 2);
+    count_enemy_B = uo_rand_between_excl(0, 2);
+    count_enemy_N = uo_rand_between_excl(0, 2);
+  }
+
+  // Step 4. Piece placement
 
   uo_bitboard occupied = 0;
-
-  size_t count_own_P = uo_rand_between_excl(0, 8);
-  size_t count_own_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
-  size_t count_own_R = uo_rand_between_excl(0, 2);
-  size_t count_own_B = uo_rand_between_excl(0, 2);
-  size_t count_own_N = uo_rand_between_excl(0, 2);
-
-  size_t count_enemy_P = uo_rand_between_excl(0, 8);
-  size_t count_enemy_Q = uo_rand_between_excl(0, count_own_P < uo_rand_between_excl(0, 8) ? 2 : 1);
-  size_t count_enemy_R = uo_rand_between_excl(0, 2);
-  size_t count_enemy_B = uo_rand_between_excl(0, 2);
-  size_t count_enemy_N = uo_rand_between_excl(0, 2);
 
   while (count_own_P--)
   {
@@ -2421,12 +2470,12 @@ uo_position *uo_position_randomize(uo_position *position)
   occupied |= enemy_K;
   position->board[square_enemy_K] = uo_piece__k;
 
-  // TODO: Step 4. Castling availability
+  // TODO: Step 5. Castling availability
 
-  // TODO: Step 5. En passant file
+  // TODO: Step 6. En passant file
 
-  // Step 6. Halfmove clock
-  // Step 7. Fullmove number
+  // Step 7. Halfmove clock
+  // Step 8. Fullmove number
   int rule50 = 0;
   int fullmove = 1;
   flags = uo_position_flags_update_rule50(flags, rule50);

@@ -19,6 +19,7 @@ extern "C"
     size_t probe_limit;
     size_t probe_depth;
     bool rule50;
+    int score_wdl_draw;
     char dir[0x100];
   } uo_tb;
 
@@ -28,7 +29,7 @@ extern "C"
 
   int uo_tb_probe_wdl(uo_position *position, int *success);
   int uo_tb_probe_dtz(uo_position *position, int *success);
-  //int uo_tb_root_probe(uo_position *position, int16_t *value);
+  int uo_tb_root_probe(uo_position *position, int *success);
   //int uo_tb_root_probe_wdl(uo_position *position, int16_t *value);
 
 #ifdef __cplusplus

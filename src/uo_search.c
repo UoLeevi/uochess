@@ -262,15 +262,33 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Next two steps can be skipped on the first quiscence search node
   if (depth > 0)
   {
-    // Step 3. Check for draw by 50 move rule or threefold repetition
-    //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
-    if (uo_position_is_rule50_draw(position) || uo_position_repetition_count(position) == (position->ply ? 1 : 2))
+    // Step 3. Check for draw by 50 move rule
+    if (uo_position_is_rule50_draw(position))
     {
-      // TODO: In case of draw by 50 move rule, check if position is checkmate
+      ++info->nodes;
+
+      bool is_check = uo_position_is_check(position);
+      if (is_check)
+      {
+        size_t move_count = position->stack->moves_generated
+          ? position->stack->move_count
+          : uo_position_generate_moves(position);
+
+        if (move_count == 0) return -score_checkmate;
+      }
+
       return uo_score_draw;
     }
 
-    // Step 4. If search is stopped, return unknown value
+    // Step 4. Check for draw by threefold repetition.
+    //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
+    if (uo_position_repetition_count(position) == (position->ply ? 1 : 2))
+    {
+      ++info->nodes;
+      return uo_score_draw;
+    }
+
+    // Step 5. If search is stopped, return unknown value
     if (uo_engine_thread_is_stopped(thread))
     {
       *incomplete = true;
@@ -278,36 +296,36 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
   }
 
-  // Step 5. If maximum search depth is reached return static evaluation
+  // Step 6. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
     return uo_search_evaluate(thread);
   }
 
-  // Step 6. Generate legal moves
+  // Step 7. Generate legal moves
   size_t move_count = position->stack->moves_generated
-    ? position->stack->move_count
+    ? position->stack->move_count - position->stack->skipped_move_count
     : uo_position_generate_moves(position);
 
-  // Step 7. Determine if position is check
+  // Step 8. Determine if position is check
   bool is_check = uo_position_is_check(position);
 
-  // Step 8. If there are no legal moves, return draw or checkmate
+  // Step 9. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
     return is_check ? -score_checkmate : 0;
   }
 
-  // Step 9. If position is check, perform quiesence search for all moves
+  // Step 10. If position is check, perform quiesence search for all moves
   if (is_check)
   {
-    // Step 9.1. Initialize score to be checkmate
+    // Step 10.1. Initialize score to be checkmate
     int16_t value = -score_checkmate;
 
-    // Step 9.2. Sort moves
+    // Step 10.2. Sort moves
     uo_position_sort_moves(&thread->position, 0, thread->move_cache);
 
-    // Step 9.3. Search each move
+    // Step 10.3. Search each move
     for (size_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
@@ -336,16 +354,16 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return value;
   }
 
-  // Step 10. Position is not check. Initialize score to static evaluation. "Stand pat"
+  // Step 11. Position is not check. Initialize score to static evaluation. "Stand pat"
   int16_t value = uo_search_evaluate(thread);
 
-  // Step 11. Cutoff if static evaluation is higher or equal to beta.
+  // Step 12. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta)
   {
     return beta;
   }
 
-  // Step 12. Delta pruning
+  // Step 13. Delta pruning
   if (position->Q)
   {
     int16_t delta = uo_piece_value(uo_piece__Q);
@@ -355,16 +373,16 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
   }
 
-  // Step 13. Update alpha
+  // Step 14. Update alpha
   alpha = uo_max(alpha, value);
 
-  // Step 14. Determine which moves should be searched
+  // Step 15. Determine which moves should be searched
   uo_search_quiesce_flags flags = uo_search_quiesce_determine_flags(thread, depth);
 
-  // Step 15. Sort tactical moves
+  // Step 16. Sort tactical moves
   uo_position_sort_tactical_moves(&thread->position, thread->move_cache);
 
-  // Step 16. Search interesting tactical moves and checks
+  // Step 17. Search interesting tactical moves and checks
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
@@ -450,16 +468,33 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   int16_t score_checkmate = uo_score_checkmate - position->ply;
   beta = uo_min(beta, score_checkmate - 1);
 
-  // Step 2. Check for draw by 50 move rule or threefold repetition
-  //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
-  if (uo_position_is_rule50_draw(position) || uo_position_repetition_count(position) == (position->ply ? 1 : 2))
+  // Step 2. Check for draw by 50 move rule
+  if (uo_position_is_rule50_draw(position))
   {
-    // TODO: In case of draw by 50 move rule, check if position is checkmate
+    ++info->nodes;
+
+    bool is_check = uo_position_is_check(position);
+    if (is_check)
+    {
+      size_t move_count = position->stack->moves_generated
+        ? position->stack->move_count
+        : uo_position_generate_moves(position);
+
+      if (move_count == 0) return -score_checkmate;
+    }
+
+    return uo_score_draw;
+  }
+
+  // Step 3. Check for draw by threefold repetition.
+  //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
+  if (uo_position_repetition_count(position) == (position->ply ? 1 : 2))
+  {
     ++info->nodes;
     return uo_score_draw;
   }
 
-  // Step 3. Lookup position from transposition table and return if exact score for equal or higher depth is found
+  // Step 4. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { alpha, beta, depth };
   if (uo_engine_lookup_entry(position, &entry))
   {
@@ -471,14 +506,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return entry.value;
   }
 
-  // Step 4. If search is stopped, return unknown value
+  // Step 5. If search is stopped, return unknown value
   if (uo_engine_thread_is_stopped(thread))
   {
     *incomplete = true;
     return uo_score_unknown;
   }
 
-  // Step 5. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
+  // Step 6. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
   if (depth == 0)
   {
     entry.value = uo_search_quiesce(thread, alpha, beta, 0, incomplete);
@@ -487,24 +522,24 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return uo_engine_store_entry(position, &entry);
   }
 
-  // Step 6. Increment searched node count
+  // Step 7. Increment searched node count
   ++thread->info.nodes;
 
-  // Step 7. If maximum search depth is reached return static evaluation
+  // Step 8. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
     entry.value = uo_search_evaluate(thread);
     return uo_engine_store_entry(position, &entry);
   }
 
-  // Step 8. Tablebase probe
+  // Step 9. Tablebase probe
   if (engine.tb.enabled)
   {
     // Do not probe on root node or if search depth is too shallow
     if (position->ply && depth >= engine.tb.probe_depth)
     {
       // Do not probe if 50 move rule, castling or en passant can interfere with the table base result
-      if ((position->flags & 0xFFFE) == 0)
+      if (position->flags <= 1)
       {
         size_t piece_count = uo_popcnt(position->own | position->enemy);
         size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
@@ -514,40 +549,46 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         {
           int success;
           int wdl = uo_tb_probe_wdl(position, &success);
+          assert(success);
 
-          if (success)
-          {
-            ++info->tbhits;
-            wdl *= !engine.tb.rule50 || wdl < -1 || wdl > 1;
-            entry.value = wdl * uo_score_wdl_threshold;
-            return uo_engine_store_entry(position, &entry);
+          ++info->tbhits;
+
+          if (wdl > engine.tb.score_wdl_draw)
+          { // Win
+            entry.value = uo_score_tb_win;
+          }
+          else if (wdl < engine.tb.score_wdl_draw)
+          { // Loss
+            entry.value = -uo_score_tb_win;
           }
           else
-          {
-            uo_position_print_fen(position, buf);
+          { // Draw
+            entry.value = uo_score_draw;
           }
+
+          return uo_engine_store_entry(position, &entry);
         }
       }
     }
   }
 
-  // Step 9. Generate legal moves
+  // Step 10. Generate legal moves
   size_t move_count = position->stack->moves_generated
-    ? position->stack->move_count
+    ? position->stack->move_count - position->stack->skipped_move_count
     : uo_position_generate_moves(position);
 
-  // Step 10. If there are no legal moves, return draw or checkmate
+  // Step 11. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
     entry.value = uo_position_is_check(position) ? -score_checkmate : 0;
     return uo_engine_store_entry(position, &entry);
   }
 
-  // Step 11. Allocate search entry and principal variation line on the stack
+  // Step 12. Allocate search entry and principal variation line on the stack
   uo_move *line = uo_allocate_line(depth);
   line[0] = 0;
 
-  // Step 12. Null move pruning
+  // Step 13. Null move pruning
   if (!pv
     && depth > 3
     && position->ply > 1
@@ -565,11 +606,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (pass_value >= beta) return pass_value;
   }
 
-  // Step 13. Sort moves and place pv move or transposition table move as first
+  // Step 14. Sort moves and place pv move or transposition table move as first
   uo_move move = pline[0] ? pline[0] : entry.bestmove;
   uo_position_sort_moves(&thread->position, move, thread->move_cache);
 
-  // Step 14. Multi-Cut pruning
+  // Step 15. Multi-Cut pruning
   if (cut && depth > UO_MULTICUT_DEPTH_REDUCTION)
   {
     size_t cutoff_counter = UO_MULTICUT_CUTOFF_COUNT;
@@ -590,7 +631,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  // Step 15. Perform full alpha-beta search for the first move
+  // Step 16. Perform full alpha-beta search for the first move
   entry.bestmove = move = position->movelist.head[0];
   entry.depth = depth;
 
@@ -622,7 +663,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //}
   }
 
-  // 16. Initialize parallel search parameters and result queue
+  // 17. Initialize parallel search parameters and result queue
   size_t parallel_search_count = 0;
   uo_parallel_search_params params = {
     .thread = thread,
@@ -637,13 +678,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   params.line[0] = 0;
 
-  // 17. Search rest of the moves with null window and reduced depth unless they fail-high
+  // 18. Search rest of the moves with null window and reduced depth unless they fail-high
 
   for (size_t i = 1; i < move_count; ++i)
   {
     uo_move move = params.move = position->movelist.head[i];
 
-    // 17.1 Determine search depth reduction
+    // 18.1 Determine search depth reduction
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
 
     size_t depth_reduction =
@@ -672,7 +713,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
     }
 
-    // 17.2 Perform null window search for reduced depth
+    // 18.2 Perform null window search for reduced depth
     size_t depth_lmr = depth - depth_reduction;
     uo_position_make_move(position, move);
     int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false, true, incomplete);
@@ -684,7 +725,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       return uo_score_unknown;
     }
 
-    // 17.3 If move failed high, perform full re-search
+    // 18.3 If move failed high, perform full re-search
     if (node_value > alpha && node_value < beta)
     {
       bool can_delegate = (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
@@ -1058,7 +1099,47 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       int16_t window = (position->stack[-1].move == engine.ponder.move) ? 40 : 200;
 
       alpha = value > -uo_score_checkmate + window ? value - window : -uo_score_checkmate;
-      beta = value < uo_score_checkmate - window ? value - window : -uo_score_checkmate;
+      beta = value < uo_score_checkmate - window ? value - window : uo_score_checkmate;
+    }
+  }
+
+  bool is_tb_position = false;
+  int tb_wdl;
+
+  // Tablebase probe
+  if (engine.tb.enabled)
+  {
+    // Do not probe if castling can interfere with the table base result
+    if (!uo_position_flags_castling(position->flags))
+    {
+      size_t piece_count = uo_popcnt(position->own | position->enemy);
+      size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
+
+      // Do not probe if too many pieces are on the board
+      if (piece_count <= probe_limit)
+      {
+        int success;
+        tb_wdl = uo_tb_root_probe(position, &success);
+        ++thread->info.tbhits;
+        assert(success);
+
+        if (tb_wdl > 0)
+        {
+          alpha = uo_max(0, alpha);
+          beta = uo_score_checkmate;
+        }
+        else if (tb_wdl < 0)
+        {
+          beta = uo_min(0, beta);
+          alpha = -uo_score_checkmate;
+        }
+        else
+        {
+          thread->info.value = uo_score_draw;
+          thread->info.bestmove = position->movelist.head[0];
+          goto search_completed;
+        }
+      }
     }
   }
 

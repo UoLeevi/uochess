@@ -35,7 +35,7 @@
 #define TB_WPAWN TB_PAWN
 #define TB_BPAWN (TB_PAWN | 8)
 
-static LOCK_T TB_mutex;
+static uo_mutex *TB_mutex;
 
 static int initialized = 0;
 static int num_paths = 0;
@@ -271,7 +271,7 @@ void init_tablebases(char *path)
     for (i = 0; i < DTZ_ENTRIES; i++)
       if (DTZ_table[i].entry)
         free_dtz_entry(DTZ_table[i].entry);
-    LOCK_DESTROY(TB_mutex);
+    uo_mutex_destroy(TB_mutex);
     path_string = NULL;
   }
 
@@ -297,7 +297,7 @@ void init_tablebases(char *path)
     while (path_string[j]) j++;
   }
 
-  LOCK_INIT(TB_mutex);
+  TB_mutex = uo_mutex_create();
 
   TBnum_piece = TBnum_pawn = 0;
   TBlargest = 0;

@@ -6,6 +6,16 @@ extern "C"
 {
 #endif
 
+#if defined(__INTEL_LLVM_COMPILER) || defined(__INTEL_COMPILER)
+
+#define uo_restrict __restrict
+
+#else
+
+#define uo_restrict restrict
+
+#endif
+
 #include "uo_macro.h"  
 
 #include <inttypes.h>

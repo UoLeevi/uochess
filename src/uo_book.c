@@ -193,11 +193,11 @@ void uo_nn_generate_dataset(char *dataset_filepath, char *engine_filepath, char 
       ptr = strstr(buffer, "readyok");
     } while (!ptr);
 
-    uo_position_randomize(&position);
+    uo_position_randomize(&position, NULL);
 
     while (!uo_position_is_quiescent(&position))
     {
-      uo_position_randomize(&position);
+      uo_position_randomize(&position, NULL);
     }
 
     ptr = buffer;
