@@ -27,20 +27,7 @@ static int run_tests(char *test_data_dir, char *test_name)
   uo_engine_lock_position();
   uo_engine_lock_stdout();
 
-  if (test_name == NULL || strcmp(test_name, "move_generation") == 0)
-  {
-    passed &= uo_test_move_generation(&engine.position, test_data_dir);
-  }
-
-  if (test_name == NULL || strcmp(test_name, "tb_probe") == 0)
-  {
-    passed &= uo_test_tb_probe(&engine.position, test_data_dir);
-  }
-
-  if (test_name == NULL || strcmp(test_name, "matmul") == 0)
-  {
-    passed &= uo_test_matmul(test_data_dir);
-  }
+  passed = uo_test(test_data_dir, test_name);
 
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();

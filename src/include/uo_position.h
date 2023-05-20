@@ -955,8 +955,7 @@ extern "C"
     {
       uo_move move = movelist[i];
       uint16_t score = uo_position_calculate_tactical_move_score(position, move, move_cache);
-      position->movelist.move_scores[i] = score;
-      ++i;
+      position->movelist.move_scores[i++] = score;
     }
 
     uo_position_quicksort_moves(position, movelist, 0, tactical_move_count - 1);
@@ -975,8 +974,7 @@ extern "C"
     {
       uo_move move = movelist[i];
       uint16_t score = uo_position_calculate_non_tactical_move_score(position, move);
-      position->movelist.move_scores[i] = score;
-      ++i;
+      position->movelist.move_scores[i++] = score;
     }
 
     uo_position_quicksort_moves(position, movelist, tactical_move_count, move_count - 1);

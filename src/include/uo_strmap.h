@@ -34,7 +34,7 @@ extern "C"
 
     for (size_t i = 0; i < strlen(key); i++)
     {
-        hash = (hash ^ key[i]) * 16777619;
+      hash = (hash ^ key[i]) * 16777619;
     }
 
     return hash % strmap->size;
@@ -96,33 +96,7 @@ extern "C"
     free(strmap);
   }
 
-  static inline void uo_strmap_rehash(uo_strmap *strmap)
-  {
-    size_t old_size = strmap->size;
-    uo_strmap_entry *old_table = strmap->table;
-
-    strmap->size = uo_strmap_next_prime(strmap->size * 2);
-    strmap->table = malloc(sizeof(uo_strmap_entry) * strmap->size);
-
-    for (size_t i = 0; i < strmap->size; i++)
-    {
-      strmap->table[i].is_occupied = 0;
-      strmap->table[i].is_deleted = 0;
-    }
-
-    strmap->occupied = 0;
-    strmap->deleted = 0;
-
-    for (size_t i = 0; i < old_size; i++)
-    {
-      if (old_table[i].is_occupied && !old_table[i].is_deleted)
-      {
-        uo_strmap_add(strmap, old_table[i].key, old_table[i].value);
-      }
-    }
-
-    free(old_table);
-  }
+  void uo_strmap_rehash(uo_strmap *strmap);
 
   static inline void uo_strmap_add(uo_strmap *strmap, char *key, void *value)
   {
@@ -154,6 +128,34 @@ extern "C"
     strmap->table[index].is_occupied = 1;
     strmap->table[index].is_deleted = 0;
     strmap->occupied++;
+  }
+
+  static inline void uo_strmap_rehash(uo_strmap *strmap)
+  {
+    size_t old_size = strmap->size;
+    uo_strmap_entry *old_table = strmap->table;
+
+    strmap->size = uo_strmap_next_prime(strmap->size * 2);
+    strmap->table = malloc(sizeof(uo_strmap_entry) * strmap->size);
+
+    for (size_t i = 0; i < strmap->size; i++)
+    {
+      strmap->table[i].is_occupied = 0;
+      strmap->table[i].is_deleted = 0;
+    }
+
+    strmap->occupied = 0;
+    strmap->deleted = 0;
+
+    for (size_t i = 0; i < old_size; i++)
+    {
+      if (old_table[i].is_occupied && !old_table[i].is_deleted)
+      {
+        uo_strmap_add(strmap, old_table[i].key, old_table[i].value);
+      }
+    }
+
+    free(old_table);
   }
 
   static inline void *uo_strmap_get(uo_strmap *strmap, char *key)

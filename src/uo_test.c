@@ -5,6 +5,7 @@
 #include "uo_position.h"
 #include "uo_search.h"
 #include "uo_engine.h"
+#include "uo_strmap.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,363 +13,408 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-bool uo_test_move_generation(uo_position *position, char *test_data_dir)
+typedef struct uo_test_info
 {
-  if (!test_data_dir) return false;
+  char *test_name;
+  bool passed;
+  size_t test_count;
+  char *ptr;
+  uo_file_mmap *file_mmap;
+  uo_position position;
+  char fen[0x100];
+  char message[0x200];
+} uo_test_info;
 
-  bool passed = true;
+uo_strmap *test_command_map__go = NULL;
+uo_strmap *test_command_map = NULL;
 
-  size_t test_count = 0;
+typedef bool (*uo_test_command)(uo_test_info *info);
 
-  char *filepath = buf;
-
-  strcpy(filepath, test_data_dir);
-  strcpy(filepath + strlen(test_data_dir), "/move_generation.txt");
-
-  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-  if (!file_mmap)
+bool uo_test__wdl(uo_test_info *info)
+{
+  int expected;
+  if (sscanf(info->ptr, "wdl %d", &expected) != 1)
   {
-    printf("Cannot open file '%s'", filepath);
+    sprintf(info->message, "Error parsing command '%s'", info->ptr);
     return false;
   }
 
-  size_t move_count;
+  int success;
+  int wdl = uo_tb_probe_wdl(&info->position, &success);
 
+  if (!success)
+  {
+    sprintf(info->message, "WDL probe failed for fen '%s'", info->fen);
+    return false;
+  }
 
-  char *ptr = uo_file_mmap_readline(file_mmap);
+  if (wdl != expected)
+  {
+    sprintf(info->message, "WDL probe returned incorrect value %d when %d was expected for fen '%s'", wdl, expected, info->fen);
+    return false;
+  }
+
+  return true;
+}
+
+bool uo_test__dtz(uo_test_info *info)
+{
+  int expected;
+  if (sscanf(info->ptr, "dtz %d", &expected) != 1)
+  {
+    sprintf(info->message, "Error parsing command '%s'", info->ptr);
+    return false;
+  }
+
+  int success;
+  int dtz = uo_tb_probe_dtz(&info->position, &success);
+
+  if (!success)
+  {
+    sprintf(info->message, "DTZ probe failed for fen '%s'", info->fen);
+    return false;
+  }
+
+  if (dtz != expected)
+  {
+    if (dtz < 0 && dtz > -100 && dtz - 1 == expected)
+    {
+      // OK
+    }
+    else if (dtz > 0 && dtz < 100 && dtz + 1 == expected)
+    {
+      // OK
+    }
+    else
+    {
+      sprintf(info->message, "DTZ probe returned incorrect value %d when %d was expected for fen '%s'", dtz, expected, info->fen);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool uo_test__move_order(uo_test_info *info)
+{
+  uo_position *position = &info->position;
+  uint64_t key = position->key;
+
+  size_t move_count = uo_position_generate_moves(position);
+  uo_position_sort_moves(position, 0, NULL);
+
   char *token_context;
 
-  if (!ptr)
+  int i = 0;
+
+  while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
   {
-    printf("Error while reading test data\n");
-    uo_file_mmap_close(file_mmap);
+    if (strlen(info->ptr) == 0) break;
+    if (info->ptr[0] == '#') continue;
+
+    if (i == move_count)
+    {
+      sprintf(info->message, "There are only %zu legal moves but more were listed.", move_count);
+      return false;
+    }
+
+    uo_move move = uo_position_parse_move(position, info->ptr);
+    if (!move)
+    {
+      sprintf(info->message, "Error while parsing move '%s'", info->ptr);
+      return false;
+    }
+
+    if (move != position->movelist.head[i])
+    {
+      char move_str[6];
+      uo_position_print_move(position, move, move_str);
+      uo_square square_from = uo_move_square_from(move);
+      uo_square square_to = uo_move_square_to(move);
+      sprintf(info->message, "move '%s' was not ordered correctly for fen '%s'", move_str, info->fen);
+      return false;
+    }
+  }
+
+  if (i < move_count)
+  {
+    // Not all legal moves where listed on the test case. This is fine
+  }
+
+  return true;
+}
+
+bool uo_test__go_perft(uo_test_info *info)
+{
+  size_t depth;
+
+  if (sscanf(info->ptr, "go perft %zu", &depth) != 1 || depth < 1)
+  {
+    sprintf(info->message, "Expected to read 'go perft', instead read '%s'", info->ptr);
     return false;
   }
 
-  while (ptr)
+  uo_position *position = &info->position;
+  uint64_t key = position->key;
+
+  size_t move_count = uo_position_generate_moves(position);
+  char *token_context;
+
+  while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
   {
-    if (strlen(ptr) == 0)
+    if (strlen(info->ptr) == 0) break;
+
+    char *move_str = uo_strtok(info->ptr, ":\r\n", &token_context);
+
+    uo_move move = uo_position_parse_move(position, move_str);
+    if (!move)
     {
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    ptr = uo_strtok(ptr, " ", &token_context);
-
-    if (strcmp(ptr, "ucinewgame") == 0)
-    {
-      if (!(ptr = uo_file_mmap_readline(file_mmap)))
-      {
-        printf("Unexpected EOF while reading test data\n");
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      ptr = uo_strtok(ptr, " ", &token_context);
-    }
-
-    if (!ptr || strcmp(ptr, "position"))
-    {
-      printf("Expected to read 'position', instead read '%s'\n", ptr);
-      uo_file_mmap_close(file_mmap);
+      sprintf(info->message, "Error while parsing move '%s'", move_str);
       return false;
     }
 
-    ptr = uo_strtok(NULL, " ", &token_context);
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
 
-    if (!ptr || strcmp(ptr, "fen"))
+    size_t node_count_expected;
+
+    info->ptr = uo_strtok(NULL, "\r\n", &token_context);
+
+    if (sscanf(info->ptr, " %zu", &node_count_expected) != 1)
     {
-      printf("Expected to read 'fen', instead read '%s'\n", ptr);
-      uo_file_mmap_close(file_mmap);
+      sprintf(info->message, "Error while node count for move");
       return false;
-    }
-
-    char *fen = uo_strtok(NULL, "\r\n", &token_context);
-
-    if (!uo_position_from_fen(position, fen))
-    {
-      printf("Error while parsing fen '%s'\n", fen);
-      uo_file_mmap_close(file_mmap);
-      return false;
-    }
-
-    if (!(ptr = uo_file_mmap_readline(file_mmap)))
-    {
-      printf("Unexpected EOF while reading test data\n");
-      uo_file_mmap_close(file_mmap);
-      return false;
-    }
-
-    size_t depth;
-
-    if (!ptr || sscanf(ptr, "go perft %zu", &depth) != 1 || depth < 1)
-    {
-      printf("Expected to read 'go perft', instead read '%s'\n", ptr);
-      uo_file_mmap_close(file_mmap);
-      return false;
-    }
-
-    uint64_t key = position->key;
-
-    move_count = uo_position_generate_moves(position);
-
-    while ((ptr = uo_file_mmap_readline(file_mmap)))
-    {
-      if (strlen(ptr) == 0) break;
-
-      char *move_str = uo_strtok(ptr, ":\r\n", &token_context);
-
-      uo_move move = uo_position_parse_move(position, move_str);
-      if (!move)
-      {
-        printf("Error while parsing move '%s'", move_str);
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      uo_move_type move_type_promo = uo_move_get_type(move) & uo_move_type__promo_Q;
-
-      size_t node_count_expected;
-
-      ptr = uo_strtok(NULL, "\r\n", &token_context);
-
-      if (sscanf(ptr, " %zu", &node_count_expected) != 1)
-      {
-        printf("Error while node count for move\r\n");
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      for (int64_t i = 0; i < move_count; ++i)
-      {
-        uo_move move = position->movelist.head[i];
-        if (uo_move_square_from(move) == square_from && uo_move_square_to(move) == square_to)
-        {
-          uo_move_type move_type = uo_move_get_type(move);
-
-          if ((move_type & uo_move_type__promo) && move_type_promo != (move_type & uo_move_type__promo_Q))
-          {
-            continue;
-          }
-
-          // move found
-
-          uo_position_make_move(position, move);
-          size_t node_count = depth == 1 ? 1 : uo_position_perft(position, depth - 1);
-
-          if (node_count != node_count_expected)
-          {
-            printf("TEST 'move_generation' FAILED: generated node count %zu for move '%s' did not match expected count %zu for fen '%s'\n", node_count, move_str, node_count_expected, fen);
-            uo_position_print_diagram(position, buf);
-            printf("\r\n%s", buf);
-            uo_position_print_fen(position, buf);
-            printf("\nFen: %s\n", buf);
-
-            uo_file_mmap_close(file_mmap);
-            return false;
-          }
-
-          uo_position_unmake_move(position);
-
-          if (position->key != key)
-          {
-            printf("TEST 'move_generation' FAILED: position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\r\n", position->key, move_str, key, fen);
-            uo_position_print_diagram(position, buf);
-            printf("\n%s", buf);
-            uo_position_print_fen(position, buf);
-            printf("\nFen: %s\n", buf);
-
-            uo_file_mmap_close(file_mmap);
-            return false;
-          }
-
-          position->movelist.head[i] = (uo_move){ 0 };
-          goto next_move;
-        }
-      }
-
-      printf("TEST 'move_generation' FAILED: move '%s' was not generated for fen '%s'", move_str, fen);
-      uo_file_mmap_close(file_mmap);
-      return false;
-
-    next_move:;
     }
 
     for (int64_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
-      if (move)
+      if (uo_move_square_from(move) == square_from && uo_move_square_to(move) == square_to)
       {
-        uo_square square_from = uo_move_square_from(move);
-        uo_square square_to = uo_move_square_to(move);
-        printf("TEST 'move_generation' FAILED: move '%c%d%c%d' is not a legal move for fen '%s'",
-          'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
-          'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to),
-          fen);
+        uo_move_type move_type = uo_move_get_type(move);
 
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-    }
-
-    ++test_count;
-    ptr = uo_file_mmap_readline(file_mmap);
-  }
-
-  uo_file_mmap_close(file_mmap);
-
-  if (passed)
-  {
-    printf("TEST 'move_generation' PASSED: total of %zd positions tested.", test_count);
-  }
-
-  return passed;
-}
-
-bool uo_test_tb_probe(uo_position *position, char *test_data_dir)
-{
-  if (!test_data_dir) return false;
-
-  bool passed = true;
-
-  size_t test_count = 0;
-
-  char *filepath = buf;
-
-  strcpy(filepath, test_data_dir);
-  strcpy(filepath + strlen(test_data_dir), "/tb_probe.txt");
-
-  uo_file_mmap *file_mmap = uo_file_mmap_open_read(filepath);
-  if (!file_mmap)
-  {
-    printf("Cannot open file '%s'", filepath);
-    return false;
-  }
-
-  size_t move_count;
-
-
-  char *ptr = uo_file_mmap_readline(file_mmap);
-  char *token_context;
-
-  if (!ptr)
-  {
-    printf("Error while reading test data\n");
-    uo_file_mmap_close(file_mmap);
-    return false;
-  }
-
-  char *fen = NULL;
-
-  while (ptr)
-  {
-    if (strlen(ptr) == 0)
-    {
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    if (ptr[0] == '#')
-    {
-      // Comment lines start with '#'
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    if (sscanf(ptr, "position fen %s", buf) == 1)
-    {
-      fen = ptr + sizeof("position fen ") - 1;
-      if (!uo_position_from_fen(position, fen))
-      {
-        printf("Error while parsing fen '%s'\n", fen);
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      uo_position_print_fen(position, buf);
-      assert(strcmp(buf, fen) == 0);
-      fen = buf;
-
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    int expected;
-    int success;
-
-    if (sscanf(ptr, "wdl %d", &expected) == 1)
-    {
-      int value = uo_tb_probe_wdl(position, &success);
-
-
-      // strcmp(fen, "8/3k4/2pN4/8/8/5Q2/8/5K2 b - - 0 1") == 0
-
-      if (!success)
-      {
-        printf("TEST 'tb_probe' FAILED: WDL probe failed for fen '%s'\r\n", fen);
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      if (value != expected)
-      {
-        printf("TEST 'tb_probe' FAILED: WDL probe returned incorrect value %d when %d was expected for fen '%s'\r\n", value, expected, fen);
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      ++test_count;
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    if (sscanf(ptr, "dtz %d", &expected) == 1)
-    {
-      int value = uo_tb_probe_dtz(position, &success);
-
-      if (!success)
-      {
-        printf("TEST 'tb_probe' FAILED: DTZ probe failed for fen '%s'\r\n", fen);
-        uo_file_mmap_close(file_mmap);
-        return false;
-      }
-
-      if (value != expected)
-      {
-        if (value < 0 && value > -100 && value - 1 == expected)
+        if ((move_type & uo_move_type__promo) && move_type_promo != (move_type & uo_move_type__promo_Q))
         {
-          // OK
+          continue;
         }
-        else if (value > 0 && value < 100 && value + 1 == expected)
+
+        // move found
+
+        uo_position_make_move(position, move);
+        size_t node_count = depth == 1 ? 1 : uo_position_perft(position, depth - 1);
+
+        if (node_count != node_count_expected)
         {
-          // OK
-        }
-        else
-        {
-          printf("TEST 'tb_probe' FAILED: DTZ probe returned incorrect value %d when %d was expected for fen '%s'\r\n", value, expected, fen);
-          uo_file_mmap_close(file_mmap);
+          sprintf(info->message, "generated node count %zu for move '%s' did not match expected count %zu for fen '%s'\n", node_count, move_str, node_count_expected, info->fen);
+          //uo_position_print_diagram(position, buf);
+          //sprintf(info->message, "\r\n%s", buf);
+          //uo_position_print_fen(position, buf);
+          //sprintf(info->message, "\nFen: %s\n", buf);
           return false;
         }
-      }
 
-      ++test_count;
-      ptr = uo_file_mmap_readline(file_mmap);
-      continue;
+        uo_position_unmake_move(position);
+
+        if (position->key != key)
+        {
+          sprintf(info->message, "position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\r\n", position->key, move_str, key, info->fen);
+          //uo_position_print_diagram(position, buf);
+          //sprintf(info->message, "\n%s", buf);
+          //uo_position_print_fen(position, buf);
+          //sprintf(info->message, "\nFen: %s\n", buf);
+          return false;
+        }
+
+        position->movelist.head[i] = (uo_move){ 0 };
+        goto next_move;
+      }
     }
 
-    printf("Unknown command '%s'\n", ptr);
-    uo_file_mmap_close(file_mmap);
+    sprintf(info->message, "move '%s' was not generated for fen '%s'", move_str, info->fen);
+    return false;
+
+  next_move:;
+  }
+
+  for (int64_t i = 0; i < move_count; ++i)
+  {
+    uo_move move = position->movelist.head[i];
+    if (move)
+    {
+      uo_square square_from = uo_move_square_from(move);
+      uo_square square_to = uo_move_square_to(move);
+      sprintf(info->message, "move '%c%d%c%d' is not a legal move for fen '%s'",
+        'a' + uo_square_file(square_from), 1 + uo_square_rank(square_from),
+        'a' + uo_square_file(square_to), 1 + uo_square_rank(square_to),
+        info->fen);
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool uo_test__go(uo_test_info *info)
+{
+  if (!test_command_map__go)
+  {
+    test_command_map__go = uo_strmap_create();
+
+    // Register all 'go xxxx' test commands here
+    uo_strmap_add(test_command_map__go, "perft", uo_test__go_perft);
+
+  }
+
+  char *command_str = buf;
+  if (sscanf(info->ptr, "go %s", command_str) != 1)
+  {
+    sprintf(info->message, "Unknown command '%s'", info->ptr);
     return false;
   }
 
-  uo_file_mmap_close(file_mmap);
+  uo_test_command test_command = uo_strmap_get(test_command_map__go, command_str);
 
-  if (passed)
+  if (!test_command)
   {
-    printf("TEST 'tb_probe' PASSED: total of %zd positions tested.", test_count);
+    sprintf(info->message, "Unknown command '%s'", command_str);
+    return false;
   }
 
-  return passed;
+  return test_command(info);
+}
+
+bool uo_test(char *test_data_dir, char *test_name)
+{
+  if (!test_data_dir) return false;
+  if (!test_name) return false;
+
+  if (!test_command_map)
+  {
+    test_command_map = uo_strmap_create();
+
+    // Register all test commands here
+    uo_strmap_add(test_command_map, "wdl", uo_test__wdl);
+    uo_strmap_add(test_command_map, "dtz", uo_test__dtz);
+    uo_strmap_add(test_command_map, "go", uo_test__go);
+    uo_strmap_add(test_command_map, "move_order", uo_test__move_order);
+
+  }
+
+  void *allocated_mem[3];
+  size_t allocated_mem_count = 0;
+
+  uo_test_info info = {
+  .passed = true,
+  .test_count = 0
+  };
+
+  char *filepath = uo_aprintf("%s/%s.txt", test_data_dir, test_name);
+  allocated_mem[allocated_mem_count++] = filepath;
+
+  info.test_name = uo_aprintf("%s", test_name);
+  allocated_mem[allocated_mem_count++] = info.test_name;
+
+  info.file_mmap = uo_file_mmap_open_read(filepath);
+
+  if (!info.file_mmap)
+  {
+    printf("TEST '%s' FAILED: Cannot open file '%s'\r\n", info.test_name, filepath);
+    uo_file_mmap_close(info.file_mmap);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
+
+  info.ptr = uo_file_mmap_readline(info.file_mmap);
+
+  if (!info.ptr)
+  {
+    printf("TEST '%s' FAILED: Error while reading test data.\r\n", info.test_name);
+    uo_file_mmap_close(info.file_mmap);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
+
+  while (info.ptr)
+  {
+    if (strlen(info.ptr) == 0)
+    {
+      // Empty lines are skipped
+      info.ptr = uo_file_mmap_readline(info.file_mmap);
+      continue;
+    }
+
+    if (info.ptr[0] == '#')
+    {
+      // Comment lines start with '#'
+      info.ptr = uo_file_mmap_readline(info.file_mmap);
+      continue;
+    }
+
+    if (sscanf(info.ptr, "position fen %s", buf) == 1)
+    {
+      info.ptr += sizeof("position fen ") - 1;
+      if (!uo_position_from_fen(&info.position, info.ptr))
+      {
+        printf("TEST '%s' FAILED: Error while parsing fen '%s'\r\n", info.test_name, info.fen);
+        uo_file_mmap_close(info.file_mmap);
+        while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+        return false;
+      }
+
+      uo_position_print_fen(&info.position, info.fen);
+      assert(strcmp(info.ptr, info.fen) == 0);
+
+      info.ptr = uo_file_mmap_readline(info.file_mmap);
+      continue;
+    }
+
+    char *command_str = buf;
+
+    if (sscanf(info.ptr, "%s", command_str) != 1)
+    {
+      printf("TEST '%s' FAILED: Error while parsing command '%s'\r\n", info.test_name, info.ptr);
+      uo_file_mmap_close(info.file_mmap);
+      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+      return false;
+    }
+
+    uo_test_command test_command = uo_strmap_get(test_command_map, command_str);
+
+    if (!test_command)
+    {
+      printf("TEST '%s' FAILED: Unknown command '%s'\r\n", info.test_name, command_str);
+      uo_file_mmap_close(info.file_mmap);
+      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+      return false;
+    }
+
+    info.passed = test_command(&info);
+
+    if (!info.passed)
+    {
+      if (*info.message)
+      {
+        printf("TEST '%s' FAILED: %s\r\n", info.test_name, info.message);
+      }
+      else
+      {
+        printf("TEST '%s' FAILED.\r\n", info.test_name);
+      }
+
+      uo_file_mmap_close(info.file_mmap);
+      while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+      return false;
+    }
+
+    ++info.test_count;
+    info.ptr = uo_file_mmap_readline(info.file_mmap);
+  }
+
+  printf("TEST '%s' PASSED: Total of %zd test cases passed.\r\n", info.test_name, info.test_count);
+
+  uo_file_mmap_close(info.file_mmap);
+  while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+  return true;
 }

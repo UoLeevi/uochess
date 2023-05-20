@@ -1,4 +1,3 @@
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 go perft 1
 a2a3: 1
@@ -22,7 +21,6 @@ b1c3: 1
 g1f3: 1
 g1h3: 1
 
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 go perft 2
 a2a3: 20
@@ -46,7 +44,6 @@ b1c3: 20
 g1f3: 20
 g1h3: 20
 
-ucinewgame
 position fen rnbqkbnr/ppppppp1/7p/8/3P4/8/PPPQPPPP/RNB1KBNR b KQkq - 1 2
 go perft 1
 h6h5: 1
@@ -69,7 +66,6 @@ b8c6: 1
 g8f6: 1
 h8h7: 1
 
-ucinewgame
 position fen rnbqkbnr/ppppppp1/7p/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2
 go perft 2
 a2a3: 19
@@ -182,7 +178,6 @@ d8e7: 20
 d8c8: 20
 d8e8: 20
 
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 go perft 3
 a2a3: 380
@@ -206,7 +201,6 @@ b1c3: 440
 g1f3: 440
 g1h3: 400
 
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1
 go perft 3
 a7a6: 529
@@ -273,7 +267,6 @@ d8e7: 19
 d8c8: 19
 d8e8: 19
 
-ucinewgame
 position fen 3k4/r1p2p1r/1pp1p2p/2b5/p1P4P/P4R2/1P2q1QK/8 w - - 0 27
 go perft 3
 b2b3: 812
@@ -297,7 +290,6 @@ h2h1: 954
 g2e2: 692
 g2f2: 721
 
-ucinewgame
 position fen rnb2bnr/pppp1ppp/3k1q2/4pP2/3P4/8/PPP1PKPP/RNBQ1BNR w - - 1 5
 go perft 2
 a2a3: 28
@@ -332,7 +324,6 @@ f2e3: 28
 f2f3: 28
 f2g3: 28
 
-ucinewgame
 position fen rnb2bnr/ppppkppp/5q2/4pP2/3P4/8/PPP1PKPP/RNBQ1BNR b q - 0 4
 go perft 3
 e5e4: 854
@@ -366,7 +357,6 @@ e7d6: 834
 e7e8: 1140
 e7d8: 1101
 
-ucinewgame
 position fen rnb2bnr/ppppkppp/5q2/4pP2/8/8/PPPPPKPP/RNBQ1BNR w Q - 3 4
 go perft 4
 a2a3: 17815
@@ -796,7 +786,6 @@ e7f8: 888
 e1f2: 910
 e1d2: 1017
 
-ucinewgame
 position fen 3k4/r1p2p1r/1pp1p2p/p1b5/2P4P/P4R2/1P2q1QK/8 b - - 0 26
 go perft 5
 a5a4: 534050
@@ -838,7 +827,6 @@ d8e7: 582579
 d8c8: 644396
 d8e8: 633698
 
-ucinewgame
 position fen rnbqkbnr/ppp1ppp1/3p4/7p/7P/3P4/PPPKPPP1/RNBQ1BNR b kq - 1 3
 go perft 5
 d6d5: 465922
@@ -869,7 +857,6 @@ h8h7: 424371
 d8d7: 481532
 e8d7: 319583
 
-ucinewgame
 position fen rnbqkbnr/1ppppppp/8/p7/1P6/8/P1PPPPPP/RNBQKBNR w KQkq - 0 2
 go perft 2
 a2a3: 22
@@ -895,7 +882,6 @@ g1h3: 22
 c1b2: 22
 c1a3: 22
 
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1
 go perft 3
 a7a6: 399
@@ -919,7 +905,6 @@ b8c6: 461
 g8f6: 461
 g8h6: 419
 
-ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/2N5/PPP1BPPP/R1BQK2R w KQkq d6 0 8
 go perft 2
 a2a3: 39
@@ -966,7 +951,6 @@ e1f1: 39
 e1d2: 39
 e1g1: 39
 
-ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3NP3/3N4/8/PPP1BPPP/R1BQK2R b KQkq - 0 8
 go perft 2
 a6a5: 47
@@ -1009,7 +993,6 @@ c7d8: 47
 e8d7: 47
 e8d8: 47
 
-ucinewgame
 position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 go perft 4
 a2a3: 8457
@@ -1033,7 +1016,6 @@ b1c3: 9755
 g1f3: 9748
 g1h3: 8881
 
-ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3NP3/3N4/8/PPP1BPPP/R1BQK2R b KQkq - 0 8
 go perft 3
 a6a5: 1689
@@ -1076,7 +1058,6 @@ c7d8: 1738
 e8d7: 1598
 e8d8: 1623
 
-ucinewgame
 position fen r1b1k1nr/1pq2ppp/p1n1p3/3pP3/1b1N4/P1N5/1PP1BPPP/R1BQK2R w KQkq - 0 10
 go perft 2
 b2b3: 41
@@ -1117,7 +1098,6 @@ a1b1: 41
 a1a2: 41
 h1f1: 41
 
-ucinewgame
 position fen r1b1kbnr/1pq3pp/p1n1pP2/3p1p2/3N4/P1N5/1PP1BPPP/R1BQK2R b KQkq - 0 11
 go perft 1
 f5f4: 1
@@ -1165,7 +1145,6 @@ e8d7: 1
 e8d8: 1
 e8f7: 1
 
-ucinewgame
 position fen r1b1kbnr/1pq3pp/p1n1p3/3pPp2/3N4/P1N5/1PP1BPPP/R1BQK2R w KQkq f6 0 10
 go perft 2
 b2b3: 40
@@ -1213,7 +1192,6 @@ e1f1: 40
 e1d2: 40
 e1g1: 40
 
-ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/P1N5/1PP1BPPP/R1BQK2R b KQkq - 0 9
 go perft 3
 a6a5: 1617
@@ -1256,7 +1234,6 @@ e8d7: 1536
 e8e7: 1232
 e8d8: 1500
 
-ucinewgame
 position fen r1b1kbnr/1pq2ppp/p1n1p3/3pP3/3N4/2N5/PPP1BPPP/R1BQK2R w KQkq d6 0 8
 go perft 4
 a2a3: 61567
@@ -1303,7 +1280,6 @@ e1f1: 57881
 e1d2: 56066
 e1g1: 56408
 
-ucinewgame
 position fen r1b1kbnr/1pqp1ppp/p1n1p3/4P3/3N4/2N5/PPP1BPPP/R1BQK2R b KQkq - 0 7
 go perft 4
 a6a5: 63597
@@ -1344,7 +1320,6 @@ c7d8: 63737
 e8e7: 48611
 e8d8: 57722
 
-ucinewgame
 position fen r1b2bnr/1pqQkppp/p1n1p3/8/4P3/1NN5/PPP1BPPP/R1B1K2R b kq - 0 8
 go perft 1
 c8d7: 1
@@ -1352,7 +1327,6 @@ c7d7: 1
 e7d7: 1
 e7f6: 1
 
-ucinewgame
 position fen r1b2bnr/1pqpkppp/p1n1p3/8/4P3/1NN5/PPP1BPPP/R1BQK2R w KQ - 4 8
 go perft 2
 a2a3: 35
@@ -1398,7 +1372,6 @@ e1f1: 35
 e1d2: 36
 e1g1: 35
 
-ucinewgame
 position fen r1b1kbnr/1pqp1ppp/p1n1p3/8/4P3/1NN5/PPP1BPPP/R1BQK2R b KQkq - 3 7
 go perft 3
 a6a5: 1613
@@ -1443,7 +1416,6 @@ c7d8: 1503
 e8e7: 1338
 e8d8: 1545
 
-ucinewgame
 position fen r1b1kbnr/1pqp1ppp/p1n1p3/8/3NP3/2N5/PPP1BPPP/R1BQK2R w KQkq - 2 7
 go perft 4
 a2a3: 68996
@@ -1489,13 +1461,11 @@ e1f1: 64471
 e1d2: 60723
 e1g1: 61223
 
-ucinewgame
 position fen r3k2Q/2qnbp1p/b1p1p1p1/p2p2P1/N3P3/P3BP2/1PP1B2P/2KR3R b q - 0 20
 go perft 1
 d7f8: 1
 e7f8: 1
 
-ucinewgame
 position fen r3k2r/2qnbp1p/b1p1p1p1/p2p2P1/N3P3/P1Q1BP2/1PP1B2P/2KR3R w kq - 0 19
 go perft 2
 b2b3: 49
@@ -1547,7 +1517,6 @@ c3h8: 2
 c1b1: 49
 c1d2: 49
 
-ucinewgame
 position fen 2kr3r/2qnbppp/b1Q1p3/p2p2P1/N3P3/P3BP2/1PP1B2P/2KR3R b - - 0 19
 go perft 1
 d5d4: 1
@@ -1585,7 +1554,6 @@ h8g8: 1
 c8b8: 1
 c7c6: 1
 
-ucinewgame
 position fen 2kr3r/2qnbppp/b1p1p3/p2p2P1/N3P3/P1Q1BP2/1PP1B2P/2KR3R w - - 4 19
 go perft 2
 b2b3: 44
@@ -1637,7 +1605,6 @@ c3g7: 43
 c1b1: 44
 c1d2: 44
 
-ucinewgame
 position fen r3k2r/2qnbppp/b1p1p3/p2p2P1/N3P3/P1Q1BP2/1PP1B2P/2KR3R b kq - 3 18
 go perft 3
 d5d4: 1985
@@ -1691,7 +1658,6 @@ e8f8: 2122
 e8g8: 2224
 e8c8: 1984
 
-ucinewgame
 position fen r3k2r/2qnbppp/b1p1p3/p2p2P1/N3P3/P3BP2/1PPQB2P/2KR3R w kq - 3 17
 go perft 4
 b2b3: 90621
@@ -1734,7 +1700,6 @@ d2a5: 112571
 d2d5: 110446
 c1b1: 99583
 
-ucinewgame
 position fen rnb1kbnr/pppp1ppp/5q2/4pP2/8/8/PPPPPKPP/RNBQ1BNR b KQ - 2 3
 go perft 2
 e5e4: 21
@@ -1774,7 +1739,6 @@ f6d8: 24
 e8e7: 23
 e8d8: 23
 
-ucinewgame
 position fen rnb1kbnr/pppp1ppp/5q2/4pP2/8/8/PPPPP1PP/RNBQKBNR w KQkq - 1 3
 go perft 3
 a2a3: 641
@@ -1797,7 +1761,6 @@ g1f3: 814
 g1h3: 708
 e1f2: 755
 
-ucinewgame
 position fen rnbqkbnr/pppp1ppp/8/4pP2/8/8/PPPPP1PP/RNBQKBNR b KQkq - 0 2
 go perft 4
 e5e4: 11139
@@ -1830,7 +1793,6 @@ d8f6: 14544
 d8e7: 12075
 e8e7: 9603
 
-ucinewgame
 position fen rnbqkbnr/pppp1ppp/8/4p3/5P2/8/PPPPP1PP/RNBQKBNR w KQkq - 0 2
 go perft 5
 a2a3: 399908
@@ -1855,7 +1817,6 @@ g1f3: 579576
 g1h3: 429456
 e1f2: 547090
 
-ucinewgame
 position fen rnb1kbnr/pppp1ppp/5q2/4pP2/8/8/PPPPPKPP/RNBQ1BNR b KQ - 2 3
 go perft 5
 e5e4: 643390
@@ -1895,7 +1856,6 @@ f6d8: 484924
 e8e7: 460539
 e8d8: 631548
 
-ucinewgame
 position fen rnb1kbnr/ppp1ppp1/5q1p/3p1P2/8/7K/PPPPP1PP/RNBQ1BNR b - - 1 5
 go perft 4
 d5d4: 9754
@@ -1933,7 +1893,6 @@ f6g6: 10261
 e8d7: 11454
 e8d8: 11734
 
-ucinewgame
 position fen 8/1Pk2P2/P2b4/2p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 b - - 0 1
 go perft 2
 f3f2: 40
@@ -1969,7 +1928,6 @@ c7d8: 41
 c7d7: 41
 c7b8: 37
 
-ucinewgame
 position fen 8/1Pk2P2/3b4/P1p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 w - - 0 1
 go perft 2
 a5a6: 32
@@ -2013,7 +1971,6 @@ e1b4: 27
 a4a3: 32
 a4b5: 31
 
-ucinewgame
 position fen 8/1Pk2P2/3b4/P1p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 w - - 0 1
 go perft 3
 a5a6: 1253
@@ -2057,7 +2014,6 @@ e1b4: 1142
 a4a3: 1107
 a4b5: 1037
 
-ucinewgame
 position fen 8/1Pk2P2/3b4/P1p3P1/Kn4P1/4BpNp/1r4pq/RR2Q3 w - - 0 1
 go perft 4
 a5a6: 39312
@@ -2101,7 +2057,6 @@ e1b4: 29886
 a4a3: 35057
 a4b5: 31837
 
-ucinewgame
 position fen 4rB2/R3qP1Q/5PP1/4P3/2P1p1RP/1p1Bp3/5Np1/1K2k3 w - - 0 1
 go perft 3
 c4c5: 1213
@@ -2149,7 +2104,6 @@ b1a1: 1062
 b1c1: 1126
 b1b2: 1204
 
-ucinewgame
 position fen 4rB2/R3qP1Q/5PP1/4P3/2P1p1RP/1p1Bp3/5Np1/1K2k3 w - - 0 1
 go perft 4
 c4c5: 35204
@@ -2197,7 +2151,6 @@ b1a1: 31731
 b1c1: 33025
 b1b2: 34500
 
-ucinewgame
 position fen k5r1/P1pP3p/N1pbP3/R1P2p2/4P1Q1/2r5/p5BR/4K3 w - - 0 1
 go perft 4
 e4e5: 45682
@@ -2244,7 +2197,6 @@ e1d2: 49565
 e1e2: 49750
 e1f2: 48537
 
-ucinewgame
 position fen 5N2/n2RP2N/7P/P1bP2pP/1Rq1ppp1/r2pr1p1/B2nP1P1/1bk3K1 w - - 0 1
 go perft 4
 a5a6: 28402
@@ -2277,7 +2229,6 @@ d7c7: 27766
 d7d8: 29732
 g1h1: 30388
 
-ucinewgame
 position fen rnbqkbnr/1p1pp3/p7/2pP1ppp/1K6/8/PPP1PPPP/RNBQ1BNR w kq c6 0 6
 go perft 4
 b4a3: 13974
@@ -2288,13 +2239,11 @@ b4c4: 14941
 d5c6: 17100
 b4c5: 10267
 
-ucinewgame
 position fen rnbqkbnr/1p1p4/p7/2KPpppp/8/8/PPP1PPPP/RNBQ1BNR w kq - 0 7
 go perft 4
 c5c4: 24273
 d5d6: 14932
 
-ucinewgame
 position fen 5kN1/Qp1q4/RP2P1b1/1pP2p2/1B1Pn1Pn/2p2BpK/2pbP1P1/3N3R w - - 0 1
 go perft 4
 e2e3: 39799
@@ -2329,7 +2278,6 @@ a7a8: 5658
 a7b8: 6575
 h3h4: 43397
 
-ucinewgame
 position fen 7B/2P1PpPp/k1pP3P/pR1R1K1n/2N1P3/8/rppPp2P/1q3bNr w - - 0 1
 go perft 4
 d2d3: 30049
@@ -2375,7 +2323,6 @@ f5g5: 34833
 f5g4: 35066
 f5e5: 31295
 
-ucinewgame
 position fen Br1qR3/PpPN2pR/1p3pb1/P2p2p1/n4P2/kP2P1P1/2p1K2Q/3n3r w - - 0 1
 go perft 4
 b3b4: 68820
@@ -2434,7 +2381,6 @@ h2h6: 80762
 e2f3: 80984
 e2d2: 78812
 
-ucinewgame
 position fen b4BQN/P4Pp1/2N2nrP/qp1R2p1/2RP3p/1K2PB1P/p2Pr1pk/8 w - - 0 1
 go perft 4
 d2d3: 59914
@@ -2478,7 +2424,6 @@ g8h7: 56751
 b3c2: 58666
 b3b2: 57089
 
-ucinewgame
 position fen 2BNb2b/3R4/1K4k1/pP1pp1pp/2pNPB2/1PPPP2R/1Pr3P1/2q4n w - - 0 1
 go perft 4
 g2g3: 41369
@@ -2526,7 +2471,6 @@ b6a7: 41820
 b6b7: 39842
 b6c7: 39791
 
-ucinewgame
 position fen Br6/pR6/b1P1N1pP/1PN5/n1QP2rp/2pRpqP1/1pKPp2p/6k1 w - - 0 1
 go perft 4
 d4d5: 102506
@@ -2568,7 +2512,6 @@ c4d5: 97623
 c2b1: 78994
 c2b3: 95419
 
-ucinewgame
 position fen r5B1/1b1pP1kp/1p1B4/1K4PP/2ppNpr1/PR1Rn2n/1p1b4/1N1qQ3 w - - 0 1
 go perft 4
 a3a4: 86948
@@ -2616,7 +2559,6 @@ e1g3: 89877
 e1h4: 83989
 b5b6: 93997
 
-ucinewgame
 position fen 3b2N1/1bn1p3/1PQ1rpP1/3P1PkP/1BNpp1p1/1ppB2K1/PP4p1/3q4 w - - 0 1
 go perft 4
 a2a3: 35602
@@ -2662,7 +2604,6 @@ g3f2: 41005
 g3g2: 37621
 g3h2: 48975
 
-ucinewgame
 position fen RQ2K3/1r1Pb2B/PR2P1p1/p6p/pP1P4/1P1p1np1/NP1p3N/r2q3k w - - 0 1
 go perft 4
 b4b5: 50341
@@ -2745,7 +2686,6 @@ d4b6: 1905
 d4a7: 19774
 h4h3: 23619
 
-ucinewgame
 position fen K5R1/Pp1q4/p2k1PPn/n5Br/2b3PP/p2Bb2N/1rppQ1Pp/5R2 w - - 0 1
 go perft 1
 g2g3: 1
@@ -2788,7 +2728,6 @@ e2e3: 1
 e2f3: 1
 a8b8: 1
 
-ucinewgame
 position fen 2k3n1/1r1pp1bN/2BP2Q1/1P5P/PB2rPq1/PP2p1pp/2p2R2/2KR3b w - - 0 1
 go perft 1
 a4a5: 1
@@ -2835,7 +2774,6 @@ g6g7: 1
 g6e8: 1
 c1c2: 1
 
-ucinewgame
 position fen 2k3n1/1r1pp1bN/2BP2Q1/1P5P/PB2rPq1/PP2p1pp/2p2R2/2KR3b w - - 0 1
 go perft 1
 a4a5: 1
@@ -2882,7 +2820,6 @@ g6g7: 1
 g6e8: 1
 c1c2: 1
 
-ucinewgame
 position fen 3K4/2rN2QP/Bnb1Q1pp/1Pq1n1BR/1NP3Pp/P1bp1Rpp/1k1P2P1/1q6 w - - 0 1
 go perft 1
 a3a4: 1
@@ -2947,7 +2884,6 @@ g7h8: 1
 d8c7: 1
 d8e8: 1
 
-ucinewgame
 position fen nk1q3b/7p/1p1p2Qp/PRQp1P1p/1RqB2PP/pPP1KP1r/2B1pn2/5b2 w - - 0 1
 go perft 1
 e3f4: 1
@@ -2989,7 +2925,6 @@ g6g8: 1
 e3d2: 1
 e3f2: 1
 
-ucinewgame
 position fen 1bK5/2B2r1P/Ppq3B1/pQ2p1PP/PP1pPrp1/3PNk2/1p2R1p1/1nqQ3n w - - 0 1
 go perft 1
 h5h6: 1
@@ -3032,7 +2967,6 @@ b5a5: 1
 b5c5: 1
 b5d5: 1
 
-ucinewgame
 position fen 4B3/pQ1P4/1p2PprB/nPpKpRP1/Q1rb2n1/3p1P1b/PP1pNP1p/7k w - - 0 1
 go perft 1
 a2a3: 1
@@ -3077,7 +3011,6 @@ b7c8: 1
 d5d6: 1
 d5e4: 1
 
-ucinewgame
 position fen 2N3q1/2PpbP1p/3r1n1P/1pNR2QP/p2p1BPP/Pr3kq1/KQp1p2R/n7 w - - 0 1
 go perft 1
 f7g8q: 1
@@ -3130,7 +3063,6 @@ g5g7: 1
 g5g8: 1
 a2a1: 1
 
-ucinewgame
 position fen 1b3Bq1/P1npp1q1/p1pk2Np/Q2P3B/r1rp2P1/2PP2pP/1N1R1nP1/2K4b w - - 0 1
 go perft 1
 h3h4: 1
@@ -3169,7 +3101,6 @@ a5b6: 1
 a5c7: 1
 c1b1: 1
 
-ucinewgame
 position fen 8/p1Qr4/1PKp1k2/QPp3p1/2pNB1P1/rP2npBq/PP1PbpRq/b6n w - - 0 1
 go perft 1
 d2d3: 1
@@ -3217,7 +3148,6 @@ c7d8: 1
 c6d7: 1
 c6b7: 1
 
-ucinewgame
 position fen 2N1qQ2/2kbB1R1/Prnn1p1p/PPP3Q1/5p1p/N1PK4/PpPp1bB1/R1r5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -3266,7 +3196,6 @@ f8h8: 1
 d3d2: 1
 d3e2: 1
 
-ucinewgame
 position fen 2k1b1q1/K4B1P/1P4Q1/PPP5/1Q1pppRp/1p1nPN1p/1bPp1Brp/q5r1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -3330,7 +3259,6 @@ g6g8: 1
 a7a6: 1
 a7a8: 1
 
-ucinewgame
 position fen 1q1BQ1b1/1pPNR1Pr/2ppp2P/pn3R1P/3p4/1P1K1pN1/3b2pP/kB1nr3 w - - 0 1
 go perft 1
 h2h3: 1
@@ -3376,7 +3304,6 @@ d3c2: 1
 d3d2: 1
 d3c4: 1
 
-ucinewgame
 position fen K3b3/4PPQp/p1PpQ1n1/pPr1Pr1p/p1qkP3/3q1Pp1/1n1NBP1B/6R1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -3430,7 +3357,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 8/P2nPr1p/q1qQ4/pk1pP1pP/2pp1BR1/2pQ2N1/BPP2Rr1/1NK2bb1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -3493,7 +3419,6 @@ d6d7: 1
 d6b8: 1
 c1d1: 1
 
-ucinewgame
 position fen 6r1/5p1r/1KQP1QpP/B1pq1Pp1/b1R3B1/pP3PqP/1NPppnkb/1R6 w - - 0 1
 go perft 1
 c2c3: 1
@@ -3550,7 +3475,6 @@ b6b7: 1
 b6a6: 1
 b6a7: 1
 
-ucinewgame
 position fen 1RRr2B1/P1B5/2npPr2/4p3/pQnNKP1b/1PQp2k1/PqbPppP1/6q1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -3595,7 +3519,6 @@ b4d6: 1
 b4b7: 1
 e4d5: 1
 
-ucinewgame
 position fen 2R5/PPr1n1pk/8/2P2p1P/PpQP1Kpp/npr2b1N/pQ1P1p1B/b2q1B2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -3650,7 +3573,6 @@ c4g8: 1
 f4g5: 1
 f4e5: 1
 
-ucinewgame
 position fen 1nb1nb2/1P2B1p1/pp1Pp3/3q1Pqk/2PQPp2/2rpN3/BKQP1NP1/1R4R1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -3709,7 +3631,6 @@ b2a1: 1
 b2c1: 1
 b2c3: 1
 
-ucinewgame
 position fen 1Nrn3q/1p5P/P2K4/pN1np2p/3Pk1pb/1BRp2rP/PP1Q1p1R/3Q2Bb w - - 0 1
 go perft 1
 a2a3: 1
@@ -3760,7 +3681,6 @@ d2g5: 1
 d2h6: 1
 d6d7: 1
 
-ucinewgame
 position fen 2QN4/1PQRPpnp/1q1Bp1PP/3p4/1bNP3P/2PKPpp1/bq4r1/3B2kn w - - 0 1
 go perft 1
 e3e4: 1
@@ -3803,7 +3723,6 @@ c7b8: 1
 c8a8: 1
 c8b8: 1
 
-ucinewgame
 position fen 5r2/R5Qp/1K2k2p/2p1PN2/ppqP1PPR/3B1b2/Q3p1p1/b7 w - - 0 1
 go perft 1
 d4d5: 1
@@ -3859,7 +3778,6 @@ g7h8: 1
 b6a5: 1
 b6c7: 1
 
-ucinewgame
 position fen 4b2K/1p1r1P2/1P1k3P/b1Nq2rP/N2p4/np5B/1n4P1/Q5BR w - - 0 1
 go perft 1
 g2g3: 1
@@ -3901,7 +3819,6 @@ a1b2: 1
 a1a3: 1
 h8h7: 1
 
-ucinewgame
 position fen b3q3/5P1R/8/k2p1R1r/2p1ppP1/nBrPP1P1/4KQP1/2q2N2 w - - 0 1
 go perft 1
 d3d4: 1
@@ -3941,7 +3858,6 @@ f2g1: 1
 f2f3: 1
 f2f4: 1
 
-ucinewgame
 position fen 3KB3/2N1Pp2/P1Pnr3/k1p5/2P1Pp1R/3P1QP1/3pq1b1/6Rr w - - 0 1
 go perft 1
 d3d4: 1
@@ -3982,7 +3898,6 @@ f3g4: 1
 f3h5: 1
 d8d7: 1
 
-ucinewgame
 position fen 7q/1rPk3n/N5p1/3r1Pp1/1P2Pn2/2PP1pB1/p2p4/3qN1KB w - - 0 1
 go perft 1
 c3c4: 1
@@ -4008,7 +3923,6 @@ g3h2: 1
 g3f4: 1
 g3h4: 1
 
-ucinewgame
 position fen r6b/1P2P3/b1q1nPp1/pQ5P/3B4/P1P3k1/pNpK2pR/2Q5 w - - 0 1
 go perft 1
 a3a4: 1
@@ -4073,7 +3987,6 @@ d2c2: 1
 d2e2: 1
 d2d3: 1
 
-ucinewgame
 position fen 1rrB4/k1pq4/4pR2/1pp2R2/1bn1p1P1/N3P1P1/P1P1P1Q1/7K w - - 0 1
 go perft 1
 c2c3: 1
@@ -4107,7 +4020,6 @@ g2e4: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen B3nB1n/1Rpb1p1P/4pb1P/K5p1/3P3q/P3p3/p5qQ/3r1k2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -4139,7 +4051,6 @@ h2c7: 1
 a5a6: 1
 a5b4: 1
 
-ucinewgame
 position fen 7r/1pp2bN1/n2p4/1k2pq2/pp3N1p/B5q1/2PRK1pP/1B5Q w - - 0 1
 go perft 1
 c2c3: 1
@@ -4174,7 +4085,6 @@ h1g1: 1
 h1g2: 1
 e2d1: 1
 
-ucinewgame
 position fen R1QN4/1PPq1N1R/2p1b1B1/5Pr1/5ppP/2p4p/pn6/3kn1K1 w - - 0 1
 go perft 1
 h4h5: 1
@@ -4211,7 +4121,6 @@ g1h1: 1
 g1f2: 1
 g1h2: 1
 
-ucinewgame
 position fen 6Rq/3pn3/PPPqN1P1/pN1P4/br2P1R1/4K2n/1QP1p2k/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -4268,7 +4177,6 @@ e3e2: 1
 e3f3: 1
 e3d3: 1
 
-ucinewgame
 position fen 4k1r1/1R2P1n1/2q1PppP/1pb3n1/3p1Q2/PP2qPN1/6bB/3K4 w - - 0 1
 go perft 1
 a3a4: 1
@@ -4302,7 +4210,6 @@ f4c7: 1
 f4b8: 1
 d1c2: 1
 
-ucinewgame
 position fen 2N4r/P2B1KPp/1p2p3/Rqp2P2/2r3P1/1nP1PpP1/2pk4/4b3 w - - 0 1
 go perft 1
 e3e4: 1
@@ -4338,7 +4245,6 @@ f7e6: 1
 f7f6: 1
 f7e7: 1
 
-ucinewgame
 position fen 1n1q4/3b1p2/1p1bq3/2pPR3/2QRr1Pp/2K5/Q1BN2PB/5n1k w - - 0 1
 go perft 1
 g2g3: 1
@@ -4388,7 +4294,6 @@ c3b2: 1
 c3b3: 1
 c3d3: 1
 
-ucinewgame
 position fen 7n/BpnpKp2/q7/PR4p1/rPP3kP/3P3N/3b2P1/5bNr w - - 0 1
 go perft 1
 g2g3: 1
@@ -4418,7 +4323,6 @@ e7f8: 1
 e7d8: 1
 e7d7: 1
 
-ucinewgame
 position fen 4bb2/1p5k/2Pp2r1/1P3n2/1pPPNp2/Rp2p3/3PP1R1/4nQ1K w - - 0 1
 go perft 1
 d2d3: 1
@@ -4458,7 +4362,6 @@ f1f4: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen 1n5K/P7/Qp5p/1qb1p1Pk/P1PN4/2R4p/P3qP2/BQ2Rr2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -4520,7 +4423,6 @@ h8g7: 1
 h8h7: 1
 h8g8: 1
 
-ucinewgame
 position fen k7/2B2p1K/2pNP3/PR2n2P/1pp2QbQ/3P2PB/2N1r1r1/1R6 w - - 0 1
 go perft 1
 d3d4: 1
@@ -4590,7 +4492,6 @@ h7h6: 1
 h7g7: 1
 h7g8: 1
 
-ucinewgame
 position fen 1kN5/8/1B6/P1Q1PR2/2KnP1P1/pBnP1ppp/1p2p2r/1b3r2 w - - 0 1
 go perft 1
 g4g5: 1
@@ -4627,7 +4528,6 @@ c4c3: 1
 c4b4: 1
 c4d4: 1
 
-ucinewgame
 position fen k3n2b/3P3r/NP3Q2/PpK3Q1/5q1q/p1p1R1P1/1P2n1PP/3b4 w - - 0 1
 go perft 1
 b2b3: 1
@@ -4690,7 +4590,6 @@ c5c6: 1
 c5d5: 1
 c5b5: 1
 
-ucinewgame
 position fen 1r5R/Q4B1q/p3p2R/1Q1P1b2/1PK5/1PPP2n1/p1k1nppB/8 w - - 0 1
 go perft 1
 d3d4: 1
@@ -4741,7 +4640,6 @@ a7a8: 1
 a7b8: 1
 c4c5: 1
 
-ucinewgame
 position fen N2Q4/3P3p/2p2P2/3R1P2/k3pbK1/1r1P1np1/pp1p2P1/q4b1q w - - 0 1
 go perft 1
 d3d4: 1
@@ -4768,7 +4666,6 @@ d8g8: 1
 d8h8: 1
 g4f4: 1
 
-ucinewgame
 position fen NR2n3/P1B1nR2/2p1KPp1/2N3P1/P1p5/Q1p1k2p/2rpb3/4r3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -4813,7 +4710,6 @@ e6e7: 1
 e6e5: 1
 e6d7: 1
 
-ucinewgame
 position fen 6n1/Qp6/PpPqp3/1bPP2Pp/3n4/P2k4/PR1P1pKp/1r6 w - - 0 1
 go perft 1
 a3a4: 1
@@ -4836,7 +4732,6 @@ a7b8: 1
 g2h3: 1
 g2f2: 1
 
-ucinewgame
 position fen r3qn2/2NP1P2/8/R5p1/Bkp4P/2b1Pp1p/P1PP1p1K/1qQ5 w - - 0 1
 go perft 1
 a2a3: 1
@@ -4888,7 +4783,6 @@ h2h3: 1
 h2h1: 1
 h2g3: 1
 
-ucinewgame
 position fen 4n1B1/2Pp2b1/K1p5/1P2P1RP/p2Q3Q/2q1Pr2/pp3N2/Bk4q1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -4948,7 +4842,6 @@ a6b7: 1
 a6b6: 1
 a6a7: 1
 
-ucinewgame
 position fen 4N2r/PBqpP1QP/1q5p/2p2p2/7P/4PnP1/1p2rR2/1k1K3Q w - - 0 1
 go perft 1
 e3e4: 1
@@ -4995,7 +4888,6 @@ g7g8: 1
 g7h8: 1
 d1e2: 1
 
-ucinewgame
 position fen 2Nk2q1/P2n1p1P/1p5n/2P2Qp1/2pB1P2/rq2P1P1/1b2K1br/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -5042,7 +4934,6 @@ e2f2: 1
 e2e1: 1
 e2d2: 1
 
-ucinewgame
 position fen 1K2B1k1/2RN2P1/pPp1q2p/4P3/rPP5/2Q1P3/3p2Pp/4q1BQ w - - 0 1
 go perft 1
 g2g3: 1
@@ -5078,7 +4969,6 @@ b8b7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 2b5/7q/q1P1r2P/1PP1B3/2QPp1B1/pnQrb3/p2N1kp1/3K4 w - - 0 1
 go perft 1
 d4d5: 1
@@ -5116,7 +5006,6 @@ c3a5: 1
 c4b3: 1
 c4d3: 1
 
-ucinewgame
 position fen 2b2R2/n4BN1/q1p1RP1P/k1pPb1p1/3rp3/K1p1p3/2r2p1B/8 w - - 0 1
 go perft 1
 d5d6: 1
@@ -5145,7 +5034,6 @@ f8g8: 1
 f8h8: 1
 a3b3: 1
 
-ucinewgame
 position fen 8/4pp1R/2pq1pk1/rP1P1p1p/bPN2P1p/R6K/5b2/3Q2BN w - - 0 1
 go perft 1
 b5b6: 1
@@ -5195,7 +5083,6 @@ d1h5: 1
 h3g2: 1
 h3h2: 1
 
-ucinewgame
 position fen 3B3r/P2P2pn/2p5/1Nkpp1Pq/b7/pp5Q/3pP1K1/1R2QN2 w - - 0 1
 go perft 1
 e2e3: 1
@@ -5249,7 +5136,6 @@ g2f2: 1
 g2h2: 1
 g2g3: 1
 
-ucinewgame
 position fen 7K/3kB3/1P3Ppp/r1PpP3/2PbR2Q/4NP2/1Pq1P1p1/3n1r2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -5288,7 +5174,6 @@ h8g7: 1
 h8h7: 1
 h8g8: 1
 
-ucinewgame
 position fen 1k4N1/5q2/Q1p4P/2R3KB/Q1PP1N1p/p7/p2BpPP1/1b3qR1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -5342,7 +5227,6 @@ a6c8: 1
 g5g4: 1
 g5h4: 1
 
-ucinewgame
 position fen 2r5/1p2p3/1Bq1R3/p1P2P1k/PN3Q1r/p4P1p/Pb1K3p/1N5q w - - 0 1
 go perft 1
 f5f6: 1
@@ -5387,7 +5271,6 @@ d2d3: 1
 d2e2: 1
 d2c2: 1
 
-ucinewgame
 position fen B1bk4/N7/p1p4P/n1Q1b1Kp/1pp2P1r/P2P2P1/P5p1/B1r5 w - - 0 1
 go perft 1
 a3a4: 1
@@ -5426,7 +5309,6 @@ c5f8: 1
 g5g6: 1
 g5h4: 1
 
-ucinewgame
 position fen 3n1q2/1r1Pn2p/2p2k2/R1p2b1p/2q3p1/1PNBQ1bQ/1P3PK1/8 w - - 0 1
 go perft 1
 f2f3: 1
@@ -5484,7 +5366,6 @@ g2g1: 1
 g2h1: 1
 g2g3: 1
 
-ucinewgame
 position fen 7r/1p1p1RP1/3KPPb1/1N1p4/PB5k/1BP1P3/1p1Pqrp1/2b5 w - - 0 1
 go perft 1
 d2d3: 1
@@ -5524,7 +5405,6 @@ d6e7: 1
 d6c7: 1
 d6d7: 1
 
-ucinewgame
 position fen 1kqB4/N1b1ppR1/2r2P2/2Q1P3/n1P1Np2/K2p1P1b/1n3p2/3Q4 w - - 0 1
 go perft 1
 e5e6: 1
@@ -5577,7 +5457,6 @@ a3a2: 1
 a3b4: 1
 a3b3: 1
 
-ucinewgame
 position fen R5B1/1KQP1rN1/1p2P3/P1B3qP/2kb2pP/n1P4P/1RNP4/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -5640,7 +5519,6 @@ b7a7: 1
 b7b8: 1
 b7c8: 1
 
-ucinewgame
 position fen 4n3/1PpP2Nr/2K4P/1p4b1/p3R1P1/1Q2pN2/Qq1P1qP1/5kB1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -5705,7 +5583,6 @@ c6b5: 1
 c6c5: 1
 c6d5: 1
 
-ucinewgame
 position fen 3q4/Pp4PK/BQ5p/r1p3p1/3P1pkP/Pp5N/4n1pP/RQ6 w - - 0 1
 go perft 1
 a3a4: 1
@@ -5762,7 +5639,6 @@ b6d8: 1
 h7g6: 1
 h7h6: 1
 
-ucinewgame
 position fen 5k2/3PrP2/B5PP/bnN3pq/2N3Pp/6pp/b1KP1P2/4Q1r1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -5810,7 +5686,6 @@ c2c1: 1
 c2d1: 1
 c2b2: 1
 
-ucinewgame
 position fen 5B2/p1Pn2Pq/1k3Pp1/7p/8/Qp2P2B/pRp2KN1/1nbb1N2 w - - 0 1
 go perft 1
 e3e4: 1
@@ -5855,7 +5730,6 @@ f2e1: 1
 f2g1: 1
 f2g3: 1
 
-ucinewgame
 position fen 2B2N2/q3nrP1/PP1pP2R/k4p1N/2K2p2/pP3b2/3b2P1/2Q3n1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -5895,7 +5769,6 @@ c1c3: 1
 c4d4: 1
 c4d3: 1
 
-ucinewgame
 position fen 8/1R1Bp1K1/n2qPp1p/PPpPQPPq/1B3r2/p1r5/n7/3k4 w - - 0 1
 go perft 1
 b5b6: 1
@@ -5927,7 +5800,6 @@ g7g8: 1
 g7f8: 1
 g7h7: 1
 
-ucinewgame
 position fen 7K/4pp1P/p2r1QPp/b3Qb1R/4P3/1qP1npp1/1PRP4/6k1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -5967,7 +5839,6 @@ f6g7: 1
 h8g7: 1
 h8g8: 1
 
-ucinewgame
 position fen n7/BP2Q2P/2Qbp1q1/4p2P/2b1qP2/3BN2K/pP1p2R1/k2r4 w - - 0 1
 go perft 1
 b2b3: 1
@@ -6042,7 +5913,6 @@ e7f8: 1
 h3h2: 1
 h3h4: 1
 
-ucinewgame
 position fen 6k1/5qP1/1pp4n/2R2r2/1Pp3PK/pb1Prp2/1q1P1Q1B/1B5n w - - 0 1
 go perft 1
 d3d4: 1
@@ -6077,7 +5947,6 @@ f2f3: 1
 f2g3: 1
 h4h3: 1
 
-ucinewgame
 position fen 7B/2Pb1nQ1/2n2PPP/p7/P1p2k1K/rR4p1/pp3PBp/6N1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -6116,7 +5985,6 @@ g7f8: 1
 g7g8: 1
 h4h5: 1
 
-ucinewgame
 position fen R3bq2/p2pb3/p6k/R5n1/P1p1B1KP/3rPp2/1Npn4/2QN4 w - - 0 1
 go perft 1
 h4h5: 1
@@ -6151,7 +6019,6 @@ c1c2: 1
 c1d2: 1
 g4g3: 1
 
-ucinewgame
 position fen 1K6/5PP1/r2kP2r/4N2n/4nPq1/bBPp3P/p1NP1Qp1/1R6 w - - 0 1
 go perft 1
 c3c4: 1
@@ -6208,7 +6075,6 @@ f2a7: 1
 b8c8: 1
 b8b7: 1
 
-ucinewgame
 position fen 7r/Np1p2Rp/4k1r1/PPq1P3/P2R1Bp1/3PPb1P/3Kp3/1Q6 w - - 0 1
 go perft 1
 e3e4: 1
@@ -6248,7 +6114,6 @@ b1b3: 1
 b1b4: 1
 d2e1: 1
 
-ucinewgame
 position fen 3nk3/1p4P1/2R2PRK/1P1PNb2/1P1p4/pq3pP1/Q1p1Pb2/3B4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -6291,7 +6156,6 @@ h6g5: 1
 h6h5: 1
 h6h7: 1
 
-ucinewgame
 position fen 8/p2p1Rp1/P1PRr3/B2P2Pn/Q2nN1bP/b2kp3/1p5K/3B4 w - - 0 1
 go perft 1
 g5g6: 1
@@ -6339,7 +6203,6 @@ h2g1: 1
 h2h1: 1
 h2g2: 1
 
-ucinewgame
 position fen 1nR2K2/3k1n1r/3p2P1/3p1P2/NNP1B3/B5pp/q3p1b1/4r1qQ w - - 0 1
 go perft 1
 c4c5: 1
@@ -6378,7 +6241,6 @@ h1h2: 1
 h1h3: 1
 f8g8: 1
 
-ucinewgame
 position fen q7/1p3np1/p1P1prPQ/1p1k2PN/P5R1/6PP/1R1p2N1/1KQ5 w - - 0 1
 go perft 1
 h3h4: 1
@@ -6424,7 +6286,6 @@ b1a1: 1
 b1a2: 1
 b1c2: 1
 
-ucinewgame
 position fen 1R1r3Q/bKp4P/2Pp4/1QPk4/2rp1RBP/3NpP2/b3P3/3n4 w - - 0 1
 go perft 1
 h4h5: 1
@@ -6472,7 +6333,6 @@ b7a8: 1
 b7a7: 1
 b7c7: 1
 
-ucinewgame
 position fen 3q3r/PN2r3/1pq1p2P/1pPR4/PKP4Q/3p1Qn1/3P1n1p/4k3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -6527,7 +6387,6 @@ b4a3: 1
 b4b3: 1
 b4c3: 1
 
-ucinewgame
 position fen 4Bn1b/8/1NPq1n2/1K1pkp1b/1P1pP3/Q1PP1p2/4p2p/4r1q1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -6559,7 +6418,6 @@ b5a4: 1
 b5a6: 1
 b5a5: 1
 
-ucinewgame
 position fen 6N1/Pp1BQP1N/1R4pq/2K5/p1npPP1P/BP3kb1/2P1b3/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -6616,7 +6474,6 @@ c5d5: 1
 c5d4: 1
 c5b5: 1
 
-ucinewgame
 position fen qB6/R3P3/pK6/n2r1q1p/8/2Q4Q/3p4/4r1k1 w - - 0 1
 go perft 1
 e7e8q: 1
@@ -6672,7 +6529,6 @@ h3h5: 1
 b6c7: 1
 b6a6: 1
 
-ucinewgame
 position fen 5K2/Pp6/1P6/1Ppkb2q/1P6/3pp3/3P3p/7r w - - 0 1
 go perft 1
 a7a8q: 1
@@ -6684,7 +6540,6 @@ b4c5: 1
 f8e7: 1
 f8g8: 1
 
-ucinewgame
 position fen 8/4Q3/ppk2B2/n2N3P/3R3n/q7/3KP2P/7r w - - 0 1
 go perft 1
 e2e3: 1
@@ -6730,7 +6585,6 @@ e7e8: 1
 e7f8: 1
 d2c2: 1
 
-ucinewgame
 position fen r3B3/P6P/1k6/pp2r3/8/Pp1K3Q/4Pp2/6q1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -6765,7 +6619,6 @@ d3d4: 1
 d3d2: 1
 d3c3: 1
 
-ucinewgame
 position fen 3RK3/1b1r3P/N7/p2p1P2/2qP4/6k1/7q/1B2b3 w - - 0 1
 go perft 1
 f5f6: 1
@@ -6788,7 +6641,6 @@ d8c8: 1
 e8d7: 1
 e8f8: 1
 
-ucinewgame
 position fen 4r3/4Np1K/1p1p3n/5P2/7p/2p2b1k/2P5/4rq2 w - - 0 1
 go perft 1
 f5f6: 1
@@ -6800,7 +6652,6 @@ e7g8: 1
 h7g7: 1
 h7h6: 1
 
-ucinewgame
 position fen 5K2/P4B2/q1p5/8/rPPPp2p/2k5/b2p4/4B3 w - - 0 1
 go perft 1
 b4b5: 1
@@ -6825,7 +6676,6 @@ f8g7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 2B2b2/2P1pk1p/N7/2N4P/2p5/2q2q2/4p3/1K5Q w - - 0 1
 go perft 1
 h5h6: 1
@@ -6856,7 +6706,6 @@ h1h3: 1
 h1h4: 1
 b1a2: 1
 
-ucinewgame
 position fen 6r1/1k6/4B3/3b1q2/3RP2b/K2pQ3/Pp2P2q/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -6889,7 +6738,6 @@ a3b2: 1
 a3b4: 1
 a3a4: 1
 
-ucinewgame
 position fen 4B3/5pP1/3P4/1P4P1/p4K2/2p5/pp2qp2/5kB1 w - - 0 1
 go perft 1
 b5b6: 1
@@ -6907,7 +6755,6 @@ e8f7: 1
 f4f5: 1
 f4g3: 1
 
-ucinewgame
 position fen 6R1/5kP1/P5q1/8/2K1p3/PP2Bp2/3p4/5BnN w - - 0 1
 go perft 1
 a3a4: 1
@@ -6943,7 +6790,6 @@ c4d4: 1
 c4b5: 1
 c4c5: 1
 
-ucinewgame
 position fen 4n3/2p3pp/2R4b/1P1pp3/2r1k3/5q1p/p6K/8 w - - 0 1
 go perft 1
 b5b6: 1
@@ -6959,7 +6805,6 @@ c6h6: 1
 c6c7: 1
 h2g1: 1
 
-ucinewgame
 position fen 3nr3/1q2P2p/kP1P3p/8/8/PP6/1PR2K2/3Q4 w - - 0 1
 go perft 1
 a3a4: 1
@@ -7000,7 +6845,6 @@ f2e2: 1
 f2g3: 1
 f2e3: 1
 
-ucinewgame
 position fen 8/2K2k2/3p1pq1/P1p5/5p2/1q3B1P/1PPP1P2/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -7027,7 +6871,6 @@ c7d6: 1
 c7c8: 1
 c7d7: 1
 
-ucinewgame
 position fen 8/7p/pQn3p1/5pk1/1p6/1P3Pr1/2K1B2b/6q1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -7056,7 +6899,6 @@ c2d3: 1
 c2d2: 1
 c2b2: 1
 
-ucinewgame
 position fen r6R/1qp2pk1/2Bp4/4PP2/5n2/1p4P1/p7/2K5 w - - 0 1
 go perft 1
 g3g4: 1
@@ -7092,7 +6934,6 @@ c1d2: 1
 c1d1: 1
 c1b2: 1
 
-ucinewgame
 position fen KRbn4/P3pPQ1/4k3/4P1p1/p6R/5p2/8/4q3 w - - 0 1
 go perft 1
 f7f8q: 1
@@ -7130,7 +6971,6 @@ g7f8: 1
 g7g8: 1
 g7h8: 1
 
-ucinewgame
 position fen 2Q1n3/5p2/7k/1NR1p3/4P1B1/KPP5/3Pb3/B7 w - - 0 1
 go perft 1
 d2d3: 1
@@ -7170,7 +7010,6 @@ a3b2: 1
 a3a4: 1
 a3b4: 1
 
-ucinewgame
 position fen 8/4P3/2p2P2/2k1P3/n7/p2R4/5PP1/RQ2KQq1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -7215,7 +7054,6 @@ e1e2: 1
 e1d1: 1
 e1d2: 1
 
-ucinewgame
 position fen BN3B2/2P1P3/1P1k4/8/2p3qp/1p6/3p3P/1K4N1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -7246,7 +7084,6 @@ f8g7: 1
 b1a1: 1
 b1b2: 1
 
-ucinewgame
 position fen 4k3/P1Kp1R2/5P1N/2P2Q2/8/1P1P3n/2P4N/2B5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -7295,7 +7132,6 @@ c7d6: 1
 c7b7: 1
 c7b8: 1
 
-ucinewgame
 position fen 4B3/P3R1P1/1B1k1b2/8/K4p1P/1p1r2p1/3p4/5r2 w - - 0 1
 go perft 1
 h4h5: 1
@@ -7336,7 +7172,6 @@ a4b5: 1
 a4b4: 1
 a4a5: 1
 
-ucinewgame
 position fen 6BK/4Q3/6Pp/4N3/2p1P3/p1kr1p1p/P7/5b2 w - - 0 1
 go perft 1
 g6g7: 1
@@ -7373,7 +7208,6 @@ e7f8: 1
 h8g7: 1
 h8h7: 1
 
-ucinewgame
 position fen N3R3/1K2p3/R1B5/4q3/3P1PQb/2k5/5r1q/6n1 w - - 0 1
 go perft 1
 d4d5: 1
@@ -7425,7 +7259,6 @@ b7b6: 1
 b7a7: 1
 b7c8: 1
 
-ucinewgame
 position fen 6r1/1qp2kn1/4RNr1/3R4/7N/7K/3Bp1p1/5q2 w - - 0 1
 go perft 1
 h4g2: 1
@@ -7472,7 +7305,6 @@ e6e7: 1
 e6e8: 1
 h3h2: 1
 
-ucinewgame
 position fen 4n3/1P1k3K/P7/1b2PP2/5N1Q/6pp/1qB3P1/8 w - - 0 1
 go perft 1
 e5e6: 1
@@ -7510,7 +7342,6 @@ h7h6: 1
 h7h8: 1
 h7g8: 1
 
-ucinewgame
 position fen 8/1bp2P2/4Kp2/2r4k/3Q4/6p1/QP2PP2/2q4N w - - 0 1
 go perft 1
 b2b3: 1
@@ -7559,7 +7390,6 @@ e6e7: 1
 e6d7: 1
 e6f6: 1
 
-ucinewgame
 position fen 8/P7/1p6/PKp5/3PRp2/1b1B4/3P3b/k1r1B3 w - - 0 1
 go perft 1
 d4d5: 1
@@ -7589,7 +7419,6 @@ b5c6: 1
 b5b6: 1
 b5a6: 1
 
-ucinewgame
 position fen 1K6/3P1kp1/PR6/2BP1b2/N6p/5N2/3n1p2/7B w - - 0 1
 go perft 1
 d5d6: 1
@@ -7635,7 +7464,6 @@ b8c7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 6q1/p2P1pp1/pNk1q3/6P1/3Q4/P1p2K2/8/1r6 w - - 0 1
 go perft 1
 a3a4: 1
@@ -7674,7 +7502,6 @@ f3f2: 1
 f3g2: 1
 f3g3: 1
 
-ucinewgame
 position fen B7/P1p5/3p1pk1/K3QRp1/4P1P1/1pN5/3r4/8 w - - 0 1
 go perft 1
 c3b1: 1
@@ -7710,7 +7537,6 @@ a5b4: 1
 a5b5: 1
 a5a6: 1
 
-ucinewgame
 position fen 8/1p3K2/7p/2b4P/1P3pP1/1R5p/1Pnk4/1r1q4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -7730,7 +7556,6 @@ f7g8: 1
 f7g7: 1
 f7e8: 1
 
-ucinewgame
 position fen 8/3P3P/1p6/5p2/1pb4B/4n2k/2rPp3/K2B1q2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -7753,7 +7578,6 @@ h4g5: 1
 h4f6: 1
 h4e7: 1
 
-ucinewgame
 position fen 4K1bN/7k/6p1/1Qn1p3/1r2P3/6R1/3pPp2/6B1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -7788,7 +7612,6 @@ e8f8: 1
 e8e7: 1
 e8d8: 1
 
-ucinewgame
 position fen 3B2K1/1b6/3p4/6n1/1Q1nP2P/3rb3/p3P2k/6N1 w - - 0 1
 go perft 1
 e4e5: 1
@@ -7823,7 +7646,6 @@ g8h8: 1
 g8g7: 1
 g8f8: 1
 
-ucinewgame
 position fen 6b1/1K3Q2/6p1/2Bpp3/5Pk1/b7/1P1NP3/1q3N2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -7873,7 +7695,6 @@ b7c7: 1
 b7a8: 1
 b7b8: 1
 
-ucinewgame
 position fen 2n5/4p3/P2r3P/qB2BPP1/4p1Kn/8/p7/7k w - - 0 1
 go perft 1
 f5f6: 1
@@ -7905,7 +7726,6 @@ g4h3: 1
 g4f4: 1
 g4h4: 1
 
-ucinewgame
 position fen N2R4/p4P2/1p1K4/1r4N1/P2P3R/1P2B3/p5k1/8 w - - 0 1
 go perft 1
 b3b4: 1
@@ -7951,7 +7771,6 @@ d6c7: 1
 d6c6: 1
 d6e6: 1
 
-ucinewgame
 position fen 1K6/1PN2pP1/1pb3p1/6q1/R2N4/6Q1/2Pk2P1/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -8002,7 +7821,6 @@ b8a7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 8/pp3PP1/8/K3kN1P/B2r3r/2Q5/np4p1/8 w - - 0 1
 go perft 1
 h5h6: 1
@@ -8049,7 +7867,6 @@ c3c7: 1
 c3c8: 1
 a5b5: 1
 
-ucinewgame
 position fen 8/1p1B3r/5P2/2P1P2k/4p3/2q1N3/1P2P1Kb/Q7 w - - 0 1
 go perft 1
 b2b3: 1
@@ -8094,7 +7911,6 @@ g2h1: 1
 g2f2: 1
 g2h2: 1
 
-ucinewgame
 position fen 8/2q3PR/5K1b/3BR1P1/6p1/3p2n1/1k1p3P/4N3 w - - 0 1
 go perft 1
 h2h3: 1
@@ -8135,7 +7951,6 @@ h7h8: 1
 f6g6: 1
 f6e6: 1
 
-ucinewgame
 position fen 3n4/P4pNp/5R2/4kP1N/4p1Qn/3p4/P7/6K1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -8172,7 +7987,6 @@ g1h1: 1
 g1f2: 1
 g1h2: 1
 
-ucinewgame
 position fen 8/1K6/5nkp/P5P1/b1B3r1/2P1RN2/R3n1Q1/8 w - - 0 1
 go perft 1
 a5a6: 1
@@ -8225,7 +8039,6 @@ b7c7: 1
 b7a8: 1
 b7b8: 1
 
-ucinewgame
 position fen 8/1rP2p1p/2P5/P6B/4n1NB/2R5/5Qq1/K2k4 w - - 0 1
 go perft 1
 a5a6: 1
@@ -8279,7 +8092,6 @@ f2a7: 1
 f2f7: 1
 a1a2: 1
 
-ucinewgame
 position fen 5n2/1P1b1p2/P6b/P1K5/6q1/2PQ1p2/4Pk2/R7 w - - 0 1
 go perft 1
 e2e3: 1
@@ -8321,7 +8133,6 @@ c5d6: 1
 c5b6: 1
 c5d5: 1
 
-ucinewgame
 position fen Nn6/RPp4b/1p6/2r2R2/KP1P4/4kp2/8/3Q4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -8358,7 +8169,6 @@ d1f3: 1
 a4a3: 1
 a4b3: 1
 
-ucinewgame
 position fen 8/1n1NP2P/1K6/3pq3/4pP1P/2k5/3N3P/b3R3 w - - 0 1
 go perft 1
 h2h3: 1
@@ -8400,7 +8210,6 @@ b6a7: 1
 b6a6: 1
 b6c6: 1
 
-ucinewgame
 position fen 8/r6R/3K4/1k3p2/1r1PR2b/n1QP4/5p2/1n3b2 w - - 0 1
 go perft 1
 d4d5: 1
@@ -8443,7 +8252,6 @@ d6e6: 1
 d6d5: 1
 d6e5: 1
 
-ucinewgame
 position fen 1b3k2/2P5/3p2p1/1R3P2/p5pq/4p3/K6B/3r1q2 w - - 0 1
 go perft 1
 f5f6: 1
@@ -8475,7 +8283,6 @@ b5b8: 1
 a2a3: 1
 a2b2: 1
 
-ucinewgame
 position fen 5B2/3b1B2/P1NP4/2R1K1p1/1b3P1k/2p1p3/2Pp1Pq1/5n2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -8510,7 +8317,6 @@ c5d5: 1
 e5d4: 1
 e5f6: 1
 
-ucinewgame
 position fen 7Q/R1NpP2q/P6p/3BP3/1p1p3B/N5K1/3P4/n3nk2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -8559,7 +8365,6 @@ g3f4: 1
 g3h2: 1
 g3h3: 1
 
-ucinewgame
 position fen 5k1K/P1p1bp2/1p4PN/4nNRp/2P5/B1P2P2/4q2Q/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -8604,7 +8409,6 @@ h2e5: 1
 h2h5: 1
 h8h7: 1
 
-ucinewgame
 position fen R7/1qp1b2p/b1p3BK/r1r2N2/R1np4/P7/1q3P2/5k2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -8636,7 +8440,6 @@ h6h7: 1
 h6h5: 1
 h6g7: 1
 
-ucinewgame
 position fen Q7/1pbP1pP1/5P1n/3k1P1P/6R1/p1B2r1P/1p6/3n2K1 w - - 0 1
 go perft 1
 h3h4: 1
@@ -8682,7 +8485,6 @@ a8h8: 1
 g1g2: 1
 g1h1: 1
 
-ucinewgame
 position fen 1n3r2/P1pP2q1/4P3/K2R1R2/2kNP3/3b2N1/4Pp2/2nB4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -8727,7 +8529,6 @@ f5f7: 1
 f5f8: 1
 a5a4: 1
 
-ucinewgame
 position fen 1n3K2/P3P2p/1R6/3Pp1p1/pPq3n1/2q1p2N/5Pk1/r7 w - - 0 1
 go perft 1
 f2f3: 1
@@ -8765,7 +8566,6 @@ f8g7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 4rB2/4b1R1/1Pp1KP1p/1p5n/1N6/5P1Q/B1pk1P2/2N5 w - - 0 1
 go perft 1
 f3f4: 1
@@ -8809,7 +8609,6 @@ e6e5: 1
 e6f5: 1
 e6d7: 1
 
-ucinewgame
 position fen 1r6/2Pppk1P/8/2P3KR/4p3/1PR1P1pp/4qP1Q/6b1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -8846,7 +8645,6 @@ g5h6: 1
 g5h4: 1
 g5f5: 1
 
-ucinewgame
 position fen 8/2Rbb2P/1r3P1p/7P/P5pQ/B1Kn1N2/P3p1r1/5k2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -8890,7 +8688,6 @@ c3d2: 1
 c3c4: 1
 c3d3: 1
 
-ucinewgame
 position fen 1q6/3p1P2/1P3pN1/1p2rPk1/1P4P1/1N3b2/1K1n1pQ1/2B5 w - - 0 1
 go perft 1
 b6b7: 1
@@ -8924,7 +8721,6 @@ b2a2: 1
 b2c2: 1
 b2a3: 1
 
-ucinewgame
 position fen 8/b1p5/2Pp1k2/1Pq3nR/1PBp2KP/5n1N/5P1P/B7 w - - 0 1
 go perft 1
 b5b6: 1
@@ -8952,7 +8748,6 @@ h5h8: 1
 g4f4: 1
 g4g3: 1
 
-ucinewgame
 position fen 2n5/br6/2q4R/1Ppb2k1/P1ppP2p/1R3P2/4P3/1K5Q w - - 0 1
 go perft 1
 e2e3: 1
@@ -8992,7 +8787,6 @@ b1a2: 1
 b1b2: 1
 b1c2: 1
 
-ucinewgame
 position fen 5bNk/2PK2R1/8/1P4P1/3prpPB/1Qpb4/8/2qBq3 w - - 0 1
 go perft 1
 b5b6: 1
@@ -9030,7 +8824,6 @@ d7c6: 1
 d7d8: 1
 d7c8: 1
 
-ucinewgame
 position fen 3N1r2/q5pP/1b2P3/1pk1K2p/6p1/Pp5P/6B1/B1q4b w - - 0 1
 go perft 1
 a3a4: 1
@@ -9057,7 +8850,6 @@ g2b7: 1
 g2a8: 1
 e5e4: 1
 
-ucinewgame
 position fen 2k5/5B2/K4NrP/RP2npp1/1B5P/QP2qp2/6n1/4N3 w - - 0 1
 go perft 1
 h4h5: 1
@@ -9087,7 +8879,6 @@ f7d5: 1
 f7e6: 1
 f7g6: 1
 
-ucinewgame
 position fen 8/2bpP1R1/1PNQ3P/6q1/4k1B1/r1Pp1p1R/1B3P2/4K3 w - - 0 1
 go perft 1
 c3c4: 1
@@ -9142,7 +8933,6 @@ d6d7: 1
 e1d1: 1
 e1f1: 1
 
-ucinewgame
 position fen 4r3/4qp1P/2K3QR/1P2Pb2/1P1B1pP1/p6n/4p1r1/2k5 w - - 0 1
 go perft 1
 g4g5: 1
@@ -9177,7 +8967,6 @@ g6g8: 1
 c6b6: 1
 c6d5: 1
 
-ucinewgame
 position fen 1N1b4/pr1Q1p2/5p2/P1n2p2/bP1P1R2/1PK2P2/6kB/8 w - - 0 1
 go perft 1
 b4b5: 1
@@ -9213,7 +9002,6 @@ c3c2: 1
 c3d2: 1
 c3c4: 1
 
-ucinewgame
 position fen 8/4PPP1/1R1p4/1N4PK/p1q3P1/1p3kp1/Bpn5/r3q3 w - - 0 1
 go perft 1
 g5g6: 1
@@ -9246,7 +9034,6 @@ h5h4: 1
 h5g6: 1
 h5h6: 1
 
-ucinewgame
 position fen NrN4q/6Qp/RPK3b1/p1R5/3p4/1P1P2pp/p3k3/8 w - - 0 1
 go perft 1
 b3b4: 1
@@ -9289,7 +9076,6 @@ c6d6: 1
 c6d7: 1
 c6c7: 1
 
-ucinewgame
 position fen 8/1pp1R3/7P/PKpp2P1/2P1Rr2/1pB1p2k/np6/6q1 w - - 0 1
 go perft 1
 a5a6: 1
@@ -9321,7 +9107,6 @@ e7e8: 1
 b5a4: 1
 b5c5: 1
 
-ucinewgame
 position fen 1N1KN3/3Pnq2/1p6/P3PP2/P7/q1p1k3/r3p2p/b4B2 w - - 0 1
 go perft 1
 a5a6: 1
@@ -9339,7 +9124,6 @@ f1g2: 1
 f1h3: 1
 d8c7: 1
 
-ucinewgame
 position fen 2qn1r1r/1p2P3/1Ppb4/1Pq2p2/8/PP5k/3RNR2/K7 w - - 0 1
 go perft 1
 a3a4: 1
@@ -9381,7 +9165,6 @@ a1b1: 1
 a1a2: 1
 a1b2: 1
 
-ucinewgame
 position fen 1R5Q/1p2p3/1K2P2p/4pn2/5qRp/2Pk3b/1P1P1B2/4b3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -9427,7 +9210,6 @@ b6c7: 1
 b6b7: 1
 b6a7: 1
 
-ucinewgame
 position fen 8/q7/bPB5/P1R1RNK1/n1P1P3/r1Pk4/1B3pnq/8 w - - 0 1
 go perft 1
 b6b7: 1
@@ -9460,7 +9242,6 @@ g5g6: 1
 g5g4: 1
 g5f6: 1
 
-ucinewgame
 position fen 3n2Nq/pbp1P3/2P1k3/2K5/P2PPb2/1r4p1/1p5B/5B2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -9488,7 +9269,6 @@ h2g1: 1
 h2g3: 1
 c5c4: 1
 
-ucinewgame
 position fen 2N5/1R3P2/1p3P2/1qb5/1P1p2r1/kP4Pn/1N1p2QK/5q2 w - - 0 1
 go perft 1
 f7f8q: 1
@@ -9523,7 +9303,6 @@ g2d5: 1
 g2c6: 1
 h2h3: 1
 
-ucinewgame
 position fen 3b4/5P1P/BP5r/p2K1Pnp/3N4/3P2rp/pk3n2/7R w - - 0 1
 go perft 1
 f5f6: 1
@@ -9560,7 +9339,6 @@ d5c4: 1
 d5e5: 1
 d5c5: 1
 
-ucinewgame
 position fen n7/p2kP3/1R2rpN1/2pp2B1/4p3/Pq2n3/1P1P1K2/b7 w - - 0 1
 go perft 1
 d2d3: 1
@@ -9595,7 +9373,6 @@ f2g3: 1
 f2g1: 1
 f2e2: 1
 
-ucinewgame
 position fen RN3n2/B7/Q1P5/P7/4Bqkp/bp1KP3/1p2rp2/7R w - - 0 1
 go perft 1
 c6c7: 1
@@ -9630,7 +9407,6 @@ d3c4: 1
 d3e2: 1
 d3c3: 1
 
-ucinewgame
 position fen 8/3KnP2/2N2pq1/Pn5p/P2p1q2/4kPbp/2p5/4N1r1 w - - 0 1
 go perft 1
 a5a6: 1
@@ -9654,7 +9430,6 @@ d7e6: 1
 d7d8: 1
 d7e7: 1
 
-ucinewgame
 position fen 6K1/QP6/2P2k2/1PB1pn2/4B1b1/2q2Np1/R3PP1R/3q4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -9712,7 +9487,6 @@ g8h8: 1
 g8f8: 1
 g8h7: 1
 
-ucinewgame
 position fen 8/5Q1r/n4nP1/3PpP2/PP6/2p1K1BP/1Pp2R2/5B1k w - - 0 1
 go perft 1
 b2b3: 1
@@ -9756,7 +9530,6 @@ e3f3: 1
 e3e2: 1
 e3d3: 1
 
-ucinewgame
 position fen Q4q2/1Rr2qPP/1KP5/2pp4/6Bp/2P4r/2P2p2/N5k1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -9801,7 +9574,6 @@ b6b5: 1
 b6a7: 1
 b6a6: 1
 
-ucinewgame
 position fen 1B2n3/2pkbK2/1q2R1PP/2q3pP/7p/2P5/3N2r1/4NQ2 w - - 0 1
 go perft 1
 c3c4: 1
@@ -9842,7 +9614,6 @@ f1a6: 1
 f1f6: 1
 f7g8: 1
 
-ucinewgame
 position fen 7B/2r3r1/PPpP2q1/1n2K1k1/2P1R2p/3pn2P/6p1/3b4 w - - 0 1
 go perft 1
 c4c5: 1
@@ -9859,7 +9630,6 @@ e4f4: 1
 e4g4: 1
 e4h4: 1
 
-ucinewgame
 position fen 8/RK2Pb2/4r1p1/p2Pp1p1/4q1N1/1kP1Pr2/2p1N3/b7 w - - 0 1
 go perft 1
 c3c4: 1
@@ -9885,7 +9655,6 @@ a7a8: 1
 b7a8: 1
 b7c7: 1
 
-ucinewgame
 position fen 8/3Pb3/pPp2rn1/p5B1/b2K1N1P/kP6/5r2/1nR2B2 w - - 0 1
 go perft 1
 b3b4: 1
@@ -9926,7 +9695,6 @@ d4d3: 1
 d4e3: 1
 d4c4: 1
 
-ucinewgame
 position fen nQ6/r4rq1/6p1/3k2P1/1bR5/BK1b2P1/2Pp2NR/1n6 w - - 0 1
 go perft 1
 c2c3: 1
@@ -9976,7 +9744,6 @@ b8h8: 1
 b3a2: 1
 b3b4: 1
 
-ucinewgame
 position fen 3r4/4B1K1/1P2q3/R4N2/4Nb2/3n1PP1/1pk1p1pP/5Q1R w - - 0 1
 go perft 1
 h2h3: 1
@@ -10028,7 +9795,6 @@ f1f2: 1
 f1g2: 1
 g7h7: 1
 
-ucinewgame
 position fen 2qr3R/n1PkP2p/p4b1B/5p2/5P2/2P3K1/PQ2Br2/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -10078,7 +9844,6 @@ b2b8: 1
 g3f2: 1
 g3h3: 1
 
-ucinewgame
 position fen 6K1/1Qp3P1/3p3P/p4N2/Ppr1P3/2B2bP1/3p1kp1/1n6 w - - 0 1
 go perft 1
 g3g4: 1
@@ -10112,7 +9877,6 @@ g8h7: 1
 g8f8: 1
 g8h8: 1
 
-ucinewgame
 position fen 1K6/8/q2PN2R/PP3pP1/1Pb4p/b6n/6rP/2q3nk w - - 0 1
 go perft 1
 b5b6: 1
@@ -10134,7 +9898,6 @@ h6h7: 1
 h6h8: 1
 b8c7: 1
 
-ucinewgame
 position fen N3R3/1PP1r3/7p/2B5/4PP1p/Qr3pR1/p2Kp1q1/1k6 w - - 0 1
 go perft 1
 e4e5: 1
@@ -10183,7 +9946,6 @@ a3a6: 1
 a3a7: 1
 d2e1: 1
 
-ucinewgame
 position fen 3N4/2P1p2Q/KN5P/R1P3P1/1PBk2r1/3b4/P3p1nq/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -10222,7 +9984,6 @@ h7e7: 1
 h7f7: 1
 h7g7: 1
 
-ucinewgame
 position fen 3n4/5q2/3P3q/p2PP1pN/6pQ/7P/k3KpPB/1r1B4 w - - 0 1
 go perft 1
 g2g3: 1
@@ -10248,7 +10009,6 @@ e2f1: 1
 e2d2: 1
 e2d3: 1
 
-ucinewgame
 position fen 3k4/1p3rR1/6np/p1p5/3r2RP/BPP5/2B1pP2/4K1b1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -10281,7 +10041,6 @@ g7h7: 1
 g7g8: 1
 e1e2: 1
 
-ucinewgame
 position fen 3k3r/1pbq1q2/1P5p/pP1P2p1/8/1B2KnR1/2NP4/5r2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -10306,7 +10065,6 @@ e3e2: 1
 e3e4: 1
 e3d3: 1
 
-ucinewgame
 position fen K6k/P1NPP2p/bPRpP3/1P3B2/r7/1q1p4/Rp6/8 w - - 0 1
 go perft 1
 b6b7: 1
@@ -10340,7 +10098,6 @@ c6c5: 1
 c6d6: 1
 a8b8: 1
 
-ucinewgame
 position fen 5k2/1PK4p/3P1np1/1B3P1P/1pP1qP2/p4P2/3n4/3q3Q w - - 0 1
 go perft 1
 c4c5: 1
@@ -10371,7 +10128,6 @@ c7d8: 1
 c7c8: 1
 c7b8: 1
 
-ucinewgame
 position fen 8/1Pbb1p2/3PpRP1/7P/3pn1RQ/1k3K1p/N2r2P1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -10403,7 +10159,6 @@ h4g5: 1
 f3f4: 1
 f3e4: 1
 
-ucinewgame
 position fen 1n3k2/1pB5/5PK1/4pN2/1p6/2PBbPP1/R2q1pp1/2r5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -10445,7 +10200,6 @@ a2a8: 1
 g6h7: 1
 g6h5: 1
 
-ucinewgame
 position fen N3r3/3R1p2/pP4kN/p1PK4/5R1q/3P4/1bP5/1q1r3n w - - 0 1
 go perft 1
 c2c3: 1
@@ -10482,7 +10236,6 @@ d5c4: 1
 d5d6: 1
 d5c6: 1
 
-ucinewgame
 position fen 6N1/5p2/P1B3p1/5r2/rpqP1b1k/4nQ2/RB1p1K1p/8 w - - 0 1
 go perft 1
 d4d5: 1
@@ -10518,7 +10271,6 @@ f3g4: 1
 f3d5: 1
 f3h5: 1
 
-ucinewgame
 position fen 3k1bRB/p4q2/2PP1p1n/p3p1P1/1P6/3K2pP/4P3/3Q4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -10553,7 +10305,6 @@ d3c3: 1
 d3e3: 1
 d3e4: 1
 
-ucinewgame
 position fen 2k3r1/bpr2P2/2b2P1K/p2Pq3/6P1/2pp1N1p/4p3/3n4 w - - 0 1
 go perft 1
 g4g5: 1
@@ -10577,7 +10328,6 @@ f3e5: 1
 f3g5: 1
 h6h7: 1
 
-ucinewgame
 position fen 2Kn2B1/4pp2/P1N1PpP1/5P2/4n3/2PP3q/2bkN2R/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -10611,7 +10361,6 @@ c8c7: 1
 c8d7: 1
 c8b8: 1
 
-ucinewgame
 position fen 8/4Pp2/1b1nB1b1/r1P3pP/1n1P1P1B/3P4/3Q1K1k/1r6 w - - 0 1
 go perft 1
 d4d5: 1
@@ -10652,7 +10401,6 @@ f2f3: 1
 f2e3: 1
 f2e2: 1
 
-ucinewgame
 position fen 1k6/1P2QqBK/2B4p/1P5p/6r1/2Pp1PPP/P4r2/4N3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -10691,7 +10439,6 @@ e7f6: 1
 e7c7: 1
 e7d7: 1
 
-ucinewgame
 position fen B4k2/2nP4/3P2Rq/3P2P1/8/n2Kp3/Rr1Ppp2/2B4Q w - - 0 1
 go perft 1
 d7d8q: 1
@@ -10730,7 +10477,6 @@ d3c3: 1
 d3e3: 1
 d3d4: 1
 
-ucinewgame
 position fen 2q1k2n/P7/PP1rp2K/2Pn4/1PP3P1/4B3/r1Qb3P/8 w - - 0 1
 go perft 1
 h2h3: 1
@@ -10767,7 +10513,6 @@ c2g6: 1
 c2h7: 1
 h6g5: 1
 
-ucinewgame
 position fen R1n1n3/3P4/1p6/4b3/1kP3P1/3pPp1p/1BP1q1B1/2Q4K w - - 0 1
 go perft 1
 c2c3: 1
@@ -10813,7 +10558,6 @@ c1g1: 1
 c1d2: 1
 h1g1: 1
 
-ucinewgame
 position fen 4N3/1pBQP3/pK1PP3/8/6Pq/r4bR1/q3pkP1/1n6 w - - 0 1
 go perft 1
 g4g5: 1
@@ -10832,7 +10576,6 @@ d7d8: 1
 b6a7: 1
 b6c5: 1
 
-ucinewgame
 position fen bQ4R1/1Pp5/1n1pp3/8/3Bp2b/pP6/1Pqpk3/KN6 w - - 0 1
 go perft 1
 b3b4: 1
@@ -10875,7 +10618,6 @@ b8e8: 1
 b8f8: 1
 a1a2: 1
 
-ucinewgame
 position fen 3r2br/2qP1p1P/4q1P1/2B4P/4Rp2/1N4P1/1K4Pb/3k4 w - - 0 1
 go perft 1
 g3g4: 1
@@ -10919,7 +10661,6 @@ b2c3: 1
 b2a2: 1
 b2a3: 1
 
-ucinewgame
 position fen 4bBnq/k7/n4p2/p4p1R/1b4PN/1K3Pp1/4P2P/4Q3 w - - 0 1
 go perft 1
 e2e3: 1
@@ -10960,7 +10701,6 @@ b3b2: 1
 b3c2: 1
 b3c4: 1
 
-ucinewgame
 position fen 3K4/2n2p1P/3p2b1/N2pPB2/r2k1PPB/4p2P/5r1Q/8 w - - 0 1
 go perft 1
 g4g5: 1
@@ -10997,7 +10737,6 @@ d8d7: 1
 d8e7: 1
 d8c8: 1
 
-ucinewgame
 position fen N2B1q2/2p4Q/2P3p1/2pq4/k2P2nP/3p3p/1K4Pr/1n6 w - - 0 1
 go perft 1
 b2c1: 1
@@ -11022,7 +10761,6 @@ h7g8: 1
 h7h8: 1
 b2a1: 1
 
-ucinewgame
 position fen 3B1k1N/p1qn4/p3K3/3R1pR1/2qp2B1/3Pp3/3P2p1/5b2 w - - 0 1
 go perft 1
 d2e3: 1
@@ -11045,7 +10783,6 @@ g5g6: 1
 g5h5: 1
 g5f5: 1
 
-ucinewgame
 position fen 3R4/1R1Np2P/1b5K/5b2/3q3k/1pB4B/1Qq2pP1/n6r w - - 0 1
 go perft 1
 g2g3: 1
@@ -11086,7 +10823,6 @@ b2c2: 1
 b2a3: 1
 b2b3: 1
 
-ucinewgame
 position fen 8/P2brN2/2p1P3/1pp2rp1/5k2/3K4/3NRPp1/B4B1Q w - - 0 1
 go perft 1
 f2f3: 1
@@ -11130,7 +10866,6 @@ h1h8: 1
 d3c2: 1
 d3c3: 1
 
-ucinewgame
 position fen 8/kpp1p1Pb/7r/2p1R1P1/1B3Q1p/1KP1N3/4P3/4nr2 w - - 0 1
 go perft 1
 c3c4: 1
@@ -11177,7 +10912,6 @@ b3c4: 1
 b3a3: 1
 b3a4: 1
 
-ucinewgame
 position fen 6bb/6q1/Q3r2P/2Pp4/B1r2p1k/npp5/1P3K1B/5R2 w - - 0 1
 go perft 1
 c5c6: 1
@@ -11213,7 +10947,6 @@ a6a8: 1
 a6c8: 1
 f2f3: 1
 
-ucinewgame
 position fen n7/1b3KpP/p2p3p/7P/4r3/N2Pk1BP/Pp1q4/2Q5 w - - 0 1
 go perft 1
 d3d4: 1
@@ -11255,7 +10988,6 @@ f7f8: 1
 f7g6: 1
 f7g7: 1
 
-ucinewgame
 position fen 3N4/r5Pk/1Pb5/P4R1K/B1P2q2/4PNR1/1Q2pp2/2n5 w - - 0 1
 go perft 1
 e3e4: 1
@@ -11316,7 +11048,6 @@ b2b5: 1
 b2e5: 1
 b2f6: 1
 
-ucinewgame
 position fen 4N1K1/R2P4/1P2p3/3p1k2/p2P1q2/P3P2p/1nR1P3/n3r3 w - - 0 1
 go perft 1
 e3e4: 1
@@ -11351,7 +11082,6 @@ g8h7: 1
 g8f8: 1
 g8h8: 1
 
-ucinewgame
 position fen Q4r2/1P6/1k5r/n2bB2p/3N1pBP/2P1b3/PP2R3/3K4 w - - 0 1
 go perft 1
 a2a3: 1
@@ -11402,7 +11132,6 @@ a8f8: 1
 d1c2: 1
 d1e1: 1
 
-ucinewgame
 position fen 8/4B2p/1b2P1N1/p5P1/Q3PR2/1npp2kp/P1bP4/7K w - - 0 1
 go perft 1
 a2a3: 1
@@ -11440,7 +11169,6 @@ a4c6: 1
 a4d7: 1
 a4e8: 1
 
-ucinewgame
 position fen B2r4/3kqP2/4p1N1/1R2b2b/1P4n1/2P2nQ1/K2PN1p1/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -11488,7 +11216,6 @@ a2b2: 1
 a2a3: 1
 a2b3: 1
 
-ucinewgame
 position fen 1q6/2P5/K1p2Pb1/5pP1/n2n1P2/2P2p1p/p1P1k2p/7R w - - 0 1
 go perft 1
 c3c4: 1
@@ -11512,7 +11239,6 @@ h1g1: 1
 h1h2: 1
 a6a5: 1
 
-ucinewgame
 position fen 8/2bNP1P1/1n4k1/2Pp4/1qb5/RQ3Kn1/1p2p3/r2r3B w - - 0 1
 go perft 1
 c5c6: 1
@@ -11553,7 +11279,6 @@ f3f2: 1
 f3g2: 1
 f3e3: 1
 
-ucinewgame
 position fen Q7/2K1b1p1/PP2k3/5Np1/2P5/1p1Pn1n1/p1R1P3/4B2q w - - 0 1
 go perft 1
 d3d4: 1
@@ -11597,7 +11322,6 @@ a8h8: 1
 c7c8: 1
 c7b8: 1
 
-ucinewgame
 position fen 5b2/p1P4P/RP2Bk2/N1P2PN1/1p1P4/1q6/2b2pK1/6R1 w - - 0 1
 go perft 1
 d4d5: 1
@@ -11640,7 +11364,6 @@ g2h1: 1
 g2f2: 1
 g2h2: 1
 
-ucinewgame
 position fen 8/1n1p2P1/1p1p4/P2p1PR1/2NRb3/Bk2q1P1/p3B3/K7 w - - 0 1
 go perft 1
 g3g4: 1
@@ -11677,7 +11400,6 @@ g5g4: 1
 g5h5: 1
 g5g6: 1
 
-ucinewgame
 position fen 4K1B1/P2r2p1/Pb1R3N/1b6/pP1q3k/3p2p1/2PP3q/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -11707,7 +11429,6 @@ d6g6: 1
 d6d7: 1
 e8f8: 1
 
-ucinewgame
 position fen 8/N2q3q/2p5/K2Pp3/Q3P1b1/2kPp2p/3R1PPb/4N3 w - - 0 1
 go perft 1
 f2f3: 1
@@ -11742,7 +11463,6 @@ a4c6: 1
 a5b6: 1
 a5a6: 1
 
-ucinewgame
 position fen 8/1P4K1/P2N2Q1/6p1/Rq6/1PPn1r2/1bkBPpPP/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -11792,7 +11512,6 @@ g6e8: 1
 g7h7: 1
 g7h6: 1
 
-ucinewgame
 position fen 1q6/3n2p1/1r2R2Q/1B1kp3/3P3P/Kp1p2n1/P1N1P3/b7 w - - 0 1
 go perft 1
 e2e3: 1
@@ -11834,7 +11553,6 @@ a3b4: 1
 a3b3: 1
 a3a4: 1
 
-ucinewgame
 position fen 4q3/K3k3/1Pb1pR1n/3Q2B1/1PBN4/1n6/1pPN2q1/4r3 w - - 0 1
 go perft 1
 c2c3: 1
@@ -11888,7 +11606,6 @@ d5d7: 1
 d5d8: 1
 a7a6: 1
 
-ucinewgame
 position fen 8/1q2P1r1/1P1k1B1n/1R1B2Pp/3P3p/2p4q/N3Pb2/2K5 w - - 0 1
 go perft 1
 e2e3: 1
@@ -11924,7 +11641,6 @@ c1b1: 1
 c1d1: 1
 c1c2: 1
 
-ucinewgame
 position fen 6B1/2Q2K2/2n5/b2pr1rP/1P2p1n1/1k3N1q/1p4p1/2q3B1 w - - 0 1
 go perft 1
 b4b5: 1
@@ -11959,7 +11675,6 @@ c7c8: 1
 c7d8: 1
 f7f8: 1
 
-ucinewgame
 position fen 3K4/2P5/P5P1/p1N1PpPP/3k3p/Q4p2/1pP1b3/1Rr5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -11998,7 +11713,6 @@ d8e7: 1
 d8c8: 1
 d8e8: 1
 
-ucinewgame
 position fen 2qkNr2/3P1r2/1KB5/BRQP2R1/pp1P3N/3p4/7p/8 w - - 0 1
 go perft 1
 d5d6: 1
@@ -12038,7 +11752,6 @@ c5e7: 1
 c5f8: 1
 b6a7: 1
 
-ucinewgame
 position fen 1R6/7P/n2k2P1/2r2BP1/N1r5/1P1b1N2/P2pp1PK/6R1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -12089,7 +11802,6 @@ h2h1: 1
 h2g3: 1
 h2h3: 1
 
-ucinewgame
 position fen 6R1/nr4P1/2pk2P1/5K1p/3p3b/1BnN2qP/5P1R/6q1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -12120,7 +11832,6 @@ g8e8: 1
 g8f8: 1
 g8h8: 1
 
-ucinewgame
 position fen 2r5/1q1N3p/1b6/P7/1P1PpnPr/p5KQ/B4BP1/3k4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -12151,7 +11862,6 @@ g3h2: 1
 g3h4: 1
 g3f4: 1
 
-ucinewgame
 position fen 1B1R4/2r5/6p1/4N1Pq/P2ppn1P/4P1K1/B2p4/1r1k3N w - - 0 1
 go perft 1
 a4a5: 1
@@ -12188,7 +11898,6 @@ g3f2: 1
 g3f4: 1
 g3h2: 1
 
-ucinewgame
 position fen 3r4/2P3p1/3R1p1N/pP1BQ1B1/1Pb5/2K5/2n1q2p/k4q2 w - - 0 1
 go perft 1
 b5b6: 1
@@ -12242,7 +11951,6 @@ e5f6: 1
 e5e7: 1
 e5e8: 1
 
-ucinewgame
 position fen q1B5/pPP5/3P3r/3N1pp1/R7/r2PP3/PnK1k2P/8 w - - 0 1
 go perft 1
 h2h3: 1
@@ -12282,7 +11990,6 @@ c2b1: 1
 c2c1: 1
 c2b2: 1
 
-ucinewgame
 position fen 5q2/3pk3/P1bNP2P/r3P1R1/3b1q2/3K3n/p3P2P/7B w - - 0 1
 go perft 1
 e2e3: 1
@@ -12315,7 +12022,6 @@ g5g8: 1
 d3c2: 1
 d3c4: 1
 
-ucinewgame
 position fen 8/2p3P1/7B/PPPPK3/5Pb1/Qr2kppp/2q2q2/1n6 w - - 0 1
 go perft 1
 f4f5: 1
@@ -12337,7 +12043,6 @@ a3a4: 1
 a3b4: 1
 e5f6: 1
 
-ucinewgame
 position fen 8/k7/1n6/3B1PpP/5r2/p1ppK1pp/1bb3PP/n2N4 w - - 0 1
 go perft 1
 f5f6: 1
@@ -12359,7 +12064,6 @@ d5f7: 1
 d5a8: 1
 d5g8: 1
 
-ucinewgame
 position fen 1B6/R1N1Kp2/8/bpk5/1rPR4/P4b1P/1n1p2p1/4Qr2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -12407,7 +12111,6 @@ e7d7: 1
 e7f7: 1
 e7d8: 1
 
-ucinewgame
 position fen 1N3b2/P4P1p/5B1q/2pB1K2/1rp5/8/q1PP1N1k/n2R4 w - - 0 1
 go perft 1
 c2c3: 1
@@ -12457,7 +12160,6 @@ f5e6: 1
 f5g4: 1
 f5e5: 1
 
-ucinewgame
 position fen 2B5/2k5/K1p2P2/1P1n2R1/5N1n/BP6/3PrQpp/1r5q w - - 0 1
 go perft 1
 d2d3: 1
@@ -12513,7 +12215,6 @@ f2a7: 1
 a6a5: 1
 a6a7: 1
 
-ucinewgame
 position fen 4nB2/b2kqP2/1R6/3P1q2/r1Pp3P/1p3R2/2Bpp1K1/8 w - - 0 1
 go perft 1
 c4c5: 1
@@ -12560,7 +12261,6 @@ g2h1: 1
 g2f2: 1
 g2h2: 1
 
-ucinewgame
 position fen 5Qb1/n2q2P1/2P3RP/R3b1q1/p3r3/P3p3/1k4N1/1B4K1 w - - 0 1
 go perft 1
 c6c7: 1
@@ -12601,7 +12301,6 @@ f8b8: 1
 f8c8: 1
 f8d8: 1
 
-ucinewgame
 position fen 3K1B2/p2P2r1/2Np1p2/1Bk4q/4R3/3PP1p1/P3Q2q/1R6 w - - 0 1
 go perft 1
 a2a3: 1
@@ -12656,7 +12355,6 @@ e2h5: 1
 d8c7: 1
 d8c8: 1
 
-ucinewgame
 position fen 8/r2R2P1/4k3/2nb4/p1Pb1Qpn/4P1B1/3N2PR/NK6 w - - 0 1
 go perft 1
 e3e4: 1
@@ -12706,7 +12404,6 @@ b1c1: 1
 b1a2: 1
 b1c2: 1
 
-ucinewgame
 position fen 7b/p4p1P/1qPP4/5k2/B4p2/PbqPp2P/4R1K1/2N5 w - - 0 1
 go perft 1
 d3d4: 1
@@ -12730,7 +12427,6 @@ g2h1: 1
 g2f3: 1
 g2h2: 1
 
-ucinewgame
 position fen 1b2R3/2npP3/3kP3/P1Np4/2b1P2K/3q4/B1p2r1P/n7 w - - 0 1
 go perft 1
 h2h3: 1
@@ -12757,7 +12453,6 @@ h4h5: 1
 h4g5: 1
 h4g4: 1
 
-ucinewgame
 position fen 3B1q1N/2R3pp/4K3/PN1P4/1krP2rp/1B2P3/2p5/6R1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -12800,7 +12495,6 @@ c7c8: 1
 e6e5: 1
 e6d7: 1
 
-ucinewgame
 position fen 1r6/2P4q/3KP1kB/2P1Ppp1/4Bp2/7P/r4bNp/7R w - - 0 1
 go perft 1
 h3h4: 1
@@ -12841,7 +12535,6 @@ h1h2: 1
 d6d5: 1
 d6c6: 1
 
-ucinewgame
 position fen 5b2/nNPbB3/7p/N6K/2rp1PP1/2p1qp2/Pp6/5k2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -12870,7 +12563,6 @@ e7f8: 1
 h5h4: 1
 h5g6: 1
 
-ucinewgame
 position fen 1N2k3/1B2B1P1/1P6/2P1K2p/p2n2Q1/2pR2P1/1p6/3b2qr w - - 0 1
 go perft 1
 c5c6: 1
@@ -12923,7 +12615,6 @@ e5f4: 1
 e5d5: 1
 e5d6: 1
 
-ucinewgame
 position fen 5N2/5P2/qnrk2Pr/b1p1R2P/1P1p1p2/1Q3K2/p2P4/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -12964,7 +12655,6 @@ f3g2: 1
 f3f4: 1
 f3e4: 1
 
-ucinewgame
 position fen 4Qq1r/1KP3N1/6rp/3pP3/1k6/q1b1P3/1nRp2PR/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -13003,7 +12693,6 @@ e8f8: 1
 b7c8: 1
 b7b8: 1
 
-ucinewgame
 position fen 8/2PN1kqq/7P/p2N3r/1r3PQn/2b1P3/K5P1/4n2B w - - 0 1
 go perft 1
 g2g3: 1
@@ -13039,7 +12728,6 @@ g4g6: 1
 g4g7: 1
 a2a3: 1
 
-ucinewgame
 position fen 1nkb4/1q1p2BP/2ppP3/2Rb4/pP6/P1K5/q2P3p/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -13065,7 +12753,6 @@ c5c6: 1
 c3d4: 1
 c3d3: 1
 
-ucinewgame
 position fen 8/5Pkp/2P1q3/2KPr1B1/4Ppq1/1R1pp2p/8/4RBn1 w - - 0 1
 go perft 1
 c5b6: 1
@@ -13105,7 +12792,6 @@ c5b4: 1
 c5c4: 1
 c5d4: 1
 
-ucinewgame
 position fen 7r/3prP2/R2Q2p1/2P3k1/p3P1b1/2bK1R2/3PB1P1/6N1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -13153,7 +12839,6 @@ d3c3: 1
 d3e3: 1
 d3c4: 1
 
-ucinewgame
 position fen 8/P2pn1Pn/2p5/1Np1P3/5r1p/3PK1Pp/2k2r1B/4R3 w - - 0 1
 go perft 1
 d3d4: 1
@@ -13184,7 +12869,6 @@ e1g1: 1
 e1h1: 1
 e1e2: 1
 
-ucinewgame
 position fen 2K1Q3/1P2ppRB/1p4P1/PN4q1/8/P5P1/1pP3q1/k5b1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -13219,7 +12903,6 @@ c8d7: 1
 c8b8: 1
 c8d8: 1
 
-ucinewgame
 position fen q2k2r1/2bqrb1R/4P3/1BKP4/p6R/2p2pPN/8/7N w - - 0 1
 go perft 1
 g3g4: 1
@@ -13257,7 +12940,6 @@ c5b4: 1
 c5c4: 1
 c5d4: 1
 
-ucinewgame
 position fen 7k/1q6/1PPNR3/7K/PPpP1p2/qp1n2p1/B7/b4Q2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -13305,7 +12987,6 @@ h5g5: 1
 h5g6: 1
 h5h6: 1
 
-ucinewgame
 position fen 4K3/P1k4p/P3P1P1/1BB3r1/3PRN2/7p/2b1q1rP/4R3 w - - 0 1
 go perft 1
 d4d5: 1
@@ -13349,7 +13030,6 @@ e8f8: 1
 e8e7: 1
 e8f7: 1
 
-ucinewgame
 position fen 2R2Nn1/Bq4P1/5P1p/2P4b/3p4/5NkB/KP1q4/3R2r1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -13391,7 +13071,6 @@ c8d8: 1
 c8e8: 1
 a2a1: 1
 
-ucinewgame
 position fen 3n4/3B1kpP/KP1P1P2/1p2r3/2NP3p/b2p3P/2R5/2n5 w - - 0 1
 go perft 1
 d4d5: 1
@@ -13427,7 +13106,6 @@ c2c3: 1
 a6a5: 1
 a6a7: 1
 
-ucinewgame
 position fen 1b3R2/5bPP/3ppK1n/3kp1NQ/4q3/6r1/P1P1N3/7n w - - 0 1
 go perft 1
 a2a3: 1
@@ -13471,7 +13149,6 @@ h5h6: 1
 h5f7: 1
 f6e7: 1
 
-ucinewgame
 position fen 4q3/Pkp3KP/3P2p1/R1Q5/nP4Pq/1pN4n/7N/6B1 w - - 0 1
 go perft 1
 b4b5: 1
@@ -13516,7 +13193,6 @@ c5b6: 1
 c5c6: 1
 c5c7: 1
 
-ucinewgame
 position fen 5N2/3pp3/r2P2qR/p3b2b/P1KP4/pPp3PQ/k7/8 w - - 0 1
 go perft 1
 b3b4: 1
@@ -13547,7 +13223,6 @@ c4d5: 1
 c4c5: 1
 c4b5: 1
 
-ucinewgame
 position fen 2Rb3K/1R2N1Q1/1Ppp1np1/N2p4/2n5/2B4k/P2P4/4q3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -13585,7 +13260,6 @@ g7h7: 1
 g7f8: 1
 g7g8: 1
 
-ucinewgame
 position fen 5kN1/1r1p4/q1P5/1R2B2P/Q1nK1N1p/q2n2R1/p5B1/8 w - - 0 1
 go perft 1
 h5h6: 1
@@ -13642,7 +13316,6 @@ d4d5: 1
 d4e4: 1
 d4c4: 1
 
-ucinewgame
 position fen 7B/R5PN/1Pn3n1/1rq5/1N4p1/pp2kB1p/2p1P3/7K w - - 0 1
 go perft 1
 b6b7: 1
@@ -13677,7 +13350,6 @@ a7a8: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen 8/2k4B/n3P3/1P1QP2P/p5r1/p1PP3p/KpP1b2p/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -13707,7 +13379,6 @@ d5d8: 1
 a2a3: 1
 a2b1: 1
 
-ucinewgame
 position fen N7/2p1r3/p1RP1K1N/4p3/3pB3/2pP1p2/4q1Pr/2b1k3 w - - 0 1
 go perft 1
 g2g3: 1
@@ -13737,7 +13408,6 @@ f6e7: 1
 f6f5: 1
 f6g6: 1
 
-ucinewgame
 position fen b2Nq1Bq/K1p4P/4rpp1/k5p1/p2P4/B1P5/N7/6n1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -13760,7 +13430,6 @@ g8f7: 1
 a7b8: 1
 a7a8: 1
 
-ucinewgame
 position fen 5N2/4P1p1/Q1PBprp1/1P3kp1/7P/3np3/p1K5/3BR3 w - - 0 1
 go perft 1
 h4h5: 1
@@ -13806,7 +13475,6 @@ c2d3: 1
 c2c3: 1
 c2b3: 1
 
-ucinewgame
 position fen 4r3/p2P1np1/k4P2/P2Pr2b/2K4N/1P4b1/4p2p/5QR1 w - - 0 1
 go perft 1
 b3b4: 1
@@ -13845,7 +13513,6 @@ c4b4: 1
 c4d4: 1
 c4c5: 1
 
-ucinewgame
 position fen 6K1/1b1P1R2/2B4N/PpB1NrpP/1pn4p/1P6/k1P5/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -13890,7 +13557,6 @@ g8h7: 1
 g8f8: 1
 g8h8: 1
 
-ucinewgame
 position fen 2B5/k1rP1PpP/8/2P1N3/N1P2Pp1/q3p1K1/3P3p/4R3 w - - 0 1
 go perft 1
 d2d3: 1
@@ -13934,7 +13600,6 @@ g3g2: 1
 g3h2: 1
 g3g4: 1
 
-ucinewgame
 position fen 3Q4/1PpK1b2/3P4/N6r/5p1p/1q1Rq1N1/P2P1pkB/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -13977,7 +13642,6 @@ d7c6: 1
 d7c8: 1
 d7c7: 1
 
-ucinewgame
 position fen R3r3/P1P5/1p1Q2K1/5Pp1/3nppp1/6RB/2P1Pk2/6N1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14027,7 +13691,6 @@ g6f7: 1
 g6g7: 1
 g6h7: 1
 
-ucinewgame
 position fen N7/2P1P1q1/R5P1/1k5p/1B5p/1B1pQ1P1/2PP3K/2r1b3 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14088,7 +13751,6 @@ h2h1: 1
 h2g2: 1
 h2h3: 1
 
-ucinewgame
 position fen 3B4/3P1N2/1n4P1/P2N4/2p1p1pP/pk2r1P1/p7/1q2QK2 w - - 0 1
 go perft 1
 h4h5: 1
@@ -14120,7 +13782,6 @@ f1g2: 1
 f1f2: 1
 f1g1: 1
 
-ucinewgame
 position fen 8/3pB1b1/n4p1q/1P1R1qp1/2P2kP1/8/1RbKp2p/1Q6 w - - 0 1
 go perft 1
 c4c5: 1
@@ -14159,7 +13820,6 @@ d2c3: 1
 d2e1: 1
 d2e2: 1
 
-ucinewgame
 position fen nN2b3/2P2q1p/2P4Q/2Pp3P/1q3P2/8/k4p1p/1Rb4K w - - 0 1
 go perft 1
 f4f5: 1
@@ -14185,7 +13845,6 @@ h6f8: 1
 h1h2: 1
 h1g2: 1
 
-ucinewgame
 position fen k7/3n2pr/5P2/3bp3/2p4P/1r1B2NP/1P1pPKpp/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -14207,7 +13866,6 @@ d3g6: 1
 d3h7: 1
 f2e3: 1
 
-ucinewgame
 position fen 1K5R/3prq1n/pp6/2bNRp1q/8/P1P2Bk1/4PN2/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -14249,7 +13907,6 @@ b8c7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen R7/P4PP1/2p1Bp1K/2N5/p3p1Pp/p1kqB3/5P1P/8 w - - 0 1
 go perft 1
 f2f3: 1
@@ -14294,7 +13951,6 @@ h6h7: 1
 h6h5: 1
 h6g6: 1
 
-ucinewgame
 position fen 2B5/3p3P/bP3b1K/1P1r1p2/1q1r3R/4p3/kpPn4/N7 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14320,7 +13976,6 @@ h4h5: 1
 h6g6: 1
 h6h5: 1
 
-ucinewgame
 position fen n7/1PPN4/1qNp4/q2p4/1p1p1pk1/1R1PB3/4P1P1/1K6 w - - 0 1
 go perft 1
 g2g3: 1
@@ -14364,7 +14019,6 @@ b1c2: 1
 b1c1: 1
 b1b2: 1
 
-ucinewgame
 position fen Br1R2N1/P2pP2p/k3P2P/3p3p/2P4K/2qb4/4P3/3N4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -14399,7 +14053,6 @@ h4h3: 1
 h4h5: 1
 h4g5: 1
 
-ucinewgame
 position fen 2q5/2PRP2B/q7/p2NKn1P/k7/b5pP/3pP1rp/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -14425,7 +14078,6 @@ e5f5: 1
 e5e4: 1
 e5f4: 1
 
-ucinewgame
 position fen 3BN3/1P4NB/2n4q/2Rq4/p1p1P3/1p6/k1PpbP2/6K1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14461,7 +14113,6 @@ c5d5: 1
 c5c6: 1
 g1g2: 1
 
-ucinewgame
 position fen 1k4B1/4rPQ1/2P4B/2R5/2pP1p1p/K3P3/5q1n/1r2n2N w - - 0 1
 go perft 1
 e3e4: 1
@@ -14498,7 +14149,6 @@ g7f8: 1
 g7h8: 1
 a3a4: 1
 
-ucinewgame
 position fen 7Q/Pp2r3/3Nkp1r/4Pb2/nK6/PR2P2R/6pP/1n6 w - - 0 1
 go perft 1
 e3e4: 1
@@ -14540,7 +14190,6 @@ b4a4: 1
 b4c4: 1
 b4a5: 1
 
-ucinewgame
 position fen q7/1P3p1B/1Pn1P1N1/2p5/5P2/np1PR2K/1bN2kP1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -14578,7 +14227,6 @@ h3h2: 1
 h3h4: 1
 h3g4: 1
 
-ucinewgame
 position fen 6rr/PR2p2P/bp3n2/1Pp2n2/7B/8/Kbq1k3/5N1q w - - 0 1
 go perft 1
 h7g8q: 1
@@ -14605,7 +14253,6 @@ b7d7: 1
 b7e7: 1
 b7b8: 1
 
-ucinewgame
 position fen b3q3/P2p3K/2B2brP/1r4p1/2N2p2/p1Qp4/4p3/2q3k1 w - - 0 1
 go perft 1
 c4b2: 1
@@ -14640,7 +14287,6 @@ c3a5: 1
 c3e5: 1
 c3f6: 1
 
-ucinewgame
 position fen b6k/2p2R1r/p2pp1Qp/3q4/K2P3b/7P/2P2pq1/2r5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14673,7 +14319,6 @@ g6g8: 1
 a4a3: 1
 a4b4: 1
 
-ucinewgame
 position fen 1kB5/2NQ4/4pPp1/p1P2P2/qp2P1p1/6R1/6b1/bN2K3 w - - 0 1
 go perft 1
 e4e5: 1
@@ -14721,7 +14366,6 @@ e1f2: 1
 e1e2: 1
 e1d2: 1
 
-ucinewgame
 position fen 4q3/2kNP2b/2PNB3/1n1Ppp2/6n1/p3RK2/pP6/6r1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -14754,7 +14398,6 @@ e3e4: 1
 e3e5: 1
 f3e2: 1
 
-ucinewgame
 position fen 8/P1kN1P2/4r2r/3p1pKB/1P1Q2PR/4pP1p/1q6/6b1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -14795,7 +14438,6 @@ d4h8: 1
 g5f4: 1
 g5f5: 1
 
-ucinewgame
 position fen 3K1b1R/6B1/1pbP4/5B2/1N1p2p1/1k1P1p1P/n4P1p/1n6 w - - 0 1
 go perft 1
 h3h4: 1
@@ -14827,7 +14469,6 @@ h8g8: 1
 d8c7: 1
 d8c8: 1
 
-ucinewgame
 position fen 3n2N1/n1r1pp2/5B2/K7/2PpPr2/Pk1b3q/7R/1B2N3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -14861,7 +14502,6 @@ h2h3: 1
 a5b6: 1
 a5a6: 1
 
-ucinewgame
 position fen b4b2/2np3k/2P3pP/6r1/pP4N1/5p1K/2P2B1R/1r3N2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -14888,7 +14528,6 @@ h2g2: 1
 h3h4: 1
 h3g3: 1
 
-ucinewgame
 position fen 8/pP2K2B/n1P3rR/3p4/1p6/3p1kn1/1q1q1N1r/2Q4N w - - 0 1
 go perft 1
 c6c7: 1
@@ -14927,7 +14566,6 @@ e7d8: 1
 e7d7: 1
 e7f7: 1
 
-ucinewgame
 position fen 8/1P6/3pn2b/1P2n2P/p1PP1k2/1pB1RPq1/1p3P2/1K6 w - - 0 1
 go perft 1
 c4c5: 1
@@ -14951,7 +14589,6 @@ e3e4: 1
 e3e5: 1
 b1b2: 1
 
-ucinewgame
 position fen 8/N2k3q/1R3p1P/P2P3R/2Pp2p1/1p2Q1P1/p4K2/2bB4 w - - 0 1
 go perft 1
 c4c5: 1
@@ -15004,7 +14641,6 @@ f2g1: 1
 f2e2: 1
 f2g2: 1
 
-ucinewgame
 position fen 3N2RQ/4pR2/KP6/1P1P1p2/P1P5/1k1Bbp2/1P6/1bn5 w - - 0 1
 go perft 1
 a4a5: 1
@@ -15051,7 +14687,6 @@ a6a5: 1
 a6a7: 1
 a6b7: 1
 
-ucinewgame
 position fen 3r4/2Np1nr1/p4P2/R2p4/qb1K2P1/p6q/2B1k3/1R2n3 w - - 0 1
 go perft 1
 g4g5: 1
@@ -15084,7 +14719,6 @@ a5d5: 1
 a5a6: 1
 d4d5: 1
 
-ucinewgame
 position fen 8/2p1Pp2/1p5b/5P1k/r4P2/3b1R1P/n1PP1Kn1/1q4Q1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -15110,7 +14744,6 @@ g1h2: 1
 f2g3: 1
 f2g2: 1
 
-ucinewgame
 position fen 4R3/1n3Pq1/5PbP/4pk2/8/N1pP1BPn/3P3b/5KB1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -15158,7 +14791,6 @@ f1e1: 1
 f1e2: 1
 f1g2: 1
 
-ucinewgame
 position fen 1r1qN3/2b1PQ2/PNk1B1b1/p7/8/1K1P1P1P/2pp4/R7 w - - 0 1
 go perft 1
 d3d4: 1
@@ -15206,7 +14838,6 @@ f7f8: 1
 f7g8: 1
 b3a2: 1
 
-ucinewgame
 position fen 8/3RP3/k2K2B1/3P4/p1P1rP2/n1B5/1rN1NPP1/1Q1R4 w - - 0 1
 go perft 1
 f2f3: 1
@@ -15264,7 +14895,6 @@ d6c5: 1
 d6c7: 1
 d6c6: 1
 
-ucinewgame
 position fen 5N2/2P5/2B3n1/7p/2P2B2/P1bRp1qb/4P3/kNK2R1r w - - 0 1
 go perft 1
 a3a4: 1
@@ -15312,7 +14942,6 @@ d3d6: 1
 d3d7: 1
 d3d8: 1
 
-ucinewgame
 position fen 2n5/8/1BPR1PNP/3RP1K1/p7/1PrBp3/3P1QP1/7k w - - 0 1
 go perft 1
 g2g3: 1
@@ -15369,7 +14998,6 @@ g5h4: 1
 g5f5: 1
 g5h5: 1
 
-ucinewgame
 position fen 2Q5/P2p4/p3Np1P/kp2P3/B3nr2/Bp6/b4P1K/4b3 w - - 0 1
 go perft 1
 f2f3: 1
@@ -15418,7 +15046,6 @@ h2h1: 1
 h2g2: 1
 h2h3: 1
 
-ucinewgame
 position fen 2k4B/1p6/3p1P1p/1P1bR2K/5Q1p/3B1p2/1P1bpN2/4R3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -15476,7 +15103,6 @@ h5h4: 1
 h5h6: 1
 h5g6: 1
 
-ucinewgame
 position fen 5b1r/1PBp1p2/2r5/1B4kP/p2P4/1R1nKp2/q4n1R/8 w - - 0 1
 go perft 1
 d4d5: 1
@@ -15511,7 +15137,6 @@ b3d3: 1
 b3b4: 1
 e3f3: 1
 
-ucinewgame
 position fen 1N6/Q2b2RK/P1n2P1p/2p1P3/R4P2/bPB2k2/6p1/6n1 w - - 0 1
 go perft 1
 b3b4: 1
@@ -15553,7 +15178,6 @@ h7h6: 1
 h7g8: 1
 h7h8: 1
 
-ucinewgame
 position fen 3k4/2p2PPp/pr4R1/3K4/P3n3/3p4/1r2Pb1P/1b1n1q2 w - - 0 1
 go perft 1
 e2e3: 1
@@ -15584,7 +15208,6 @@ d5c4: 1
 d5e5: 1
 d5e4: 1
 
-ucinewgame
 position fen 2K5/2P1p1pp/3P2p1/5B2/1nP1n1N1/BRQ1P3/k7/1q1b4 w - - 0 1
 go perft 1
 c4c5: 1
@@ -15622,7 +15245,6 @@ c8d7: 1
 c8b8: 1
 c8d8: 1
 
-ucinewgame
 position fen R7/q1b1p3/1pbP3B/4k3/2p2R2/PP2P2P/p2P3p/3K4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -15663,7 +15285,6 @@ d1e1: 1
 d1c2: 1
 d1e2: 1
 
-ucinewgame
 position fen 4B1r1/3P2p1/6q1/1PNK1P2/p1PP1N1P/1n3kp1/1R3P2/8 w - - 0 1
 go perft 1
 h4h5: 1
@@ -15699,7 +15320,6 @@ b2e2: 1
 b2b3: 1
 d5e5: 1
 
-ucinewgame
 position fen 3R4/p2PBqP1/3b3Q/r2n2P1/3p1P2/5Bp1/2N1K3/1n4k1 w - - 0 1
 go perft 1
 f4f5: 1
@@ -15745,7 +15365,6 @@ e2d1: 1
 e2e1: 1
 e2d3: 1
 
-ucinewgame
 position fen 1R6/4P3/1rQ5/b1n1P3/pp5K/2N1PN1b/P1k2Pp1/2q5 w - - 0 1
 go perft 1
 a2a3: 1
@@ -15799,7 +15418,6 @@ h4h3: 1
 h4h5: 1
 h4g5: 1
 
-ucinewgame
 position fen 1n2R3/p7/p1P1Pp2/B2B1P2/1K1pp3/6P1/P1rQ4/4nk2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -15839,7 +15457,6 @@ b4a3: 1
 b4b3: 1
 b4a4: 1
 
-ucinewgame
 position fen q1n5/8/P3r1N1/4PKpP/pk1pB2r/3p1b2/p3P1q1/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -15860,7 +15477,6 @@ e4b7: 1
 e4a8: 1
 f5e6: 1
 
-ucinewgame
 position fen N4nr1/3P2p1/1BpR1P2/bk6/8/6P1/1PQqPKP1/7B w - - 0 1
 go perft 1
 b2b3: 1
@@ -15905,7 +15521,6 @@ c2g6: 1
 c2h7: 1
 f2f1: 1
 
-ucinewgame
 position fen 8/5q2/1P6/4N1nR/RrnQpPp1/b1P2b2/K7/2q1Nk2 w - - 0 1
 go perft 1
 f4f5: 1
@@ -15952,7 +15567,6 @@ d4d6: 1
 d4d7: 1
 d4d8: 1
 
-ucinewgame
 position fen 6r1/5pbp/2pP4/NRPk2PK/8/Pq1B1P2/4pp2/1n6 w - - 0 1
 go perft 1
 a3a4: 1
@@ -15979,7 +15593,6 @@ b5b8: 1
 h5g4: 1
 h5h4: 1
 
-ucinewgame
 position fen 4N2b/5kPb/P1Q5/BP4p1/2q3p1/p3p3/P1Bp3P/3K4 w - - 0 1
 go perft 1
 h2h3: 1
@@ -16030,7 +15643,6 @@ c6d7: 1
 c6a8: 1
 c6c8: 1
 
-ucinewgame
 position fen 6r1/1P2n3/1N1q1p1P/qR3p2/4N3/2b1KRBb/k2p2P1/8 w - - 0 1
 go perft 1
 h6h7: 1
@@ -16075,7 +15687,6 @@ b5f5: 1
 e3f2: 1
 e3e2: 1
 
-ucinewgame
 position fen 8/2k2N2/p4bp1/1p1R2P1/q2p1PRp/2P3pK/P3P2n/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -16103,7 +15714,6 @@ d5d8: 1
 h3g2: 1
 h3h4: 1
 
-ucinewgame
 position fen 2B5/7p/7P/P2PKp1Q/1Bp3p1/4RPpb/1kPq3n/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -16144,7 +15754,6 @@ e5f4: 1
 e5f5: 1
 e5d6: 1
 
-ucinewgame
 position fen 3Nk2q/2Q5/p2b1p2/pP3pP1/R7/P3K2N/3PP2r/q7 w - - 0 1
 go perft 1
 d2d3: 1
@@ -16189,7 +15798,6 @@ c7c8: 1
 e3f3: 1
 e3d3: 1
 
-ucinewgame
 position fen 1B6/6qn/3Q1N2/PPpN1kpp/6r1/p2RP3/8/R4K1B w - - 0 1
 go perft 1
 e3e4: 1
@@ -16243,7 +15851,6 @@ f1e1: 1
 f1f2: 1
 f1e2: 1
 
-ucinewgame
 position fen 3BKn2/1P5P/1P1NB2N/6p1/p7/2pq4/pPp1k2r/5n2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -16286,7 +15893,6 @@ e8f8: 1
 e8e7: 1
 e8f7: 1
 
-ucinewgame
 position fen 1k5b/6BQ/4p2n/3pP2r/qPPp2N1/2P5/5nKp/1b6 w - - 0 1
 go perft 1
 b4b5: 1
@@ -16316,7 +15922,6 @@ g2g3: 1
 g2f3: 1
 g2f2: 1
 
-ucinewgame
 position fen 1K5R/pP4NR/7p/1Np2p2/2P1BP2/1Pr1k2p/8/q2b4 w - - 0 1
 go perft 1
 b3b4: 1
@@ -16349,7 +15954,6 @@ b8c8: 1
 b8c7: 1
 b8a8: 1
 
-ucinewgame
 position fen 1B3R2/8/P1k1n1np/4q3/4p2p/N1P3pP/Pp6/1B1K1b2 w - - 0 1
 go perft 1
 c3c4: 1
@@ -16380,7 +15984,6 @@ d1d2: 1
 d1e1: 1
 d1c2: 1
 
-ucinewgame
 position fen n5KB/R1r3R1/2p2PB1/2PP2p1/2q1P2k/1p6/1Pp1q3/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -16407,7 +16010,6 @@ g7e7: 1
 g7f7: 1
 g7h7: 1
 
-ucinewgame
 position fen 1qb4N/r1Pp4/3P1K1p/p2q4/2Q3r1/3B2k1/1p3p1b/5n2 w - - 0 1
 go perft 1
 c7b8q: 1
@@ -16442,7 +16044,6 @@ c4a6: 1
 c4c6: 1
 f6e7: 1
 
-ucinewgame
 position fen 1B1NB3/n1p3P1/8/2pp4/1P3q1q/p5P1/P1nk2b1/1K3R2 w - - 0 1
 go perft 1
 g3g4: 1
@@ -16476,7 +16077,6 @@ f1f2: 1
 f1f3: 1
 f1f4: 1
 
-ucinewgame
 position fen 2q1N3/2P2q2/2p3N1/7p/k1P1K2b/1p3n2/1Q2R1P1/n4br1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -16514,7 +16114,6 @@ b2h8: 1
 e4d3: 1
 e4e3: 1
 
-ucinewgame
 position fen R1Bq4/r6k/1B3P1P/1P5p/P2RK3/2q5/1p2pb1P/2n5 w - - 0 1
 go perft 1
 h2h3: 1
@@ -16548,7 +16147,6 @@ e4f5: 1
 e4e5: 1
 e4f4: 1
 
-ucinewgame
 position fen 4k3/3p3p/1p4qB/2P5/1n5r/b2P1Q2/bp1KPPNP/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -16586,7 +16184,6 @@ d2d1: 1
 d2e1: 1
 d2c3: 1
 
-ucinewgame
 position fen 4r3/3p1p2/3R2P1/7k/1P2pq2/P1PR3q/1PK3bB/3nb3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -16618,7 +16215,6 @@ c2b1: 1
 c2b3: 1
 c2d1: 1
 
-ucinewgame
 position fen r3Q1NK/P3PqPp/1P6/3P1p2/3k2P1/4q3/5Pr1/bB6 w - - 0 1
 go perft 1
 f2f3: 1
@@ -16647,7 +16243,6 @@ e8d8: 1
 e8f8: 1
 h8h7: 1
 
-ucinewgame
 position fen 8/p1r5/1Q1K1bn1/P2Rn3/pP4k1/1r4P1/1Pq2p1P/5B2 w - - 0 1
 go perft 1
 h2h3: 1
@@ -16681,7 +16276,6 @@ b6c7: 1
 b6b8: 1
 d6e6: 1
 
-ucinewgame
 position fen 2B2K2/qpn5/4P3/pP1N4/3B1P2/Q2nPP1P/P1b4k/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -16723,7 +16317,6 @@ f8f7: 1
 f8g7: 1
 f8g8: 1
 
-ucinewgame
 position fen 1K6/pp1q2p1/5r2/3P2p1/5p2/2RP4/PP1r2PN/2Rbk3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -16752,7 +16345,6 @@ c3c8: 1
 b8a7: 1
 b8a8: 1
 
-ucinewgame
 position fen 1Q6/PR3b1K/p3k3/2P1b3/1qp4p/3P1p2/1p3P2/Bn3r2 w - - 0 1
 go perft 1
 d3d4: 1
@@ -16782,7 +16374,6 @@ b8g8: 1
 b8h8: 1
 h7h6: 1
 
-ucinewgame
 position fen 1N4B1/2p1PP2/6p1/b1P1k3/1N3r1Q/B1p1p3/P1p5/6Kb w - - 0 1
 go perft 1
 c5c6: 1
@@ -16822,7 +16413,6 @@ h4h8: 1
 g1h2: 1
 g1h1: 1
 
-ucinewgame
 position fen 3N2K1/8/2p3P1/bnPPBQp1/n3P3/1q3N1p/3p2k1/1q6 w - - 0 1
 go perft 1
 g8h8: 1
@@ -16866,7 +16456,6 @@ g8f7: 1
 g8g7: 1
 g8h7: 1
 
-ucinewgame
 position fen 6Q1/Kn4n1/8/Pp1Ppp2/k1P1R1Bb/2P1B3/2pq3p/8 w - - 0 1
 go perft 1
 c4c5: 1
@@ -16908,7 +16497,6 @@ a7b7: 1
 a7a8: 1
 a7b8: 1
 
-ucinewgame
 position fen 4b1B1/2p1q3/4n1P1/2R1pp1P/5PkP/Q3B3/Rp4r1/7K w - - 0 1
 go perft 1
 h5h6: 1
@@ -16946,7 +16534,6 @@ a3a7: 1
 a3a8: 1
 h1g2: 1
 
-ucinewgame
 position fen 7r/1B2P3/p7/PP1K4/1q1b3B/Q6p/Rp1p1prq/2k5 w - - 0 1
 go perft 1
 b5b6: 1
@@ -16979,7 +16566,6 @@ d5e6: 1
 d5c6: 1
 d5e4: 1
 
-ucinewgame
 position fen 8/5p1n/K1N1P3/2P5/P7/Qp1BkPp1/1pb1q3/R3B2r w - - 0 1
 go perft 1
 f3f4: 1
@@ -17017,7 +16603,6 @@ a3b2: 1
 a3b3: 1
 a3b4: 1
 
-ucinewgame
 position fen 2q2k2/P2P2p1/2r5/R4rp1/1N1PQ3/N1P1p1q1/2b5/Kn6 w - - 0 1
 go perft 1
 c3c4: 1
@@ -17070,7 +16655,6 @@ e4e8: 1
 a1b2: 1
 a1a2: 1
 
-ucinewgame
 position fen 5K2/4PpP1/1p1q2Bk/5p1p/1b1Q4/P1B3R1/3P1p2/2Nq4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -17118,7 +16702,6 @@ d4e5: 1
 d4b6: 1
 d4d6: 1
 
-ucinewgame
 position fen 4K3/2pPnPN1/4B3/2P3k1/bBpr3q/1PP3N1/6R1/6b1 w - - 0 1
 go perft 1
 c5c6: 1
@@ -17156,7 +16739,6 @@ g2d2: 1
 g2e2: 1
 g2f2: 1
 
-ucinewgame
 position fen 8/2R1NQ2/1p2P2r/8/3K1n1P/2P2bk1/qpP1pp2/3Nb3 w - - 0 1
 go perft 1
 c3c4: 1
@@ -17190,7 +16772,6 @@ f7g8: 1
 d4e5: 1
 d4e3: 1
 
-ucinewgame
 position fen q7/b1p2p2/3R1p1p/4p2Q/2Pn2r1/k4PPq/5N2/3nK3 w - - 0 1
 go perft 1
 f3f4: 1
@@ -17223,7 +16804,6 @@ h5f7: 1
 e1d1: 1
 e1d2: 1
 
-ucinewgame
 position fen 1k6/pP2K1pN/3r2q1/2P5/8/p1pP4/qp2PP1r/3Bb3 w - - 0 1
 go perft 1
 e2e3: 1
@@ -17241,7 +16821,6 @@ d1b3: 1
 d1a4: 1
 e7f8: 1
 
-ucinewgame
 position fen 8/3n2P1/1p1p1P1P/q5qk/3N3P/1pP2Kp1/PB1R3b/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -17276,7 +16855,6 @@ f3e2: 1
 f3e4: 1
 f3g2: 1
 
-ucinewgame
 position fen 2n2q2/R1pP4/4p3/KP1Qp3/5k2/P3p1p1/2PPqp2/4B3 w - - 0 1
 go perft 1
 c2c3: 1
@@ -17318,7 +16896,6 @@ d5a8: 1
 a5a4: 1
 a5a6: 1
 
-ucinewgame
 position fen n5Q1/qP6/7q/1BP2rR1/p3KPp1/3N2P1/3k2rb/3N4 w - - 0 1
 go perft 1
 c5c6: 1
@@ -17370,7 +16947,6 @@ g8h8: 1
 e4f5: 1
 e4d4: 1
 
-ucinewgame
 position fen 1B1R4/1n1nP1q1/P1R1pP1k/1q4b1/NP6/Q1K1p3/2p5/8 w - - 0 1
 go perft 1
 a6a7: 1
@@ -17413,7 +16989,6 @@ c3b2: 1
 c3c2: 1
 c3b3: 1
 
-ucinewgame
 position fen 1N5b/7P/1p3p2/1P1p1k1b/3P4/1p1P2B1/3KNnP1/q6q w - - 0 1
 go perft 1
 e2c1: 1
@@ -17432,7 +17007,6 @@ g3d6: 1
 g3c7: 1
 d2e3: 1
 
-ucinewgame
 position fen 1Q4K1/1PBp3R/4p3/3p4/1q1P4/r1q2P2/1P3p1n/1B1k3n w - - 0 1
 go perft 1
 b2b3: 1
@@ -17473,7 +17047,6 @@ g8f7: 1
 g8g7: 1
 g8h8: 1
 
-ucinewgame
 position fen K5k1/3Bp1p1/bp1pR3/2r2P1r/4P3/P1PQ2N1/1P6/7n w - - 0 1
 go perft 1
 b2b3: 1
@@ -17514,7 +17087,6 @@ d3d6: 1
 a8a7: 1
 a8b8: 1
 
-ucinewgame
 position fen 1B1R4/3pbP1p/7k/pn2KP1p/6r1/P7/pP1qP2P/8 w - - 0 1
 go perft 1
 b2b3: 1
@@ -17539,7 +17111,6 @@ d8f8: 1
 d8g8: 1
 d8h8: 1
 
-ucinewgame
 position fen 1n3R2/P6p/1NnB1K1P/1k2pb2/1p3pP1/5B1Q/2P5/2q5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -17592,7 +17163,6 @@ f6f5: 1
 f6g5: 1
 f6f7: 1
 
-ucinewgame
 position fen 4q3/1BP2pBp/2RK2p1/1R6/5nQ1/1PPk2P1/3b1p2/7r w - - 0 1
 go perft 1
 b3b4: 1
@@ -17639,7 +17209,6 @@ g4d7: 1
 g4c8: 1
 d6c5: 1
 
-ucinewgame
 position fen 1b2q1R1/PPk2P2/3N4/5P2/R2np3/P7/5r1N/1B2KQ1b w - - 0 1
 go perft 1
 f5f6: 1
@@ -17698,7 +17267,6 @@ f1a6: 1
 e1d1: 1
 e1f2: 1
 
-ucinewgame
 position fen 1b1K4/2P3N1/2R1b3/pQ1p1p1p/1B1Pk3/PP2P3/4P3/5r2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -17744,7 +17312,6 @@ b5b8: 1
 d8e8: 1
 d8e7: 1
 
-ucinewgame
 position fen 5kN1/2n2Pp1/2B5/8/NP1Pb1p1/4rp2/KBqP4/b3Q3 w - - 0 1
 go perft 1
 d2d3: 1
@@ -17778,7 +17345,6 @@ e1h1: 1
 e1e2: 1
 e1f2: 1
 
-ucinewgame
 position fen 2k1b3/8/N1P5/3Bq1rq/1N1P1P2/1P2QPp1/1P2P3/1K5R w - - 0 1
 go perft 1
 f4f5: 1
@@ -17819,7 +17385,6 @@ b1c1: 1
 b1a2: 1
 b1c2: 1
 
-ucinewgame
 position fen r7/6BP/1NR2Pr1/3KR1p1/P7/P2P1k1p/1q3Pp1/3b4 w - - 0 1
 go perft 1
 d3d4: 1
@@ -17859,7 +17424,6 @@ d5e6: 1
 d5d6: 1
 d5c5: 1
 
-ucinewgame
 position fen N2n3b/2P5/3ppP1q/1Ppp1Q2/5nPk/5Bp1/4R3/3K4 w - - 0 1
 go perft 1
 g4g5: 1
@@ -17907,7 +17471,6 @@ d1e1: 1
 d1c2: 1
 d1d2: 1
 
-ucinewgame
 position fen 7K/nP4p1/Pqr1b3/q6P/3pk2N/4n3/p3PPR1/4N3 w - - 0 1
 go perft 1
 f2f3: 1
@@ -17934,7 +17497,6 @@ g2g7: 1
 h8g7: 1
 h8h7: 1
 
-ucinewgame
 position fen 4RQb1/5qr1/6pP/1pPB4/P1N3nb/3pP1k1/1K5R/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -17987,7 +17549,6 @@ b2c3: 1
 b2a3: 1
 b2b3: 1
 
-ucinewgame
 position fen 3N4/p7/2pr1bpP/7p/4pk1P/1pBP3K/3n2p1/1q4q1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -18006,7 +17567,6 @@ c3a5: 1
 c3e5: 1
 c3f6: 1
 
-ucinewgame
 position fen 2n4r/6pR/k1Ppq1p1/4p2P/1p2N1r1/2Q3P1/1N6/2R2K2 w - - 0 1
 go perft 1
 h5h6: 1
@@ -18049,7 +17609,6 @@ f1e2: 1
 f1f2: 1
 f1g2: 1
 
-ucinewgame
 position fen 1q2Q3/1P2KR2/4Pp2/3P3P/p4p2/3b3R/1bpr1pp1/k7 w - - 0 1
 go perft 1
 d5d6: 1
@@ -18078,7 +17637,6 @@ e8h8: 1
 e7f8: 1
 e7d7: 1
 
-ucinewgame
 position fen 6q1/5P1R/1r3Pn1/P3p3/p2pP2P/r1k1pP1R/4K2B/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -18106,7 +17664,6 @@ e2d1: 1
 e2e1: 1
 e2f1: 1
 
-ucinewgame
 position fen 2B5/1p2P1k1/rQ4Pn/2PP3p/3p1Pq1/2qR4/5b1K/1n6 w - - 0 1
 go perft 1
 f4f5: 1
@@ -18146,7 +17703,6 @@ b6c7: 1
 b6d8: 1
 h2h1: 1
 
-ucinewgame
 position fen 2r5/1P2RB2/2pK4/5p2/1pQbp3/N1PbpR2/3N4/2q3k1 w - - 0 1
 go perft 1
 b7c8q: 1
@@ -18199,7 +17755,6 @@ c4e6: 1
 d6d7: 1
 d6e6: 1
 
-ucinewgame
 position fen 1N6/PpbPBp2/6n1/1q4P1/k3Ppp1/4p1RQ/5P2/7K w - - 0 1
 go perft 1
 f2f3: 1
@@ -18240,7 +17795,6 @@ h1g1: 1
 h1g2: 1
 h1h2: 1
 
-ucinewgame
 position fen 4K2n/Pk6/N3Pp2/5B1P/3B2p1/2p2P2/4p1PQ/1q1b2r1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -18286,7 +17840,6 @@ e8e7: 1
 e8f8: 1
 e8d8: 1
 
-ucinewgame
 position fen N4nK1/qP1p4/1p1b2Rp/4p3/3Pk3/PPp5/2rP1p2/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -18315,7 +17868,6 @@ g8f7: 1
 g8g7: 1
 g8h8: 1
 
-ucinewgame
 position fen q7/q3Bp1B/1P3PP1/R1nP3P/p1p5/8/NKPN3k/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -18350,7 +17902,6 @@ b2c1: 1
 b2a3: 1
 b2c3: 1
 
-ucinewgame
 position fen 4rn2/2p1kB2/PR5P/n2b1K2/1pPp4/p5NP/q4B2/8 w - - 0 1
 go perft 1
 h3h4: 1
@@ -18387,7 +17938,6 @@ f5f4: 1
 f5g4: 1
 f5e5: 1
 
-ucinewgame
 position fen 8/1b1Qq3/kP5p/Pnp5/pr2PKR1/p7/1P2B3/3n2R1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -18431,7 +17981,6 @@ d7e8: 1
 f4g3: 1
 f4f3: 1
 
-ucinewgame
 position fen 8/1R4q1/1P1Q3p/P1PPr1q1/1B4p1/p1p5/2b2r2/k3n2K w - - 0 1
 go perft 1
 a5a6: 1
@@ -18459,7 +18008,6 @@ d6d8: 1
 d6f8: 1
 h1g1: 1
 
-ucinewgame
 position fen 2qN4/3P3K/P2b4/pRPk2P1/B2p4/B7/1RpP1p2/7n w - - 0 1
 go perft 1
 d2d3: 1
@@ -18495,7 +18043,6 @@ h7g7: 1
 h7g8: 1
 h7h8: 1
 
-ucinewgame
 position fen 8/P1k1N3/2r5/3PpPqb/3p1p2/2pR1q2/K2p4/2RrQ3 w - - 0 1
 go perft 1
 d5d6: 1
@@ -18536,7 +18083,6 @@ a2b1: 1
 a2b3: 1
 a2a3: 1
 
-ucinewgame
 position fen 7k/N1r5/p4Pp1/2Q1n1P1/P2P1P2/p2RK3/1pB2pP1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -18577,7 +18123,6 @@ e3e2: 1
 e3f2: 1
 e3e4: 1
 
-ucinewgame
 position fen 2b5/P3R2B/3pRqPP/1k6/1n3b2/PK3P1p/p4rP1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -18605,7 +18150,6 @@ e7f7: 1
 e7g7: 1
 e7e8: 1
 
-ucinewgame
 position fen 3Q3B/3P3n/p6p/8/2P1K3/Pq3pP1/pR2b1pp/3k1B2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -18643,7 +18187,6 @@ e4d5: 1
 e4d4: 1
 e4f4: 1
 
-ucinewgame
 position fen K1B4R/6pp/pP3bP1/1NP1pq2/6pP/4r2P/5Bk1/8 w - - 0 1
 go perft 1
 h4h5: 1
@@ -18675,7 +18218,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 8/2Q2B2/2b1p3/1RK2p1p/5Pk1/1N4pn/P2Brrp1/4q3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -18719,7 +18261,6 @@ c5d6: 1
 c5b6: 1
 c5c6: 1
 
-ucinewgame
 position fen B3R3/pp2pP1n/2r1Rq2/2N2P2/1pP1Pk2/7Q/6K1/4b3 w - - 0 1
 go perft 1
 e4e5: 1
@@ -18765,7 +18306,6 @@ g2g1: 1
 g2h1: 1
 g2h2: 1
 
-ucinewgame
 position fen 4rr2/1K3Rp1/4N1p1/p2B4/1B1q1b2/1P6/P1Pn1P1k/3q4 w - - 0 1
 go perft 1
 a2a3: 1
@@ -18806,7 +18346,6 @@ f7f8: 1
 b7a6: 1
 b7c6: 1
 
-ucinewgame
 position fen 8/qrp2p2/3kP3/1P1p3B/4pK1P/3P1bB1/R2n1p2/6n1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -18832,7 +18371,6 @@ a2a7: 1
 f4g5: 1
 f4f5: 1
 
-ucinewgame
 position fen n4r2/1K3n1P/2N3P1/4P2p/2R2B1P/pp4P1/1k3p2/4r1q1 w - - 0 1
 go perft 1
 g3g4: 1
@@ -18866,7 +18404,6 @@ c4c5: 1
 b7a6: 1
 b7a7: 1
 
-ucinewgame
 position fen 4b3/PK4Q1/2p4p/1R2Pp1p/1P6/P1p1npb1/2Bk4/3q4 w - - 0 1
 go perft 1
 a3a4: 1
@@ -18907,7 +18444,6 @@ b7c7: 1
 b7a8: 1
 b7b8: 1
 
-ucinewgame
 position fen 1B5q/3pr3/1P1K2R1/P5np/7R/1pr5/2B2pkN/q6N w - - 0 1
 go perft 1
 a5a6: 1
@@ -18943,7 +18479,6 @@ g6g8: 1
 d6e7: 1
 d6d5: 1
 
-ucinewgame
 position fen 2Q5/p1q2k2/P1p4R/p3b3/N3r3/1pn1BP1K/1q1P1r2/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -18985,7 +18520,6 @@ c8f8: 1
 c8g8: 1
 c8h8: 1
 
-ucinewgame
 position fen 4Rb2/2q2n2/2N1p1Pp/2P5/4pQp1/4B2r/K1N1k1b1/5r2 w - - 0 1
 go perft 1
 g6g7: 1
@@ -19034,7 +18568,6 @@ a2b3: 1
 a2a3: 1
 a2b2: 1
 
-ucinewgame
 position fen 2B2r2/1K2pP2/P1ppNkP1/b5RR/p7/6PP/8/1b2r3 w - - 0 1
 go perft 1
 g3g4: 1
@@ -19065,7 +18598,6 @@ b7c6: 1
 b7a7: 1
 b7a8: 1
 
-ucinewgame
 position fen 4n2b/pr2k1P1/2p2n2/1R5p/K2PP3/2PP1p1b/3B4/6q1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -19103,7 +18635,6 @@ a4b3: 1
 a4b4: 1
 a4a5: 1
 
-ucinewgame
 position fen 3b4/6P1/1NQK4/P1R3p1/1p1RPpP1/1Nn1P1k1/1P2p3/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -19149,7 +18680,6 @@ d6d7: 1
 d6e5: 1
 d6e6: 1
 
-ucinewgame
 position fen 1n2R1q1/4p2p/1pR1Bpq1/5n2/1kb5/3Q2p1/P1rP4/6K1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -19194,7 +18724,6 @@ g1f1: 1
 g1h1: 1
 g1g2: 1
 
-ucinewgame
 position fen 8/5p1R/n1r5/1P2P1PB/2PP2P1/4pQ1K/1Np3N1/q5k1 w - - 0 1
 go perft 1
 c4c5: 1
@@ -19233,7 +18762,6 @@ f3f7: 1
 h3h4: 1
 h3g3: 1
 
-ucinewgame
 position fen 8/1pn4P/qP1rP2n/1PP1K1R1/q6p/5B1p/8/1kb3B1 w - - 0 1
 go perft 1
 c5c6: 1
@@ -19270,7 +18798,6 @@ g5g8: 1
 e5f6: 1
 e5d6: 1
 
-ucinewgame
 position fen R2n4/qp2k1P1/2P5/p3K3/B4Npp/2Pp1p2/P4B2/4b3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -19310,7 +18837,6 @@ e5f5: 1
 e5e4: 1
 e5d5: 1
 
-ucinewgame
 position fen 8/1k3B2/RprPp3/Q1r5/P3pP2/3n1q2/Pp2N2K/2N5 w - - 0 1
 go perft 1
 a2a3: 1
@@ -19339,7 +18865,6 @@ a5c5: 1
 a5b6: 1
 h2g1: 1
 
-ucinewgame
 position fen 5BQ1/1pR5/8/p7/2q3q1/1P4b1/pKP1rPBp/4k1nb w - - 0 1
 go perft 1
 b2a3: 1
@@ -19387,7 +18912,6 @@ b2a1: 1
 b2a2: 1
 b2c1: 1
 
-ucinewgame
 position fen 8/4B2P/5P2/R1KPk2p/4p3/1N1pp2P/P1npP1B1/4R3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -19429,7 +18953,6 @@ c5c4: 1
 c5b6: 1
 c5b5: 1
 
-ucinewgame
 position fen 5R2/4p1K1/1k5r/3PNRP1/1p3p2/4P1B1/B2pr2p/N3b3 w - - 0 1
 go perft 1
 e3e4: 1
@@ -19471,7 +18994,6 @@ g7g8: 1
 g7f7: 1
 g7h6: 1
 
-ucinewgame
 position fen 2b2N2/qR2Q3/p5Pp/4P1rP/KbN5/8/1Pppk2P/8 w - - 0 1
 go perft 1
 b2b3: 1
@@ -19511,7 +19033,6 @@ e7e8: 1
 a4b4: 1
 a4b3: 1
 
-ucinewgame
 position fen 3k2N1/Q4p2/1PpP2b1/p1p3P1/K6n/2b2PP1/p7/1r3q2 w - - 0 1
 go perft 1
 f3f4: 1
@@ -19533,7 +19054,6 @@ a7a8: 1
 a7b8: 1
 a4a3: 1
 
-ucinewgame
 position fen 6qk/1NPP4/q1p1R3/3P1Nnr/5p1P/5p2/p1B2K1b/8 w - - 0 1
 go perft 1
 d5d6: 1
@@ -19578,7 +19098,6 @@ e6e7: 1
 e6e8: 1
 f2e1: 1
 
-ucinewgame
 position fen K7/pPq3b1/Qp2p3/B4PPn/b7/pq3P1k/R4P2/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -19609,7 +19128,6 @@ a6b6: 1
 a6a7: 1
 a8a7: 1
 
-ucinewgame
 position fen 8/3n2r1/6P1/1p5p/1p1p2qB/P2K1k1q/P2n2RP/1R5Q w - - 0 1
 go perft 1
 a3a4: 1
@@ -19644,7 +19162,6 @@ h1g1: 1
 d3c2: 1
 d3d2: 1
 
-ucinewgame
 position fen 2R3b1/5q2/pP2p3/1rQ2P1p/3Pp1p1/1B4K1/4kB1N/7R w - - 0 1
 go perft 1
 d4d5: 1
@@ -19697,7 +19214,6 @@ g3g2: 1
 g3h4: 1
 g3f4: 1
 
-ucinewgame
 position fen 6Q1/K6p/P7/p4Pq1/P1q5/B1P2k2/2pb1n1P/nR1r4 w - - 0 1
 go perft 1
 h2h3: 1
@@ -19740,7 +19256,6 @@ a7b7: 1
 a7a8: 1
 a7b8: 1
 
-ucinewgame
 position fen 3R4/1B2Q3/3P4/1P1PqP2/k3Pn1p/2p1b3/3Pr1P1/3K2B1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -19782,7 +19297,6 @@ e7f8: 1
 d1c1: 1
 d1c2: 1
 
-ucinewgame
 position fen b4nq1/K1Pp2n1/1p1PQ3/1rB4P/1P4N1/pR1p4/8/5k2 w - - 0 1
 go perft 1
 h5h6: 1
@@ -19826,7 +19340,6 @@ a7a6: 1
 a7b8: 1
 a7a8: 1
 
-ucinewgame
 position fen 1b6/BQ5p/1KNP1rp1/P7/6p1/2pB1kpP/1pr5/2q5 w - - 0 1
 go perft 1
 h3h4: 1
@@ -19863,7 +19376,6 @@ b6b5: 1
 b6c5: 1
 b6a6: 1
 
-ucinewgame
 position fen 6n1/1rk3P1/2q4P/4p1K1/8/RP1qp2B/P2P4/1Qr2bN1 w - - 0 1
 go perft 1
 b3b4: 1
@@ -19892,7 +19404,6 @@ g5h5: 1
 g5g4: 1
 g5h4: 1
 
-ucinewgame
 position fen 8/PN2p3/2BP1PP1/3q2r1/P2R3p/1n6/2ppKR1P/1k6 w - - 0 1
 go perft 1
 h2h3: 1
@@ -19931,7 +19442,6 @@ e2e3: 1
 e2d3: 1
 e2f1: 1
 
-ucinewgame
 position fen 4B3/pp3R2/p1q5/B5Pr/3N4/1PP1NP1n/K4P1k/7r w - - 0 1
 go perft 1
 b3b4: 1
@@ -19971,7 +19481,6 @@ f7f8: 1
 a2a3: 1
 a2b2: 1
 
-ucinewgame
 position fen 2R5/1p3P1B/5np1/2Q1K1N1/RP5P/2PP4/1b4k1/r4qq1 w - - 0 1
 go perft 1
 e5e6: 1
@@ -20021,7 +19530,6 @@ c5e7: 1
 c5f8: 1
 e5d6: 1
 
-ucinewgame
 position fen 2q3N1/2B2b2/BPk2r2/K4P2/4N1p1/7p/R1p2P1P/2nq4 w - - 0 1
 go perft 1
 f2f3: 1
@@ -20058,7 +19566,6 @@ a2a4: 1
 a5a4: 1
 a5b4: 1
 
-ucinewgame
 position fen nBr4R/4p3/Kp6/1pb2p2/Pp2P3/RPk5/1N6/3B3r w - - 0 1
 go perft 1
 a4a5: 1
@@ -20097,7 +19604,6 @@ a6b7: 1
 a6b5: 1
 a6a7: 1
 
-ucinewgame
 position fen 8/1q3rq1/p2Kp1PP/6PP/5P2/pbNBk3/p5P1/7N w - - 0 1
 go perft 1
 g2g3: 1
@@ -20127,7 +19633,6 @@ d3f5: 1
 d3a6: 1
 d6c5: 1
 
-ucinewgame
 position fen r3b3/r3P3/2P2K2/1p1pP2Q/5N2/1P4p1/3kpPpN/7n w - - 0 1
 go perft 1
 f2f3: 1
@@ -20163,7 +19668,6 @@ f6g5: 1
 f6e6: 1
 f6g7: 1
 
-ucinewgame
 position fen 2B4b/4pK1P/nk6/1P5N/P5p1/1r2R1p1/b6r/2N1Bn2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -20205,7 +19709,6 @@ f7e7: 1
 f7f8: 1
 f7e8: 1
 
-ucinewgame
 position fen 8/2p1pBr1/7r/1P2p2Q/P1NPPP2/5K2/1Pq3P1/q5k1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -20242,7 +19745,6 @@ h5g6: 1
 h5h6: 1
 f3e3: 1
 
-ucinewgame
 position fen b1n2qk1/b1R5/5pK1/4pP1p/3BP3/1R6/2P3pp/2nN4 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20289,7 +19791,6 @@ c7h7: 1
 c7c8: 1
 g6h5: 1
 
-ucinewgame
 position fen 4k3/Q2p1n1P/KP4p1/1p6/P4b1r/P3qq1P/N2B4/5b2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -20315,7 +19816,6 @@ a7a8: 1
 a7b8: 1
 a6a5: 1
 
-ucinewgame
 position fen bK3R2/5p1q/1B2p3/8/5Pp1/1P2p2P/1N2Pk2/1qQr1N2 w - - 0 1
 go perft 1
 b3b4: 1
@@ -20359,7 +19859,6 @@ b8c8: 1
 b8c7: 1
 b8a8: 1
 
-ucinewgame
 position fen 8/bRPNP3/4p1r1/P1B1p1PP/4KQp1/5p2/k1p5/q7 w - - 0 1
 go perft 1
 a5a6: 1
@@ -20410,7 +19909,6 @@ f4f8: 1
 e4d3: 1
 e4e3: 1
 
-ucinewgame
 position fen 8/PP6/1KP5/Q1pN1nbp/q2P1rb1/p1r5/4P2q/5k2 w - - 0 1
 go perft 1
 e2e3: 1
@@ -20441,7 +19939,6 @@ a5a6: 1
 b6c7: 1
 b6a6: 1
 
-ucinewgame
 position fen 3R4/7P/K2P1q2/1p2PB2/1bn3N1/2p2rB1/2np1qP1/7k w - - 0 1
 go perft 1
 e5e6: 1
@@ -20478,7 +19975,6 @@ d8g8: 1
 d8h8: 1
 a6b5: 1
 
-ucinewgame
 position fen 8/N2p1P2/2qpP1p1/4P3/3P1P2/np6/1bPp1K1p/1k4N1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20504,7 +20000,6 @@ f2f1: 1
 f2e2: 1
 f2e3: 1
 
-ucinewgame
 position fen 7R/2N1p3/3P4/2p1q3/1BK3P1/1p2r2p/kPP2pp1/1b3n2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20538,7 +20033,6 @@ h8f8: 1
 h8g8: 1
 c4b5: 1
 
-ucinewgame
 position fen 4K2Q/B7/5b2/1PP4r/ppk5/P4nN1/1ppR1q1P/5R2 w - - 0 1
 go perft 1
 h2h3: 1
@@ -20582,7 +20076,6 @@ e8d7: 1
 e8f8: 1
 e8f7: 1
 
-ucinewgame
 position fen 2q1b2r/p2N2kP/p2R2P1/2N3RQ/3p4/1q3pP1/5K2/3r4 w - - 0 1
 go perft 1
 g3g4: 1
@@ -20617,7 +20110,6 @@ h5g4: 1
 h5h4: 1
 h5h6: 1
 
-ucinewgame
 position fen 5R1N/P3k1PP/1p3p1n/1bp2pP1/r7/P7/3Kpp2/6q1 w - - 0 1
 go perft 1
 g5g6: 1
@@ -20645,7 +20137,6 @@ d2e3: 1
 d2c3: 1
 d2c2: 1
 
-ucinewgame
 position fen 3B3k/p2r2q1/1n1Rr1Pb/5K1p/Q2P4/1p6/4pP1p/7N w - - 0 1
 go perft 1
 f2f3: 1
@@ -20677,7 +20168,6 @@ a4a7: 1
 a4d7: 1
 f5e6: 1
 
-ucinewgame
 position fen B1Q4N/p1Pp4/4p2P/1q1pb1k1/RP1R1r2/8/2P5/2K3n1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20714,7 +20204,6 @@ c1d1: 1
 c1b2: 1
 c1d2: 1
 
-ucinewgame
 position fen nK6/3NP3/B2p4/2P3P1/1k4q1/1P3nBp/2PP1p2/3R1Q2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20763,7 +20252,6 @@ b8b7: 1
 b8c8: 1
 b8a8: 1
 
-ucinewgame
 position fen 6q1/1P1PK3/r2p2Pp/br3Q2/5p1N/1k4NB/1p1R4/3b4 w - - 0 1
 go perft 1
 g6g7: 1
@@ -20814,7 +20302,6 @@ f5f7: 1
 f5f8: 1
 e7f6: 1
 
-ucinewgame
 position fen 4K3/1pb4Q/pp3PP1/1P6/1NrqkP2/1pPpn3/1B6/8 w - - 0 1
 go perft 1
 f4f5: 1
@@ -20848,7 +20335,6 @@ e8f8: 1
 e8e7: 1
 e8f7: 1
 
-ucinewgame
 position fen 7B/b2P2p1/1p3R2/PrN5/P1R1b2N/8/K1pk2qP/6Q1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -20902,7 +20388,6 @@ g1d4: 1
 a2a1: 1
 a2a3: 1
 
-ucinewgame
 position fen 8/p3K3/1rq3Pp/nb6/p1BR2p1/4NP2/2P2pPB/2k5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -20946,7 +20431,6 @@ e7f8: 1
 e7d8: 1
 e7f7: 1
 
-ucinewgame
 position fen B7/P1k3n1/2b4p/b1K2N2/7P/1Np5/p1P1P1P1/R1B4n w - - 0 1
 go perft 1
 e2e3: 1
@@ -20978,7 +20462,6 @@ a1a2: 1
 c5d4: 1
 c5c4: 1
 
-ucinewgame
 position fen 1K1n3k/P7/p2B4/2P2BQq/2P2PRP/2R1P3/5N2/q2r4 w - - 0 1
 go perft 1
 e3e4: 1
@@ -21025,7 +20508,6 @@ b8c8: 1
 b8c7: 1
 b8a8: 1
 
-ucinewgame
 position fen 2K5/3p1N2/pP3RqP/1pPP4/2Pp4/5P2/1pB3rP/7k w - - 0 1
 go perft 1
 h2h3: 1
@@ -21061,7 +20543,6 @@ c8d7: 1
 c8b8: 1
 c8d8: 1
 
-ucinewgame
 position fen 2K3k1/3n1pN1/3P3P/5P2/3PP2R/2b2P1r/3R1Pr1/1bQ5 w - - 0 1
 go perft 1
 f3f4: 1
@@ -21097,7 +20578,6 @@ c8c7: 1
 c8d7: 1
 c8d8: 1
 
-ucinewgame
 position fen 8/2pN3p/1P1q3k/P1RPP3/2b3Kp/2b3nQ/5p1r/4r3 w - - 0 1
 go perft 1
 a5a6: 1
@@ -21121,7 +20601,6 @@ g4f3: 1
 g4h4: 1
 g4f4: 1
 
-ucinewgame
 position fen 5n1R/2p2r2/p7/3K4/2P3P1/1PB1p2p/1Pbp1k1P/n1b5 w - - 0 1
 go perft 1
 b3b4: 1
@@ -21146,7 +20625,6 @@ d5c6: 1
 d5c5: 1
 d5e5: 1
 
-ucinewgame
 position fen 8/1n1p3k/pPQB4/Pp1N1P2/N1p4P/3pPP2/3R2K1/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -21195,7 +20673,6 @@ g2h2: 1
 g2g3: 1
 g2h3: 1
 
-ucinewgame
 position fen 8/p2q1P1p/1p3Bk1/1BR1pq1r/1Q1P2n1/5RK1/1P6/5b2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -21247,7 +20724,6 @@ b4a4: 1
 b4c4: 1
 b4a5: 1
 
-ucinewgame
 position fen 1r2k2B/b4p1p/R2PB3/6Pq/1p1pp3/3N4/3nPq2/3K4 w - - 0 1
 go perft 1
 d1d2: 1
@@ -21286,7 +20762,6 @@ a6a7: 1
 d1c1: 1
 d1c2: 1
 
-ucinewgame
 position fen k1n3q1/3p1n1r/1QP2p2/1pq3N1/2PR1N2/4K3/2P1p2b/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -21323,7 +20798,6 @@ b6b7: 1
 b6c7: 1
 b6b8: 1
 
-ucinewgame
 position fen 4r3/1P1P1P2/p2P3N/n2Qp3/1Kp1p3/r6R/P7/kb3B2 w - - 0 1
 go perft 1
 d7e8q: 1
@@ -21379,7 +20853,6 @@ d5e6: 1
 b4a3: 1
 b4c5: 1
 
-ucinewgame
 position fen 8/3K4/5NQ1/6r1/1RPB2P1/5bP1/kP1Pqp1p/q3nr2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -21422,7 +20895,6 @@ d7d6: 1
 d7c8: 1
 d7c7: 1
 
-ucinewgame
 position fen 7q/1kP1NN2/n2p1BP1/5Q2/2R5/1K1P2qp/1P2P1P1/4b3 w - - 0 1
 go perft 1
 e2e3: 1
@@ -21484,7 +20956,6 @@ b3a2: 1
 b3c2: 1
 b3a3: 1
 
-ucinewgame
 position fen 7N/2pp1RR1/PP1q1N2/4n3/2n1Kb2/Q1p5/b2p3r/7k w - - 0 1
 go perft 1
 a6a7: 1
@@ -21522,7 +20993,6 @@ a3d6: 1
 e4f5: 1
 e4f4: 1
 
-ucinewgame
 position fen n2K3Q/4p3/1P2q1n1/6p1/1RBPk1q1/2PNp1B1/4P1p1/8 w - - 0 1
 go perft 1
 d4d5: 1
@@ -21569,7 +21039,6 @@ h8f8: 1
 h8g8: 1
 d8e8: 1
 
-ucinewgame
 position fen 8/1P1k3N/7r/n2B1Pn1/p3P1bR/p2P2N1/3p1K2/3r2Q1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -21608,7 +21077,6 @@ g1h2: 1
 f2e3: 1
 f2g2: 1
 
-ucinewgame
 position fen 4Q3/2N3P1/1P1Np3/3B1P1b/pp1k3r/1p4K1/2qr3P/2b5 w - - 0 1
 go perft 1
 h2h3: 1
@@ -21657,7 +21125,6 @@ e8g8: 1
 e8h8: 1
 g3h4: 1
 
-ucinewgame
 position fen 1b2nr2/8/B1p5/pbKp4/p1R1p1q1/3pP2P/5qP1/7k w - - 0 1
 go perft 1
 g2g3: 1
@@ -21676,7 +21143,6 @@ c4e4: 1
 c5b6: 1
 c5d4: 1
 
-ucinewgame
 position fen 5B2/1q4n1/3RN2r/2pP4/kpPp3n/2P4q/2K1p2P/3R4 w - - 0 1
 go perft 1
 c3d4: 1
@@ -21710,7 +21176,6 @@ c2c1: 1
 c2b2: 1
 c2d2: 1
 
-ucinewgame
 position fen B3b3/1PP1n2p/3n2P1/2P2R2/3b1p1K/1pP5/P1kP3p/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -21744,7 +21209,6 @@ h4h3: 1
 h4g4: 1
 h4g5: 1
 
-ucinewgame
 position fen 5R1b/P2pr2k/4pPpB/2K5/B2p1P2/1P3R2/7P/5bn1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -21782,7 +21246,6 @@ c5d6: 1
 c5d4: 1
 c5b6: 1
 
-ucinewgame
 position fen 3KR1B1/4PP2/N1q2b2/pP6/n1q3k1/p4r2/P5P1/Rr6 w - - 0 1
 go perft 1
 g2g3: 1
@@ -21801,7 +21264,6 @@ g8h7: 1
 a1b1: 1
 e8f8: 1
 
-ucinewgame
 position fen 3Q4/2P5/b2Npp2/p2P2p1/2nP1pKR/q7/3P3P/4k1b1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -21836,7 +21298,6 @@ d8g8: 1
 d8h8: 1
 g4h5: 1
 
-ucinewgame
 position fen 8/3Np1p1/7P/p2k4/2rP1P1q/1B2K1P1/3PP2Q/bn3r2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -21864,7 +21325,6 @@ h2h3: 1
 h2h4: 1
 e3d3: 1
 
-ucinewgame
 position fen 4K3/8/bn1pBr1p/4p1B1/1NR2PQ1/2b1P3/1kp1q3/2r5 w - - 0 1
 go perft 1
 e3e4: 1
@@ -21904,7 +21364,6 @@ g4h5: 1
 e8d8: 1
 e8e7: 1
 
-ucinewgame
 position fen 2K5/3n2b1/1qp3r1/Bn2Rp1p/7P/k4N2/P1R3NP/1r6 w - - 0 1
 go perft 1
 h2h3: 1
@@ -21943,7 +21402,6 @@ e5e7: 1
 e5e8: 1
 c8d7: 1
 
-ucinewgame
 position fen 8/p6K/3P1PB1/2Pq4/prPQ1b2/2p2p1b/P2P3k/B7 w - - 0 1
 go perft 1
 a2a3: 1
@@ -21975,7 +21433,6 @@ d4e5: 1
 h7h8: 1
 h7g7: 1
 
-ucinewgame
 position fen 3b2b1/1qp3nP/r5Q1/k5r1/8/q1N1P2R/1P1Kp3/6nB w - - 0 1
 go perft 1
 b2b3: 1
@@ -22032,7 +21489,6 @@ d2d3: 1
 d2e1: 1
 d2c2: 1
 
-ucinewgame
 position fen k1b5/5pR1/3pP3/2p5/1pK1Npr1/1r3q2/qp4P1/3R2b1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -22067,7 +21523,6 @@ g7g8: 1
 c4d5: 1
 c4b5: 1
 
-ucinewgame
 position fen 5n1b/8/8/1p1PP3/1pp1q1NQ/1b1P1BPP/p4r2/4k2K w - - 0 1
 go perft 1
 d3d4: 1
@@ -22092,7 +21547,6 @@ h4e7: 1
 h4h7: 1
 h4d8: 1
 
-ucinewgame
 position fen 8/3qBp2/p2ppq1P/1pkN4/4KP2/2P5/P2p2B1/3R1N2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -22125,7 +21579,6 @@ e4d3: 1
 e4e3: 1
 e4f3: 1
 
-ucinewgame
 position fen 2N3K1/3P2R1/2p5/2rk3q/p4BPP/P4pq1/1R2p1b1/n7 w - - 0 1
 go perft 1
 g4g5: 1
@@ -22166,7 +21619,6 @@ g7f7: 1
 g7h7: 1
 g8f8: 1
 
-ucinewgame
 position fen K2R4/3bP3/1R6/p3P2P/pBP4p/q2P1p1Q/2P5/6kN w - - 0 1
 go perft 1
 c2c3: 1
@@ -22218,7 +21670,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 1N5R/4P2n/1B1bK2P/nP1N2p1/4k2P/pPp4p/8/4r3 w - - 0 1
 go perft 1
 b3b4: 1
@@ -22256,7 +21707,6 @@ e6f7: 1
 e6d7: 1
 e6d6: 1
 
-ucinewgame
 position fen 2k1r3/3p1PPr/3B1K2/p2P1b1p/3Pp3/3np3/2p5/1q4q1 w - - 0 1
 go perft 1
 f7e8q: 1
@@ -22284,7 +21734,6 @@ d6b8: 1
 d6f8: 1
 f6f5: 1
 
-ucinewgame
 position fen 8/1Kp3BP/1p1P3r/1p2P2p/1p3R2/P2k4/2qpp3/5Bb1 w - - 0 1
 go perft 1
 a3a4: 1
@@ -22321,7 +21770,6 @@ b7b8: 1
 b7a7: 1
 b7a8: 1
 
-ucinewgame
 position fen 2N2R2/2b3P1/6np/4pr2/3N1q2/PKP2B2/2PP2pP/1k6 w - - 0 1
 go perft 1
 d2d3: 1
@@ -22363,7 +21811,6 @@ b3c4: 1
 b3b4: 1
 b3a4: 1
 
-ucinewgame
 position fen 2BB2b1/5p2/1b2N2p/1K1p1P2/1R4Rn/2P1Pq1p/2P1k3/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -22410,7 +21857,6 @@ b5c6: 1
 b5b6: 1
 b5a6: 1
 
-ucinewgame
 position fen 8/3RP3/4p3/b2p1PKp/2k1p3/Q4PBr/P3R2n/5B1n w - - 0 1
 go perft 1
 f3f4: 1
@@ -22463,7 +21909,6 @@ g5h6: 1
 g5g6: 1
 g5f6: 1
 
-ucinewgame
 position fen 3k4/1rpN2P1/Pb1p4/8/1p4K1/n6N/P1PR1Pp1/Q6q w - - 0 1
 go perft 1
 c2c3: 1
@@ -22511,7 +21956,6 @@ g4f5: 1
 g4g5: 1
 g4h5: 1
 
-ucinewgame
 position fen 8/5pp1/3R1PP1/5p2/P1P3k1/3P4/1nQrN3/K2RBq1q w - - 0 1
 go perft 1
 d3d4: 1
@@ -22550,7 +21994,6 @@ a1b1: 1
 a1a2: 1
 a1b2: 1
 
-ucinewgame
 position fen 3n3N/3qR2P/4P3/4qP2/1kr1PP2/1N4p1/Kpb5/2Q2n2 w - - 0 1
 go perft 1
 f5f6: 1
@@ -22577,7 +22020,6 @@ c1c2: 1
 c1d2: 1
 c1e3: 1
 
-ucinewgame
 position fen 6b1/1Kp2R1B/2ppP1PB/NP4R1/8/b5Q1/k7/3q1nq1 w - - 0 1
 go perft 1
 b5b6: 1
@@ -22631,7 +22073,6 @@ b7b8: 1
 b7c7: 1
 b7a8: 1
 
-ucinewgame
 position fen 4N3/5rR1/3pKP2/3P3b/1N4p1/b1p3kP/p3P1q1/Q4B2 w - - 0 1
 go perft 1
 e2e3: 1
@@ -22662,7 +22103,6 @@ a1c3: 1
 e6d6: 1
 e6f5: 1
 
-ucinewgame
 position fen 4N3/1P2K1pp/Rq2p3/1P1P3P/2P2k1p/B5p1/4pPr1/8 w - - 0 1
 go perft 1
 f2f3: 1
@@ -22693,7 +22133,6 @@ e7f8: 1
 e7f7: 1
 e7d7: 1
 
-ucinewgame
 position fen 3kNB2/1K1p4/2B5/5PrP/P2pr3/2p3R1/3P3Q/q1n2q2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -22737,7 +22176,6 @@ b7b6: 1
 b7a7: 1
 b7a8: 1
 
-ucinewgame
 position fen 8/p4P2/1bkB2P1/q6r/2p5/N2pPpnr/2B3PP/2K5 w - - 0 1
 go perft 1
 e3e4: 1
@@ -22770,7 +22208,6 @@ c1b1: 1
 c1d1: 1
 c1b2: 1
 
-ucinewgame
 position fen R3r3/2K4P/P1P4P/PP4bp/1N2k3/5n2/1p1nqB2/7B w - - 0 1
 go perft 1
 b5b6: 1
@@ -22804,7 +22241,6 @@ c7d6: 1
 c7b7: 1
 c7d7: 1
 
-ucinewgame
 position fen 3K4/PP6/1P3p1p/5p2/P1RP4/1B2kP2/1NR2Nq1/n4b2 w - - 0 1
 go perft 1
 f3f4: 1
@@ -22843,7 +22279,6 @@ d8e7: 1
 d8c8: 1
 d8e8: 1
 
-ucinewgame
 position fen 2R5/7P/2pb3k/5P1q/1NPn2p1/N2P3b/1p1K2Q1/2B2B2 w - - 0 1
 go perft 1
 c4c5: 1
@@ -22888,7 +22323,6 @@ d2e1: 1
 d2e3: 1
 d2c3: 1
 
-ucinewgame
 position fen 1B2k3/6p1/K3P3/5pP1/3R4/np3P1P/1rq1PN2/2R1b2B w - - 0 1
 go perft 1
 e2e3: 1
@@ -22932,7 +22366,6 @@ a6b7: 1
 a6a7: 1
 a6b6: 1
 
-ucinewgame
 position fen 3R4/6N1/P1p5/p5QP/2K5/P5Nb/rPP3nk/B1R1b3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -22986,7 +22419,6 @@ c4c5: 1
 c4d3: 1
 c4d4: 1
 
-ucinewgame
 position fen 3b1q2/1kq1PpPP/p7/1B1P2n1/r1P5/p3Pb1Q/5K2/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -23039,7 +22471,6 @@ f2e1: 1
 f2f1: 1
 f2g1: 1
 
-ucinewgame
 position fen 2r5/3R4/Q1n4N/1pP3p1/1p2b2R/2pPN3/1k2B2K/3nq3 w - - 0 1
 go perft 1
 d3d4: 1
@@ -23091,7 +22522,6 @@ a6a8: 1
 a6c8: 1
 h2h3: 1
 
-ucinewgame
 position fen 3nN3/1qb5/1n2r3/1R1P2k1/Br1pP3/3K1PP1/P7/4R1B1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -23126,7 +22556,6 @@ d3c2: 1
 d3d2: 1
 d3e2: 1
 
-ucinewgame
 position fen 1n4b1/7P/q2qPp1p/1BN1p2P/1p6/k1P2N2/2KP3b/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -23169,7 +22598,6 @@ c2b1: 1
 c2c1: 1
 c2d1: 1
 
-ucinewgame
 position fen Kn3k2/p1P5/P5br/1P6/p1BQ4/1p3n1P/1N3q1P/5N2 w - - 0 1
 go perft 1
 h3h4: 1
@@ -23220,7 +22648,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 3r2BK/8/p2k1np1/1P4n1/1P1B1qb1/q3R3/1P1P1p2/4N3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -23253,7 +22680,6 @@ e3d3: 1
 e3f3: 1
 e3g3: 1
 
-ucinewgame
 position fen B7/3b3P/K1P5/3PpP2/4P1p1/pr1k4/PR4PB/2n4q w - - 0 1
 go perft 1
 g2g3: 1
@@ -23280,7 +22706,6 @@ b2b3: 1
 a6a5: 1
 a6a7: 1
 
-ucinewgame
 position fen Kn6/2P1PQ2/k7/3PB2p/p1p4r/1p1P4/2B3P1/n4R1b w - - 0 1
 go perft 1
 g2g3: 1
@@ -23341,7 +22766,6 @@ f7f8: 1
 f7g8: 1
 a8b8: 1
 
-ucinewgame
 position fen 5Q2/3q2p1/k1Prr3/P2R2p1/8/B1p1N1P1/2p4P/1b3K1B w - - 0 1
 go perft 1
 h2h3: 1
@@ -23395,7 +22819,6 @@ f1e2: 1
 f1f2: 1
 f1g2: 1
 
-ucinewgame
 position fen 3RN2k/4K3/2N2p2/p1pp4/1PQp1r1b/5P2/q3Pp2/3b4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -23435,7 +22858,6 @@ e7f8: 1
 e7d7: 1
 e7f7: 1
 
-ucinewgame
 position fen 1n3N2/5k2/P7/R1n2P2/P1Kb1p2/pp3p2/3PpP1q/6B1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -23453,7 +22875,6 @@ c4b5: 1
 c4d4: 1
 c4b4: 1
 
-ucinewgame
 position fen 5r2/1PN1P1K1/7p/Rq1P1k2/P1p4b/6pq/BB2P3/6r1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -23495,7 +22916,6 @@ g7f8: 1
 g7h7: 1
 g7h6: 1
 
-ucinewgame
 position fen 4N2q/p7/1qPPP1KP/8/p1Pp3k/1b4p1/1bP1r3/2B5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -23516,7 +22936,6 @@ c1g5: 1
 g6f5: 1
 g6f7: 1
 
-ucinewgame
 position fen R7/6n1/2k1p3/q1p1P1P1/n3K3/1bp2p1P/P2N1p2/q6B w - - 0 1
 go perft 1
 a2a3: 1
@@ -23545,7 +22964,6 @@ e4e3: 1
 e4f3: 1
 e4f4: 1
 
-ucinewgame
 position fen 1K6/p3b1p1/1PBN1Bq1/1p6/4p2p/P1Pnq3/2b2P2/2k5 w - - 0 1
 go perft 1
 f2f3: 1
@@ -23582,7 +23000,6 @@ b8c7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 7Q/1RB3Pn/2pp1rk1/p2P1p2/1bK5/7P/P2P2n1/7B w - - 0 1
 go perft 1
 a2a3: 1
@@ -23618,7 +23035,6 @@ c4b3: 1
 c4d4: 1
 c4d3: 1
 
-ucinewgame
 position fen 8/8/2krP1N1/4r3/2B1P1p1/1pPR1P1p/P3pp2/1Kn2N2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -23651,7 +23067,6 @@ b1a1: 1
 b1c1: 1
 b1b2: 1
 
-ucinewgame
 position fen 1q6/4K2P/8/3pnp2/p1PbP3/B3R1Pq/r2p2NP/k7 w - - 0 1
 go perft 1
 g3g4: 1
@@ -23680,7 +23095,6 @@ e3f3: 1
 e7f6: 1
 e7e6: 1
 
-ucinewgame
 position fen 2N2B2/K2P2p1/2q2P2/k7/1rp1P1Q1/1P6/3b1Np1/1r2q2R w - - 0 1
 go perft 1
 e4e5: 1
@@ -23727,7 +23141,6 @@ g4e6: 1
 g4g6: 1
 g4g7: 1
 
-ucinewgame
 position fen 2b5/2nB1PqR/3nq2N/1pKPp3/3P4/6p1/1k1P2r1/N7 w - - 0 1
 go perft 1
 d2d3: 1
@@ -23753,7 +23166,6 @@ c5b4: 1
 c5c6: 1
 c5b6: 1
 
-ucinewgame
 position fen 1n1K4/1p1p1p1p/3RR1P1/8/4P1p1/1PP1BP2/6qP/4k2B w - - 0 1
 go perft 1
 h2h3: 1
@@ -23796,7 +23208,6 @@ d8e8: 1
 d8e7: 1
 d8c8: 1
 
-ucinewgame
 position fen 5K2/3B3p/P1P1q2P/N1P1q1p1/4rP2/2ppp3/1B1b4/7k w - - 0 1
 go perft 1
 f4f5: 1
@@ -23815,7 +23226,6 @@ d7e6: 1
 d7c8: 1
 d7e8: 1
 
-ucinewgame
 position fen 3b4/2r1Pp1P/1nB3pp/B6p/3P1k2/Pp6/2N1K1bN/8 w - - 0 1
 go perft 1
 a3a4: 1
@@ -23860,7 +23270,6 @@ e2d3: 1
 e2d2: 1
 e2f2: 1
 
-ucinewgame
 position fen Q7/2P2Pn1/1p1b2P1/5B1q/2p1p1b1/4P3/p1KP2k1/B5N1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -23908,7 +23317,6 @@ c2c3: 1
 c2c1: 1
 c2b2: 1
 
-ucinewgame
 position fen 5kr1/2Pp4/1R3P1p/2p1q3/4r3/1K1B2Pp/N1n1P2p/6n1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -23936,7 +23344,6 @@ b6b7: 1
 b6b8: 1
 b3c2: 1
 
-ucinewgame
 position fen b7/p1Q3p1/P2nP1K1/1p5p/q1P4p/Pr2b3/B4Bk1/8 w - - 0 1
 go perft 1
 c4c5: 1
@@ -23967,7 +23374,6 @@ g6h7: 1
 g6g7: 1
 g6h5: 1
 
-ucinewgame
 position fen 2Q5/1bp5/pRrp2r1/5P1P/3P1qR1/3pP2k/2B2P2/1K6 w - - 0 1
 go perft 1
 f2f3: 1
@@ -24012,7 +23418,6 @@ b1c1: 1
 b1a2: 1
 b1b2: 1
 
-ucinewgame
 position fen 2B5/k6K/3QPbp1/r1pN4/q3R3/Nn3b2/p1P3p1/4B3 w - - 0 1
 go perft 1
 c2c3: 1
@@ -24068,7 +23473,6 @@ h7g6: 1
 h7h6: 1
 h7g8: 1
 
-ucinewgame
 position fen r3k1KB/8/Np2P3/1R1n1BP1/1p1P4/2P2p1p/2q5/2R1r3 w - - 0 1
 go perft 1
 c3c4: 1
@@ -24102,7 +23506,6 @@ b5b6: 1
 g8h7: 1
 g8g7: 1
 
-ucinewgame
 position fen 8/Q1KRp2b/2p5/1P6/5P1p/1kp1P1PN/3B1rBP/7r w - - 0 1
 go perft 1
 e3e4: 1
@@ -24148,7 +23551,6 @@ c7b7: 1
 c7b8: 1
 c7c8: 1
 
-ucinewgame
 position fen 5rN1/b4P2/BP2P1PR/4K2p/2q1p3/1bkP3P/4p3/7Q w - - 0 1
 go perft 1
 d3d4: 1
@@ -24184,7 +23586,6 @@ e5d6: 1
 e5f4: 1
 e5f5: 1
 
-ucinewgame
 position fen r6Q/1K6/1P4n1/PP1P4/pPR1p3/pPq1k1q1/4P1R1/8 w - - 0 1
 go perft 1
 a5a6: 1
@@ -24223,7 +23624,6 @@ h8g8: 1
 b7a8: 1
 b7c6: 1
 
-ucinewgame
 position fen 8/3Kn1b1/4pp2/p2P4/1n3rPP/P2p2B1/1Pk2Pp1/1r6 w - - 0 1
 go perft 1
 b2b3: 1
@@ -24243,7 +23643,6 @@ d7c7: 1
 d7e7: 1
 d7d8: 1
 
-ucinewgame
 position fen 2q5/1P1qPR1r/2k2pK1/1n3P2/Bp2p1p1/6P1/1npB4/8 w - - 0 1
 go perft 1
 b7c8q: 1
@@ -24276,7 +23675,6 @@ f7f8: 1
 g6h7: 1
 g6f6: 1
 
-ucinewgame
 position fen 2r4n/P1p4P/1N1p4/2rP2p1/P3bR2/k5b1/5nP1/1Q2K3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -24312,7 +23710,6 @@ e1e2: 1
 e1f1: 1
 e1d2: 1
 
-ucinewgame
 position fen 4Q3/4PRpB/P3k2b/4rpr1/6pK/2Np1p2/1P2p3/5q2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -24346,7 +23743,6 @@ e8g8: 1
 e8h8: 1
 h4g3: 1
 
-ucinewgame
 position fen 8/1bpp2P1/2qP1N1K/1P3P2/2k1rP2/1pnr4/5q1p/6Q1 w - - 0 1
 go perft 1
 b5b6: 1
@@ -24383,7 +23779,6 @@ h6h5: 1
 h6g6: 1
 h6h7: 1
 
-ucinewgame
 position fen 8/1rPp4/p5N1/kPP2p1n/4PB2/1p5p/2Pp1P2/3K3n w - - 0 1
 go perft 1
 c2c3: 1
@@ -24415,7 +23810,6 @@ f4h6: 1
 d1e2: 1
 d1d2: 1
 
-ucinewgame
 position fen 6R1/7q/1p1P4/kq4P1/3ppPR1/b3BBK1/1n6/3r1bQ1 w - - 0 1
 go perft 1
 f4f5: 1
@@ -24447,7 +23841,6 @@ g1g2: 1
 g1h2: 1
 g3f2: 1
 
-ucinewgame
 position fen K2B4/2Q3P1/8/2P5/PpPp3P/1Bq3pR/1b1p2N1/1k5r w - - 0 1
 go perft 1
 a4a5: 1
@@ -24487,7 +23880,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 7K/3kP2n/3Nr2p/P7/6P1/2pp2B1/BP3R1p/5bqQ w - - 0 1
 go perft 1
 b2b3: 1
@@ -24541,7 +23933,6 @@ h8g7: 1
 h8h7: 1
 h8g8: 1
 
-ucinewgame
 position fen 5b2/8/3r1Bq1/p1N1P3/bkP1p1np/n4P2/1KPPp3/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -24570,7 +23961,6 @@ b2a1: 1
 b2a2: 1
 b2c1: 1
 
-ucinewgame
 position fen 8/n1R5/pPpP1PK1/qkp3p1/6Q1/2P4N/1r5P/3b1q2 w - - 0 1
 go perft 1
 c3c4: 1
@@ -24617,7 +24007,6 @@ g6h6: 1
 g6f7: 1
 g6g7: 1
 
-ucinewgame
 position fen 1Q4n1/2P1Pp1P/4p2b/PRBP4/kppP2p1/8/3R4/3K4 w - - 0 1
 go perft 1
 a5a6: 1
@@ -24668,7 +24057,6 @@ d1e1: 1
 d1c2: 1
 d1e2: 1
 
-ucinewgame
 position fen 2n3N1/5Pp1/4p3/4p1K1/2p2N2/3p2B1/PPkP1q1b/2r3R1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -24704,7 +24092,6 @@ g5h4: 1
 g5g6: 1
 g5h5: 1
 
-ucinewgame
 position fen 7R/1P2N1pn/2q4k/1P1rp1pr/n1NP1p2/3R1K2/P7/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -24749,7 +24136,6 @@ f3g2: 1
 f3g4: 1
 f3e4: 1
 
-ucinewgame
 position fen 2k5/5R2/nP3b1N/R2b4/p2P2P1/1P6/K1pnQ1p1/2qr4 w - - 0 1
 go perft 1
 e2e8: 1
@@ -24788,7 +24174,6 @@ e2e5: 1
 e2a6: 1
 e2e6: 1
 
-ucinewgame
 position fen N2r4/1p2P3/1q3nK1/1n3P1R/P3p1P1/P4Br1/1Pp5/5k2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -24824,7 +24209,6 @@ g6g7: 1
 g6h6: 1
 g6f7: 1
 
-ucinewgame
 position fen 2B2k2/3P2n1/p2b4/2PP1Pq1/1P6/p2r1p1q/K1Rp4/4N3 w - - 0 1
 go perft 1
 b4b5: 1
@@ -24848,7 +24232,6 @@ c2c4: 1
 a2a1: 1
 a2b1: 1
 
-ucinewgame
 position fen 1N6/4P3/p1pP3p/p1q2PPK/7n/2P1pnQ1/1k2b3/1q6 w - - 0 1
 go perft 1
 c3c4: 1
@@ -24877,7 +24260,6 @@ g3e5: 1
 h5g4: 1
 h5h6: 1
 
-ucinewgame
 position fen 5N2/1pp1K3/P3br2/2Rq3k/2P3p1/2RP4/3p1qpN/7B w - - 0 1
 go perft 1
 d3d4: 1
@@ -24903,7 +24285,6 @@ c5c6: 1
 c5c7: 1
 e7e8: 1
 
-ucinewgame
 position fen 5b1R/1p4Np/3n1B2/3kpn2/3p1PR1/P5P1/K2P1r2/2q5 w - - 0 1
 go perft 1
 a2b3: 1
@@ -24925,7 +24306,6 @@ h8h7: 1
 h8f8: 1
 h8g8: 1
 
-ucinewgame
 position fen 3r3b/1rPPn3/R5p1/4P1P1/2B3K1/2Np2p1/1p1k3B/5Q2 w - - 0 1
 go perft 1
 e5e6: 1
@@ -24992,7 +24372,6 @@ g4h3: 1
 g4f4: 1
 g4h4: 1
 
-ucinewgame
 position fen 2R5/1pK5/1r1N2PQ/2Pkb3/B2P1P1P/1q6/3Bp3/5b1n w - - 0 1
 go perft 1
 f4f5: 1
@@ -25030,7 +24409,6 @@ c8h8: 1
 h6g5: 1
 h6h5: 1
 
-ucinewgame
 position fen 4q3/bP1P4/N4np1/5ppN/1p4b1/1K5p/2P1kPP1/5n2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -25065,7 +24443,6 @@ b3c4: 1
 b3b4: 1
 b3a4: 1
 
-ucinewgame
 position fen 5q1b/3p3K/1P1P2nQ/3r2qb/8/1P2nB1P/1kPr4/6N1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -25088,7 +24465,6 @@ h6g6: 1
 h6g7: 1
 h6f8: 1
 
-ucinewgame
 position fen R3K3/PP5B/b2p1P2/Bp5P/p7/1kNp1P2/2n1N2r/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -25128,7 +24504,6 @@ e8f7: 1
 e8d8: 1
 e8f8: 1
 
-ucinewgame
 position fen 1nB4b/p1p1P3/1P1pN1P1/3rk1P1/1n4K1/R7/5r2/1RN5 w - - 0 1
 go perft 1
 b6b7: 1
@@ -25175,7 +24550,6 @@ g4g3: 1
 g4h3: 1
 g4h4: 1
 
-ucinewgame
 position fen 3K4/4pq1B/P4P2/p7/4nP1N/1b1p2P1/N2ppQ1n/3k4 w - - 0 1
 go perft 1
 g3g4: 1
@@ -25209,7 +24583,6 @@ d8c7: 1
 d8d7: 1
 d8c8: 1
 
-ucinewgame
 position fen 5K2/2pQ1BN1/4p1pP/2B2pk1/1P6/p2q4/1Ppb2P1/2R5 w - - 0 1
 go perft 1
 b2b3: 1
@@ -25259,7 +24632,6 @@ f8e7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 1Q5b/8/P2N1n2/PR6/3k1r2/Pp1n3r/4Ppp1/1KBB4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -25303,7 +24675,6 @@ b8g8: 1
 b8h8: 1
 b1a1: 1
 
-ucinewgame
 position fen R4Q2/2p1P3/4K3/4pPP1/bqp1Nr2/8/p1P3Pn/4k1n1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -25345,7 +24716,6 @@ e6e5: 1
 e6f7: 1
 e6f6: 1
 
-ucinewgame
 position fen 1B3nk1/6P1/2KP1Rp1/6r1/pPP3p1/3P4/1p2qb2/N3R3 w - - 0 1
 go perft 1
 d3d4: 1
@@ -25378,7 +24748,6 @@ f6f8: 1
 c6c7: 1
 c6b7: 1
 
-ucinewgame
 position fen 4R1B1/1qNKP2b/2r2pR1/1P6/Nn6/3Pq3/1r2pP2/4k3 w - - 0 1
 go perft 1
 f2f3: 1
@@ -25413,7 +24782,6 @@ g6g7: 1
 e8a8: 1
 e8b8: 1
 
-ucinewgame
 position fen 4R1K1/3p1B1n/ppkPp2q/4P3/P7/pP6/3P4/B1bN4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -25439,7 +24807,6 @@ e8d8: 1
 e8f8: 1
 g8h8: 1
 
-ucinewgame
 position fen 3r3B/4pP2/5P2/1p1q1P2/q5bP/3k4/1pR1Rn1p/3n1K2 w - - 0 1
 go perft 1
 h4h5: 1
@@ -25468,7 +24835,6 @@ e2e6: 1
 e2e7: 1
 f1e1: 1
 
-ucinewgame
 position fen 5n2/1k5p/1b2p1q1/1K1R1p2/NPP1p3/B3R2B/3NP3/n7 w - - 0 1
 go perft 1
 c4c5: 1
@@ -25502,7 +24868,6 @@ d5d6: 1
 d5d7: 1
 d5d8: 1
 
-ucinewgame
 position fen 2bq2q1/QP1p2k1/p2N4/p7/2nP1bP1/6Pr/3P4/1K1B4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -25539,7 +24904,6 @@ b1c1: 1
 b1a2: 1
 b1c2: 1
 
-ucinewgame
 position fen 5n2/4P3/p1q2bkp/1p1n4/q3p2P/B1P3p1/p1RKb3/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -25564,7 +24928,6 @@ d2c1: 1
 d2e2: 1
 d2e1: 1
 
-ucinewgame
 position fen 4K1N1/1P6/8/2NP2k1/4R1q1/BP2r2B/1Ppp3Q/1nn4b w - - 0 1
 go perft 1
 b3b4: 1
@@ -25606,7 +24969,6 @@ h2f4: 1
 h2e5: 1
 h2d6: 1
 
-ucinewgame
 position fen r7/1Pb2N1K/1P1P4/1P4P1/1p5p/qp1Pkpp1/8/3r3n w - - 0 1
 go perft 1
 d3d4: 1
@@ -25630,7 +24992,6 @@ h7g6: 1
 h7h6: 1
 h7g7: 1
 
-ucinewgame
 position fen 8/8/1KP3kN/B3P3/P1B3pb/2R2PnQ/Rp1PP3/6r1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -25677,7 +25038,6 @@ b6a7: 1
 b6b7: 1
 b6c7: 1
 
-ucinewgame
 position fen 3Qr3/P4P2/2K4p/bn1PR3/3q2pp/2p1Pp2/1kB4q/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -25728,7 +25088,6 @@ c6b5: 1
 c6d7: 1
 c6b7: 1
 
-ucinewgame
 position fen 2Nq4/1kN1pbb1/1B1Pp3/n3n1Pq/P4KP1/8/3r2P1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -25755,7 +25114,6 @@ f4e3: 1
 f4e4: 1
 f4g3: 1
 
-ucinewgame
 position fen 8/2pBN3/2K1n3/p3kP2/p6p/3n2P1/pp2brP1/3R2q1 w - - 0 1
 go perft 1
 g3g4: 1
@@ -25780,7 +25138,6 @@ d1d3: 1
 c6b5: 1
 c6b7: 1
 
-ucinewgame
 position fen 8/2P3pp/pPR3PN/3P1b1q/5P2/1q1p4/1k2N1Kn/2r5 w - - 0 1
 go perft 1
 d5d6: 1
@@ -25810,7 +25167,6 @@ c6f6: 1
 g2g3: 1
 g2f2: 1
 
-ucinewgame
 position fen 5b2/3PBN2/1k3n1p/1b2nPp1/1P2P1Bp/5p2/K3P1R1/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -25843,7 +25199,6 @@ a2b2: 1
 a2a3: 1
 a2b3: 1
 
-ucinewgame
 position fen 2b4R/1p5p/1B6/3P1PP1/1q1P1P1k/3n3B/2KPPp2/2N5 w - - 0 1
 go perft 1
 e2e3: 1
@@ -25872,7 +25227,6 @@ h8g8: 1
 c2d3: 1
 c2d1: 1
 
-ucinewgame
 position fen 2B4q/1Pp1pp1p/rp3P1b/1p1q2P1/8/3nK3/R7/2k2b2 w - - 0 1
 go perft 1
 a2a6: 1
@@ -25899,7 +25253,6 @@ a2a3: 1
 a2a4: 1
 a2a5: 1
 
-ucinewgame
 position fen rn6/4pp1p/P2Pk2b/1Rq1P3/5P2/4p3/1P1R4/1b2n2K w - - 0 1
 go perft 1
 b2b3: 1
@@ -25927,7 +25280,6 @@ b5b8: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen 8/pk2pB2/n3p1KP/q1rb3p/5q2/2N5/1pR1PP1p/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -25951,7 +25303,6 @@ g6h7: 1
 g6g7: 1
 g6h5: 1
 
-ucinewgame
 position fen q4N2/2p4K/p3Q3/PR2P2p/k3P1q1/1N3Pb1/5r2/4B2B w - - 0 1
 go perft 1
 f3f4: 1
@@ -25994,7 +25345,6 @@ e6g8: 1
 h7h8: 1
 h7h6: 1
 
-ucinewgame
 position fen 2N1R1Bq/7p/5nbr/1P3P2/3pPKpn/1P3p2/1k6/7R w - - 0 1
 go perft 1
 b3b4: 1
@@ -26029,7 +25379,6 @@ f4g5: 1
 f4e5: 1
 f4g3: 1
 
-ucinewgame
 position fen 1r3q2/Pp4p1/5pPk/q7/B2KppP1/2Pbp3/2p2B2/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -26054,7 +25403,6 @@ a4c6: 1
 a4d7: 1
 a4e8: 1
 
-ucinewgame
 position fen 8/N5N1/P1q2Q2/2Bk4/1Kpr1b2/2n2pP1/p1R2P1q/7R w - - 0 1
 go perft 1
 g3g4: 1
@@ -26104,7 +25452,6 @@ b4a3: 1
 b4a5: 1
 b4c3: 1
 
-ucinewgame
 position fen 2K5/2P1P3/2B4p/1PP2NkP/pRp4r/1qb5/2P3Pn/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -26137,7 +25484,6 @@ c8d7: 1
 c8b8: 1
 c8d8: 1
 
-ucinewgame
 position fen K7/p1R1P3/2P1p3/3pp1P1/1Nb3P1/1n5B/1Pp2b1P/2k5 w - - 0 1
 go perft 1
 g5g6: 1
@@ -26159,7 +25505,6 @@ c7c8: 1
 a8b8: 1
 a8b7: 1
 
-ucinewgame
 position fen 2rR4/1r4pk/n3p1N1/3n2p1/2pP4/4PP2/2Rp1q2/3K2Q1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -26194,7 +25539,6 @@ g1g3: 1
 g1g4: 1
 g1g5: 1
 
-ucinewgame
 position fen 7r/P7/2KNp1p1/P7/1qBpP3/4N2n/P1nB2PP/6k1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -26235,7 +25579,6 @@ c4e6: 1
 c6d7: 1
 c6c7: 1
 
-ucinewgame
 position fen 7K/4B2p/3PB3/1pr4P/1p1nPP2/1q1pb3/3k1N2/2qb4 w - - 0 1
 go perft 1
 e4e5: 1
@@ -26266,7 +25609,6 @@ h8g7: 1
 h8h7: 1
 h8g8: 1
 
-ucinewgame
 position fen 5Bq1/1P1p2pP/1r1R3P/3p2k1/2p2nP1/QN6/2pp4/7K w - - 0 1
 go perft 1
 h7g8q: 1
@@ -26311,7 +25653,6 @@ a3a8: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen R7/K5b1/3pBPpq/4P2p/7P/P4n1p/rpk2N2/3b4 w - - 0 1
 go perft 1
 a3a4: 1
@@ -26347,7 +25688,6 @@ a7b6: 1
 a7b7: 1
 a7b8: 1
 
-ucinewgame
 position fen 4r2Q/5k2/P7/2P1P1P1/1N2q1R1/2P1n2p/1bp4P/1b2K2N w - - 0 1
 go perft 1
 c3c4: 1
@@ -26382,7 +25722,6 @@ e1f2: 1
 e1e2: 1
 e1d2: 1
 
-ucinewgame
 position fen 2R1R3/p3p1pB/4P3/2Q5/p3p1P1/2q5/n1bP3b/nk5K w - - 0 1
 go perft 1
 d2d3: 1
@@ -26427,7 +25766,6 @@ c5e7: 1
 h1h2: 1
 h1g2: 1
 
-ucinewgame
 position fen 3B1K2/5b1P/p1r1qP2/PPpQ4/8/1rp3P1/3bR2p/2k5 w - - 0 1
 go perft 1
 g3g4: 1
@@ -26470,7 +25808,6 @@ d5e6: 1
 d5d7: 1
 f8g7: 1
 
-ucinewgame
 position fen 6b1/3P1p1k/4P2P/2K1Q1p1/8/pRBN4/3Pr3/1q1qr2B w - - 0 1
 go perft 1
 e6e7: 1
@@ -26530,7 +25867,6 @@ c5b6: 1
 c5c6: 1
 c5d6: 1
 
-ucinewgame
 position fen nn6/PNb2b1p/8/3PP3/5R1K/1p5p/2Q1B1Pp/k5N1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -26591,7 +25927,6 @@ h4h3: 1
 h4g4: 1
 h4g5: 1
 
-ucinewgame
 position fen 5q2/P4R1p/4PK1n/1N5r/bPk1PbB1/1p2p3/8/2B1n3 w - - 0 1
 go perft 1
 e4e5: 1
@@ -26617,7 +25952,6 @@ g4f5: 1
 g4h5: 1
 f7f8: 1
 
-ucinewgame
 position fen 1r6/4P1Q1/3p2B1/Bbnk3P/5RK1/3Pb2p/2nPN2N/8 w - - 0 1
 go perft 1
 d3d4: 1
@@ -26675,7 +26009,6 @@ g4h4: 1
 g4f5: 1
 g4g5: 1
 
-ucinewgame
 position fen R7/p1PP2p1/q2N3k/P3Q3/P4p2/2P3p1/1P1P3B/1K4n1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -26731,7 +26064,6 @@ b1c1: 1
 b1a2: 1
 b1c2: 1
 
-ucinewgame
 position fen 2r3k1/5pp1/p1p2P2/nrP2q2/1bB1R3/pp4K1/7P/5N2 w - - 0 1
 go perft 1
 h2h3: 1
@@ -26760,7 +26092,6 @@ e4e8: 1
 g3h4: 1
 g3g2: 1
 
-ucinewgame
 position fen 1bR5/n1PK3B/5P2/3b1p1p/2NQ4/2p1pnk1/7N/1R3q2 w - - 0 1
 go perft 1
 f6f7: 1
@@ -26819,7 +26150,6 @@ d7d6: 1
 d7d8: 1
 d7e7: 1
 
-ucinewgame
 position fen 1b4Nn/2k1p3/pp6/1Bp3p1/1rP5/2Pp4/KP5R/3qq3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -26846,7 +26176,6 @@ h2h7: 1
 h2h8: 1
 a2a3: 1
 
-ucinewgame
 position fen Q2n3q/r1R2p2/6PP/4k3/4Nr2/B4P1N/p2P1p1R/2K5 w - - 0 1
 go perft 1
 d2d3: 1
@@ -26896,7 +26225,6 @@ c1c2: 1
 c1d1: 1
 c1b2: 1
 
-ucinewgame
 position fen 6Q1/7P/1Pn2k2/1K1B4/p2P1P2/R1R1N1p1/2b1p1np/5r2 w - - 0 1
 go perft 1
 f4f5: 1
@@ -26950,7 +26278,6 @@ b5a6: 1
 b5c4: 1
 b5c5: 1
 
-ucinewgame
 position fen 1B1q2Bb/Pk4P1/5N1P/P1n4R/5p2/pp2rN2/3p2K1/8 w - - 0 1
 go perft 1
 a5a6: 1
@@ -27003,7 +26330,6 @@ g2f2: 1
 g2h2: 1
 g2h3: 1
 
-ucinewgame
 position fen 8/5KP1/1n2B3/Pb4b1/1n2pkP1/3P3p/P1Nq1B2/q3Q3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -27049,7 +26375,6 @@ f7g8: 1
 f7g6: 1
 f7f8: 1
 
-ucinewgame
 position fen 3K4/1P4P1/7b/1RpP3N/2r5/Pp4N1/2pBb1qp/3k2q1 w - - 0 1
 go perft 1
 a3a4: 1
@@ -27089,7 +26414,6 @@ d8e7: 1
 d8c8: 1
 d8e8: 1
 
-ucinewgame
 position fen 2q2B2/k4bP1/2PR1np1/6r1/2p1p1P1/1nP1N3/3PK1P1/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -27119,7 +26443,6 @@ e2e1: 1
 e2f1: 1
 e2f2: 1
 
-ucinewgame
 position fen 7N/nkPb1rP1/6Kp/BB3PN1/1rR5/7R/1n3b1p/8 w - - 0 1
 go perft 1
 f5f6: 1
@@ -27170,7 +26493,6 @@ g6h7: 1
 g6h6: 1
 g6f7: 1
 
-ucinewgame
 position fen 6b1/P3b2p/q7/2P2R2/P6q/k3Pp2/PnR1N3/4QBK1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -27213,7 +26535,6 @@ e1b4: 1
 e1h4: 1
 e1a5: 1
 
-ucinewgame
 position fen 4N2N/Bnr1p1PP/p3Kp2/n7/q2pP3/3k4/B2q4/5R2 w - - 0 1
 go perft 1
 e4e5: 1
@@ -27250,7 +26571,6 @@ e6d5: 1
 e6f7: 1
 e6f5: 1
 
-ucinewgame
 position fen 2b3R1/1n1PR3/1P2P3/2P3P1/3K4/rq2pppQ/5k1q/2b5 w - - 0 1
 go perft 1
 c5c6: 1
@@ -27288,7 +26608,6 @@ h3h8: 1
 d4e5: 1
 d4e4: 1
 
-ucinewgame
 position fen 8/2q1N1b1/1P2rn1p/R7/B6n/k3B1P1/Pq2NK1p/r7 w - - 0 1
 go perft 1
 g3g4: 1
@@ -27326,7 +26645,6 @@ a5d5: 1
 a5e5: 1
 a5f5: 1
 
-ucinewgame
 position fen 4r3/4Q2b/Pk1p1p2/3P2nN/1PK5/3Bq1PP/1Pp5/B7 w - - 0 1
 go perft 1
 b2b3: 1
@@ -27363,7 +26681,6 @@ e7f8: 1
 c4b3: 1
 c4c3: 1
 
-ucinewgame
 position fen 1K6/4Bp2/B5p1/P2P1N2/2p1p3/1Pnk1N2/q3bP2/Qn6 w - - 0 1
 go perft 1
 b3b4: 1
@@ -27407,7 +26724,6 @@ b8c7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 5N1K/2R2b2/6p1/P1P1P1QP/1prq4/P4N1k/r7/R1B5 w - - 0 1
 go perft 1
 a3a4: 1
@@ -27456,7 +26772,6 @@ g5e7: 1
 g5d8: 1
 h8g7: 1
 
-ucinewgame
 position fen 2N5/3k4/5B1P/4K1N1/2PPp3/2p4p/Bp1rqQ2/1bq2r2 w - - 0 1
 go perft 1
 c4c5: 1
@@ -27494,7 +26809,6 @@ e5f5: 1
 e5f4: 1
 e5d5: 1
 
-ucinewgame
 position fen 6K1/1pP4R/2Pk1q2/p3b1Bp/2p3P1/5P2/r4nPP/6n1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -27522,7 +26836,6 @@ h7f7: 1
 h7g7: 1
 h7h8: 1
 
-ucinewgame
 position fen 7N/P3p3/1PR1p3/3rPPk1/5q2/5P2/1N1p2pB/QK3B2 w - - 0 1
 go perft 1
 f5f6: 1
@@ -27564,7 +26877,6 @@ a1a6: 1
 b1c2: 1
 b1a2: 1
 
-ucinewgame
 position fen 8/1Rp5/bP1r1pp1/2P3P1/5b2/K1ppNk2/2p3qP/3R4 w - - 0 1
 go perft 1
 h2h3: 1
@@ -27597,7 +26909,6 @@ a3b4: 1
 a3b3: 1
 a3a4: 1
 
-ucinewgame
 position fen 6K1/3PQr2/2kbppp1/5q2/8/1BP2pPP/1n6/1NR3N1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -27632,7 +26943,6 @@ e7f8: 1
 g8f7: 1
 g8h8: 1
 
-ucinewgame
 position fen 5n2/1PPNQpqP/5Pp1/3b1p2/2P3p1/K2p4/6p1/5k1q w - - 0 1
 go perft 1
 c4c5: 1
@@ -27674,7 +26984,6 @@ a3b3: 1
 a3a4: 1
 a3b4: 1
 
-ucinewgame
 position fen 8/pk4K1/3b3P/2q2p2/PP3rP1/2n2RBp/b2nBQ2/8 w - - 0 1
 go perft 1
 a4a5: 1
@@ -27709,7 +27018,6 @@ g7g6: 1
 g7h8: 1
 g7h7: 1
 
-ucinewgame
 position fen 6BR/qn6/1q6/2PPp3/1p1kP2Q/1P4p1/nK3PP1/6b1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -27741,7 +27049,6 @@ b2a1: 1
 b2b1: 1
 b2c2: 1
 
-ucinewgame
 position fen 6nB/Q4Pp1/R4Pr1/P2P1k2/5p2/pPP4R/p3p3/4K3 w - - 0 1
 go perft 1
 b3b4: 1
@@ -27787,7 +27094,6 @@ e1f2: 1
 e1e2: 1
 e1d2: 1
 
-ucinewgame
 position fen K7/3p2P1/3bP3/2P2bn1/p1P1np2/1P2p3/Q1rr1qk1/8 w - - 0 1
 go perft 1
 b3b4: 1
@@ -27809,7 +27115,6 @@ a2a4: 1
 a8a7: 1
 a8b7: 1
 
-ucinewgame
 position fen 8/4P2B/1P1P2pP/1P2Rp2/3K1p2/1k2r2P/pN1B3b/4Q3 w - - 0 1
 go perft 1
 h3h4: 1
@@ -27851,7 +27156,6 @@ e1h4: 1
 d4d5: 1
 d4c5: 1
 
-ucinewgame
 position fen 4B3/1QrP3P/5p2/P3Pn1p/4Kp2/q5bp/q4R2/r1k5 w - - 0 1
 go perft 1
 a5a6: 1
@@ -27894,7 +27198,6 @@ b7b8: 1
 b7c8: 1
 e4f5: 1
 
-ucinewgame
 position fen 4R3/rNPP4/4nK2/7p/Pn1k1P2/1B5p/1Pp2p2/1N4r1 w - - 0 1
 go perft 1
 a4a5: 1
@@ -27933,7 +27236,6 @@ f6f5: 1
 f6e7: 1
 f6e6: 1
 
-ucinewgame
 position fen n1Qq2Rb/2r3P1/K7/7N/1p1P1PrR/4pp2/4p3/3k3B w - - 0 1
 go perft 1
 d4d5: 1
@@ -27965,7 +27267,6 @@ c8d8: 1
 a6a5: 1
 a6b5: 1
 
-ucinewgame
 position fen Knr5/1PqP2n1/PR1P4/k4pPP/2Q3N1/8/2p1p2b/8 w - - 0 1
 go perft 1
 g5g6: 1
@@ -28017,7 +27318,6 @@ c4f7: 1
 c4g8: 1
 a8a7: 1
 
-ucinewgame
 position fen 1k2N2K/n4Rr1/2p4p/1p3P2/P1N1Bp2/5bq1/P2qQ3/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -28061,7 +27361,6 @@ e2d3: 1
 e2e3: 1
 e2f3: 1
 
-ucinewgame
 position fen 7K/R2P3P/2rB4/R4pNN/2P2p2/1Pk4p/Bn5P/3q4 w - - 0 1
 go perft 1
 b3b4: 1
@@ -28104,7 +27403,6 @@ a7a8: 1
 h8g7: 1
 h8g8: 1
 
-ucinewgame
 position fen 4b3/2pP2Bp/P5PP/p2qRpK1/1kp5/N7/5P2/2Q1n3 w - - 0 1
 go perft 1
 f2f3: 1
@@ -28152,7 +27450,6 @@ g5h4: 1
 g5f5: 1
 g5h5: 1
 
-ucinewgame
 position fen 1R2NK1k/3P1Pn1/6P1/p2rN1P1/3q4/1qp5/1Pb2Q2/3B4 w - - 0 1
 go perft 1
 d7d8q: 1
@@ -28200,7 +27497,6 @@ f2f5: 1
 f2f6: 1
 f8e7: 1
 
-ucinewgame
 position fen 2k5/2p2B2/p3n2R/2P1p3/P2Br3/NpP2R2/p3PK1N/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -28241,7 +27537,6 @@ f2g1: 1
 f2g2: 1
 f2g3: 1
 
-ucinewgame
 position fen 6Q1/kpbp3P/3PP3/4N1RP/4K1R1/2q1p3/P3p3/2r2q2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -28281,7 +27576,6 @@ g8f8: 1
 g8h8: 1
 e4d5: 1
 
-ucinewgame
 position fen 2B3q1/8/2Q1P3/P2r2RP/6bK/pRP4N/1n1b2rk/6n1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -28322,7 +27616,6 @@ c6d7: 1
 c6a8: 1
 c6e8: 1
 
-ucinewgame
 position fen 1B6/1P1p2P1/1b1N2P1/2Q4p/B1P3p1/1K1P2R1/1p3p1p/7k w - - 0 1
 go perft 1
 d3d4: 1
@@ -28370,7 +27663,6 @@ b3a3: 1
 b3c3: 1
 b3b4: 1
 
-ucinewgame
 position fen 2b5/4QN1K/p3n2B/1P3R2/P1R3p1/6P1/p2PPP2/3k2q1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -28431,7 +27723,6 @@ h7g6: 1
 h7h8: 1
 h7g8: 1
 
-ucinewgame
 position fen 3r4/4K2B/1r3P2/P2Pkb2/pnp1n1P1/5p1p/3p2N1/6b1 w - - 0 1
 go perft 1
 g4g5: 1
@@ -28450,7 +27741,6 @@ h7g8: 1
 e7d8: 1
 e7f7: 1
 
-ucinewgame
 position fen 5n2/1pK5/1P2Pp2/k2p3p/1r2qQpP/3P2B1/bq6/6N1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -28482,7 +27772,6 @@ c7b7: 1
 c7c8: 1
 c7b8: 1
 
-ucinewgame
 position fen k5n1/rpb5/PP2q1N1/4p3/2p1pP1P/p7/b4KP1/2q5 w - - 0 1
 go perft 1
 g2g3: 1
@@ -28500,7 +27789,6 @@ g6h8: 1
 f2g3: 1
 f2e2: 1
 
-ucinewgame
 position fen 1K6/1p3ppp/2R1PRP1/pN2P2P/7p/8/1P3bkq/Q7 w - - 0 1
 go perft 1
 b2b3: 1
@@ -28547,7 +27835,6 @@ b8b7: 1
 b8c7: 1
 b8a8: 1
 
-ucinewgame
 position fen 8/k3PP2/r5P1/2R1pKp1/q4pnB/N5p1/B1RQ4/2q5 w - - 0 1
 go perft 1
 g6g7: 1
@@ -28603,7 +27890,6 @@ d2d8: 1
 f5g5: 1
 f5g4: 1
 
-ucinewgame
 position fen 3R3N/3P3b/1pPp4/3Nk3/qPPrB3/1P4p1/5p1p/1K6 w - - 0 1
 go perft 1
 b4b5: 1
@@ -28634,7 +27920,6 @@ d8e8: 1
 d8f8: 1
 d8g8: 1
 
-ucinewgame
 position fen 3q3b/pK1RP3/1P4P1/pB3p1r/1Q2R3/4Bk1P/P4r2/8 w - - 0 1
 go perft 1
 a2a3: 1
@@ -28697,7 +27982,6 @@ b7a6: 1
 b7c6: 1
 b7a7: 1
 
-ucinewgame
 position fen 8/2p3r1/2k1Kb2/ppP1P3/q2r3Q/2p1P3/P4qp1/4N1R1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -28727,7 +28011,6 @@ h4h6: 1
 h4h7: 1
 h4h8: 1
 
-ucinewgame
 position fen 8/2Rq1P2/2Pp2P1/2Pk3p/1r5n/5p1r/1pp1NK2/1B4n1 w - - 0 1
 go perft 1
 g6g7: 1
@@ -28754,7 +28037,6 @@ f2f1: 1
 f2g1: 1
 f2e3: 1
 
-ucinewgame
 position fen bB6/3P4/1Pp1p1K1/2P1R3/1P2Pb1q/p1r4N/4kp2/3r4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -28778,7 +28060,6 @@ e5e6: 1
 g6g7: 1
 g6f7: 1
 
-ucinewgame
 position fen 1b6/1Bpp3n/4qRpP/5n2/2p3rP/1P3r1k/3Rp3/2K5 w - - 0 1
 go perft 1
 b3b4: 1
@@ -28810,7 +28091,6 @@ c1b1: 1
 c1c2: 1
 c1b2: 1
 
-ucinewgame
 position fen 3B3r/7p/1KNbPP2/1p3P2/1P2pPp1/R6p/7k/1B3b2 w - - 0 1
 go perft 1
 e6e7: 1
@@ -28846,7 +28126,6 @@ b6b7: 1
 b6a7: 1
 b6a6: 1
 
-ucinewgame
 position fen 2q3R1/B2N4/1r3P1p/1q1p2RP/1P1b1p2/1kN5/8/n2K3B w - - 0 1
 go perft 1
 f6f7: 1
@@ -28888,7 +28167,6 @@ d1c1: 1
 d1e1: 1
 d1d2: 1
 
-ucinewgame
 position fen 2N2b2/3k2Nr/1Pn5/Q4P2/bp2K1P1/2R3PP/5R2/6nr w - - 0 1
 go perft 1
 h3h4: 1
@@ -28935,7 +28213,6 @@ e4e3: 1
 e4d5: 1
 e4f4: 1
 
-ucinewgame
 position fen q7/3Nr3/1Pn1k2P/1R6/Bbp5/pPQ1P1pn/5P2/5K2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -28976,7 +28253,6 @@ f1e1: 1
 f1g2: 1
 f1e2: 1
 
-ucinewgame
 position fen 7k/3NP2P/2r1Pq2/p2p4/1p6/1Q1p1pK1/6PN/r2b2b1 w - - 0 1
 go perft 1
 e7e8q: 1
@@ -29008,7 +28284,6 @@ b3d5: 1
 g3g4: 1
 g3h3: 1
 
-ucinewgame
 position fen 8/p6P/q7/3BKppb/kP1PR3/P5p1/qP1N1pR1/8 w - - 0 1
 go perft 1
 b2b3: 1
@@ -29043,7 +28318,6 @@ e4g4: 1
 e4h4: 1
 e5f5: 1
 
-ucinewgame
 position fen 2K3Q1/pP1p1n1q/pP3r2/3p3b/4Pr2/2p1k2n/4p1P1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -29071,7 +28345,6 @@ c8c7: 1
 c8d7: 1
 c8b8: 1
 
-ucinewgame
 position fen 8/pp1p4/1N1n4/3P2PP/P1B3PK/1Rp1pP2/2r5/5rk1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -29095,7 +28368,6 @@ b3b5: 1
 h4g3: 1
 h4h3: 1
 
-ucinewgame
 position fen q7/pkP1pP1N/1Pb4p/5PP1/7K/R6B/2nB1p1P/8 w - - 0 1
 go perft 1
 f5f6: 1
@@ -29138,7 +28410,6 @@ h4g3: 1
 h4g4: 1
 h4h5: 1
 
-ucinewgame
 position fen 2B2k2/3R1bqP/Q4P2/B5p1/R1pb4/K2PP2n/3r4/1N6 w - - 0 1
 go perft 1
 e3e4: 1
@@ -29180,7 +28451,6 @@ a6b7: 1
 a6a8: 1
 a3b4: 1
 
-ucinewgame
 position fen 8/r1pP1K2/1P1b2N1/3pP3/4pp1q/1k2r3/1P3R1B/4nn2 w - - 0 1
 go perft 1
 e5e6: 1
@@ -29212,7 +28482,6 @@ f7g8: 1
 f7e8: 1
 f7g7: 1
 
-ucinewgame
 position fen 2K2B2/3P3P/r2P4/p4qP1/b6P/2k1ppp1/n2pP3/6r1 w - - 0 1
 go perft 1
 h4h5: 1
@@ -29230,7 +28499,6 @@ f8h6: 1
 f8e7: 1
 f8g7: 1
 
-ucinewgame
 position fen 1K6/p1Prr3/P3Q2p/6R1/1pqn4/2kp1PP1/4nP1N/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -29276,7 +28544,6 @@ b8b7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 8/3k2K1/bR1N3P/q1b5/1B2B3/P1p1p3/2P1Ppp1/3Q1N2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -29326,7 +28593,6 @@ g7f8: 1
 g7g8: 1
 g7h8: 1
 
-ucinewgame
 position fen 2b2Bn1/R4KpP/pQR1P3/4bP2/5p2/r7/1P1p4/3B3k w - - 0 1
 go perft 1
 b2b3: 1
@@ -29387,7 +28653,6 @@ f7g8: 1
 f7g6: 1
 f7e8: 1
 
-ucinewgame
 position fen 7R/1qb4q/3P4/3P1p2/p2ppK2/N2PP1Q1/1nb5/2r2k2 w - - 0 1
 go perft 1
 f4g5: 1
@@ -29421,7 +28686,6 @@ g3g7: 1
 g3g8: 1
 f4e5: 1
 
-ucinewgame
 position fen 1N4B1/P3K3/5B1q/4P1P1/3P2p1/3Q2R1/P3p1nP/1r4kr w - - 0 1
 go perft 1
 a2a3: 1
@@ -29476,7 +28740,6 @@ e7f7: 1
 e7d8: 1
 e7e8: 1
 
-ucinewgame
 position fen 5b2/1P1r1k2/q1R5/2r2P1p/1NNp1p2/1q2P3/n6P/1R4K1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -29523,7 +28786,6 @@ g1h1: 1
 g1f2: 1
 g1g2: 1
 
-ucinewgame
 position fen 3Bbr1q/P3K3/5P2/4P2p/2P1pPB1/2q5/2kNQ2R/6b1 w - - 0 1
 go perft 1
 c4c5: 1
@@ -29567,7 +28829,6 @@ e2e4: 1
 e7d6: 1
 e7e6: 1
 
-ucinewgame
 position fen n2nq1RN/2pk3P/5QB1/2K5/1P1r4/p1NPR1P1/8/4r3 w - - 0 1
 go perft 1
 g3g4: 1
@@ -29619,7 +28880,6 @@ f6f8: 1
 c5b5: 1
 c5d4: 1
 
-ucinewgame
 position fen 3k1N2/pP1P1P1P/4R3/1p1pB1pn/4prP1/P7/P1K5/8 w - - 0 1
 go perft 1
 a3a4: 1
@@ -29661,7 +28921,6 @@ c2d2: 1
 c2b3: 1
 c2c3: 1
 
-ucinewgame
 position fen Nb6/p1B4q/1P1P4/3Kp1P1/3P3p/k1p2Ppb/4p3/4R3 w - - 0 1
 go perft 1
 f3f4: 1
@@ -29685,7 +28944,6 @@ d5c6: 1
 d5c5: 1
 d5e5: 1
 
-ucinewgame
 position fen 1qQ5/p7/1p1q4/k1PP3K/r3p1n1/P1N4P/4bb1n/3B4 w - - 0 1
 go perft 1
 h3h4: 1
@@ -29719,7 +28977,6 @@ c8g8: 1
 c8h8: 1
 h5g5: 1
 
-ucinewgame
 position fen 6Rn/q3BBP1/R5p1/8/P4KQb/pq5P/1p4p1/1rk5 w - - 0 1
 go perft 1
 a4a5: 1
@@ -29773,7 +29030,6 @@ g4c8: 1
 f4e5: 1
 f4e4: 1
 
-ucinewgame
 position fen b1k3r1/3pp3/5N2/4n3/1R2q3/NB2Bp2/1Pr2Pn1/3K2R1 w - - 0 1
 go perft 1
 a3b1: 1
@@ -29818,7 +29074,6 @@ b4b6: 1
 b4b7: 1
 b4b8: 1
 
-ucinewgame
 position fen 1Q5R/8/2n4n/7K/p2P1p1B/kp1r2p1/4NpNP/q1b5 w - - 0 1
 go perft 1
 h2h3: 1
@@ -29864,7 +29119,6 @@ h5h6: 1
 h5g5: 1
 h5g6: 1
 
-ucinewgame
 position fen 3K4/RpP5/1p1PpB2/3p4/b2P1pn1/1P2pk2/3n3r/7R w - - 0 1
 go perft 1
 b3b4: 1
@@ -29896,7 +29150,6 @@ a7a8: 1
 d8c8: 1
 d8e7: 1
 
-ucinewgame
 position fen 2r2r2/p3p3/2Pp3K/NP5P/3Pk3/3p2pn/2P5/q2q1N2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -29916,7 +29169,6 @@ h6h7: 1
 h6g6: 1
 h6g7: 1
 
-ucinewgame
 position fen 4R1B1/4Q3/2N1K3/P2p1pP1/3pk3/P3b3/Pq1B2p1/6rn w - - 0 1
 go perft 1
 a3a4: 1
@@ -29958,7 +29210,6 @@ e6d7: 1
 e6f6: 1
 e6d6: 1
 
-ucinewgame
 position fen K1k3B1/1R3Np1/1P3P2/2Pq2r1/1p2p3/2PP1pp1/5B2/6R1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -29989,7 +29240,6 @@ g1g2: 1
 g1g3: 1
 a8a7: 1
 
-ucinewgame
 position fen 5R2/3Rp3/N6n/2PP1P1K/1P4PB/p6p/4qpb1/1q5k w - - 0 1
 go perft 1
 b4b5: 1
@@ -30022,7 +29272,6 @@ f8h8: 1
 h5g5: 1
 h5g6: 1
 
-ucinewgame
 position fen 8/RQ1K2BP/2P3b1/qp2p1N1/p2pB3/pp2q1N1/1k6/8 w - - 0 1
 go perft 1
 c6c7: 1
@@ -30068,7 +29317,6 @@ d7e6: 1
 d7c8: 1
 d7e7: 1
 
-ucinewgame
 position fen 2N5/1q3b2/Pp1R4/2P2r2/1p3RQ1/nNk4B/2P2ppK/8 w - - 0 1
 go perft 1
 c5c6: 1
@@ -30118,7 +29366,6 @@ g4g7: 1
 g4g8: 1
 h2g3: 1
 
-ucinewgame
 position fen 6q1/b3P1P1/p4pp1/4Pr2/pP3P2/2K1R3/pR6/k3n2r w - - 0 1
 go perft 1
 b4b5: 1
@@ -30146,7 +29393,6 @@ e3h3: 1
 e3e4: 1
 c3d2: 1
 
-ucinewgame
 position fen Rq3r2/1p4P1/1PN5/4B3/N1PKP3/1B5p/2pP3R/2bk4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -30191,7 +29437,6 @@ d4e3: 1
 d4c5: 1
 d4d5: 1
 
-ucinewgame
 position fen 8/N2pp3/1PP3np/4P1qB/4P3/3ppp1b/6P1/1R2K2k w - - 0 1
 go perft 1
 g2g3: 1
@@ -30217,7 +29462,6 @@ b1b5: 1
 e1d1: 1
 e1f1: 1
 
-ucinewgame
 position fen 4NR1r/4Q2p/K3P2P/1pr5/5b2/P1P3nN/2p2q1p/7k w - - 0 1
 go perft 1
 a3a4: 1
@@ -30254,7 +29498,6 @@ a6b7: 1
 a6b6: 1
 a6a7: 1
 
-ucinewgame
 position fen B5q1/2N3bP/1p1K1p1p/1p1P2k1/q5p1/5pP1/4P2Q/1b6 w - - 0 1
 go perft 1
 e2e3: 1
@@ -30286,7 +29529,6 @@ d6e7: 1
 d6d7: 1
 d6c6: 1
 
-ucinewgame
 position fen 8/k1p4P/P3qn1p/2K4P/1PP5/5pbP/2pP4/1R1N2B1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -30312,7 +29554,6 @@ b1b3: 1
 c5d4: 1
 c5b5: 1
 
-ucinewgame
 position fen 8/q7/p3KB1R/3QN3/Rr3PrP/2kqbP1B/2p1n3/8 w - - 0 1
 go perft 1
 f4f5: 1
@@ -30360,7 +29601,6 @@ d5a8: 1
 d5d8: 1
 e6d6: 1
 
-ucinewgame
 position fen 6k1/4p2p/1P1B1p2/R1P1p3/1P2Knq1/4P2P/4pP1P/3b4 w - - 0 1
 go perft 1
 f2f3: 1
@@ -30383,7 +29623,6 @@ a5a6: 1
 a5a7: 1
 a5a8: 1
 
-ucinewgame
 position fen 8/2R5/6p1/K1PpPPP1/2p1P1qQ/P5qb/P2k2n1/4R3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -30423,7 +29662,6 @@ a5b5: 1
 a5a6: 1
 a5b6: 1
 
-ucinewgame
 position fen 5Q2/P2p4/4k3/1p2N1R1/3pbr2/P1PP2K1/3bPp1B/4q3 w - - 0 1
 go perft 1
 e2e3: 1
@@ -30468,7 +29706,6 @@ f8g8: 1
 f8h8: 1
 g3h3: 1
 
-ucinewgame
 position fen 3N4/1n3K1Q/2Pk4/6q1/b2b3p/1N1PpP1q/4pp1p/7r w - - 0 1
 go perft 1
 f3f4: 1
@@ -30494,7 +29731,6 @@ h7h8: 1
 f7f8: 1
 f7e8: 1
 
-ucinewgame
 position fen 8/N1p4P/3p1K2/3P3P/3k2P1/p3q1p1/2pBr3/n3bN1R w - - 0 1
 go perft 1
 g4g5: 1
@@ -30524,7 +29760,6 @@ f6f5: 1
 f6f7: 1
 f6g6: 1
 
-ucinewgame
 position fen 1B2K3/5pP1/2Q2PP1/1b3r2/B2nP1p1/2P1N2P/5Rq1/k7 w - - 0 1
 go perft 1
 c3c4: 1
@@ -30575,7 +29810,6 @@ e8e7: 1
 e8d7: 1
 c6d7: 1
 
-ucinewgame
 position fen 2N4K/R1B2p1P/P1Ppq2P/2p2r2/P3p2k/2p5/2P5/4b3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -30592,7 +29826,6 @@ a7a8: 1
 h8g7: 1
 h8g8: 1
 
-ucinewgame
 position fen 8/3p1K2/2q1NP2/2PBB3/P1pqp1rp/1R1n4/N4P2/5k2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -30632,7 +29865,6 @@ f7f8: 1
 f7e7: 1
 f7e8: 1
 
-ucinewgame
 position fen 7N/BP1qn3/5K2/b1pP1B1P/p2k4/1R4P1/1p4r1/6Nb w - - 0 1
 go perft 1
 g3g4: 1
@@ -30673,7 +29905,6 @@ f6g7: 1
 f6g5: 1
 f6f7: 1
 
-ucinewgame
 position fen 2q5/6Rp/p7/2N1Nkp1/PpP2P2/B4b2/PK2p2b/1n6 w - - 0 1
 go perft 1
 a4a5: 1
@@ -30709,7 +29940,6 @@ b2c1: 1
 b2c2: 1
 b2b3: 1
 
-ucinewgame
 position fen 7q/2p1PKB1/3kPPN1/p2P3q/bN2p3/2pP3Q/p7/8 w - - 0 1
 go perft 1
 d3d4: 1
@@ -30737,7 +29967,6 @@ h3h2: 1
 h3e3: 1
 h3f3: 1
 
-ucinewgame
 position fen 3K4/Pk6/4pBpQ/1r1N2R1/3P1pP1/1r4pb/2pPR3/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -30780,7 +30009,6 @@ d8e8: 1
 d8d7: 1
 d8e7: 1
 
-ucinewgame
 position fen 2r5/P3k3/K1P1bN2/p5r1/1q6/Pp4qP/1Pp1n2p/4R3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -30808,7 +30036,6 @@ e1g1: 1
 e1h1: 1
 e1e2: 1
 
-ucinewgame
 position fen 4N3/nPP1r2P/p1N1n1R1/R4p2/p7/3k1K2/1B3P2/2q3r1 w - - 0 1
 go perft 1
 b7b8q: 1
@@ -30860,7 +30087,6 @@ g6h6: 1
 g6g7: 1
 g6g8: 1
 
-ucinewgame
 position fen q1R5/5PKp/1PpP4/8/6P1/qn5N/1p1r1BQb/2nk4 w - - 0 1
 go perft 1
 g4g5: 1
@@ -30905,7 +30131,6 @@ g7h7: 1
 g7f8: 1
 g7g8: 1
 
-ucinewgame
 position fen q7/2n1r3/1P1p2BK/1P6/P2B1pk1/r1P1Pb2/1P5p/2N5 w - - 0 1
 go perft 1
 b2b3: 1
@@ -30936,7 +30161,6 @@ g6f7: 1
 g6h7: 1
 g6e8: 1
 
-ucinewgame
 position fen 2B3Nq/1b2bQ2/1kp2P2/2r3PN/2p1pp2/1p6/5P2/3K1n2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -30966,7 +30190,6 @@ d1c1: 1
 d1e1: 1
 d1e2: 1
 
-ucinewgame
 position fen k7/n1r4R/4PPK1/2qp1P2/2Pb2p1/1n6/2N1Pq2/1N4Q1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -31009,7 +30232,6 @@ g6g5: 1
 g6h5: 1
 g6h6: 1
 
-ucinewgame
 position fen 1b1KN1r1/q1p4q/4b3/2P1B1R1/Rp4p1/Pr4pk/6p1/8 w - - 0 1
 go perft 1
 c5c6: 1
@@ -31036,7 +30258,6 @@ a4a7: 1
 g5g4: 1
 g5f5: 1
 
-ucinewgame
 position fen 7K/kpPr4/1R1P3N/3Q2p1/3P2P1/1q3b2/p4B1p/N2r4 w - - 0 1
 go perft 1
 c7c8q: 1
@@ -31076,7 +30297,6 @@ d5f7: 1
 d5g8: 1
 h8g8: 1
 
-ucinewgame
 position fen 1b4N1/p5P1/2P5/2PPn3/Bp1K1p2/3Pp3/4pr2/1bn3k1 w - - 0 1
 go perft 1
 d5d6: 1
@@ -31090,7 +30310,6 @@ a4b3: 1
 a4b5: 1
 d4e4: 1
 
-ucinewgame
 position fen Bk2b2N/3pR3/1p1P1p2/P6q/2Kb3P/3P4/6rq/2Rn4 w - - 0 1
 go perft 1
 a5a6: 1
@@ -31123,7 +30342,6 @@ c4b3: 1
 c4d4: 1
 c4b4: 1
 
-ucinewgame
 position fen 3N1b2/1B6/2rPP1R1/3pkq2/N1p3Q1/R3r3/5n1p/2K1B3 w - - 0 1
 go perft 1
 d6d7: 1
@@ -31172,7 +30390,6 @@ g4h5: 1
 c1d2: 1
 c1b2: 1
 
-ucinewgame
 position fen 1B6/P1r2P2/3Kp1kP/8/3nNRP1/3bP3/2Pqn3/6QB w - - 0 1
 go perft 1
 c2c3: 1
@@ -31217,7 +30434,6 @@ g1g3: 1
 d6c7: 1
 d6e5: 1
 
-ucinewgame
 position fen r5N1/N1k3pr/4P2R/7n/p2Kp3/2pQ1PP1/b1P5/b7 w - - 0 1
 go perft 1
 f3f4: 1
@@ -31248,7 +30464,6 @@ d4e3: 1
 d4c5: 1
 d4e4: 1
 
-ucinewgame
 position fen 2q4n/8/p4p1P/7k/p1PN3N/1R2KPpb/Brp3p1/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -31279,7 +30494,6 @@ e3f4: 1
 e3d3: 1
 e3e4: 1
 
-ucinewgame
 position fen 1B6/3Pk2N/1nKn4/5P2/3Pr3/1PP1rR1P/2pq4/1B4b1 w - - 0 1
 go perft 1
 b3b4: 1
@@ -31308,7 +30522,6 @@ c6c7: 1
 c6c5: 1
 c6b6: 1
 
-ucinewgame
 position fen N4rq1/P2n4/4p2n/1Bp2ppp/1p5P/4P1k1/4P3/2b3K1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -31324,7 +30537,6 @@ b5d7: 1
 g1f1: 1
 g1h1: 1
 
-ucinewgame
 position fen 2bb4/8/1P2P2P/1Q5P/pK2k1n1/1N1r1ppr/3Bp3/3R4 w - - 0 1
 go perft 1
 b6b7: 1
@@ -31367,7 +30579,6 @@ b4a4: 1
 b4c4: 1
 b4a5: 1
 
-ucinewgame
 position fen 7R/1P1PB2P/1P2kP2/K3p2N/2b5/1Rrp4/p1r1P1q1/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -31407,7 +30618,6 @@ h8g8: 1
 a5a4: 1
 a5b4: 1
 
-ucinewgame
 position fen 3k4/1K2pP2/8/1pP3b1/1NqpQ1P1/4p3/2qP2p1/r1n4n w - - 0 1
 go perft 1
 d2d3: 1
@@ -31442,7 +30652,6 @@ b7b8: 1
 b7b6: 1
 b7c6: 1
 
-ucinewgame
 position fen 5N1K/q4P2/2p1n1b1/Rr3P2/2B2p1B/r3kP2/q2b3P/8 w - - 0 1
 go perft 1
 h2h3: 1
@@ -31475,7 +30684,6 @@ a5a6: 1
 a5a7: 1
 h8g8: 1
 
-ucinewgame
 position fen k1N5/P4BP1/5p2/p7/q4n1Q/1P3Rr1/3Pbnp1/4K1b1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -31515,7 +30723,6 @@ h4h6: 1
 h4h7: 1
 h4h8: 1
 
-ucinewgame
 position fen Kn6/2N1q3/2P1Bp1p/6p1/4nP1B/1P3rpb/8/1rk4N w - - 0 1
 go perft 1
 b3b4: 1
@@ -31542,7 +30749,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 8/1P4P1/p1B1P3/2b1q1BK/Qp4pP/R1P2n2/6p1/2r1k3 w - - 0 1
 go perft 1
 c3c4: 1
@@ -31576,7 +30782,6 @@ a3b3: 1
 a4d1: 1
 a4c2: 1
 
-ucinewgame
 position fen 4k3/pr1pqp2/1p2n2r/4K3/2R2P2/4P1B1/3P1Rp1/3QN3 w - - 0 1
 go perft 1
 d2d3: 1
@@ -31618,7 +30823,6 @@ e5f5: 1
 e5e4: 1
 e5d5: 1
 
-ucinewgame
 position fen 2R4B/1P1q3P/3P1pKN/4P3/pP1p1p2/2b3k1/r1PQ4/8 w - - 0 1
 go perft 1
 b4b5: 1
@@ -31660,7 +30864,6 @@ d2f4: 1
 g6f6: 1
 g6h5: 1
 
-ucinewgame
 position fen 5n2/r2p1rp1/P1B3N1/B1p5/3kPpKR/3p4/p5p1/1b6 w - - 0 1
 go perft 1
 e4e5: 1
@@ -31694,7 +30897,6 @@ g4h5: 1
 g4h3: 1
 g4g5: 1
 
-ucinewgame
 position fen 3k3K/1P5B/n3p2r/3p1Q1p/1P1P4/qp2r3/2P4N/5RN1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -31737,7 +30939,6 @@ f5g6: 1
 f5f7: 1
 f5f8: 1
 
-ucinewgame
 position fen NB3K2/pr1P4/B1p1P3/p1Pq2P1/kP1R4/1r3P2/2q5/8 w - - 0 1
 go perft 1
 f3f4: 1
@@ -31779,7 +30980,6 @@ f8g7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 5n2/4p3/B4p2/K1P3kp/1Bpbb3/1r1P2PP/4Q1N1/2n5 w - - 0 1
 go perft 1
 g3g4: 1
@@ -31816,7 +31016,6 @@ a5a4: 1
 a5b5: 1
 a5b6: 1
 
-ucinewgame
 position fen 1Q4nq/2N4n/3P1b2/3Pp1P1/K3BN1p/3r2pP/3k3P/8 w - - 0 1
 go perft 1
 g5g6: 1
@@ -31859,7 +31058,6 @@ a4b5: 1
 a4a5: 1
 a4b4: 1
 
-ucinewgame
 position fen NK6/1pP1n2p/5P2/1prq2qR/8/1p2P3/k4n1P/r6b w - - 0 1
 go perft 1
 h2h3: 1
@@ -31879,7 +31077,6 @@ h5h6: 1
 h5h7: 1
 b8a7: 1
 
-ucinewgame
 position fen 3BN3/6p1/1p1N1QP1/P2kP2p/Pr6/1pR5/2P1P2b/1K6 w - - 0 1
 go perft 1
 e2e3: 1
@@ -31927,7 +31124,6 @@ b1a1: 1
 b1c1: 1
 b1b2: 1
 
-ucinewgame
 position fen 4RK2/1r3bn1/4B3/NP2P3/2Q5/1Pp2P2/4PN1P/k2r2q1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -31972,7 +31168,6 @@ c4c6: 1
 c4c7: 1
 c4c8: 1
 
-ucinewgame
 position fen B1n5/1RK1P3/NP1N1r1p/2B3p1/2n5/P1pk2r1/P7/7b w - - 0 1
 go perft 1
 a3a4: 1
@@ -32001,7 +31196,6 @@ c7d7: 1
 c7b8: 1
 c7c8: 1
 
-ucinewgame
 position fen 8/1p3n1p/1Rb2PPp/7K/3P3p/Q2P2kP/1r3p2/1q2n3 w - - 0 1
 go perft 1
 d4d5: 1
@@ -32031,7 +31225,6 @@ a3e7: 1
 a3a8: 1
 a3f8: 1
 
-ucinewgame
 position fen 3K4/P2p4/Pp1pk3/bP1p2p1/2N1B1N1/1P3b2/1q3P1P/8 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32065,7 +31258,6 @@ d8c7: 1
 d8e8: 1
 d8c8: 1
 
-ucinewgame
 position fen R2n1Q2/Pp5p/3pPBkP/8/N2p1Rr1/3b1N2/Kn6/8 w - - 0 1
 go perft 1
 e6e7: 1
@@ -32109,7 +31301,6 @@ a2b3: 1
 a2b2: 1
 a2a3: 1
 
-ucinewgame
 position fen 8/4P3/Q1N2qp1/p1p3kP/6n1/2b4R/P1r2Pp1/1K3B1b w - - 0 1
 go perft 1
 a2a3: 1
@@ -32154,7 +31345,6 @@ a6a8: 1
 a6c8: 1
 b1c2: 1
 
-ucinewgame
 position fen 5nq1/1NPR4/4kp2/B2b1qR1/PP4PN/3Q1r2/1K6/3B4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -32211,7 +31401,6 @@ b2c3: 1
 b2c2: 1
 b2a3: 1
 
-ucinewgame
 position fen 2k2r2/2P2p2/3R2pp/PK1n4/3P1b2/p1P5/7P/2NQ1Rq1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32252,7 +31441,6 @@ b5c4: 1
 b5c5: 1
 b5a6: 1
 
-ucinewgame
 position fen 3B2k1/8/4b1p1/Qp6/2qP2B1/5K2/r1r1NppP/1nR1q3 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32295,7 +31483,6 @@ f3e3: 1
 f3g3: 1
 f3e4: 1
 
-ucinewgame
 position fen 6N1/2r1p1qp/p2n4/p2Q3P/1k5K/R6P/2pR2bp/2N5 w - - 0 1
 go perft 1
 h5h6: 1
@@ -32344,7 +31531,6 @@ d5b7: 1
 d5f7: 1
 d5a8: 1
 
-ucinewgame
 position fen 8/p1BpnNPP/1pP2r2/6Q1/1np3K1/7P/p1Nq4/7k w - - 0 1
 go perft 1
 h3h4: 1
@@ -32394,7 +31580,6 @@ g4h5: 1
 g4g3: 1
 g4h4: 1
 
-ucinewgame
 position fen 4n3/1Pp1P2P/P2ppP2/3qp1N1/pq5n/2pk2p1/8/2K5 w - - 0 1
 go perft 1
 a6a7: 1
@@ -32414,7 +31599,6 @@ g5e6: 1
 g5f7: 1
 c1d1: 1
 
-ucinewgame
 position fen 1b6/8/P2pP2P/p2nR2p/pp6/5k2/2pqrp1P/Q4K2 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32440,7 +31624,6 @@ a1c3: 1
 a1a4: 1
 a1d4: 1
 
-ucinewgame
 position fen 2r4n/1B6/1QPn1bPR/KN2P3/2pp1p2/6p1/4p2P/k7 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32475,7 +31658,6 @@ a5a4: 1
 a5b4: 1
 a5a6: 1
 
-ucinewgame
 position fen 2K5/4B1pP/pr1N4/p5b1/q2q4/1PP2k2/1P1R4/1b2n2R w - - 0 1
 go perft 1
 b3b4: 1
@@ -32516,7 +31698,6 @@ d2d4: 1
 c8d8: 1
 c8c7: 1
 
-ucinewgame
 position fen 1B6/3n1qP1/p3B1P1/N1kp1p1P/4q2R/2P1P2K/p2r4/8 w - - 0 1
 go perft 1
 c3c4: 1
@@ -32546,7 +31727,6 @@ h4f4: 1
 h4g4: 1
 h3g3: 1
 
-ucinewgame
 position fen 2N4r/3BP3/1rP3p1/1pb3q1/1R2Q3/1nB1p3/2b1Kn2/2k5 w - - 0 1
 go perft 1
 c6c7: 1
@@ -32596,7 +31776,6 @@ e2f3: 1
 e2e1: 1
 e2f1: 1
 
-ucinewgame
 position fen 2N5/6b1/3Q1p1n/k2P4/b1P3P1/2nB1K2/ppp1p1p1/2N5 w - - 0 1
 go perft 1
 c4c5: 1
@@ -32637,7 +31816,6 @@ f3g2: 1
 f3e3: 1
 f3g3: 1
 
-ucinewgame
 position fen 1R5q/1p1pB3/2N3rp/3K2Q1/1R6/k1r4p/2Pb1P2/3n1B2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -32696,7 +31874,6 @@ g5g6: 1
 g5h6: 1
 d5e4: 1
 
-ucinewgame
 position fen 1r5R/8/1P2PBBp/1br1b3/1pN4K/1PP5/P1p3k1/3R4 w - - 0 1
 go perft 1
 a2a3: 1
@@ -32749,7 +31926,6 @@ h8g8: 1
 h4h5: 1
 h4g4: 1
 
-ucinewgame
 position fen 1n6/1k2N1P1/2p3p1/Kpq2P2/2P1B3/1rp5/p4Nn1/2Rb4 w - - 0 1
 go perft 1
 f5f6: 1
@@ -32782,7 +31958,6 @@ c1d1: 1
 c1c2: 1
 c1c3: 1
 
-ucinewgame
 position fen 1n6/4PRpP/2Bp1P2/2p5/P2B1Pk1/1p6/2Q4b/n1NK4 w - - 0 1
 go perft 1
 a4a5: 1
@@ -32840,7 +32015,6 @@ d1e1: 1
 d1d2: 1
 d1e2: 1
 
-ucinewgame
 position fen 5b2/4pp1P/qP1N3k/PN6/1p3q2/2pbPp2/K1P3p1/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -32867,7 +32041,6 @@ a2a1: 1
 a2b1: 1
 a2b3: 1
 
-ucinewgame
 position fen 8/p1P2p2/PQ6/3pn1pN/2q5/P1P1p2P/3PkN1K/1r6 w - - 0 1
 go perft 1
 d2d3: 1
@@ -32909,7 +32082,6 @@ b6b8: 1
 h2g3: 1
 h2g2: 1
 
-ucinewgame
 position fen 8/1Pk3q1/5p2/R6P/1B1Kpp2/2pBR1n1/3N1r1P/5rb1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -32963,7 +32135,6 @@ d4c4: 1
 d4d5: 1
 d4c5: 1
 
-ucinewgame
 position fen 3N2B1/1R3P1p/8/3n4/PP1pp1K1/2PbRP2/2k2p1q/2N5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -32997,7 +32168,6 @@ b7b8: 1
 g4g5: 1
 g4f5: 1
 
-ucinewgame
 position fen 4N3/1PP5/p2p2p1/4kpB1/1n4p1/p7/n1rPP1p1/3K2Q1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -33035,7 +32205,6 @@ g1b6: 1
 g1a7: 1
 d1e1: 1
 
-ucinewgame
 position fen rk2Nb2/1P6/1QP3R1/1Pqp2P1/P3p3/2pp2p1/5B2/5K2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -33070,7 +32239,6 @@ f1e1: 1
 f1g1: 1
 f1g2: 1
 
-ucinewgame
 position fen 7N/2P3P1/p1pPP1q1/1B2k1p1/6pR/pK6/3Pbb1P/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -33105,7 +32273,6 @@ b3a4: 1
 b3a3: 1
 b3c3: 1
 
-ucinewgame
 position fen 3n2R1/1qn1q3/2pN3P/P2k4/PB2p3/2P5/3K2pP/1Q5R w - - 0 1
 go perft 1
 h2h3: 1
@@ -33157,7 +32324,6 @@ d2c2: 1
 d2e2: 1
 d2e3: 1
 
-ucinewgame
 position fen 1R1bb3/3pB1pp/1p5Q/1rP5/3pP3/K3P3/4k1N1/1R1r4 w - - 0 1
 go perft 1
 e4e5: 1
@@ -33203,7 +32369,6 @@ h6h7: 1
 a3a2: 1
 a3a4: 1
 
-ucinewgame
 position fen 8/2n1PK1P/6R1/PN1B1n2/Pr1PQpb1/2q5/7p/2qk4 w - - 0 1
 go perft 1
 a5a6: 1
@@ -33255,7 +32420,6 @@ f7g8: 1
 f7f6: 1
 f7f8: 1
 
-ucinewgame
 position fen 7R/7P/4PPN1/b5B1/2p2K2/Pqp3P1/3pNk1p/6qb w - - 0 1
 go perft 1
 a3a4: 1
@@ -33283,7 +32447,6 @@ f4f5: 1
 f4e5: 1
 f4g4: 1
 
-ucinewgame
 position fen 4q1r1/2PPp3/PP6/4k1b1/1Qb3pp/n2P2p1/4K1P1/5r2 w - - 0 1
 go perft 1
 e2f1: 1
@@ -33317,7 +32480,6 @@ b4c5: 1
 b4d6: 1
 b4e7: 1
 
-ucinewgame
 position fen 3k1KN1/8/2PP2p1/3bp3/4p1nP/P1b3P1/3r2Rp/2qq4 w - - 0 1
 go perft 1
 a3a4: 1
@@ -33334,7 +32496,6 @@ g2f2: 1
 g2h2: 1
 f8g7: 1
 
-ucinewgame
 position fen 1N2r3/2p2K1P/4P1P1/5Pp1/3N4/Pp2k3/p4b1p/4B1Rb w - - 0 1
 go perft 1
 a3a4: 1
@@ -33369,7 +32530,6 @@ f7f6: 1
 f7e8: 1
 f7g7: 1
 
-ucinewgame
 position fen n3K3/2P5/1Nk5/1p2b2p/1q1r1B2/p1p5/1pP3P1/R1Qb4 w - - 0 1
 go perft 1
 g2g3: 1
@@ -33401,7 +32561,6 @@ c1d2: 1
 c1e3: 1
 e8f7: 1
 
-ucinewgame
 position fen 8/2P3p1/2pk4/P1p3bQ/1p2RP1q/4NPP1/PK5p/4B3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -33449,7 +32608,6 @@ b2c1: 1
 b2c2: 1
 b2b3: 1
 
-ucinewgame
 position fen Bk6/3p3P/R3p2p/3P2nq/K1PP3Q/2p1P3/Nb6/B7 w - - 0 1
 go perft 1
 e3e4: 1
@@ -33488,7 +32646,6 @@ a4b3: 1
 a4b4: 1
 a4a5: 1
 
-ucinewgame
 position fen 2Q2R1K/1P3R1P/4pB1b/P1P2pqN/2b1q3/P7/7p/4k3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -33526,7 +32683,6 @@ c8b8: 1
 c8d8: 1
 c8e8: 1
 
-ucinewgame
 position fen q2r1n1n/3P2P1/P2P2k1/2p2R2/6B1/2p1p3/1rbq4/6KR w - - 0 1
 go perft 1
 a6a7: 1
@@ -33568,7 +32724,6 @@ f5f7: 1
 f5f8: 1
 g1f1: 1
 
-ucinewgame
 position fen 3r2k1/r5P1/b1K2p2/2Q1NP2/1p3p1q/1pB5/n2bp3/4n3 w - - 0 1
 go perft 1
 e5d3: 1
@@ -33599,7 +32754,6 @@ c5e7: 1
 c5f8: 1
 c6b6: 1
 
-ucinewgame
 position fen 6R1/5kP1/pN3P1b/6B1/3PKp1P/2r1N1p1/3PQpn1/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -33645,7 +32799,6 @@ e4f3: 1
 e4e5: 1
 e4d5: 1
 
-ucinewgame
 position fen 1r1B1N2/2P3Kp/7p/6n1/r6p/3p2pk/1PP2b2/1B3bQ1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -33680,7 +32833,6 @@ g7h8: 1
 g7h6: 1
 g7g8: 1
 
-ucinewgame
 position fen 1k1K4/2nBp1p1/2P2P1N/1p4Q1/4p3/1P3q1P/pRp5/4q3 w - - 0 1
 go perft 1
 b3b4: 1
@@ -33719,7 +32871,6 @@ g5g6: 1
 g5g7: 1
 d8e7: 1
 
-ucinewgame
 position fen K6R/1n1p3p/2R5/3PbP1q/1B1r1k1p/P1N1NP2/8/5Q2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -33778,7 +32929,6 @@ f1a6: 1
 a8a7: 1
 a8b7: 1
 
-ucinewgame
 position fen 8/4pP1r/1P6/4pKn1/1k6/1PN1p1pp/1p2PN1b/2r3Q1 w - - 0 1
 go perft 1
 b6b7: 1
@@ -33812,7 +32962,6 @@ f5g5: 1
 f5g4: 1
 f5e5: 1
 
-ucinewgame
 position fen 8/kN6/2KPp3/3PP1R1/4p3/PRB1p3/P3q1p1/3Qbb2 w - - 0 1
 go perft 1
 a3a4: 1
@@ -33854,7 +33003,6 @@ c6d7: 1
 c6c5: 1
 c6c7: 1
 
-ucinewgame
 position fen 8/1P3p2/q3P1pn/P2P4/1p1P2np/8/BPp2PK1/2B1k3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -33880,7 +33028,6 @@ g2g1: 1
 g2h1: 1
 g2f3: 1
 
-ucinewgame
 position fen 8/3R1pr1/2p3PP/6q1/p1nQ1B1p/7k/N3qb1p/1KN5 w - - 0 1
 go perft 1
 h6h7: 1
@@ -33928,7 +33075,6 @@ d4a7: 1
 d4g7: 1
 b1a1: 1
 
-ucinewgame
 position fen 7Q/3P2PR/pPq3p1/1P2K2b/1N2pp1b/4n3/6k1/2N3r1 w - - 0 1
 go perft 1
 b6b7: 1
@@ -33964,7 +33110,6 @@ h8g8: 1
 e5d4: 1
 e5f4: 1
 
-ucinewgame
 position fen RQ6/2bp2P1/2p5/P5kn/p5r1/2K3pn/N1Pp3P/1q6 w - - 0 1
 go perft 1
 a5a6: 1
@@ -33995,7 +33140,6 @@ b8h8: 1
 c3d3: 1
 c3d2: 1
 
-ucinewgame
 position fen 1R6/2B1pk1r/1Np5/pP2n1Kp/1q2B3/2pP1bb1/8/7q w - - 0 1
 go perft 1
 d3d4: 1
@@ -34025,7 +33169,6 @@ b8g8: 1
 b8h8: 1
 g5f5: 1
 
-ucinewgame
 position fen k1r5/p7/bbpp1p2/Pp1p4/1Q6/3p2B1/P3RR1n/1K6 w - - 0 1
 go perft 1
 a2a3: 1
@@ -34073,7 +33216,6 @@ b1a1: 1
 b1c1: 1
 b1b2: 1
 
-ucinewgame
 position fen 2nB1R2/2pR2PN/b3k3/1Bp5/4N1K1/r1Pn4/P6q/2Q5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -34135,7 +33277,6 @@ c1h6: 1
 g4f3: 1
 g4g5: 1
 
-ucinewgame
 position fen 2K4n/p2BpP1k/3r1B2/4P2P/6p1/1P3p2/2p2N1P/4q2R w - - 0 1
 go perft 1
 h2h3: 1
@@ -34173,7 +33314,6 @@ c8c7: 1
 c8b8: 1
 c8d8: 1
 
-ucinewgame
 position fen 4kB2/2p4p/PP2P1p1/5R1N/2q2qp1/6P1/1R1p2Br/6K1 w - - 0 1
 go perft 1
 a6a7: 1
@@ -34218,7 +33358,6 @@ f5f6: 1
 f5f7: 1
 g1h2: 1
 
-ucinewgame
 position fen 1N6/Bp2p2Q/3Pq3/2bP1n2/k2p4/3PrB1P/1K3PN1/8 w - - 0 1
 go perft 1
 h3h4: 1
@@ -34256,7 +33395,6 @@ b2c1: 1
 b2a2: 1
 b2c2: 1
 
-ucinewgame
 position fen 1kN5/3Ppp2/4n2P/1K2R3/1p1b4/p1R4n/3r3P/1Q2B2b w - - 0 1
 go perft 1
 h6h7: 1
@@ -34313,7 +33451,6 @@ b5c4: 1
 b5a5: 1
 b5a6: 1
 
-ucinewgame
 position fen 1r2n3/1p1P3K/b1pN1P2/Pp6/3q4/1B3N1P/1P1Bk1P1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -34365,7 +33502,6 @@ h7h6: 1
 h7h8: 1
 h7g8: 1
 
-ucinewgame
 position fen 4r2r/1p5p/2Bb3k/5Qpb/4P3/1RPp4/1q1pN2B/7K w - - 0 1
 go perft 1
 c3c4: 1
@@ -34415,7 +33551,6 @@ f5f8: 1
 h1g1: 1
 h1g2: 1
 
-ucinewgame
 position fen 2R5/q4pR1/2PqN3/p1b3K1/1p1B1r2/8/1PPp1p2/N4k2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -34449,7 +33584,6 @@ c8h8: 1
 g5h6: 1
 g5h5: 1
 
-ucinewgame
 position fen 4q1q1/1p1k3p/5PNB/8/2PPp2p/1Q3P1K/1r1p2B1/4R3 w - - 0 1
 go perft 1
 f3f4: 1
@@ -34498,7 +33632,6 @@ h3h2: 1
 h3h4: 1
 h3g4: 1
 
-ucinewgame
 position fen 1Nb5/K1BR3q/1p2p3/1Q1pP3/1P3br1/p5P1/4Pk2/3q4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -34528,7 +33661,6 @@ b5c6: 1
 a7a8: 1
 a7b6: 1
 
-ucinewgame
 position fen 1K6/3pPqb1/1Pp1B3/4Pp1P/2r5/3P1PkN/b3p3/5q2 w - - 0 1
 go perft 1
 d3d4: 1
@@ -34555,7 +33687,6 @@ b8c7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 2n4R/Qp1p2P1/4r3/5k2/1K2pN2/p6P/q2P3P/1N3bB1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -34605,7 +33736,6 @@ b4a5: 1
 b4c3: 1
 b4a4: 1
 
-ucinewgame
 position fen 4k3/4p2R/N7/P2P2R1/p1pB3p/3pr3/1P1KPq1b/5q2 w - - 0 1
 go perft 1
 b2b3: 1
@@ -34643,7 +33773,6 @@ h7f7: 1
 h7g7: 1
 h7h8: 1
 
-ucinewgame
 position fen 8/4r2p/1PK2p2/5R1P/1qp2p2/BnPP3k/P1p1p2b/8 w - - 0 1
 go perft 1
 d3d4: 1
@@ -34665,7 +33794,6 @@ f5g5: 1
 f5f6: 1
 c6d5: 1
 
-ucinewgame
 position fen nk3K2/5P2/Qq5p/2p5/7p/p1PNN3/p1BB3R/b2r4 w - - 0 1
 go perft 1
 c3c4: 1
@@ -34711,7 +33839,6 @@ f8g7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 3B4/4pq2/2R2p2/3P3P/K1P1p1bp/6P1/nP1P1nrk/8 w - - 0 1
 go perft 1
 b2b3: 1
@@ -34739,7 +33866,6 @@ a4b3: 1
 a4b5: 1
 a4a5: 1
 
-ucinewgame
 position fen 8/P2kN2p/4p3/5pN1/2b3n1/1pBPP1K1/P2qq1p1/6Q1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -34788,7 +33914,6 @@ g3h4: 1
 g3f4: 1
 g3h3: 1
 
-ucinewgame
 position fen 2Q4b/5N2/b7/1kp2pBq/8/p1PPPP1P/4P3/3N1Kn1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -34829,7 +33954,6 @@ f1g1: 1
 f1f2: 1
 f1g2: 1
 
-ucinewgame
 position fen 3r2B1/3P2P1/3pR3/Q5q1/b2q1rp1/P6R/NP2KN2/1k6 w - - 0 1
 go perft 1
 b2b3: 1
@@ -34886,7 +34010,6 @@ a5d8: 1
 e2f1: 1
 e2e1: 1
 
-ucinewgame
 position fen 8/2r4P/2r3R1/3Pp1KP/p1P5/bnp1pk2/P1N1q3/4B3 w - - 0 1
 go perft 1
 c4c5: 1
@@ -34919,7 +34042,6 @@ g5h6: 1
 g5f5: 1
 g5h4: 1
 
-ucinewgame
 position fen 2b5/k6B/2p2NK1/br5p/3p2p1/Bn1pqPP1/5P2/5n2 w - - 0 1
 go perft 1
 f3f4: 1
@@ -34943,7 +34065,6 @@ h7g8: 1
 g6g7: 1
 g6f7: 1
 
-ucinewgame
 position fen 7N/R4P2/3b4/2q2p2/PkP1r1p1/5rN1/1K1p1PP1/2n1n3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -34969,7 +34090,6 @@ a7a8: 1
 b2a1: 1
 b2b1: 1
 
-ucinewgame
 position fen 7b/2K1P3/R1p5/3Bp3/8/1pP2rPp/P3Nkn1/q2b2r1 w - - 0 1
 go perft 1
 a2a3: 1
@@ -35009,7 +34129,6 @@ c7b8: 1
 c7c8: 1
 c7d8: 1
 
-ucinewgame
 position fen N6B/1P1B1q2/2pP1p2/2p2K2/2k1r1P1/6Pn/nq3p2/3b4 w - - 0 1
 go perft 1
 g4g5: 1
@@ -35027,7 +34146,6 @@ h8f6: 1
 h8g7: 1
 f5e4: 1
 
-ucinewgame
 position fen 3K4/4p2N/4PB2/rP1p1nP1/4P3/4pq1k/1p1R1P2/Q5n1 w - - 0 1
 go perft 1
 e4e5: 1
@@ -35067,7 +34185,6 @@ d8d7: 1
 d8e8: 1
 d8c8: 1
 
-ucinewgame
 position fen 1q1k4/1Q3R2/P4P2/6q1/2NP1p1p/2K2bb1/1B1r1PPP/8 w - - 0 1
 go perft 1
 h2h3: 1
@@ -35111,7 +34228,6 @@ c3b4: 1
 c3d2: 1
 c3b3: 1
 
-ucinewgame
 position fen r6Q/Rp2K3/1N4P1/p4p1n/3PP2B/1P1k3N/B7/2qb4 w - - 0 1
 go perft 1
 b3b4: 1
@@ -35157,7 +34273,6 @@ e7e6: 1
 e7f7: 1
 e7d7: 1
 
-ucinewgame
 position fen 1K5k/p4P1p/P5p1/3qP3/bR3p1q/3p2PN/5br1/4r3 w - - 0 1
 go perft 1
 g3g4: 1
@@ -35186,7 +34301,6 @@ b4b7: 1
 b8c8: 1
 b8c7: 1
 
-ucinewgame
 position fen N7/p1PB4/ppR1p1Rr/8/5Pqp/3Pb3/1K1P1k2/4q3 w - - 0 1
 go perft 1
 d3d4: 1
@@ -35221,7 +34335,6 @@ b2a3: 1
 b2a2: 1
 b2c2: 1
 
-ucinewgame
 position fen 1r6/R7/P3K2k/BNp3q1/1r4P1/1Bq5/1P4n1/R2bn1b1 w - - 0 1
 go perft 1
 b2c3: 1
@@ -35258,7 +34371,6 @@ e6f7: 1
 e6d7: 1
 e6d6: 1
 
-ucinewgame
 position fen 5q1k/1P6/pP1Ppq1r/p1P2p2/P2Rbp2/8/1n2K3/b7 w - - 0 1
 go perft 1
 c5c6: 1
@@ -35279,7 +34391,6 @@ e2e1: 1
 e2f1: 1
 e2d2: 1
 
-ucinewgame
 position fen 8/b1P1P3/2N2P2/4Kp2/4P3/R1p3P1/1p3NPP/1q3kBn w - - 0 1
 go perft 1
 h2h3: 1
@@ -35320,7 +34431,6 @@ e5d5: 1
 e5f5: 1
 e5d6: 1
 
-ucinewgame
 position fen 1n3qr1/4pRPp/2p5/Bk2q3/pp6/5P1b/2K1Pr2/7B w - - 0 1
 go perft 1
 c2d3: 1
@@ -35344,7 +34454,6 @@ c2b1: 1
 c2c1: 1
 c2d1: 1
 
-ucinewgame
 position fen 1n4b1/B3pPq1/k2P2Pp/P7/R3R2p/1p2p3/Pp6/5K2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -35383,7 +34492,6 @@ f1g1: 1
 f1e2: 1
 f1g2: 1
 
-ucinewgame
 position fen 2b1R3/P3q2p/k2P2pq/6P1/r3r1N1/1K1p1QR1/3P4/4b3 w - - 0 1
 go perft 1
 d6d7: 1
@@ -35425,7 +34533,6 @@ f3f8: 1
 b3c3: 1
 b3b2: 1
 
-ucinewgame
 position fen 4k3/p1P3bn/Q4Bpr/2PK4/2pP2q1/1p1P4/8/2R2n1N w - - 0 1
 go perft 1
 c5c6: 1
@@ -35469,7 +34576,6 @@ d5d6: 1
 d5e5: 1
 d5c6: 1
 
-ucinewgame
 position fen 2r2q1R/3b3P/6Pk/p1B4p/3K1N2/2P2Pp1/1p1n3b/7R w - - 0 1
 go perft 1
 c3c4: 1
@@ -35503,7 +34609,6 @@ d4e3: 1
 d4e5: 1
 d4d5: 1
 
-ucinewgame
 position fen 8/N5bR/pk1q1PP1/1r3rn1/1p2p2P/p6n/2K5/2Q1R3 w - - 0 1
 go perft 1
 h4h5: 1
@@ -35536,7 +34641,6 @@ c1g5: 1
 c2b1: 1
 c2b3: 1
 
-ucinewgame
 position fen 1b4R1/N2P4/1KP1P1p1/4P1p1/bp3B1P/3p1rR1/1P6/1k6 w - - 0 1
 go perft 1
 b2b3: 1
@@ -35573,7 +34677,6 @@ b6b7: 1
 b6c5: 1
 b6a6: 1
 
-ucinewgame
 position fen B1rQ4/3p2N1/3k4/1p6/bPn5/P1R5/r2p2P1/R4qnK w - - 0 1
 go perft 1
 g2g3: 1
@@ -35617,7 +34720,6 @@ d8g8: 1
 d8h8: 1
 h1h2: 1
 
-ucinewgame
 position fen Q3RN1q/4n3/3K1PB1/1p1P3P/1pk5/3b1P2/1P4pp/6b1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -35655,7 +34757,6 @@ d6d7: 1
 d6e6: 1
 d6c7: 1
 
-ucinewgame
 position fen 8/P2p1KPp/3bp1PP/8/b5n1/1P1PB2q/4P1p1/kN6 w - - 0 1
 go perft 1
 b3b4: 1
@@ -35685,7 +34786,6 @@ e3b6: 1
 f7g8: 1
 f7e8: 1
 
-ucinewgame
 position fen 7r/4K3/1pkPp3/4bpr1/q1b5/P4p2/2p1pn2/2qN2B1 w - - 0 1
 go perft 1
 d6d7: 1
@@ -35697,7 +34797,6 @@ g1f2: 1
 g1h2: 1
 e7f7: 1
 
-ucinewgame
 position fen B5n1/1p4p1/5P2/4qp2/2P3P1/2kPP1N1/P2b2r1/N4b1K w - - 0 1
 go perft 1
 a2a3: 1
@@ -35718,7 +34817,6 @@ g3f5: 1
 g3h5: 1
 a8b7: 1
 
-ucinewgame
 position fen b5n1/2B1P3/8/4P1rP/P2K1b2/1p1pp3/2k2pBp/4qN2 w - - 0 1
 go perft 1
 a4a5: 1
@@ -35748,7 +34846,6 @@ c7d8: 1
 d4c5: 1
 d4c4: 1
 
-ucinewgame
 position fen 1k4r1/1p6/1P2p3/5P2/1r1n3K/3P1bP1/ppN2QP1/nN6 w - - 0 1
 go perft 1
 g3g4: 1
@@ -35774,7 +34871,6 @@ f2f3: 1
 f2d4: 1
 h4h3: 1
 
-ucinewgame
 position fen 2Q1R3/B1q2Nk1/r2P4/2p2K2/2qp3P/7P/3p1PB1/4r1n1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -35821,7 +34917,6 @@ f5g5: 1
 f5f4: 1
 f5g4: 1
 
-ucinewgame
 position fen k7/2P1Pp2/4r1pP/3p1B2/1P4n1/b2KR2q/rP4b1/6Q1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -35859,7 +34954,6 @@ g1f2: 1
 g1g2: 1
 g1h2: 1
 
-ucinewgame
 position fen 7K/3r3p/1B2N1p1/1PqP2PR/k5N1/2P3Q1/3Rp3/4qB2 w - - 0 1
 go perft 1
 c3c4: 1
@@ -35915,7 +35009,6 @@ g3c7: 1
 g3b8: 1
 h8g8: 1
 
-ucinewgame
 position fen 3R4/3p2pP/5r2/1pP2nK1/1k6/1p5R/b2pN2P/b1q4B w - - 0 1
 go perft 1
 c5c6: 1
@@ -35957,7 +35050,6 @@ g5f4: 1
 g5g4: 1
 g5h5: 1
 
-ucinewgame
 position fen 3K1knB/6r1/8/2P1pq1p/rN2B3/2N2p1p/1R5P/2R4n w - - 0 1
 go perft 1
 c5c6: 1
@@ -36001,7 +35093,6 @@ b2f2: 1
 b2g2: 1
 b2b3: 1
 
-ucinewgame
 position fen N7/5pP1/4bpR1/3P2Pp/P7/7q/1K1pRnkr/B3b3 w - - 0 1
 go perft 1
 a4a5: 1
@@ -36027,7 +35118,6 @@ b2b1: 1
 b2c2: 1
 b2a2: 1
 
-ucinewgame
 position fen 3K2N1/P4b2/7P/6n1/2p1P1Rb/4kP2/N1p1p3/1Rq1q1n1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -36062,7 +35152,6 @@ d8d7: 1
 d8e7: 1
 d8c8: 1
 
-ucinewgame
 position fen k7/1rpQpP1P/4P1P1/3b1P2/BnP5/7K/1p3RPb/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -36104,7 +35193,6 @@ h3h2: 1
 h3h4: 1
 h3g4: 1
 
-ucinewgame
 position fen 8/8/P1pRNpr1/1P1p3N/1PP1k3/K3p1b1/PB4n1/4q3 w - - 0 1
 go perft 1
 c4c5: 1
@@ -36137,7 +35225,6 @@ d6d8: 1
 a3b3: 1
 a3a4: 1
 
-ucinewgame
 position fen 5BN1/1pPB4/1PRP1N2/Kp1Q3P/6p1/Rb6/1k5q/3n4 w - - 0 1
 go perft 1
 h5h6: 1
@@ -36188,7 +35275,6 @@ d5f7: 1
 a5b5: 1
 a5b4: 1
 
-ucinewgame
 position fen 1r1nk3/P5P1/1B5n/4p1pP/1p3p2/p1Q5/1N2K3/1rR2R2 w - - 0 1
 go perft 1
 a7b8q: 1
@@ -36251,7 +35337,6 @@ e2f2: 1
 e2d3: 1
 e2f3: 1
 
-ucinewgame
 position fen 8/1N3P1p/3K2Pp/4r1b1/p4n2/1k5p/1PpBR2n/5R1q w - - 0 1
 go perft 1
 g6g7: 1
@@ -36291,7 +35376,6 @@ d6d7: 1
 d6c7: 1
 d6e5: 1
 
-ucinewgame
 position fen 1r1B3Q/3PN3/1P1p2b1/K1p1Pp2/3n3P/3q2kN/3r1R2/8 w - - 0 1
 go perft 1
 h4h5: 1
@@ -36326,7 +35410,6 @@ h8f8: 1
 h8g8: 1
 a5a4: 1
 
-ucinewgame
 position fen 2N5/1pBb4/P4p1p/3B2n1/pp1K4/3Rp3/4k1qb/3Nq3 w - - 0 1
 go perft 1
 a6a7: 1
@@ -36367,7 +35450,6 @@ d3e3: 1
 d4c5: 1
 d4c4: 1
 
-ucinewgame
 position fen b7/P3npPp/3k3p/K1b2pP1/5Pp1/5N2/5Pq1/1B5N w - - 0 1
 go perft 1
 g5g6: 1
@@ -36393,7 +35475,6 @@ a5a4: 1
 a5a6: 1
 a5b5: 1
 
-ucinewgame
 position fen 1Q3n2/2qppR2/8/k6P/3Br2P/5Np1/Pp6/3K1Bbb w - - 0 1
 go perft 1
 a2a3: 1
@@ -36446,7 +35527,6 @@ b8e8: 1
 b8f8: 1
 d1d2: 1
 
-ucinewgame
 position fen 1K5N/n3B2p/P2p3q/3k4/1P6/3pb2P/2Pr1P1P/3Q1B2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -36481,7 +35561,6 @@ b8a8: 1
 b8b7: 1
 b8c7: 1
 
-ucinewgame
 position fen 4n1Qr/1BP3r1/2KPPpp1/1PR4p/8/pk4B1/1P6/4b3 w - - 0 1
 go perft 1
 b5b6: 1
@@ -36519,7 +35598,6 @@ g8h8: 1
 c6d5: 1
 c6b6: 1
 
-ucinewgame
 position fen 6K1/kp1PR3/2p5/1BNr1b2/4P1p1/3pppP1/1b5N/4Q3 w - - 0 1
 go perft 1
 e4e5: 1
@@ -36566,7 +35644,6 @@ e1a5: 1
 g8f7: 1
 g8f8: 1
 
-ucinewgame
 position fen 2B5/KPppk3/8/b1P5/4p2r/p2p1N2/1P2PRq1/Nb6 w - - 0 1
 go perft 1
 b2b3: 1
@@ -36596,7 +35673,6 @@ a7a6: 1
 a7b8: 1
 a7a8: 1
 
-ucinewgame
 position fen 8/1PP4R/5P2/1QP1q3/n3k2b/Bpp1q2R/1P2N1K1/3r4 w - - 0 1
 go perft 1
 c5c6: 1
@@ -36643,7 +35719,6 @@ b5c6: 1
 b5d7: 1
 b5e8: 1
 
-ucinewgame
 position fen 7n/2K2pPb/4NP2/P1b4n/p1p4p/2Pr4/3kP2P/7R w - - 0 1
 go perft 1
 e2e3: 1
@@ -36677,7 +35752,6 @@ c7c6: 1
 c7b8: 1
 c7b7: 1
 
-ucinewgame
 position fen 5qq1/1K4pp/4P1P1/3p3P/1pp1np2/P3P1P1/2nR4/6k1 w - - 0 1
 go perft 1
 a3a4: 1
@@ -36703,7 +35777,6 @@ b7c6: 1
 b7a7: 1
 b7c7: 1
 
-ucinewgame
 position fen 3N4/rqq4k/1P3b2/5P2/Q3P2N/p2pK2P/P1bp4/3r4 w - - 0 1
 go perft 1
 e4e5: 1
@@ -36732,7 +35805,6 @@ a4e8: 1
 e3f3: 1
 e3f2: 1
 
-ucinewgame
 position fen 3Nkr2/p1K3nP/8/1R4p1/2N1p1pP/1pP1qr2/3B4/1B6 w - - 0 1
 go perft 1
 h4h5: 1
@@ -36776,7 +35848,6 @@ c7d6: 1
 c7b7: 1
 c7b8: 1
 
-ucinewgame
 position fen 8/PP2pKR1/1p4p1/1q2p3/8/1PPbpk1B/1n2p3/2R2N2 w - - 0 1
 go perft 1
 b3b4: 1
@@ -36812,7 +35883,6 @@ f7g8: 1
 f7f8: 1
 f7e7: 1
 
-ucinewgame
 position fen 5N2/brqRp2Q/1P5p/1K6/B1P4k/2P4r/2PP1pP1/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -36845,7 +35915,6 @@ h7g8: 1
 h7h8: 1
 b5b4: 1
 
-ucinewgame
 position fen 8/1N4p1/1p3PP1/1k3K1P/2r1p3/3Np3/1qPPBQ2/1n4B1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -36883,7 +35952,6 @@ f5f4: 1
 f5g4: 1
 f5g5: 1
 
-ucinewgame
 position fen 8/1n1PBPn1/2P3pP/6R1/R4p2/N1k1b3/P1pp3K/1q6 w - - 0 1
 go perft 1
 c6c7: 1
@@ -36932,7 +36000,6 @@ g5g6: 1
 h2h3: 1
 h2g2: 1
 
-ucinewgame
 position fen 6rN/7p/4PK2/2k2p2/3ppn2/1PN1PP1P/2pPPb2/8 w - - 0 1
 go perft 1
 d2d3: 1
@@ -36956,7 +36023,6 @@ f6f5: 1
 f6f7: 1
 f6e7: 1
 
-ucinewgame
 position fen R3b3/5N2/1p6/2BKN1qP/p3Pk2/1P3P1q/n2p3P/b7 w - - 0 1
 go perft 1
 b3b4: 1
@@ -36988,7 +36054,6 @@ a8a5: 1
 a8a6: 1
 a8a7: 1
 
-ucinewgame
 position fen 3r3Q/2n3p1/1b1PN3/R3p3/3p2P1/nkNP3q/4Kp2/6r1 w - - 0 1
 go perft 1
 g4g5: 1
@@ -37031,7 +36096,6 @@ h8g8: 1
 e2f2: 1
 e2d2: 1
 
-ucinewgame
 position fen 5q2/2Pk4/5PP1/4P1pp/3p1qP1/2P4K/1p2n2P/3BR2Q w - - 0 1
 go perft 1
 c3c4: 1
@@ -37062,7 +36126,6 @@ h1b7: 1
 h1a8: 1
 h3g2: 1
 
-ucinewgame
 position fen 2k1n3/2p5/4K3/P2p2Q1/p4qP1/rP2R2P/1nBBp3/r7 w - - 0 1
 go perft 1
 b3b4: 1
@@ -37103,7 +36166,6 @@ g5g8: 1
 e6d5: 1
 e6e7: 1
 
-ucinewgame
 position fen 8/2r1n1P1/p3q2P/4P1pP/8/2nB1KR1/kp4P1/B3rb2 w - - 0 1
 go perft 1
 h6h7: 1
@@ -37128,7 +36190,6 @@ g3g4: 1
 g3g5: 1
 f3f2: 1
 
-ucinewgame
 position fen 1k6/1pp1r1RP/1B2Qp1P/2Pp4/8/PP5N/1K3pb1/6q1 w - - 0 1
 go perft 1
 a3a4: 1
@@ -37173,7 +36234,6 @@ b2c3: 1
 b2c2: 1
 b2a2: 1
 
-ucinewgame
 position fen 4b3/3p1PRP/2P2N2/4b2K/p2P4/P1qnk2B/2P2q2/5Q2 w - - 0 1
 go perft 1
 d4d5: 1
@@ -37223,7 +36283,6 @@ f1f2: 1
 f1g2: 1
 f1d3: 1
 
-ucinewgame
 position fen 2b3k1/2Nr1nP1/3Q1Pp1/6B1/1R6/P1P2P1B/1K2P1p1/6q1 w - - 0 1
 go perft 1
 e2e3: 1
@@ -37281,7 +36340,6 @@ b2b3: 1
 b2c2: 1
 b2a2: 1
 
-ucinewgame
 position fen k3nr2/p2PP3/P3P3/7n/1QK3pp/3PP3/3B2p1/5Nq1 w - - 0 1
 go perft 1
 d3d4: 1
@@ -37323,7 +36381,6 @@ c4b5: 1
 c4c5: 1
 c4d5: 1
 
-ucinewgame
 position fen 3Rn3/k1pPP1P1/p2Bbp2/2N1r2q/6n1/3K1P2/8/1N5q w - - 0 1
 go perft 1
 f3f4: 1
@@ -37356,7 +36413,6 @@ d3d2: 1
 d3d4: 1
 d3c3: 1
 
-ucinewgame
 position fen 3Nq3/3p1p1R/p6p/qP1b4/1k1N2n1/2r2P1P/1K4p1/6b1 w - - 0 1
 go perft 1
 f3f4: 1
@@ -37381,7 +36437,6 @@ h7g7: 1
 h7h8: 1
 b2b1: 1
 
-ucinewgame
 position fen 1N6/5Rp1/4N1BQ/3k1PPp/3Bq3/1K3P1b/2r1PPq1/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -37425,7 +36480,6 @@ b3b4: 1
 b3a4: 1
 b3a3: 1
 
-ucinewgame
 position fen 4nb2/kN6/5pBP/nb3P2/3K1BPp/5P1P/2N3pQ/8 w - - 0 1
 go perft 1
 g4g5: 1
@@ -37461,7 +36515,6 @@ d4d5: 1
 d4e3: 1
 d4e4: 1
 
-ucinewgame
 position fen 4b3/4RPp1/1N2p2R/2n2kb1/1Pp5/5pPK/1pp1P2Q/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -37502,7 +36555,6 @@ h2h1: 1
 h2f2: 1
 h2g2: 1
 
-ucinewgame
 position fen B6N/3N4/pP1K3k/3P2b1/P3p2P/P1Bb1P2/1P1p4/6n1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -37535,7 +36587,6 @@ d6c6: 1
 d6e6: 1
 d6c7: 1
 
-ucinewgame
 position fen 1r1r1b2/2K3p1/k2P4/5Bp1/1Q2P1PN/2P1BR1n/1P4p1/8 w - - 0 1
 go perft 1
 b2b3: 1
@@ -37577,7 +36628,6 @@ b4b7: 1
 b4b8: 1
 c7c6: 1
 
-ucinewgame
 position fen R5qB/7P/r1k2pPp/P3P1N1/n1p5/8/4pr2/2K2bQ1 w - - 0 1
 go perft 1
 e5e6: 1
@@ -37613,7 +36663,6 @@ c1b1: 1
 c1d2: 1
 c1c2: 1
 
-ucinewgame
 position fen 1B6/1r1nk3/4P3/P5Pb/P4q2/1ppN4/1PR1P2P/3K3Q w - - 0 1
 go perft 1
 d1e1: 1
@@ -37648,7 +36697,6 @@ h1e4: 1
 h1d5: 1
 h1c6: 1
 
-ucinewgame
 position fen 4k1bK/7R/pnp1pQ1P/rn1p1PR1/8/P7/1r1P4/6B1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -37689,7 +36737,6 @@ f6f8: 1
 h8g7: 1
 h8g8: 1
 
-ucinewgame
 position fen 3Q4/3Np3/1pq1p1P1/p1bPp3/3P2P1/2r1B3/1Knpk3/8 w - - 0 1
 go perft 1
 g4g5: 1
@@ -37725,7 +36772,6 @@ b2c3: 1
 b2b1: 1
 b2a2: 1
 
-ucinewgame
 position fen 1B6/3r1R1p/1P2PnP1/N3bK1b/7p/1n1pp1r1/1pk5/8 w - - 0 1
 go perft 1
 b6b7: 1
@@ -37749,7 +36795,6 @@ f7h7: 1
 f7f8: 1
 f5e5: 1
 
-ucinewgame
 position fen 6b1/R3n1n1/1pp2r1p/5P2/3q3b/K1pP4/5P1q/2k2N1Q w - - 0 1
 go perft 1
 f2f3: 1
@@ -37774,7 +36819,6 @@ h1e4: 1
 h1d5: 1
 h1c6: 1
 
-ucinewgame
 position fen 3r4/bp4Pq/1kp4P/1P4Q1/1rPP4/2p5/3pnR2/4nK2 w - - 0 1
 go perft 1
 c4c5: 1
@@ -37812,7 +36856,6 @@ g5e7: 1
 g5d8: 1
 f1e2: 1
 
-ucinewgame
 position fen 6B1/1pk4n/2P3Pb/P1P3p1/3N1P2/2P3q1/2bK1P2/2N4Q w - - 0 1
 go perft 1
 f2f3: 1
@@ -37859,7 +36902,6 @@ d2e2: 1
 d2e1: 1
 d2c2: 1
 
-ucinewgame
 position fen 5N2/4K3/2pN3P/3P1p2/1pr2p2/1P1b1n2/2P2Brp/1k3B2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -37898,7 +36940,6 @@ e7f7: 1
 e7d8: 1
 e7e8: 1
 
-ucinewgame
 position fen 5R2/B1PP1Pp1/kp4Np/8/3Q2Np/1r1q4/K1P5/2q4B w - - 0 1
 go perft 1
 c2c3: 1
@@ -37960,7 +37001,6 @@ d4d6: 1
 d4f6: 1
 d4g7: 1
 
-ucinewgame
 position fen 3B4/1bp5/5PPn/2b2PP1/2kqNpQ1/4q3/1pK1pP2/8 w - - 0 1
 go perft 1
 f2f3: 1
@@ -37986,7 +37026,6 @@ g4h4: 1
 g4h5: 1
 c2b1: 1
 
-ucinewgame
 position fen Q4b2/2p1p1R1/4Pn2/5p2/3Np1B1/1pPr4/3p1qbk/K7 w - - 0 1
 go perft 1
 c3c4: 1
@@ -38027,7 +37066,6 @@ a8f8: 1
 a1b1: 1
 a1b2: 1
 
-ucinewgame
 position fen 8/pP1bQ3/1Ppb1pkP/6p1/PB1P4/6q1/2PR4/4R2K w - - 0 1
 go perft 1
 c2c3: 1
@@ -38077,7 +37115,6 @@ e7d8: 1
 e7e8: 1
 e7f8: 1
 
-ucinewgame
 position fen 7R/3P2B1/2k1b1Pr/1p6/2pPrP1P/6N1/p1P1Np2/3K4 w - - 0 1
 go perft 1
 c2c3: 1
@@ -38112,7 +37149,6 @@ h8g8: 1
 d1c1: 1
 d1d2: 1
 
-ucinewgame
 position fen K7/1Bp5/3P3p/1p4P1/2Pn2Rn/3P1p2/3p1q1N/b1r4k w - - 0 1
 go perft 1
 c4c5: 1
@@ -38139,7 +37175,6 @@ g4h4: 1
 a8a7: 1
 a8b8: 1
 
-ucinewgame
 position fen 1q6/P1b5/n2pP1k1/RqP4p/p1RK4/2P1B3/p5p1/1N6 w - - 0 1
 go perft 1
 c5c6: 1
@@ -38171,7 +37206,6 @@ d4d3: 1
 d4e4: 1
 d4d5: 1
 
-ucinewgame
 position fen 6K1/R7/5p1k/2BPPpb1/1PP2p1N/4p3/4Pp1P/1r1q4 w - - 0 1
 go perft 1
 h2h3: 1
@@ -38207,7 +37241,6 @@ g8f7: 1
 g8h8: 1
 g8f8: 1
 
-ucinewgame
 position fen 8/1k5K/1pq1NPQb/n3RP2/5P2/r2P4/P1B3p1/2Bb4 w - - 0 1
 go perft 1
 d3d4: 1
@@ -38249,7 +37282,6 @@ h7h6: 1
 h7h8: 1
 h7g8: 1
 
-ucinewgame
 position fen 2R5/1Pp2K2/2PqPp2/qPP2P2/7k/B5nN/2p1Q3/4b3 w - - 0 1
 go perft 1
 b5b6: 1
@@ -38296,7 +37328,6 @@ f7g8: 1
 f7g7: 1
 f7e8: 1
 
-ucinewgame
 position fen 7b/2PP2p1/P1K2p1P/2B2pP1/P2rP1pk/n7/5Rr1/8 w - - 0 1
 go perft 1
 a4a5: 1
@@ -38336,7 +37367,6 @@ f2f5: 1
 c6b7: 1
 c6b6: 1
 
-ucinewgame
 position fen 2Q4b/k2r2p1/3pp3/6K1/2Pp1r1p/1Pq5/P1p1n1b1/5N2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -38363,7 +37393,6 @@ c8h8: 1
 g5g6: 1
 g5h5: 1
 
-ucinewgame
 position fen 8/rp5p/1k1P1qP1/Rp5Q/8/5PPP/2pBK1b1/N3N3 w - - 0 1
 go perft 1
 f3f4: 1
@@ -38404,7 +37433,6 @@ e2e3: 1
 e2d3: 1
 e2f2: 1
 
-ucinewgame
 position fen 1n6/P1q3P1/1PNNPr2/1pp4K/7n/2p5/2bk2PP/5B2 w - - 0 1
 go perft 1
 g2g3: 1
@@ -38448,7 +37476,6 @@ h5g4: 1
 h5h4: 1
 h5g5: 1
 
-ucinewgame
 position fen 4n3/1p2p2p/2Pp1k1r/P3p2P/5q1P/4QN1K/5pP1/3B4 w - - 0 1
 go perft 1
 g2g3: 1
@@ -38484,7 +37511,6 @@ e3e5: 1
 e3b6: 1
 e3a7: 1
 
-ucinewgame
 position fen 8/b2Qp2p/2p1Bk1p/PrP1qP2/2P4P/n5r1/R7/2K5 w - - 0 1
 go perft 1
 h4h5: 1
@@ -38519,7 +37545,6 @@ d7e8: 1
 c1d2: 1
 c1d1: 1
 
-ucinewgame
 position fen 5k1B/3Pp3/KQ1P1p1P/pP2R1b1/2n1q1N1/8/5P2/1n3N2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -38558,7 +37583,6 @@ b6b8: 1
 b6d8: 1
 a6a7: 1
 
-ucinewgame
 position fen 2q5/p2rR2b/k1P1pP2/6nP/pRN1n3/3p4/7P/2B1K3 w - - 0 1
 go perft 1
 h2h3: 1
@@ -38598,7 +37622,6 @@ e7e8: 1
 e1d1: 1
 e1f1: 1
 
-ucinewgame
 position fen 2Q5/B2P4/b1q3p1/kp1B4/2rp1nP1/2PP3R/4nP2/3K4 w - - 0 1
 go perft 1
 f2f3: 1
@@ -38647,7 +37670,6 @@ d1d2: 1
 d1e1: 1
 d1c2: 1
 
-ucinewgame
 position fen 5k2/p6R/P3K1b1/P1p2BN1/1Q2P1P1/3p2P1/1Bpq2R1/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -38701,7 +37723,6 @@ e6d6: 1
 e6f6: 1
 e6d7: 1
 
-ucinewgame
 position fen 8/2B5/2qpp3/3PP2p/2pk1b2/1p4RN/3r3n/KNR1n3 w - - 0 1
 go perft 1
 d5e6: 1
@@ -38737,7 +37758,6 @@ g3g6: 1
 g3g7: 1
 g3g8: 1
 
-ucinewgame
 position fen 7N/QP6/4Pp2/B1p1k1q1/8/prP3nK/p1p1B3/4R1b1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -38774,7 +37794,6 @@ a7a8: 1
 a7b8: 1
 h3g2: 1
 
-ucinewgame
 position fen 8/2kq1pr1/6pn/1p2P3/P2p1P1q/1b3PP1/2Bp3P/1K6 w - - 0 1
 go perft 1
 h2h3: 1
@@ -38793,7 +37812,6 @@ c2g6: 1
 b1a1: 1
 b1b2: 1
 
-ucinewgame
 position fen 1N6/2K3Q1/BP5p/P3r2N/1P6/p1k5/Pr3B1P/R4n1R w - - 0 1
 go perft 1
 h2h3: 1
@@ -38849,7 +37867,6 @@ c7d7: 1
 c7c8: 1
 c7d8: 1
 
-ucinewgame
 position fen 7r/2PK4/P7/p4N2/P3P1Bq/4Pnr1/bpk2P1b/4Q3 w - - 0 1
 go perft 1
 e4e5: 1
@@ -38884,7 +37901,6 @@ e1a5: 1
 d7c6: 1
 d7d6: 1
 
-ucinewgame
 position fen 8/P4NP1/Pp3b2/3pp3/4P2P/1p1P1K2/1pP1np2/2N2k2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -38913,7 +37929,6 @@ f7h8: 1
 f3g4: 1
 f3e3: 1
 
-ucinewgame
 position fen 8/n2P1R1r/1kP1P3/n2QR3/3P4/p5P1/p1pb2q1/K6N w - - 0 1
 go perft 1
 g3g4: 1
@@ -38953,7 +37968,6 @@ d5c5: 1
 d5d6: 1
 a1a2: 1
 
-ucinewgame
 position fen N5b1/4qPP1/P7/3P4/p2pB3/2ppP1P1/4Q1Kp/1k1q4 w - - 0 1
 go perft 1
 g3g4: 1
@@ -38992,7 +38006,6 @@ g2f3: 1
 g2h2: 1
 g2f2: 1
 
-ucinewgame
 position fen 7n/Pp1p1P2/1N1p2P1/1ppp1R2/1q1P1P2/1k1B4/3b3K/8 w - - 0 1
 go perft 1
 g6g7: 1
@@ -39029,7 +38042,6 @@ h2g2: 1
 h2g3: 1
 h2h3: 1
 
-ucinewgame
 position fen 5b2/6R1/2Q1Rp1P/3K2pb/2P1r3/P3p3/P6p/1k1N1n1q w - - 0 1
 go perft 1
 a3a4: 1
@@ -39068,7 +38080,6 @@ c6a8: 1
 c6c8: 1
 c6e8: 1
 
-ucinewgame
 position fen 4n3/P7/2qk2Br/qPR1b2b/3N4/1PP1K3/1P5R/B2N4 w - - 0 1
 go perft 1
 b3b4: 1
@@ -39112,7 +38123,6 @@ e3d2: 1
 e3d3: 1
 e3f2: 1
 
-ucinewgame
 position fen 3b2r1/N2ppp2/2PNn1P1/4K3/3Q4/k2BP3/8/1R2nrq1 w - - 0 1
 go perft 1
 e3e4: 1
@@ -39165,7 +38175,6 @@ d4b6: 1
 e5e4: 1
 e5d5: 1
 
-ucinewgame
 position fen 1K4Rb/2PPk2b/1p6/8/n2pP2P/np2PrP1/7B/R7 w - - 0 1
 go perft 1
 g3g4: 1
@@ -39204,7 +38213,6 @@ b8b7: 1
 b8a8: 1
 b8c8: 1
 
-ucinewgame
 position fen 8/2K3P1/q3P1B1/1R4r1/5rPP/4P2p/2nPkpQ1/N5n1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -39258,7 +38266,6 @@ c7d8: 1
 c7b8: 1
 c7d7: 1
 
-ucinewgame
 position fen 8/1pq5/2P5/5q1N/pnP4K/1PR3pb/1rrP1n1Q/4k3 w - - 0 1
 go perft 1
 d2d3: 1
@@ -39282,7 +38289,6 @@ h2g2: 1
 h2g3: 1
 h2h3: 1
 
-ucinewgame
 position fen 5q1Q/3P1r2/k1N5/1p3n2/3nq3/p2rp3/2NbPB1P/5K2 w - - 0 1
 go perft 1
 h2h3: 1
@@ -39324,7 +38330,6 @@ h8f8: 1
 h8g8: 1
 f1g1: 1
 
-ucinewgame
 position fen 7k/1K2P3/P4N2/p1p5/5b2/3p1p2/2PqpPr1/1bnQ1R2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -39356,7 +38361,6 @@ b7a7: 1
 b7c8: 1
 b7a8: 1
 
-ucinewgame
 position fen K7/1pP5/bPp1P3/1Pp1bPBp/8/5NP1/4k3/q4r1B w - - 0 1
 go perft 1
 g3g4: 1
@@ -39388,7 +38392,6 @@ g5d8: 1
 a8a7: 1
 a8b8: 1
 
-ucinewgame
 position fen 1N1Qn3/R2N3P/5p2/1p2Pk2/2P5/3q2P1/p2p3p/K3B2n w - - 0 1
 go perft 1
 g3g4: 1
@@ -39426,7 +38429,6 @@ d8e8: 1
 a1b2: 1
 a1a2: 1
 
-ucinewgame
 position fen q5r1/p2k4/4p1P1/Bpn5/2p5/4Kp1P/2qn2p1/R4bN1 w - - 0 1
 go perft 1
 h3h4: 1
@@ -39451,7 +38453,6 @@ e3f4: 1
 e3d4: 1
 e3f2: 1
 
-ucinewgame
 position fen 6k1/NPR2N2/1b2n3/2B2pP1/1P3n1p/4Kp2/b2P3P/7Q w - - 0 1
 go perft 1
 d2d3: 1
@@ -39489,7 +38490,6 @@ h1f1: 1
 h1g1: 1
 h1g2: 1
 
-ucinewgame
 position fen q1N2r2/4p2P/4knP1/8/1P1p1n2/B5K1/p1pp3p/3R1b2 w - - 0 1
 go perft 1
 b4b5: 1
@@ -39515,7 +38515,6 @@ g3h4: 1
 g3h2: 1
 g3f4: 1
 
-ucinewgame
 position fen 3q4/1n1kP2P/K7/5N2/1N1p2pp/p4P2/2RB1P2/R1qB4 w - - 0 1
 go perft 1
 f3f4: 1
@@ -39568,7 +38567,6 @@ a6b7: 1
 a6b5: 1
 a6a7: 1
 
-ucinewgame
 position fen 8/3B2P1/2nPpK2/1b2R2p/P4bk1/8/pq2PPn1/1rB5 w - - 0 1
 go perft 1
 e2e3: 1
@@ -39592,7 +38590,6 @@ f6f7: 1
 f6g6: 1
 f6e6: 1
 
-ucinewgame
 position fen 7r/5q1p/3bp3/p4R2/k4p2/P1P3nP/NR1Q2P1/1B1K4 w - - 0 1
 go perft 1
 c3c4: 1
@@ -39634,7 +38631,6 @@ d1c1: 1
 d1e1: 1
 d1c2: 1
 
-ucinewgame
 position fen 6k1/1nbr1pB1/5K1P/3B1R2/Np2q2n/1r2P1p1/3p4/4R3 w - - 0 1
 go perft 1
 h6h7: 1
@@ -39668,7 +38664,6 @@ f5g5: 1
 f5h5: 1
 f6g5: 1
 
-ucinewgame
 position fen 1R2N3/r3Q3/n3K3/1pP3p1/P1k3Pb/B1qp2p1/8/3R2q1 w - - 0 1
 go perft 1
 a4a5: 1
@@ -39711,7 +38706,6 @@ e6f7: 1
 e6d6: 1
 e6f5: 1
 
-ucinewgame
 position fen 1n4q1/2BpKBR1/5N1r/Pk5q/1P6/1pr1p3/p6P/Q7 w - - 0 1
 go perft 1
 h2h3: 1
@@ -39760,7 +38754,6 @@ a1b2: 1
 a1c3: 1
 e7d6: 1
 
-ucinewgame
 position fen 1B5q/7n/1p1RP3/pk3Pp1/pPN1B1K1/rb6/7P/Q7 w - - 0 1
 go perft 1
 h2h3: 1
@@ -39817,7 +38810,6 @@ g4g3: 1
 g4h3: 1
 g4h5: 1
 
-ucinewgame
 position fen 8/PRq1k1P1/3p2KP/6p1/1PqPP3/p2NP3/6b1/1r1B4 w - - 0 1
 go perft 1
 b4b5: 1
@@ -39855,7 +38847,6 @@ g6g5: 1
 g6h5: 1
 g6h7: 1
 
-ucinewgame
 position fen 5b2/BB2kP2/1p1q1p1P/P1P1nb1p/K4P2/1r2P3/1R6/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -39888,7 +38879,6 @@ b2h2: 1
 b2b3: 1
 a4b3: 1
 
-ucinewgame
 position fen 1N2nn2/4p2r/1B5b/2K2p2/2P2p2/2PP4/Nk1r2P1/1B2q3 w - - 0 1
 go perft 1
 g2g3: 1
@@ -39910,7 +38900,6 @@ c5b5: 1
 c5d5: 1
 c5c6: 1
 
-ucinewgame
 position fen Nq4r1/2P2pN1/P4pP1/1P3pB1/2k5/1p3R2/2p2q2/K2n4 w - - 0 1
 go perft 1
 b5b6: 1
@@ -39946,7 +38935,6 @@ f3h3: 1
 f3f4: 1
 f3f5: 1
 
-ucinewgame
 position fen 8/1p1p4/2P1P3/1nq2p1n/K3Pbr1/6p1/3R1P1p/2q1kN2 w - - 0 1
 go perft 1
 f2f3: 1
@@ -39974,7 +38962,6 @@ d2d7: 1
 a4a5: 1
 a4b3: 1
 
-ucinewgame
 position fen 8/3NqP1K/q1b1r2P/1k3P2/3p4/p2R1p2/Pr5B/3B3Q w - - 0 1
 go perft 1
 f5f6: 1
@@ -40013,7 +39000,6 @@ h1f1: 1
 h1g1: 1
 h1g2: 1
 
-ucinewgame
 position fen 4bqn1/4bp1K/3P3P/5ppR/PQ6/3N3R/4N1k1/r5B1 w - - 0 1
 go perft 1
 a4a5: 1
@@ -40067,7 +39053,6 @@ b4b7: 1
 b4b8: 1
 h7h8: 1
 
-ucinewgame
 position fen 5n2/r3q3/pRQ4b/6p1/2K2PP1/1BNP1p1P/PN6/k7 w - - 0 1
 go perft 1
 a2a3: 1
@@ -40113,7 +39098,6 @@ c6e8: 1
 c4d5: 1
 c4d4: 1
 
-ucinewgame
 position fen 2K5/3Pq1R1/7P/1bN1R1P1/1rQ1pP2/3p1k2/2PP4/B6q w - - 0 1
 go perft 1
 c2c3: 1
@@ -40161,7 +39145,6 @@ c8b7: 1
 c8c7: 1
 c8b8: 1
 
-ucinewgame
 position fen 8/2PBP1P1/1Q2p2q/RP2K1Pn/1n6/1k5p/5p1p/1r2N3 w - - 0 1
 go perft 1
 g5g6: 1
@@ -40208,7 +39191,6 @@ e5d4: 1
 e5e4: 1
 e5d6: 1
 
-ucinewgame
 position fen 4Rn1K/pp4p1/r7/Q6P/1P1P1Pq1/R1bp1p2/4nk2/8 w - - 0 1
 go perft 1
 b4b5: 1
@@ -40244,7 +39226,6 @@ a5c7: 1
 a5d8: 1
 h8g8: 1
 
-ucinewgame
 position fen 4r2Q/6P1/1P2p2R/1Ppb2bK/N7/1B5n/2Pkpqq1/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -40270,7 +39251,6 @@ h8f8: 1
 h8g8: 1
 h5g6: 1
 
-ucinewgame
 position fen 5q1k/1Q4N1/1PPp1p2/pP6/1P4q1/3K1RP1/1pR4r/3B4 w - - 0 1
 go perft 1
 c6c7: 1
@@ -40308,7 +39288,6 @@ b7c8: 1
 d3e3: 1
 d3c3: 1
 
-ucinewgame
 position fen 8/1PRPp1k1/1P3nr1/8/p2P2PR/b1KP4/5ppB/2N5 w - - 0 1
 go perft 1
 d4d5: 1
@@ -40342,7 +39321,6 @@ c3c4: 1
 c3c2: 1
 c3d2: 1
 
-ucinewgame
 position fen 1b2k3/1P4BR/1P1p1K2/1qP5/4pP2/2pp3N/2rP2q1/7n w - - 0 1
 go perft 1
 f4f5: 1
@@ -40362,7 +39340,6 @@ h7h8: 1
 f6e6: 1
 f6f5: 1
 
-ucinewgame
 position fen 2N1n2K/1p3pP1/5R2/1b3P2/1Pk4p/p5Bp/1r2Pq2/3Q4 w - - 0 1
 go perft 1
 e2e3: 1
@@ -40411,7 +39388,6 @@ d1d8: 1
 h8h7: 1
 h8g8: 1
 
-ucinewgame
 position fen n2B4/8/1P4p1/q1pppP2/1P1Pp2p/1k6/3P2qN/3RK3 w - - 0 1
 go perft 1
 d2d3: 1
@@ -40435,7 +39411,6 @@ d1a1: 1
 d1b1: 1
 d1c1: 1
 
-ucinewgame
 position fen 2B5/r1pqk2p/8/1pK1Ppbn/1B6/1PP3N1/N5P1/2r5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -40453,7 +39428,6 @@ c8a6: 1
 c8b7: 1
 c8d7: 1
 
-ucinewgame
 position fen 1bR1b3/p2P4/1kpp2P1/1B3P2/7P/2p1N3/K1p4Q/2B4n w - - 0 1
 go perft 1
 h4h5: 1
@@ -40505,7 +39479,6 @@ a2a1: 1
 a2b3: 1
 a2a3: 1
 
-ucinewgame
 position fen 2B5/3Pr2N/1K3p1k/1PQ1P3/4P2N/b6p/p1b2Pp1/1R6 w - - 0 1
 go perft 1
 f2f3: 1
@@ -40554,7 +39527,6 @@ b6a7: 1
 b6b7: 1
 b6c7: 1
 
-ucinewgame
 position fen R4K2/3PNP1k/3pB3/p2p4/2P4b/pnp3B1/4PP2/1r6 w - - 0 1
 go perft 1
 e2e3: 1
@@ -40591,7 +39563,6 @@ a8d8: 1
 a8e8: 1
 f8e8: 1
 
-ucinewgame
 position fen 8/1B1p1pK1/5P1P/1PPb4/1Nn4p/1p2p1N1/6p1/1r3rk1 w - - 0 1
 go perft 1
 b5b6: 1
@@ -40619,7 +39590,6 @@ g7g8: 1
 g7h7: 1
 g7f8: 1
 
-ucinewgame
 position fen K1B3b1/6p1/Pp3rR1/pQ2P1b1/q1n2p2/3P2P1/5B2/2k5 w - - 0 1
 go perft 1
 d3d4: 1
@@ -40662,7 +39632,6 @@ a8a7: 1
 a8b7: 1
 a8b8: 1
 
-ucinewgame
 position fen 6R1/P1P5/1K1RB3/1Pn1pp2/k4n2/2rp2p1/1p1P1Np1/8 w - - 0 1
 go perft 1
 a7a8q: 1
@@ -40708,7 +39677,6 @@ g8f8: 1
 g8h8: 1
 b6c6: 1
 
-ucinewgame
 position fen 1k6/p2PKp2/2P2P2/NpRP4/5b2/2p2PR1/qp6/5b1n w - - 0 1
 go perft 1
 d5d6: 1
@@ -40736,7 +39704,6 @@ e7e8: 1
 e7f7: 1
 e7d8: 1
 
-ucinewgame
 position fen k7/4P3/6Pr/4p1Pp/pK1N2nR/7N/1BR3PP/2n2Q2 w - - 0 1
 go perft 1
 g2g3: 1
@@ -40797,7 +39764,6 @@ b4c4: 1
 b4a5: 1
 b4b5: 1
 
-ucinewgame
 position fen 5B2/PqN1p1p1/3P4/1nP3P1/1k2q3/6K1/3PbRNp/5B2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -40832,7 +39798,6 @@ f2f7: 1
 g3h2: 1
 g3h3: 1
 
-ucinewgame
 position fen 8/Pp3P1k/1p5p/1K2Pr2/nP6/1nq1B1R1/5PR1/4q1b1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -40864,7 +39829,6 @@ g3g6: 1
 g3g7: 1
 g3g8: 1
 
-ucinewgame
 position fen 1B4B1/7b/K5p1/p2P1r2/3PppP1/5kNP/1P4R1/1qn5 w - - 0 1
 go perft 1
 b2b3: 1
@@ -40899,7 +39863,6 @@ a6b6: 1
 a6a7: 1
 a6b7: 1
 
-ucinewgame
 position fen Q1q5/p7/2P5/1nP5/1p2PP1B/n6p/Pbk1p3/1N3B1K w - - 0 1
 go perft 1
 e4e5: 1
@@ -40925,7 +39888,6 @@ a8c8: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen 5k2/PP1P1np1/pPP4N/2P2q2/2P1p3/4K2B/4Q2R/5r2 w - - 0 1
 go perft 1
 c6c7: 1
@@ -40968,7 +39930,6 @@ e2h5: 1
 e3d2: 1
 e3d4: 1
 
-ucinewgame
 position fen 8/1B2P3/2QP4/p4K1R/rqbp1P1p/P4rPn/7p/3k4 w - - 0 1
 go perft 1
 g3g4: 1
@@ -41006,7 +39967,6 @@ f5e5: 1
 f5g6: 1
 f5f6: 1
 
-ucinewgame
 position fen 8/1n3P2/k2p3p/2PBq3/K4n2/B2N1pr1/PP3p1P/2Q5 w - - 0 1
 go perft 1
 b2b3: 1
@@ -41049,7 +40009,6 @@ c1f4: 1
 a4b3: 1
 a4b4: 1
 
-ucinewgame
 position fen 1Nq5/8/1Q1p3P/P1P4K/B2P2n1/bppr4/1P4PB/1k6 w - - 0 1
 go perft 1
 g2g3: 1
@@ -41087,7 +40046,6 @@ h5g6: 1
 h5h4: 1
 h5g5: 1
 
-ucinewgame
 position fen 5q2/3Pn3/4P3/1p5Q/P1p3Pq/1Br2bp1/1kNK1pP1/8 w - - 0 1
 go perft 1
 a4a5: 1
@@ -41120,7 +40078,6 @@ h5h7: 1
 h5e8: 1
 h5h8: 1
 
-ucinewgame
 position fen 7n/k2NRPKR/B4p2/p7/2p1Pp1p/2P3p1/1b4bq/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -41151,7 +40108,6 @@ g7h6: 1
 g7f8: 1
 g7g8: 1
 
-ucinewgame
 position fen 2n3q1/1R5b/3kNK1b/r1N4q/8/2P1p1p1/1PR1P2P/4r3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -41188,7 +40144,6 @@ b7g7: 1
 b7h7: 1
 b7b8: 1
 
-ucinewgame
 position fen 3k4/P1p2KP1/1p1b4/2R1PP2/B3r2q/4P1N1/1pb1pq2/8 w - - 0 1
 go perft 1
 e5e6: 1
@@ -41225,7 +40180,6 @@ f7e6: 1
 f7g8: 1
 f7g6: 1
 
-ucinewgame
 position fen b4kB1/1rb5/P1PrPB2/p5p1/P7/2R5/4KpPR/6q1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -41264,7 +40218,6 @@ c3c5: 1
 e2f3: 1
 e2e3: 1
 
-ucinewgame
 position fen 4q2k/3p4/p2r3P/2P1qP1n/4p1PK/1P3bP1/5p1N/1R6 w - - 0 1
 go perft 1
 b3b4: 1
@@ -41287,7 +40240,6 @@ b1b2: 1
 h4h3: 1
 h4g5: 1
 
-ucinewgame
 position fen 3k2BQ/3P1K1P/NP6/b1pP4/3r1pb1/2P1p3/1P6/2r3R1 w - - 0 1
 go perft 1
 b2b3: 1
@@ -41317,7 +40269,6 @@ f7f6: 1
 f7g6: 1
 f7g7: 1
 
-ucinewgame
 position fen N1b5/3P4/1BprRR2/Q3K1P1/p1P5/4P1pr/p3k1q1/8 w - - 0 1
 go perft 1
 e3e4: 1
@@ -41363,7 +40314,6 @@ e5d6: 1
 e5f5: 1
 e5f4: 1
 
-ucinewgame
 position fen 3q4/1b5p/pr3nkP/n1BP2P1/3p2pQ/8/1NK1Pq2/8 w - - 0 1
 go perft 1
 c2d3: 1
@@ -41392,7 +40342,6 @@ c2b1: 1
 c2c1: 1
 c2d1: 1
 
-ucinewgame
 position fen 2Q5/7p/p5Br/pPP3pb/5N1q/4RPB1/K1P4b/2k5 w - - 0 1
 go perft 1
 c2c3: 1
@@ -41449,7 +40398,6 @@ a2a1: 1
 a2b3: 1
 a2a3: 1
 
-ucinewgame
 position fen 3Qq3/pP2p1n1/2B2P2/3p4/5pK1/1r4P1/2b1R2B/b4k1q w - - 0 1
 go perft 1
 f6f7: 1
@@ -41492,7 +40440,6 @@ g4h3: 1
 g4f4: 1
 g4h4: 1
 
-ucinewgame
 position fen 3K1Q2/6pP/6Pp/1k1N1rB1/8/pp1PPB1P/2P5/3n1b2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -41542,7 +40489,6 @@ d8e7: 1
 d8c8: 1
 d8e8: 1
 
-ucinewgame
 position fen 4b3/2q1Q3/k7/p1r4P/P2R2pP/p2N2p1/2np1N2/n5K1 w - - 0 1
 go perft 1
 h5h6: 1
@@ -41589,7 +40535,6 @@ g1f1: 1
 g1h1: 1
 g1g2: 1
 
-ucinewgame
 position fen 2r1k3/6np/Q1q4b/n3P3/NP1K2b1/4p1Pp/1R5B/4R3 w - - 0 1
 go perft 1
 b4b5: 1
@@ -41630,7 +40575,6 @@ a6a8: 1
 a6c8: 1
 d4d3: 1
 
-ucinewgame
 position fen 1q6/p1k5/p3rPp1/3p3b/8/P1K1n1P1/qP1np1Q1/3B4 w - - 0 1
 go perft 1
 b2b3: 1
@@ -41656,7 +40600,6 @@ c3d4: 1
 c3d2: 1
 c3d3: 1
 
-ucinewgame
 position fen 1NK4n/R1N4P/2Q2ppq/2p4R/3P1bk1/1r3b2/1q3P2/8 w - - 0 1
 go perft 1
 d4d5: 1
@@ -41705,7 +40648,6 @@ c6e8: 1
 c8d8: 1
 c8d7: 1
 
-ucinewgame
 position fen Rn6/6p1/2Pp4/P4b2/R4PN1/P6K/Pkp2pPP/6q1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -41721,7 +40663,6 @@ a4c4: 1
 a4d4: 1
 a4e4: 1
 
-ucinewgame
 position fen 1k4bR/3P1p2/5N2/2nRp2p/5P2/4p1nK/PP1r2Q1/4q3 w - - 0 1
 go perft 1
 a2a3: 1
@@ -41763,7 +40704,6 @@ g2e4: 1
 h3h2: 1
 h3h4: 1
 
-ucinewgame
 position fen k7/r1B2PK1/5P1Q/1R2NpPp/5P1P/3N4/1ppp4/5n2 w - - 0 1
 go perft 1
 g5g6: 1
@@ -41807,7 +40747,6 @@ g7f8: 1
 g7g8: 1
 g7h8: 1
 
-ucinewgame
 position fen 1R4qQ/3PP3/1PpP2R1/3N2r1/1K2n3/8/bB1P4/3Bk1q1 w - - 0 1
 go perft 1
 d2d3: 1
@@ -41871,7 +40810,6 @@ b4a3: 1
 b4a5: 1
 b4a4: 1
 
-ucinewgame
 position fen 5K2/7b/pP4p1/Bk1rP1p1/5b1Q/n3pp2/2P1q2P/6N1 w - - 0 1
 go perft 1
 c2c3: 1
@@ -41901,7 +40839,6 @@ f8f7: 1
 f8g7: 1
 f8e8: 1
 
-ucinewgame
 position fen 1b6/2p3KP/pn2R3/q3R3/P1Pp3B/kB3P1N/6p1/2r5 w - - 0 1
 go perft 1
 f3f4: 1
@@ -41951,7 +40888,6 @@ g7f8: 1
 g7g8: 1
 g7h8: 1
 
-ucinewgame
 position fen 2n5/4P3/pn1P1Pp1/5Bp1/4K1P1/P7/1r3R1P/2R1Qqk1 w - - 0 1
 go perft 1
 h2h3: 1
@@ -41998,7 +40934,6 @@ e4e3: 1
 e4f3: 1
 e4d4: 1
 
-ucinewgame
 position fen 8/k2K1bPB/p4P2/1r2Bnq1/1R1p1P2/P5q1/6pp/b7 w - - 0 1
 go perft 1
 a3a4: 1
@@ -42026,7 +40961,6 @@ d7d8: 1
 d7c8: 1
 d7c7: 1
 
-ucinewgame
 position fen 6R1/qP5b/p3K3/qPPP2pN/B3kP1b/3r4/6p1/3r4 w - - 0 1
 go perft 1
 f4f5: 1
@@ -42061,7 +40995,6 @@ e6d6: 1
 e6f6: 1
 e6d7: 1
 
-ucinewgame
 position fen 5K1R/1p4P1/6p1/P3p1P1/1p1q4/6Br/1qPp2R1/nk5b w - - 0 1
 go perft 1
 c2c3: 1
@@ -42093,7 +41026,6 @@ f8f7: 1
 f8e8: 1
 f8g8: 1
 
-ucinewgame
 position fen 6k1/2p1rR2/6p1/1P3Pq1/1N3p2/2P2P2/4Q1PR/1b1n1Kn1 w - - 0 1
 go perft 1
 g2g3: 1
@@ -42137,7 +41069,6 @@ e2e7: 1
 f1e1: 1
 f1g1: 1
 
-ucinewgame
 position fen 3n4/1pp1RP2/pR1QpK2/4p1P1/2P5/3q4/b1k4p/1N2r3 w - - 0 1
 go perft 1
 c4c5: 1
@@ -42174,7 +41105,6 @@ d6d7: 1
 d6d8: 1
 f6g7: 1
 
-ucinewgame
 position fen R7/2P5/p1rpkB1K/2P1p3/3n1P2/1P3QP1/n4N2/1b2r3 w - - 0 1
 go perft 1
 b3b4: 1
@@ -42224,7 +41154,6 @@ h6g5: 1
 h6h5: 1
 h6g7: 1
 
-ucinewgame
 position fen 2q4N/pp4P1/3K2P1/1PpPB2q/7p/2p2k2/1P3N2/2R1b3 w - - 0 1
 go perft 1
 b2b3: 1
@@ -42256,7 +41185,6 @@ c1c2: 1
 c1c3: 1
 d6e7: 1
 
-ucinewgame
 position fen r7/1pp5/k4p2/2K3PP/P3p1r1/1Pnp4/n2p1Q1q/7b w - - 0 1
 go perft 1
 b3b4: 1
@@ -42282,7 +41210,6 @@ f2f6: 1
 c5d4: 1
 c5c4: 1
 
-ucinewgame
 position fen KR2n3/3P2r1/nN1BPp2/4PP1p/1p1p3k/4r3/2p3P1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -42313,7 +41240,6 @@ b8e8: 1
 a8a7: 1
 a8b7: 1
 
-ucinewgame
 position fen n2K1N2/1p1R4/b1P5/8/P5k1/p1bPP1Pr/5pp1/r6q w - - 0 1
 go perft 1
 d3d4: 1
@@ -42337,7 +41263,6 @@ d8e8: 1
 d8e7: 1
 d8c8: 1
 
-ucinewgame
 position fen 7K/2r5/2P2rPN/P1Rpp1P1/2p2b2/P3P3/k1p4q/4n3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -42351,7 +41276,6 @@ c5d5: 1
 c5b5: 1
 c5c4: 1
 
-ucinewgame
 position fen 6R1/2p1P3/Pq1B1bp1/1k6/3P1QP1/2R2P2/3n1rN1/1nK5 w - - 0 1
 go perft 1
 d4d5: 1
@@ -42401,7 +41325,6 @@ c1c2: 1
 c1d1: 1
 c1b2: 1
 
-ucinewgame
 position fen 4B2b/1P4pn/2Nk4/1Pp2R1r/1q1B1R2/3P3r/K6N/5q2 w - - 0 1
 go perft 1
 b5b6: 1
@@ -42448,7 +41371,6 @@ f5f6: 1
 f5f7: 1
 f5f8: 1
 
-ucinewgame
 position fen R7/3Q3P/pNP1P3/bn2p3/3B2P1/p5K1/2kpPp2/4q3 w - - 0 1
 go perft 1
 e2e3: 1
@@ -42497,7 +41419,6 @@ g3h2: 1
 g3f3: 1
 g3h3: 1
 
-ucinewgame
 position fen 3K4/P1p5/1rpp2Qb/kN2P2p/2PB3P/7p/3q2n1/3B4 w - - 0 1
 go perft 1
 c4c5: 1
@@ -42551,7 +41472,6 @@ d8e7: 1
 d8c8: 1
 d8e8: 1
 
-ucinewgame
 position fen 1bb5/1p2K1P1/Q1r4k/8/1P4Pp/pP5B/n2RRrP1/8 w - - 0 1
 go perft 1
 g2g3: 1
@@ -42591,7 +41511,6 @@ a6a8: 1
 e7e8: 1
 e7d8: 1
 
-ucinewgame
 position fen K2n3r/p4P1k/PpQ3b1/Pp4P1/8/p5r1/2RppN2/8 w - - 0 1
 go perft 1
 f7f8q: 1
@@ -42634,7 +41553,6 @@ c6e8: 1
 a8a7: 1
 a8b8: 1
 
-ucinewgame
 position fen 5b2/3k4/q1bp4/3BP3/3ppp1K/P3Ppr1/PR6/1RQ5 w - - 0 1
 go perft 1
 a3a4: 1
@@ -42675,7 +41593,6 @@ c1c5: 1
 c1c6: 1
 h4h5: 1
 
-ucinewgame
 position fen 8/5Bpk/2p1P1pq/2B1P1P1/1P2P3/2Q1n3/1rq1p3/b5K1 w - - 0 1
 go perft 1
 b4b5: 1
@@ -42703,7 +41620,6 @@ c3c4: 1
 c3d4: 1
 g1f2: 1
 
-ucinewgame
 position fen 4rR2/1pp5/2q2P2/3P3p/2NkPPP1/3P1B1K/2R1b2p/8 w - - 0 1
 go perft 1
 e4e5: 1
@@ -42739,7 +41655,6 @@ h3h2: 1
 h3g3: 1
 h3h4: 1
 
-ucinewgame
 position fen 7R/6Q1/k2P1K2/1b1B2P1/2q1pPr1/pp2Pq2/1B1b1p2/8 w - - 0 1
 go perft 1
 f4f5: 1
@@ -42791,7 +41706,6 @@ f6g6: 1
 f6e7: 1
 f6f7: 1
 
-ucinewgame
 position fen 6N1/6B1/QP2Bbp1/n1P1P1p1/4pp2/K1p3q1/1Pk5/7N w - - 0 1
 go perft 1
 b2b3: 1
@@ -42833,7 +41747,6 @@ a3a2: 1
 a3b4: 1
 a3a4: 1
 
-ucinewgame
 position fen k6b/2Pp1B2/1RR1P1q1/3b4/p2P1P2/p7/2prQ1N1/2K5 w - - 0 1
 go perft 1
 f4f5: 1
@@ -42879,7 +41792,6 @@ e2h5: 1
 e2a6: 1
 c1d2: 1
 
-ucinewgame
 position fen 8/3Ppq2/2B5/3pP1r1/6qP/2kp1NB1/P4Rrp/2K4R w - - 0 1
 go perft 1
 a2a3: 1
@@ -42918,7 +41830,6 @@ f2g2: 1
 c1b1: 1
 c1d1: 1
 
-ucinewgame
 position fen 2B3n1/1pq4p/2RqP3/3r1p2/2Kn2PR/4P3/3Pk1r1/N7 w - - 0 1
 go perft 1
 d2d3: 1
@@ -42941,7 +41852,6 @@ c6c5: 1
 c4c3: 1
 c6c7: 1
 
-ucinewgame
 position fen 1B4Bk/P1N5/1p1p4/nP3K2/n1p2PP1/2r5/1b2N1pr/8 w - - 0 1
 go perft 1
 g4g5: 1
@@ -42970,7 +41880,6 @@ f5g5: 1
 f5e6: 1
 f5f6: 1
 
-ucinewgame
 position fen 2kB4/Pn3p1P/P5R1/Q4K2/1p2N3/P2p2RB/3Pr3/4N3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -43034,7 +41943,6 @@ f5e5: 1
 f5g5: 1
 f5f6: 1
 
-ucinewgame
 position fen 1rN5/b1Q2P1R/1P2k1p1/q1pp2p1/b4PP1/p3K3/8/3B4 w - - 0 1
 go perft 1
 f4f5: 1
@@ -43076,7 +41984,6 @@ e3e2: 1
 e3f2: 1
 e3d3: 1
 
-ucinewgame
 position fen 8/5Q1P/2n3P1/2Pr2b1/k1Pp1Pp1/p4Bp1/4P3/5bnK w - - 0 1
 go perft 1
 e2e3: 1
@@ -43108,7 +42015,6 @@ f7f8: 1
 f7g8: 1
 h1g1: 1
 
-ucinewgame
 position fen B5nB/Ppq2p2/PbP1rpP1/R6b/5k2/8/K3PP2/8 w - - 0 1
 go perft 1
 e2e3: 1
@@ -43136,7 +42042,6 @@ a2b2: 1
 a2a3: 1
 a2b3: 1
 
-ucinewgame
 position fen 6n1/bKRp4/2R2P2/3r2P1/2Bp4/p5pn/1Q3B1P/3k3q w - - 0 1
 go perft 1
 g5g6: 1
@@ -43181,7 +42086,6 @@ b7c8: 1
 b7a7: 1
 b7a8: 1
 
-ucinewgame
 position fen 8/1Pq2k2/3b2p1/2P2P2/n2P4/Pp1Q2Bp/pP5N/K2R4 w - - 0 1
 go perft 1
 d4d5: 1
@@ -43223,7 +42127,6 @@ d3e4: 1
 d3b5: 1
 d3a6: 1
 
-ucinewgame
 position fen 1n2R3/3p2r1/P3p2K/p2PP3/3B4/1P1N2kp/p1B3P1/2R5 w - - 0 1
 go perft 1
 b3b4: 1
@@ -43266,7 +42169,6 @@ e8h8: 1
 h6g7: 1
 h6h5: 1
 
-ucinewgame
 position fen 6K1/1b2p2r/4r2P/5p1P/Pb3k1N/P6P/2p2PR1/5nN1 w - - 0 1
 go perft 1
 f2f3: 1
@@ -43286,7 +42188,6 @@ g2g7: 1
 g8f8: 1
 g8h7: 1
 
-ucinewgame
 position fen 8/2P1rp1k/3R3p/PpQ5/4ppRP/8/1N4K1/rn4bn w - - 0 1
 go perft 1
 h4h5: 1
@@ -43343,7 +42244,6 @@ g2g1: 1
 g2h1: 1
 g2h3: 1
 
-ucinewgame
 position fen 3k2q1/1p5P/1K3p1b/1P2P2P/4R1p1/P6p/2b1qr1Q/4n3 w - - 0 1
 go perft 1
 a3a4: 1
@@ -43377,7 +42277,6 @@ b6c5: 1
 b6b7: 1
 b6a7: 1
 
-ucinewgame
 position fen 1b6/R1P2pKP/6n1/1b4Pq/qp6/2Qp4/Pp2kP2/N7 w - - 0 1
 go perft 1
 a2a3: 1
@@ -43421,7 +42320,6 @@ g7f6: 1
 g7g8: 1
 g7f7: 1
 
-ucinewgame
 position fen 1NB3qb/q7/1p3P2/ppP1Ppn1/6n1/7P/2PK1k2/3R4 w - - 0 1
 go perft 1
 c2c3: 1
@@ -43451,7 +42349,6 @@ d2c1: 1
 d2d3: 1
 d2c3: 1
 
-ucinewgame
 position fen k4n2/q4b1P/5PN1/PpR1p1b1/8/1Q1PNp2/1q1p4/7K w - - 0 1
 go perft 1
 d3d4: 1
@@ -43500,7 +42397,6 @@ b3f7: 1
 h1g1: 1
 h1h2: 1
 
-ucinewgame
 position fen 7r/PR1Pb2b/1p5q/2p1R3/n2Q1pKN/q5N1/k5P1/8 w - - 0 1
 go perft 1
 a7a8q: 1
@@ -43553,7 +42449,6 @@ d4d5: 1
 d4d6: 1
 g4h3: 1
 
-ucinewgame
 position fen 8/2p3KQ/3q4/5p2/1q2pk2/p2BNbnP/P1P1PPR1/8 w - - 0 1
 go perft 1
 c2c3: 1
@@ -43585,7 +42480,6 @@ g7h8: 1
 g7g8: 1
 g7f7: 1
 
-ucinewgame
 position fen 3k1N1r/6N1/3KR3/1p1pPP2/8/Qq6/1n1P1PPp/2qb4 w - - 0 1
 go perft 1
 d2d3: 1
@@ -43617,7 +42511,6 @@ a3a6: 1
 a3a7: 1
 a3a8: 1
 
-ucinewgame
 position fen R7/1p5p/PqBp2r1/2p1P3/4K3/npP4p/1p1k1b2/6r1 w - - 0 1
 go perft 1
 c3c4: 1
@@ -43644,7 +42537,6 @@ e4d5: 1
 e4f3: 1
 e4f4: 1
 
-ucinewgame
 position fen 1B6/8/B1q1k1PP/K7/Ppq2p1n/pr4p1/2R1b1P1/3Q4 w - - 0 1
 go perft 1
 g6g7: 1
@@ -43681,7 +42573,6 @@ d1d6: 1
 d1d7: 1
 d1d8: 1
 
-ucinewgame
 position fen 8/3pPNN1/pPk2P2/Pp1q4/6b1/3n1r2/3ppQ2/1Kb5 w - - 0 1
 go perft 1
 b6b7: 1
@@ -43714,7 +42605,6 @@ f2c5: 1
 b1a1: 1
 b1c2: 1
 
-ucinewgame
 position fen 2Q5/4PB1N/R1bKP2P/1r4n1/4kp2/1p3p2/4np2/2N3B1 w - - 0 1
 go perft 1
 e7e8q: 1
@@ -43757,7 +42647,6 @@ c8h8: 1
 d6c7: 1
 d6c6: 1
 
-ucinewgame
 position fen 1K6/4bPN1/P3p3/P4r1P/2qPRp1p/5P2/R5N1/2k1r3 w - - 0 1
 go perft 1
 d4d5: 1
@@ -43792,7 +42681,6 @@ b8a7: 1
 b8b7: 1
 b8a8: 1
 
-ucinewgame
 position fen 8/7Q/P2Pq3/1R3pp1/Knpq1b2/4N2r/2pPk1P1/7b w - - 0 1
 go perft 1
 d2d3: 1
@@ -43836,7 +42724,6 @@ a4a3: 1
 a4a5: 1
 a4b4: 1
 
-ucinewgame
 position fen 4q3/2n3p1/1P1p2Bp/r1P1k3/2p5/R1rp3N/4pK1n/7b w - - 0 1
 go perft 1
 c5c6: 1
@@ -43864,7 +42751,6 @@ f2g3: 1
 f2g1: 1
 f2e3: 1
 
-ucinewgame
 position fen 2BRq2N/7K/Pkp5/b1p3Q1/4N3/4P3/q1p2pp1/3rn3 w - - 0 1
 go perft 1
 a6a7: 1
@@ -43910,7 +42796,6 @@ g5g8: 1
 h7g7: 1
 h7h6: 1
 
-ucinewgame
 position fen 1K6/2pqN1pp/2P2R2/3P2bP/5rPk/1b3r2/4P3/Bn6 w - - 0 1
 go perft 1
 e2e3: 1
@@ -43939,7 +42824,6 @@ b8a7: 1
 b8b7: 1
 b8a8: 1
 
-ucinewgame
 position fen k7/p1P5/4nPB1/6pb/r1Q2P2/1P2Rr1p/2RK4/2n1B3 w - - 0 1
 go perft 1
 b3b4: 1
@@ -43990,7 +42874,6 @@ d2c1: 1
 d2d1: 1
 d2c3: 1
 
-ucinewgame
 position fen 1N6/1nrrk3/PB6/3P4/4BP2/2b1K1P1/PnNpp3/5b2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -44022,7 +42905,6 @@ b6c7: 1
 e3f3: 1
 e3f2: 1
 
-ucinewgame
 position fen 8/4n3/n2NpR2/Kp1p2r1/P5q1/2PPB2p/3p4/kbb5 w - - 0 1
 go perft 1
 c3c4: 1
@@ -44059,7 +42941,6 @@ a5b6: 1
 a5b5: 1
 a5a6: 1
 
-ucinewgame
 position fen n2B1N1n/7R/2P5/K2p2p1/pP2k3/1p3r2/2b2Q1P/1Rq5 w - - 0 1
 go perft 1
 h2h3: 1
@@ -44109,7 +42990,6 @@ a5a4: 1
 a5b5: 1
 a5a6: 1
 
-ucinewgame
 position fen Q2N1r2/RB5N/P1n1K2B/1PP5/3p2p1/5r2/2P3b1/3q1k2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -44136,7 +43016,6 @@ e6d5: 1
 e6d7: 1
 e6d6: 1
 
-ucinewgame
 position fen 3nN3/1r3pP1/rp5N/8/2p2p2/R4K1P/q2P1RP1/2k2B2 w - - 0 1
 go perft 1
 d2d3: 1
@@ -44172,7 +43051,6 @@ f3g4: 1
 f3f4: 1
 f3e4: 1
 
-ucinewgame
 position fen 7K/3B2P1/1Bn1p1k1/2P5/q2p2P1/1p2r1N1/N1PpR3/5r2 w - - 0 1
 go perft 1
 c2c3: 1
@@ -44207,7 +43085,6 @@ e2h2: 1
 e2e3: 1
 h8g8: 1
 
-ucinewgame
 position fen K1b5/3B1p2/3q4/PP2Pr2/2kP2P1/q3pp1p/2P4R/Q7 w - - 0 1
 go perft 1
 c2c3: 1
@@ -44242,7 +43119,6 @@ a1a3: 1
 a1c3: 1
 a8a7: 1
 
-ucinewgame
 position fen 2Q2RK1/pnP1N3/2B1pq2/2P5/1r2P3/2p2rB1/p7/2k3N1 w - - 0 1
 go perft 1
 e4e5: 1
@@ -44278,7 +43154,6 @@ c8d8: 1
 c8e8: 1
 g8h7: 1
 
-ucinewgame
 position fen 8/1R6/n1p2p2/1pb2q2/1pBr1Q1r/p2bK3/1pkP3q/8 w - - 0 1
 go perft 1
 c4a2: 1
@@ -44317,7 +43192,6 @@ f4c7: 1
 f4b8: 1
 e3f3: 1
 
-ucinewgame
 position fen 5Q2/1RpbPn2/2P1R3/p5r1/6Bp/B1pp4/q1k2N2/4K3 w - - 0 1
 go perft 1
 e7e8q: 1
@@ -44370,7 +43244,6 @@ f8g8: 1
 f8h8: 1
 e1f1: 1
 
-ucinewgame
 position fen N1n1Q3/1p3R2/2N5/4Bp2/p1qpk3/1P4P1/P5P1/K1n4b w - - 0 1
 go perft 1
 a2a3: 1
@@ -44415,7 +43288,6 @@ e8h8: 1
 a1b1: 1
 a1b2: 1
 
-ucinewgame
 position fen 4r1b1/5Pr1/k7/4P2P/2P3R1/p4RNp/1pKbp2P/5B2 w - - 0 1
 go perft 1
 c4c5: 1
@@ -44461,7 +43333,6 @@ c2d3: 1
 c2b3: 1
 c2d2: 1
 
-ucinewgame
 position fen 7k/p1R2r2/2pN1q2/2p1P3/Kp2r1PP/2P4N/4Pp2/5B2 w - - 0 1
 go perft 1
 e2e3: 1
@@ -44494,7 +43365,6 @@ c7c8: 1
 a4a5: 1
 a4b3: 1
 
-ucinewgame
 position fen 8/3PP2R/1b2Kp1N/8/q4pr1/1pn5/Pp2pkp1/2r2b2 w - - 0 1
 go perft 1
 a2a3: 1
@@ -44519,7 +43389,6 @@ e6f6: 1
 e6f5: 1
 e6d6: 1
 
-ucinewgame
 position fen 1r4k1/1q1b2p1/3b1R1n/4qp2/R1K2B2/p1NB2P1/6p1/7N w - - 0 1
 go perft 1
 g3g4: 1
@@ -44557,7 +43426,6 @@ f6h6: 1
 f6f7: 1
 f6f8: 1
 
-ucinewgame
 position fen 1n5k/qP2Q3/NP1P4/KpPP2P1/8/2p5/1p2B1pq/4r3 w - - 0 1
 go perft 1
 c5c6: 1
@@ -44588,7 +43456,6 @@ e7h7: 1
 e7d8: 1
 e7e8: 1
 
-ucinewgame
 position fen 7r/8/1pR3N1/1p4R1/PK2p3/2PPN1pk/1B2P2p/1r2q3 w - - 0 1
 go perft 1
 b4b5: 1
@@ -44629,7 +43496,6 @@ c6e6: 1
 c6f6: 1
 c6c7: 1
 
-ucinewgame
 position fen rnbqkbnr/1ppppppp/p7/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 2
 go perft 1
 b7b6: 1
@@ -44651,7 +43517,6 @@ g8f6: 1
 g8h6: 1
 a8a7: 1
 
-ucinewgame
 position fen rnbqkbnr/1pp1pppp/p7/3p4/Q2P4/2P5/PP2PPPP/RNB1KBNR b KQkq - 1 3
 go perft 1
 c7c6: 1
@@ -44661,7 +43526,6 @@ b8d7: 1
 c8d7: 1
 d8d7: 1
 
-ucinewgame
 position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
 go perft 2
 e2e3: 15
@@ -44679,7 +43543,6 @@ b4e4: 15
 b4f4: 2
 a5a4: 15
 
-ucinewgame
 position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
 go perft 3
 e2e3: 205
@@ -44697,7 +43560,6 @@ b4e4: 228
 b4f4: 41
 a5a4: 224
 
-ucinewgame
 position fen 8/2p5/3p4/KP1P3r/1R3p1k/8/4P1P1/8 w - - 0 1
 go perft 2
 e2e3: 12
@@ -44716,7 +43578,6 @@ b4f4: 2
 a5a4: 12
 a5a6: 12
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/P2P2PP/r2Q1R1K w kq - 0 2
 go perft 2
 d2d3: 42
@@ -44843,7 +43704,6 @@ d8d7: 40
 d8e8: 52
 f8g8: 44
 
-ucinewgame
 position fen rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
 go perft 3
 a2a3: 1373
@@ -44891,7 +43751,6 @@ e1d2: 978
 e1f2: 1269
 e1g1: 1376
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/5nbN/nP6/BBPbP3/q4N2/Pp4PP/R2Q1RK1 w kq - 0 3
 go perft 1
 g1h1: 1
@@ -44899,7 +43758,6 @@ f3d4: 1
 f1f2: 1
 d1d4: 1
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBPPP3/q4N2/Pp4PP/R2Q1RK1 b kq - 0 2
 go perft 2
 c7c6: 41
@@ -44946,7 +43804,6 @@ a3b4: 32
 e8c8: 44
 e8d8: 40
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBPPP3/q4N2/Pp4PP/R2Q1RK1 b kq - 0 2
 go perft 3
 c7c6: 1820
@@ -44993,7 +43850,6 @@ a3b4: 1560
 e8c8: 1769
 e8d8: 1683
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
 go perft 4
 g1h1: 81638
@@ -45003,7 +43859,6 @@ f3d4: 75736
 b4c5: 58167
 f1f2: 73972
 
-ucinewgame
 position fen rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
 go perft 4
 a2a3: 46833
@@ -45051,7 +43906,6 @@ e1d2: 33423
 e1f2: 36783
 e1g1: 47054
 
-ucinewgame
 position fen 8/2p5/3p4/KP3k1r/5p2/8/4P1P1/5R2 w - - 4 3
 go perft 2
 e2e3: 19
@@ -45073,7 +43927,6 @@ a5a4: 19
 a5b4: 19
 a5a6: 19
 
-ucinewgame
 position fen 8/2p5/3p4/KP4kr/5p2/8/4P1P1/5R2 b - - 3 2
 go perft 3
 f4f3: 356
@@ -45094,7 +43947,6 @@ g5f6: 404
 g5g6: 405
 g5h6: 302
 
-ucinewgame
 position fen 8/2p5/3p4/KP4kr/5p2/8/4P1P1/1R6 w - - 2 2
 go perft 4
 e2e3: 6353
@@ -45116,7 +43968,6 @@ a5a4: 6484
 a5b4: 6599
 a5a6: 6237
 
-ucinewgame
 position fen 8/2p5/3p4/KP5r/5p1k/8/4P1P1/1R6 b - - 1 1
 go perft 5
 f4f3: 83090
@@ -45136,7 +43987,6 @@ h4g3: 87552
 h4g5: 104371
 h4g4: 98810
 
-ucinewgame
 position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 go perft 6
 a2a3: 197413067
@@ -45188,7 +44038,6 @@ e1f1: 139601450
 e1g1: 172063416
 e1c1: 148701308
 
-ucinewgame
 position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
 go perft 6
 e2e3: 745505
@@ -45206,7 +44055,6 @@ b4e4: 860971
 b4f4: 174919
 a5a4: 868162
 
-ucinewgame
 position fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
 go perft 6
 c4c5: 92063670
@@ -45216,7 +44064,6 @@ b4c5: 87986826
 f1f2: 123078367
 g1h1: 149335005
 
-ucinewgame
 position fen r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1
 go perft 6
 c5c4: 92063670
@@ -45226,7 +44073,6 @@ b5c4: 87986826
 f8f7: 123078367
 g8h8: 149335005
 
-ucinewgame
 position fen rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
 go perft 6
 a2a3: 66258966
@@ -45274,7 +44120,6 @@ e1d2: 35855286
 e1f2: 49646021
 e1g1: 67718118
 
-ucinewgame
 position fen r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 go perft 6
 b2b3: 144074317

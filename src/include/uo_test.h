@@ -6,14 +6,9 @@ extern "C"
 {
 #endif
 
-#include "uo_position.h"
-#include "uo_math.h"
-
 #include <stdbool.h>
 
-  bool uo_test_move_generation(uo_position *position, char *test_data_dir);
-
-  bool uo_test_tb_probe(uo_position *position, char *test_data_dir);
+  bool uo_test(char *test_data_dir, char *test_name);
 
 #ifdef __cplusplus
 }

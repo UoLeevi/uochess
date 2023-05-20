@@ -127,11 +127,13 @@ extern "C"
     uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
     uo_atomic_lock(lock);
 
+    int count_removed = 0;
+
     while (entry->key && entry->expiry_ply < root_ply)
     {
       entry->key = 0;
       entry->data = 0;
-      uo_atomic_decrement(&ttable->count);
+      ++count_removed;
 
       if (lock != &ttable->locks[i & ttable->lock_mask]) break;
 
@@ -152,7 +154,7 @@ extern "C"
       {
         entry->key = 0;
         entry->data = 0;
-        uo_atomic_decrement(&ttable->count);
+        ++count_removed;
 
         if (lock != &ttable->locks[i & ttable->lock_mask]) break;
 
@@ -162,6 +164,8 @@ extern "C"
 
       uo_atomic_unlock(lock);
     }
+
+    if (count_removed) uo_atomic_sub(&ttable->count, count_removed);
 
     return false;
   }

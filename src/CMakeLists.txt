@@ -57,20 +57,16 @@ add_custom_target(copy-runtime-files-books ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/books" "${CMAKE_BINARY_DIR}/bin/books"
   DEPENDS uochess)
 
-add_test(NAME "Test all"
-  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
-
 add_test(NAME "Test move_generation"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_generation
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-add_test(NAME "Test tb_probe"
-  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname tb_probe
+add_test(NAME "Test move_ordering"
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname move_ordering
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-add_test(NAME "Test matmul"
-  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname matmul
+add_test(NAME "Test tb_probe"
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname tb_probe
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 install(DIRECTORY conf/

@@ -77,7 +77,10 @@ extern "C"
 #define uo_score_doubled_P -15
 #define uo_score_blocked_P -20
 
-#define uo_score_passed_pawn 30
+#define uo_score_passed_pawn 20
+#define uo_score_passed_pawn_on_fifth 30
+#define uo_score_passed_pawn_on_sixth 70
+#define uo_score_passed_pawn_on_seventh 120
 
   // piece development
 #define uo_score_rook_on_semiopen_file 15
@@ -360,6 +363,9 @@ extern "C"
     if (passed_own_P)
     {
       score_eg += uo_score_passed_pawn * (int32_t)uo_popcnt(passed_own_P);
+      score_eg += uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
+      score_eg += uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
+      score_eg += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
     }
 
     // passed pawns
@@ -367,6 +373,9 @@ extern "C"
     if (passed_enemy_P)
     {
       score_eg -= uo_score_passed_pawn * (int32_t)uo_popcnt(passed_enemy_P);
+      score_eg -= uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
+      score_eg -= uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
+      score_eg -= uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
     }
 
     // castling rights
@@ -392,7 +401,7 @@ extern "C"
   }
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

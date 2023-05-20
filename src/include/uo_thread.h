@@ -69,6 +69,10 @@ extern "C"
 
   int uo_atomic_decrement(volatile uo_atomic_int *target);
 
+  int uo_atomic_add(volatile uo_atomic_int *target, int value);
+
+  int uo_atomic_sub(volatile uo_atomic_int *target, int value);
+
 # define uo_atomic_flag atomic_flag
 
 # define uo_atomic_flag_clear atomic_flag_clear
@@ -117,7 +121,7 @@ extern "C"
     }
   }
 
-    static inline void uo_atomic_wait_until_gt(volatile uo_atomic_int *target, int expected)
+  static inline void uo_atomic_wait_until_gt(volatile uo_atomic_int *target, int expected)
   {
     while (uo_atomic_compare_exchange(target, expected, expected) <= expected)
     {

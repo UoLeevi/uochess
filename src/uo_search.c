@@ -503,7 +503,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       uo_pv_update(pline, entry.bestmove, NULL, 0);
     }
 
-    return entry.value;
+    if (entry.bestmove || position->ply)
+    {
+      return entry.value;
+    }
   }
 
   // Step 5. If search is stopped, return unknown value
@@ -611,7 +614,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_position_sort_moves(&thread->position, move, thread->move_cache);
 
   // Step 15. Multi-Cut pruning
-  if (cut && depth > UO_MULTICUT_DEPTH_REDUCTION)
+  if (position->ply && cut && depth > UO_MULTICUT_DEPTH_REDUCTION)
   {
     size_t cutoff_counter = UO_MULTICUT_CUTOFF_COUNT;
     size_t move_count_mc = uo_min(move_count, UO_MULTICUT_MOVE_COUNT);
@@ -694,6 +697,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       || pv
       // no reduction on the first three moves
       || i < 3
+      // no reduction if there are very few legal moves
+      || move_count < 8
       // no reduction if position is check
       || uo_position_is_check(position)
       // no reduction on promotions or captures
@@ -716,7 +721,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // 18.2 Perform null window search for reduced depth
     size_t depth_lmr = depth - depth_reduction;
     uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false, true, incomplete);
+    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, false, !cut, incomplete);
 
     if (*incomplete)
     {
@@ -787,6 +792,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
     }
 
+    // Step 19. Get results from already finished parallel searches
     if (parallel_search_count > 0)
     {
       uo_search_queue_item result;
@@ -851,6 +857,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
+  // Step 20. Get results from remaining parallel searches and wait if not yet finished
   if (parallel_search_count > 0)
   {
     uo_search_queue_item result;
@@ -1255,8 +1262,6 @@ search_completed:
     engine.position.bftable[i] = (position->bftable[i] + 1) >> 1;
   }
   uo_engine_unlock_position();
-
-  //uo_engine_thread_release_pv(thread);
   uo_engine_stop_search();
 
   return NULL;

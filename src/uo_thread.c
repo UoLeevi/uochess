@@ -158,6 +158,16 @@ int uo_atomic_decrement(volatile uo_atomic_int *target)
   return InterlockedDecrement(target);
 }
 
+int uo_atomic_add(volatile uo_atomic_int *target, int value)
+{
+  return InterlockedAdd(target, value);
+}
+
+int uo_atomic_sub(volatile uo_atomic_int *target, int value)
+{
+  return InterlockedAdd(target, -value);
+}
+
 #else
 
 #include <semaphore.h>
@@ -270,6 +280,16 @@ int uo_atomic_load(volatile uo_atomic_int *target)
 void uo_atomic_store(volatile uo_atomic_int *target, int value)
 {
   atomic_store(target, value);
+}
+
+int uo_atomic_add(volatile uo_atomic_int *target, int value)
+{
+  return atomic_fetch_add(target, value) + value;
+}
+
+int uo_atomic_sub(volatile uo_atomic_int *target, int value)
+{
+  return atomic_fetch_sub(target, value) - value;
 }
 
 int uo_atomic_increment(volatile uo_atomic_int *target)
