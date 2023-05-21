@@ -95,7 +95,7 @@ bool uo_test__dtz(uo_test_info *info)
   return true;
 }
 
-bool uo_test__move_order(uo_test_info *info)
+bool uo_test__moveorder(uo_test_info *info)
 {
   uo_position *position = &info->position;
   uint64_t key = position->key;
@@ -128,10 +128,8 @@ bool uo_test__move_order(uo_test_info *info)
     if (move != position->movelist.head[i])
     {
       char move_str[6];
-      uo_position_print_move(position, move, move_str);
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      sprintf(info->message, "move '%s' was not ordered correctly for fen '%s'", move_str, info->fen);
+      uo_position_print_move(position, position->movelist.head[i], move_str);
+      sprintf(info->message, "move %d. %s was expected, instead '%s' encountered for fen '%s'", i + 1, info->ptr, move_str, info->fen);
       return false;
     }
   }
@@ -256,6 +254,62 @@ bool uo_test__go_perft(uo_test_info *info)
   return true;
 }
 
+bool uo_test__go_depth(uo_test_info *info)
+{
+  size_t depth;
+
+  if (sscanf(info->ptr, "go depth %zu", &depth) != 1 || depth < 1)
+  {
+    sprintf(info->message, "Expected to read 'go depth', instead read '%s'", info->ptr);
+    return false;
+  }
+
+  // TODO: Run search to specified depth (perhaps using another process running the engine executable) and get the output
+
+  while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
+  {
+    if (strlen(info->ptr) == 0) break;
+    if (info->ptr[0] == '#') continue;
+
+    int cp_lower_bound;
+    int cp_upper_bound;
+
+    if (sscanf(info->ptr, "cp [%d,%d]]", &cp_lower_bound, &cp_upper_bound) == 2)
+    {
+      // TODO: Test if evaluation is between boundaries
+
+      
+      continue;
+    }
+
+    char best_move_str[6];
+    char ponder_move_str[6];
+
+    if (sscanf(info->ptr, "bestmove %5s ponder %5s", best_move_str, ponder_move_str) == 2)
+    {
+      // TODO: Test if best move and ponder move is correct
+
+      
+      continue;
+    }
+
+    if (sscanf(info->ptr, "bestmove %5s", best_move_str) == 1)
+    {
+      // TODO: Test if best move correct
+
+      
+      continue;
+    }
+
+
+    sprintf(info->message, "Unknown command '%s'", info->ptr);
+    return false;
+  }
+
+  return info->passed;
+}
+
+
 bool uo_test__go(uo_test_info *info)
 {
   if (!test_command_map__go)
@@ -264,6 +318,7 @@ bool uo_test__go(uo_test_info *info)
 
     // Register all 'go xxxx' test commands here
     uo_strmap_add(test_command_map__go, "perft", uo_test__go_perft);
+    uo_strmap_add(test_command_map__go, "depth", uo_test__go_depth);
 
   }
 
@@ -298,7 +353,7 @@ bool uo_test(char *test_data_dir, char *test_name)
     uo_strmap_add(test_command_map, "wdl", uo_test__wdl);
     uo_strmap_add(test_command_map, "dtz", uo_test__dtz);
     uo_strmap_add(test_command_map, "go", uo_test__go);
-    uo_strmap_add(test_command_map, "move_order", uo_test__move_order);
+    uo_strmap_add(test_command_map, "moveorder", uo_test__moveorder);
 
   }
 

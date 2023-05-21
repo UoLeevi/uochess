@@ -789,31 +789,41 @@ extern "C"
     return index;
   }
 
-  static inline uint16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move)
+  static inline int16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
-    if (uo_position_is_killer_move(position, move))
-    {
-      return 1000;
-    }
+    int16_t move_score = 0;
+
+    int16_t see = uo_position_move_see(position, move, move_cache);
+    move_score += see;
+
+    bool is_killer_move = uo_position_is_killer_move(position, move);
+    move_score += is_killer_move * 1000;
 
     // relative history heuristic
     size_t index = uo_position_move_history_heuristic_index(position, move);
     uint32_t hhscore = position->hhtable[index] << 4;
     uint32_t bfscore = position->bftable[index] + 1;
-    return hhscore / bfscore;
+
+    move_score += hhscore / bfscore;
+
+    return move_score;
   }
 
-  static inline uint16_t uo_position_calculate_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
+  static inline int16_t uo_position_calculate_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
-    uo_square move_type = uo_move_get_type(move);
+    int16_t move_score = 0;
 
     uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+    move_score += uo_popcnt(checks) * 100;
 
-    uint16_t move_score = checks ? 3000 : 0;
+    int16_t see = uo_position_move_see(position, move, move_cache);
+    move_score += see;
+
+    uo_square move_type = uo_move_get_type(move);
 
     if (move_type == uo_move_type__enpassant)
     {
-      move_score += 2100;
+      move_score += 2050;
     }
     else if (move_type & uo_move_type__promo)
     {
@@ -821,11 +831,7 @@ extern "C"
     }
     else if (move_type & uo_move_type__x)
     {
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      uo_piece piece = position->board[square_from];
-      uo_piece piece_captured = position->board[square_to];
-      move_score += 2000 + uo_piece_value(piece_captured) - uo_piece_value(piece) / 10;
+      move_score += 2000;
     }
 
     return move_score;
@@ -954,14 +960,14 @@ extern "C"
     while (i < tactical_move_count)
     {
       uo_move move = movelist[i];
-      uint16_t score = uo_position_calculate_tactical_move_score(position, move, move_cache);
+      int16_t score = uo_position_calculate_tactical_move_score(position, move, move_cache);
       position->movelist.move_scores[i++] = score;
     }
 
     uo_position_quicksort_moves(position, movelist, 0, tactical_move_count - 1);
   }
 
-  static inline void uo_position_sort_non_tactical_moves(uo_position *position)
+  static inline void uo_position_sort_non_tactical_moves(uo_position *position, uo_move_cache *move_cache)
   {
     if (position->stack->moves_sorted) return;
 
@@ -973,7 +979,7 @@ extern "C"
     while (i < move_count)
     {
       uo_move move = movelist[i];
-      uint16_t score = uo_position_calculate_non_tactical_move_score(position, move);
+      int16_t score = uo_position_calculate_non_tactical_move_score(position, move, move_cache);
       position->movelist.move_scores[i++] = score;
     }
 
@@ -987,7 +993,7 @@ extern "C"
     uo_move *movelist = position->movelist.head;
     size_t move_count = position->stack->move_count;
     uo_position_sort_tactical_moves(position, move_cache);
-    uo_position_sort_non_tactical_moves(position);
+    uo_position_sort_non_tactical_moves(position, move_cache);
     move_count -= uo_position_sort_skipped_moves(position, movelist, 0, move_count - 1);
 
     // set bestmove as first and shift other moves by one position

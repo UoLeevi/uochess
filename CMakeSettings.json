@@ -52,6 +52,11 @@
           "type": "FILEPATH"
         }
       ],
+      "environments": [
+        {
+          "UO_OPT_THREADS": "1"
+        }
+      ],
       "inheritEnvironments": []
     },
     {
