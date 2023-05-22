@@ -366,3 +366,9 @@ void uo_engine_start_search()
   uo_atomic_store(&engine.stopped, 0);
   uo_engine_run_thread(uo_search_thread_run_function[engine.search_params.seach_type], NULL);
 }
+
+uo_process *uo_engine_start_new_process(char *cmdline)
+{
+  if (!cmdline) cmdline = engine.process_info.argv[0];
+  return uo_process_create(cmdline);
+}

@@ -21,14 +21,66 @@ typedef struct uo_test_info
   char *ptr;
   uo_file_mmap *file_mmap;
   uo_position position;
+  uo_process *engine_process;
   char fen[0x100];
   char message[0x200];
+  char buffer[0x1000];
 } uo_test_info;
 
 uo_strmap *test_command_map__go = NULL;
 uo_strmap *test_command_map = NULL;
 
 typedef bool (*uo_test_command)(uo_test_info *info);
+
+bool uo_test__ucinewgame(uo_test_info *info)
+{
+  uo_process_write_stdin(info->engine_process, "ucinewgame\n", 0);
+  --info->test_count;
+  return true;
+}
+
+bool uo_test__position(uo_test_info *info)
+{
+  if (sscanf(info->ptr, "position fen %s", info->buffer) == 1)
+  {
+    info->ptr += sizeof("position fen ") - 1;
+    if (!uo_position_from_fen(&info->position, info->ptr))
+    {
+      sprintf(info->message, "Error while parsing fen '%s'.", info->fen);
+      return false;
+    }
+
+    uo_position_print_fen(&info->position, info->fen);
+    assert(strcmp(info->ptr, info->fen) == 0);
+
+    sprintf(info->buffer, "position fen %s\n", info->fen);
+    uo_process_write_stdin(info->engine_process, info->buffer, 0);
+    uo_process_write_stdin(info->engine_process, "isready\n", 0);
+
+    do
+    {
+      uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
+      info->ptr = strstr(info->buffer, "readyok");
+      if (!info->ptr) uo_sleep_msec(300);
+    } while (!info->ptr);
+  }
+
+  --info->test_count;
+  return true;
+}
+
+bool uo_test__isready(uo_test_info *info)
+{
+  uo_process_write_stdin(info->engine_process, "isready\n", 0);
+  do
+  {
+    uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
+    info->ptr = strstr(info->buffer, "readyok");
+    if (!info->ptr) uo_sleep_msec(300);
+  } while (!info->ptr);
+  --info->test_count;
+  return true;
+}
 
 bool uo_test__wdl(uo_test_info *info)
 {
@@ -205,10 +257,10 @@ bool uo_test__go_perft(uo_test_info *info)
         if (node_count != node_count_expected)
         {
           sprintf(info->message, "generated node count %zu for move '%s' did not match expected count %zu for fen '%s'\n", node_count, move_str, node_count_expected, info->fen);
-          //uo_position_print_diagram(position, buf);
-          //sprintf(info->message, "\r\n%s", buf);
-          //uo_position_print_fen(position, buf);
-          //sprintf(info->message, "\nFen: %s\n", buf);
+          //uo_position_print_diagram(position, info.buffer);
+          //sprintf(info->message, "\r\n%s", info.buffer);
+          //uo_position_print_fen(position, info.buffer);
+          //sprintf(info->message, "\nFen: %s\n", info.buffer);
           return false;
         }
 
@@ -217,10 +269,10 @@ bool uo_test__go_perft(uo_test_info *info)
         if (position->key != key)
         {
           sprintf(info->message, "position key '%" PRIu64 "' after unmake move '%s' did not match key '%" PRIu64 "' for fen '%s'\r\n", position->key, move_str, key, info->fen);
-          //uo_position_print_diagram(position, buf);
-          //sprintf(info->message, "\n%s", buf);
-          //uo_position_print_fen(position, buf);
-          //sprintf(info->message, "\nFen: %s\n", buf);
+          //uo_position_print_diagram(position, info.buffer);
+          //sprintf(info->message, "\n%s", info.buffer);
+          //uo_position_print_fen(position, info.buffer);
+          //sprintf(info->message, "\nFen: %s\n", info.buffer);
           return false;
         }
 
@@ -264,7 +316,36 @@ bool uo_test__go_depth(uo_test_info *info)
     return false;
   }
 
-  // TODO: Run search to specified depth (perhaps using another process running the engine executable) and get the output
+  sprintf(info->buffer, "go depth %zu\n", depth);
+  uo_process_write_stdin(info->engine_process, info->buffer, 0);
+
+  char *bestmove;
+
+  do
+  {
+    uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
+    bestmove = strstr(info->buffer, "bestmove ");
+    if (!bestmove) uo_sleep_msec(300);
+  } while (!bestmove);
+
+  char *info_line = bestmove;
+  info_line -= sizeof("\r\n");
+  bestmove += 9;
+
+  while (info_line > info->buffer && info_line[-1] != '\n')
+  {
+    // This is to find the beginning of previous line
+    --info_line;
+  }
+
+  char *pv = strstr(info_line, " pv ");
+  if (pv) pv += 4;
+
+  char *score = strstr(info_line, " score ");
+  if (score) score += 7;
+
+  char *ponder = strstr(bestmove, " ponder ");
+  if (ponder) ponder += 8;
 
   while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
   {
@@ -276,9 +357,21 @@ bool uo_test__go_depth(uo_test_info *info)
 
     if (sscanf(info->ptr, "cp [%d,%d]]", &cp_lower_bound, &cp_upper_bound) == 2)
     {
-      // TODO: Test if evaluation is between boundaries
+      int cp;
+      if (score && sscanf(score, "cp %d", &cp) == 1)
+      {
+        if (cp<cp_lower_bound || cp>cp_upper_bound)
+        {
+          sprintf(info->message, "score cp %d for fen '%s' on search depth %zu is not between [%d,%d].", cp, info->fen, depth, cp_lower_bound, cp_upper_bound);
+          return false;
+        }
+      }
+      else
+      {
+        sprintf(info->message, "Unable to parse centipawn score for fen '%s' on search depth %zu.", info->fen, depth);
+        return false;
+      }
 
-      
       continue;
     }
 
@@ -289,7 +382,7 @@ bool uo_test__go_depth(uo_test_info *info)
     {
       // TODO: Test if best move and ponder move is correct
 
-      
+
       continue;
     }
 
@@ -297,7 +390,7 @@ bool uo_test__go_depth(uo_test_info *info)
     {
       // TODO: Test if best move correct
 
-      
+
       continue;
     }
 
@@ -308,7 +401,6 @@ bool uo_test__go_depth(uo_test_info *info)
 
   return info->passed;
 }
-
 
 bool uo_test__go(uo_test_info *info)
 {
@@ -350,6 +442,9 @@ bool uo_test(char *test_data_dir, char *test_name)
     test_command_map = uo_strmap_create();
 
     // Register all test commands here
+    uo_strmap_add(test_command_map, "isready", uo_test__isready);
+    uo_strmap_add(test_command_map, "position", uo_test__position);
+    uo_strmap_add(test_command_map, "ucinewgame", uo_test__ucinewgame);
     uo_strmap_add(test_command_map, "wdl", uo_test__wdl);
     uo_strmap_add(test_command_map, "dtz", uo_test__dtz);
     uo_strmap_add(test_command_map, "go", uo_test__go);
@@ -361,8 +456,8 @@ bool uo_test(char *test_data_dir, char *test_name)
   size_t allocated_mem_count = 0;
 
   uo_test_info info = {
-  .passed = true,
-  .test_count = 0
+    .passed = true,
+    .test_count = 0
   };
 
   char *filepath = uo_aprintf("%s/%s.txt", test_data_dir, test_name);
@@ -381,12 +476,32 @@ bool uo_test(char *test_data_dir, char *test_name)
     return false;
   }
 
+  info.engine_process = uo_engine_start_new_process(NULL);
+  if (!info.engine_process)
+  {
+    printf("TEST '%s' FAILED: Unable to start engine process.\r\n", info.test_name);
+    uo_file_mmap_close(info.file_mmap);
+    while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
+    return false;
+  }
+
+  uo_process_write_stdin(info.engine_process, "uci\n", 0);
+  uo_process_write_stdin(info.engine_process, "isready\n", 0);
+  do
+  {
+    uo_process_read_stdout(info.engine_process, info.buffer, sizeof info.buffer);
+    info.ptr = strstr(info.buffer, "readyok");
+    if (!info.ptr) uo_sleep_msec(300);
+  } while (!info.ptr);
+
   info.ptr = uo_file_mmap_readline(info.file_mmap);
 
   if (!info.ptr)
   {
     printf("TEST '%s' FAILED: Error while reading test data.\r\n", info.test_name);
     uo_file_mmap_close(info.file_mmap);
+    uo_process_write_stdin(info.engine_process, "quit\n", 0);
+    uo_process_free(info.engine_process);
     while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
     return false;
   }
@@ -407,30 +522,14 @@ bool uo_test(char *test_data_dir, char *test_name)
       continue;
     }
 
-    if (sscanf(info.ptr, "position fen %s", buf) == 1)
-    {
-      info.ptr += sizeof("position fen ") - 1;
-      if (!uo_position_from_fen(&info.position, info.ptr))
-      {
-        printf("TEST '%s' FAILED: Error while parsing fen '%s'\r\n", info.test_name, info.fen);
-        uo_file_mmap_close(info.file_mmap);
-        while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
-        return false;
-      }
-
-      uo_position_print_fen(&info.position, info.fen);
-      assert(strcmp(info.ptr, info.fen) == 0);
-
-      info.ptr = uo_file_mmap_readline(info.file_mmap);
-      continue;
-    }
-
     char *command_str = buf;
 
     if (sscanf(info.ptr, "%s", command_str) != 1)
     {
       printf("TEST '%s' FAILED: Error while parsing command '%s'\r\n", info.test_name, info.ptr);
       uo_file_mmap_close(info.file_mmap);
+      uo_process_write_stdin(info.engine_process, "quit\n", 0);
+      uo_process_free(info.engine_process);
       while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
       return false;
     }
@@ -441,6 +540,8 @@ bool uo_test(char *test_data_dir, char *test_name)
     {
       printf("TEST '%s' FAILED: Unknown command '%s'\r\n", info.test_name, command_str);
       uo_file_mmap_close(info.file_mmap);
+      uo_process_write_stdin(info.engine_process, "quit\n", 0);
+      uo_process_free(info.engine_process);
       while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
       return false;
     }
@@ -459,6 +560,8 @@ bool uo_test(char *test_data_dir, char *test_name)
       }
 
       uo_file_mmap_close(info.file_mmap);
+      uo_process_write_stdin(info.engine_process, "quit\n", 0);
+      uo_process_free(info.engine_process);
       while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
       return false;
     }
@@ -470,6 +573,18 @@ bool uo_test(char *test_data_dir, char *test_name)
   printf("TEST '%s' PASSED: Total of %zd test cases passed.\r\n", info.test_name, info.test_count);
 
   uo_file_mmap_close(info.file_mmap);
+
+  uo_process_write_stdin(info.engine_process, "isready\n", 0);
+  do
+  {
+    uo_process_read_stdout(info.engine_process, info.buffer, sizeof info.buffer);
+    info.ptr = strstr(info.buffer, "readyok");
+    if (!info.ptr) uo_sleep_msec(300);
+  } while (!info.ptr);
+
+  uo_process_write_stdin(info.engine_process, "quit\n", 0);
+
+  uo_process_free(info.engine_process);
   while (allocated_mem_count--) free(allocated_mem[allocated_mem_count]);
   return true;
 }

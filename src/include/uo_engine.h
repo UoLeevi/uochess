@@ -111,6 +111,11 @@ extern "C"
     } ponder;
     volatile uo_atomic_int stopped;
     bool exit;
+    struct
+    {
+      int argc;
+      char **argv;
+    } process_info;
   } uo_engine;
 
   extern uo_engine_options engine_options;
@@ -284,6 +289,8 @@ extern "C"
   uo_engine_thread *uo_engine_run_thread(uo_thread_function *function, void *data);
 
   uo_engine_thread *uo_engine_run_thread_if_available(uo_thread_function *function, void *data);
+
+  uo_process *uo_engine_start_new_process(char *cmdline);
 
 #ifdef __cplusplus
 }

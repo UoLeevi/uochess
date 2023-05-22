@@ -1,11 +1,14 @@
+ucinewgame
 position fen 1rbqk2r/p1p1ppbp/2n2np1/1p1p4/8/PPPPPPPP/8/RNBQKBNR b KQk - 0 8
 go depth 6
 cp [100,300]
 
+ucinewgame
 position fen 1r1qk2r/p1p1ppbp/2n2np1/1p1p4/8/PPPPPPPb/8/RNBQKBNR w KQk - 0 9
 go depth 6
 cp [300,500]
 
+ucinewgame
 position fen r6r/pRk1b1pp/3ppq2/N1p5/8/5P1P/2P2PP1/3Q1RK1 b - - 0 18
 go depth 6
 cp [600,1000]

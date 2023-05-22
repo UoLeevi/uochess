@@ -13,8 +13,10 @@
 // globals
 char buf[0x1000];
 
-static void uochess_init(void)
+static void uochess_init(int argc, char **argv)
 {
+  engine.process_info.argc = argc;
+  engine.process_info.argv = argv;
   uo_zobrist_init();
   uo_bitboard_init();
   uo_engine_load_default_options();
@@ -73,7 +75,7 @@ static int process_args(int argc, char **argv, bool *exit)
 
 int main(int argc, char **argv)
 {
-  uochess_init();
+  uochess_init(argc, argv);
 
   // command line arguments
   {
