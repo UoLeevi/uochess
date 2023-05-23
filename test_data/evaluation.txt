@@ -1,0 +1,4 @@
+ucinewgame
+position fen 1rbqk2r/p1p1ppbp/2n2np1/1p1p4/8/PPPPPPPP/8/RNBQKBNR b KQk - 0 8
+eval
+cp [100,300]

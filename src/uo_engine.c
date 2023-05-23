@@ -341,7 +341,7 @@ void uo_engine_reconfigure()
 {
   // hash table
   uo_ttable_free(&engine.ttable);
-  size_t capacity = engine_options.hash_size / sizeof * engine.ttable.entries;
+  size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;
   uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
 
   // opening book
