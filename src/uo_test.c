@@ -375,21 +375,57 @@ bool uo_test__go_depth(uo_test_info *info)
       continue;
     }
 
-    char best_move_str[6];
-    char ponder_move_str[6];
+    char expected_bestmove[6];
+    char expected_ponder[6];
 
-    if (sscanf(info->ptr, "bestmove %5s ponder %5s", best_move_str, ponder_move_str) == 2)
+    if (sscanf(info->ptr, "bestmove %5s ponder %5s", expected_bestmove, expected_ponder) == 2)
     {
       // TODO: Test if best move and ponder move is correct
+      char actual_bestmove[6];
+      if (sscanf(bestmove, "%5s", actual_bestmove) != 1)
+      {
+        sprintf(info->message, "Unable to parse bestmove for fen '%s' on search depth %zu.", info->fen, depth);
+        return false;
+      }
 
+      if (strcmp(expected_bestmove, actual_bestmove) != 0)
+      {
+        sprintf(info->message, "Incorrect bestmove '%s' for fen '%s' on search depth %zu. Move '%s' was expected", actual_bestmove, info->fen, depth, expected_bestmove);
+        return false;
+      }
+
+      char actual_ponder[6];
+      if (sscanf(ponder, "%5s", actual_ponder) != 1)
+      {
+        sprintf(info->message, "Unable to parse ponder move for fen '%s' on search depth %zu.", info->fen, depth);
+        return false;
+      }
+
+      
+      if (strcmp(expected_ponder, actual_ponder) != 0)
+      {
+        sprintf(info->message, "Incorrect ponder move '%s' for fen '%s' on search depth %zu. Move '%s' was expected", actual_ponder, info->fen, depth, expected_ponder);
+        return false;
+      }
 
       continue;
     }
 
-    if (sscanf(info->ptr, "bestmove %5s", best_move_str) == 1)
+    if (sscanf(info->ptr, "bestmove %5s", expected_bestmove) == 1)
     {
       // TODO: Test if best move correct
-
+      char actual_bestmove[6];
+      if (sscanf(bestmove, "%5s", actual_bestmove) != 1)
+      {
+        sprintf(info->message, "Unable to parse bestmove for fen '%s' on search depth %zu.", info->fen, depth);
+        return false;
+      }
+      
+      if (strcmp(expected_bestmove, actual_bestmove) != 0)
+      {
+        sprintf(info->message, "Incorrect bestmove '%s' for fen '%s' on search depth %zu. Move '%s' was expected", actual_bestmove, info->fen, depth, expected_bestmove);
+        return false;
+      }
 
       continue;
     }
