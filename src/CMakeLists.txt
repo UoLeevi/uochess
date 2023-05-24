@@ -69,6 +69,10 @@ add_test(NAME "Test search"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname search
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
+add_test(NAME "Test evaluation"
+  COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname evaluation
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
 add_test(NAME "Test tb_probe"
   COMMAND uochess --test --datadir ${PROJECT_SOURCE_DIR}/test_data --testname tb_probe
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")

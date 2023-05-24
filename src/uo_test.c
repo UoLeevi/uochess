@@ -41,29 +41,41 @@ bool uo_test__ucinewgame(uo_test_info *info)
 
 bool uo_test__position(uo_test_info *info)
 {
+  char *fen;
   if (sscanf(info->ptr, "position fen %s", info->buffer) == 1)
   {
     info->ptr += sizeof("position fen ") - 1;
-    if (!uo_position_from_fen(&info->position, info->ptr))
-    {
-      sprintf(info->message, "Error while parsing fen '%s'.", info->fen);
-      return false;
-    }
-
-    uo_position_print_fen(&info->position, info->fen);
-    assert(strcmp(info->ptr, info->fen) == 0);
-
-    sprintf(info->buffer, "position fen %s\n", info->fen);
-    uo_process_write_stdin(info->engine_process, info->buffer, 0);
-    uo_process_write_stdin(info->engine_process, "isready\n", 0);
-
-    do
-    {
-      uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
-      info->ptr = strstr(info->buffer, "readyok");
-      if (!info->ptr) uo_sleep_msec(300);
-    } while (!info->ptr);
+    fen = info->ptr;
   }
+  else if (strcmp(info->ptr, "position startpos") == 0)
+  {
+    fen = uo_fen_startpos;
+  }
+  else
+  {
+    sprintf(info->message, "Error parsing command '%s'", info->ptr);
+    return false;
+  }
+
+  if (!uo_position_from_fen(&info->position, fen))
+  {
+    sprintf(info->message, "Error while parsing fen '%s'.", fen);
+    return false;
+  }
+
+  uo_position_print_fen(&info->position, info->fen);
+  assert(strcmp(fen, info->fen) == 0);
+
+  sprintf(info->buffer, "position startpos moves %s\n", info->fen);
+  uo_process_write_stdin(info->engine_process, info->buffer, 0);
+  uo_process_write_stdin(info->engine_process, "isready\n", 0);
+
+  do
+  {
+    uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
+    info->ptr = strstr(info->buffer, "readyok");
+    if (!info->ptr) uo_sleep_msec(300);
+  } while (!info->ptr);
 
   --info->test_count;
   return true;
@@ -192,6 +204,57 @@ bool uo_test__moveorder(uo_test_info *info)
   }
 
   return true;
+}
+
+bool uo_test__eval(uo_test_info *info)
+{
+  sprintf(info->buffer, "eval\n");
+  uo_process_write_stdin(info->engine_process, info->buffer, 0);
+
+  char *eval;
+
+  do
+  {
+    uo_process_read_stdout(info->engine_process, info->buffer, sizeof info->buffer);
+    eval = strstr(info->buffer, "Evaluation: ");
+    if (!eval) uo_sleep_msec(300);
+  } while (!eval);
+
+  int cp_lower_bound;
+  int cp_upper_bound;
+
+  while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
+  {
+    if (strlen(info->ptr) == 0) break;
+    if (info->ptr[0] == '#') continue;
+
+    if (sscanf(info->ptr, "cp [%d,%d]]", &cp_lower_bound, &cp_upper_bound) == 2)
+    {
+      int cp;
+      if (eval && sscanf(eval, "Evaluation: %d", &cp) == 1)
+      {
+        if (cp<cp_lower_bound || cp>cp_upper_bound)
+        {
+          sprintf(info->message, "Static evaluation %d for fen '%s' is not between [%d,%d].", cp, info->fen, cp_lower_bound, cp_upper_bound);
+          return false;
+        }
+      }
+      else
+      {
+        sprintf(info->message, "Unable to parse static evaluation for fen '%s'.", info->fen);
+        return false;
+      }
+    }
+    else
+    {
+      sprintf(info->message, "Error parsing command '%s'", info->ptr);
+      return false;
+    }
+
+    continue;
+  }
+
+  return info->passed;
 }
 
 bool uo_test__go_perft(uo_test_info *info)
@@ -401,7 +464,7 @@ bool uo_test__go_depth(uo_test_info *info)
         return false;
       }
 
-      
+
       if (strcmp(expected_ponder, actual_ponder) != 0)
       {
         sprintf(info->message, "Incorrect ponder move '%s' for fen '%s' on search depth %zu. Move '%s' was expected", actual_ponder, info->fen, depth, expected_ponder);
@@ -420,7 +483,7 @@ bool uo_test__go_depth(uo_test_info *info)
         sprintf(info->message, "Unable to parse bestmove for fen '%s' on search depth %zu.", info->fen, depth);
         return false;
       }
-      
+
       if (strcmp(expected_bestmove, actual_bestmove) != 0)
       {
         sprintf(info->message, "Incorrect bestmove '%s' for fen '%s' on search depth %zu. Move '%s' was expected", actual_bestmove, info->fen, depth, expected_bestmove);
@@ -485,6 +548,7 @@ bool uo_test(char *test_data_dir, char *test_name)
     uo_strmap_add(test_command_map, "dtz", uo_test__dtz);
     uo_strmap_add(test_command_map, "go", uo_test__go);
     uo_strmap_add(test_command_map, "moveorder", uo_test__moveorder);
+    uo_strmap_add(test_command_map, "eval", uo_test__eval);
 
   }
 
