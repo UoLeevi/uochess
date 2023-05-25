@@ -27,7 +27,7 @@ extern "C" {
     UO_CAT(x, y)
 
 
-#define UO_STRLEN(s) (sizeof(s)/sizeof(s[0]) - 1)
+#define uo_strlen(s) (sizeof(s)/sizeof(s[0]) - 1)
 
 #define UO__NAMEOF(n) #n
 

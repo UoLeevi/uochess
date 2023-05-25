@@ -201,6 +201,7 @@ extern "C"
       }
 
       entry->data = data->data;
+      entry->expiry_ply = position->root_ply + uo_ttable_expiry_ply;
 
       uo_atomic_unlock(lock);
       return;

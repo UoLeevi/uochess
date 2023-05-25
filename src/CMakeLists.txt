@@ -1,8 +1,14 @@
-cmake_minimum_required(VERSION 3.21.0)
+if (CMAKE_HOST_WIN32)
+    # need at least CMake 3.23 for IntelLLVM support of IntelDPCPP package on Windows
+    cmake_minimum_required(VERSION 3.23)
+else()
+    # CMake 3.20.5 is the minimum recommended for IntelLLVM on Linux
+    cmake_minimum_required(VERSION 3.20.5)
+endif()
 
 find_package(Threads)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 add_executable(uochess
   uochess.c

@@ -66,7 +66,7 @@ bool uo_test__position(uo_test_info *info)
   uo_position_print_fen(&info->position, info->fen);
   assert(strcmp(fen, info->fen) == 0);
 
-  sprintf(info->buffer, "position startpos moves %s\n", info->fen);
+  sprintf(info->buffer, "position fen %s\n", info->fen);
   uo_process_write_stdin(info->engine_process, info->buffer, 0);
   uo_process_write_stdin(info->engine_process, "isready\n", 0);
 
@@ -667,6 +667,7 @@ bool uo_test(char *test_data_dir, char *test_name)
     }
 
     ++info.test_count;
+    //memset(info.buffer, 0, sizeof info.buffer);
     info.ptr = uo_file_mmap_readline(info.file_mmap);
   }
 

@@ -52,15 +52,15 @@ extern "C"
 #define uo_score_square_access 5
 
 #define uo_score_mobility_P 5
-#define uo_score_mobility_N 1
-#define uo_score_mobility_B 1
-#define uo_score_mobility_R 1
-#define uo_score_mobility_Q 1
-#define uo_score_mobility_K 1
+#define uo_score_mobility_N 10
+#define uo_score_mobility_B 5
+#define uo_score_mobility_R 3
+#define uo_score_mobility_Q 3
+#define uo_score_mobility_K 2
 
 #define uo_score_N_square_attackable_by_P -10
 #define uo_score_B_square_attackable_by_P -5
-#define uo_score_R_square_attackable_by_P -15
+#define uo_score_R_square_attackable_by_P -20
 #define uo_score_Q_square_attackable_by_P -30
 #define uo_score_K_square_attackable_by_P -70
 
@@ -75,7 +75,7 @@ extern "C"
 
   // pawns
 #define uo_score_doubled_P -15
-#define uo_score_blocked_P -20
+#define uo_score_blocked_P -30
 
 #define uo_score_passed_pawn 20
 #define uo_score_passed_pawn_on_fifth 30
@@ -92,10 +92,8 @@ extern "C"
 
 #define uo_score_knight_on_outpost 30
 #define uo_score_unattackable_by_pawn 20
-#define uo_score_knight_in_the_corner -80
 
   // attacks near king
-#define uo_score_attacks_near_K 15
 #define uo_score_attacker_to_K 20
 
   // king safety and castling
@@ -391,6 +389,9 @@ extern "C"
 
     score_mg += (uo_score_castled_king * (square_own_K == uo_square__b1))
       - (uo_score_castled_king * (square_enemy_K == uo_square__b8));
+
+    score_mg += (uo_bitboard_files(attacks_own_K) & uo_bitboard_rank_first) ? uo_score_king_next_to_open_file : 0;
+    score_mg -= (uo_bitboard_files(attacks_enemy_K) & uo_bitboard_rank_first) ? uo_score_king_next_to_open_file : 0;
 
     int32_t material_percentage = uo_position_material_percentage(position);
 

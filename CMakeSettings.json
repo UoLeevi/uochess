@@ -15,8 +15,8 @@
       "generator": "Ninja",
       "configurationType": "Debug",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}/out/build/${name}",
+      "installRoot": "${projectDir}/out/install/${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": ""
@@ -25,8 +25,8 @@
       "name": "x64-Release",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}/out/build/${name}",
+      "installRoot": "${projectDir}/out/install/${name}",
       "cmakeCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ]
@@ -35,20 +35,20 @@
       "name": "x64-Debug-Intel",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}/out/build/${name}",
+      "installRoot": "${projectDir}/out/install/${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "variables": [
         {
           "name": "CMAKE_CXX_COMPILER",
-          "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
+          "value": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
           "type": "FILEPATH"
         },
         {
           "name": "CMAKE_C_COMPILER",
-          "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
+          "value": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
           "type": "FILEPATH"
         }
       ],
@@ -63,20 +63,20 @@
       "name": "x64-Release-Intel",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}/out/build/${name}",
+      "installRoot": "${projectDir}/out/install/${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "variables": [
         {
           "name": "CMAKE_CXX_COMPILER",
-          "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
+          "value": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
           "type": "FILEPATH"
         },
         {
           "name": "CMAKE_C_COMPILER",
-          "value": "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\bin\\icx.exe",
+          "value": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
           "type": "FILEPATH"
         }
       ],

@@ -227,7 +227,8 @@ extern "C"
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
 
-    if (abtentry->data.depth < abtentry->depth || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_tentry_type__exact))
+    if (abtentry->data.depth < abtentry->depth
+      || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_tentry_type__exact))
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
@@ -250,7 +251,7 @@ extern "C"
 
   static inline void uo_engine_thread_unlock(uo_engine_thread *thread)
   {
-    uo_atomic_flag_clear(&thread->busy);
+    uo_atomic_unlock(&thread->busy);
   }
 
   static inline bool uo_engine_thread_is_stopped(uo_engine_thread *thread)

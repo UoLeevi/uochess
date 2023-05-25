@@ -6,8 +6,8 @@
 #include "uo_misc.h"
 #include "uo_global.h"
 
-#include <math.h>
 #include <stddef.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

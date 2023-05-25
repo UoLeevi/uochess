@@ -18,6 +18,8 @@ extern "C"
 
 #include "uo_macro.h"  
 
+#include <stdint.h>
+#include <stddef.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,9 +284,9 @@ extern "C"
     srand(seed);
   }
 
-  static inline char *uo_timestr(char buf[UO_STRLEN("yyyymmddMMSS") + 1])
+  static inline char *uo_timestr(char buf[uo_strlen("yyyymmddMMSS") + 1])
   {
-    size_t size = (UO_STRLEN("yyyymmddMMSS") + 1) * sizeof(char);
+    size_t size = (uo_strlen("yyyymmddMMSS") + 1) * sizeof(char);
 
     if (!buf)
     {
