@@ -300,12 +300,6 @@ void uo_engine_init()
     uo_atomic_flag_init(&thread->busy);
     uo_atomic_init(&thread->cutoff, 0);
     thread->id = i + 1;
-
-    if (engine_options.multipv)
-    {
-      thread->info.secondary_pvs = calloc(engine_options.multipv, sizeof * thread->info.secondary_pvs);
-    }
-
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 
@@ -331,7 +325,10 @@ void uo_engine_init()
   }
 
   // multipv
-  engine.pv = malloc(engine_options.multipv * sizeof * engine.pv);
+  if (engine_options.multipv)
+  {
+    engine.secondary_pvs = calloc(engine_options.multipv, sizeof engine.pv);
+  }
 
   // load startpos
   uo_position_from_fen(&engine.position, uo_fen_startpos);

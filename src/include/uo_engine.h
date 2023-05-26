@@ -94,7 +94,6 @@ extern "C"
   {
     uo_tb tb;
     uo_ttable ttable;
-    uo_tentry *pv;
     uo_book *book;
     uo_engine_thread *threads;
     size_t thread_count;
@@ -109,6 +108,8 @@ extern "C"
       int16_t value;
       uo_move move;
     } ponder;
+    uo_move pv[UO_MAX_PLY];
+    uo_move **secondary_pvs;
     volatile uo_atomic_int stopped;
     bool exit;
     struct
@@ -197,7 +198,7 @@ extern "C"
       return false;
     }
 
-    if (abtentry->data.type == uo_tentry_type__exact)
+    if (abtentry->data.type == uo_tentry_type__exact && (position->ply || abtentry->bestmove))
     {
       abtentry->value = value;
       return true;
@@ -215,7 +216,7 @@ extern "C"
       beta = uo_min(beta, value);
     }
 
-    if (alpha >= beta)
+    if (alpha >= beta && (position->ply || abtentry->bestmove))
     {
       abtentry->value = value;
       return true;

@@ -120,6 +120,7 @@ static void uo_uci_command__position(void)
     uci_command_map__position = uo_strmap_create();
     uo_strmap_add(uci_command_map__position, "startpos", uo_uci_command__position_startpos);
     uo_strmap_add(uci_command_map__position, "fen", uo_uci_command__position_fen);
+    uo_strmap_add(uci_command_map__position, "randomize", uo_uci_command__position_randomize);
 
   }
 

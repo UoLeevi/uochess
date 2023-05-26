@@ -59,16 +59,8 @@ extern "C"
     bool completed;
     int16_t value;
     uint8_t bestmove_change_depth;
-    union
-    {
-      uo_move bestmove;
-      uo_move pv[UO_MAX_PLY];
-    };
-    union
-    {
-      uo_move bestmove;
-      uo_move pv[UO_MAX_PLY];
-    } *secondary_pvs;
+    uo_move *pv;
+    uo_move **secondary_pvs;
   } uo_search_info;
 
   void *uo_engine_thread_start_timer(void *arg);
