@@ -55,12 +55,15 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     PRIVATE /arch:AVX2 /volatile:iso)
 endif()
 
-add_custom_target(copy-runtime-files-syzygy ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/syzygy_tables" "${CMAKE_BINARY_DIR}/bin/syzygy_tables"
+# On Windows, creating symbolic links require elevated permissions. For CMake to work, enable Developer Mode:
+# Start menu search: Use developer features -> Developer Mode = On
+
+add_custom_target(link-runtime-files-syzygy ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_SOURCE_DIR}/syzygy_tables" "${CMAKE_BINARY_DIR}/bin/syzygy_tables"
   DEPENDS uochess)
 
-add_custom_target(copy-runtime-files-books ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/books" "${CMAKE_BINARY_DIR}/bin/books"
+add_custom_target(link-runtime-files-books ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_SOURCE_DIR}/books" "${CMAKE_BINARY_DIR}/bin/books"
   DEPENDS uochess)
 
 add_test(NAME "Test move_generation"
