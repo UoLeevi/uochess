@@ -238,9 +238,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
 
-  // Step 1. Adjust beta value to maximum possible score
+  // Step 1. Adjust checkmate score
   int16_t score_checkmate = uo_score_checkmate - position->ply;
-  beta = uo_min(beta, score_checkmate - 1);
 
   // Step 2. Update searched node count and selective search depth information
   ++info->nodes;
@@ -611,9 +610,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
 
-  // Step 1. Adjust beta value to maximum possible score
+  // Step 1. Adjust checkmate score
   int16_t score_checkmate = uo_score_checkmate - position->ply;
-  beta = uo_min(beta, score_checkmate - 1);
 
   // Step 2. Check for draw by 50 move rule
   if (uo_position_is_rule50_draw(position))
@@ -673,9 +671,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 6. If specified search depth is reached, perform quiescence search and store and return evaluation if search was completed
   if (depth == 0)
   {
-    entry.value = uo_search_quiesce(thread, alpha, beta, 0, incomplete);
+    int16_t value = uo_search_quiesce(thread, alpha, beta, 0, incomplete);
     if (*incomplete) return uo_score_unknown;
-    return uo_engine_store_entry(position, &entry);
+    return value;
   }
 
   // Step 7. Increment searched node count
@@ -684,8 +682,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 8. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    entry.value = uo_position_evaluate(position);
-    return uo_engine_store_entry(position, &entry);
+    return uo_position_evaluate(position);
   }
 
   // Step 9. Tablebase probe
@@ -709,20 +706,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
           ++info->tbhits;
 
-          if (wdl > engine.tb.score_wdl_draw)
-          { // Win
-            entry.value = uo_score_tb_win;
-          }
-          else if (wdl < engine.tb.score_wdl_draw)
-          { // Loss
-            entry.value = -uo_score_tb_win;
-          }
-          else
-          { // Draw
-            entry.value = uo_score_draw;
-          }
-
-          return uo_engine_store_entry(position, &entry);
+          return wdl > engine.tb.score_wdl_draw ? uo_score_tb_win
+            : wdl < engine.tb.score_wdl_draw ? -uo_score_tb_win
+            : uo_score_draw;
         }
       }
     }
@@ -736,8 +722,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 11. If there are no legal moves, return draw or checkmate
   if (move_count == 0)
   {
-    entry.value = uo_position_is_check(position) ? -score_checkmate : 0;
-    return uo_engine_store_entry(position, &entry);
+    return uo_position_is_check(position) ? -score_checkmate : 0;
   }
 
   // Step 12. Allocate search entry and principal variation line on the stack

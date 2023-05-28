@@ -259,7 +259,7 @@ extern "C"
   static inline uo_move_cache *uo_move_cache_get(uo_move_cache move_cache[0x1000], const uo_position *position, uo_move move)
   {
     if (!move_cache) return false;
-    move_cache += move & 0xFFF;
+    move_cache += (move ^ position->key) & 0xFFF;
 
     if (move_cache->key != position->key || move_cache->move != move)
     {
