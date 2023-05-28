@@ -15,7 +15,7 @@ extern "C"
 #define UO_PARALLEL_MIN_DEPTH 9
 #define UO_PARALLEL_MAX_COUNT 4
 #define UO_PARALLEL_MIN_MOVE_COUNT 3
-#define UO_LAZY_SMP_MIN_DEPTH 3
+#define UO_LAZY_SMP_MIN_DEPTH 6
 #define UO_LAZY_SMP_FREE_THREAD_COUNT 1
 
 // Number of moves to look at when checking for mc-prune.

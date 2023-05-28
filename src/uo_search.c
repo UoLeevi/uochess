@@ -181,15 +181,7 @@ static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engin
 {
   if (depth <= 1)
   {
-    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__any_see;
-  }
-  else if (depth <= 2)
-  {
     return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_see;
-  }
-  else if (depth <= 3)
-  {
-    return uo_search_quiesce_flags__non_negative_see;
   }
   else
   {
@@ -231,17 +223,14 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
     }
   }
 
-  if (uo_move_is_promotion(move))
+  uo_move_type move_promo_type = uo_move_get_type(move) & uo_move_type__promo_Q;
+  if (move_promo_type == uo_move_type__promo_Q
+    || move_promo_type == uo_move_type__promo_N)
   {
     return true;
   }
 
   return false;
-}
-
-static int16_t uo_search_evaluate(uo_engine_thread *thread)
-{
-  return uo_position_evaluate(&thread->position);
 }
 
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth, bool *incomplete)
@@ -297,7 +286,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 6. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    return uo_search_evaluate(thread);
+    return uo_position_evaluate(position);
   }
 
   // Step 7. Generate legal moves
@@ -353,7 +342,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 11. Position is not check. Initialize score to static evaluation. "Stand pat"
-  int16_t value = uo_search_evaluate(thread);
+  int16_t value = uo_position_evaluate(position);
 
   // Step 12. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta)
@@ -470,7 +459,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
   // Step 7. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    return uo_search_evaluate(thread);
+    return uo_position_evaluate(position);
   }
 
   // Step 8. Generate legal moves
@@ -489,7 +478,7 @@ static int16_t uo_search_zero_window(uo_engine_thread *thread, size_t depth, int
   if (depth > 3
     && position->ply > 1
     && uo_position_is_null_move_allowed(position)
-    && uo_search_evaluate(thread) > beta)
+    && uo_position_evaluate(position) > beta)
   {
     // depth * 3/4 - 1
     size_t depth_nmp = (depth * 3 >> 2) - 1;
@@ -684,7 +673,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 8. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position))
   {
-    entry.value = uo_search_evaluate(thread);
+    entry.value = uo_position_evaluate(position);
     return uo_engine_store_entry(position, &entry);
   }
 
@@ -748,7 +737,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (depth > 3
     && position->ply > 1
     && uo_position_is_null_move_allowed(position)
-    && uo_search_evaluate(thread) > beta)
+    && uo_position_evaluate(position) > beta)
   {
     // depth * 3/4 - 1
     size_t depth_nmp = (depth * 3 >> 2) - 1;
@@ -1368,6 +1357,9 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
       if (incomplete)
       {
+        engine.ponder.key = 0;
+        engine.pv[0] = bestmove;
+        engine.pv[1] = 0;
         goto search_completed;
       }
 
