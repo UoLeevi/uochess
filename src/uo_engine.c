@@ -328,7 +328,13 @@ void uo_engine_init()
   if (engine_options.multipv)
   {
     engine.secondary_pvs = calloc(engine_options.multipv, sizeof engine.pv);
+
+    for (size_t i = 0; i < engine.thread_count; ++i)
+    {
+      engine.threads[i].info.secondary_pvs = calloc(engine_options.multipv, sizeof engine.pv);
+    }
   }
+
 
   // load startpos
   uo_position_from_fen(&engine.position, uo_fen_startpos);

@@ -80,6 +80,8 @@ extern "C"
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
     uo_move_cache move_cache[0x1000];
+    uo_move pv[UO_MAX_PLY];
+    uo_move **secondary_pvs;
   } uo_engine_thread;
 
   typedef struct uo_engine_thread_queue {

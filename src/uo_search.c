@@ -593,6 +593,17 @@ static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line,
   }
 }
 
+static inline void uo_pv_copy(uo_move *line_dst, uo_move *line_src)
+{
+  size_t i = 0;
+  while (line_src[i])
+  {
+    line_dst[i] = line_src[i];
+    ++i;
+  }
+  line_dst[i] = 0;
+}
+
 // see: https://en.wikipedia.org/wiki/Negamax#Negamax_with_alpha_beta_pruning_and_transposition_tables
 // see: https://en.wikipedia.org/wiki/Principal_variation_search
 static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_move *pline, bool *incomplete)
@@ -1153,8 +1164,8 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
     .depth = depth,
     .multipv = engine_options.multipv,
     .nodes = 0,
-    .pv = NULL,
-    .secondary_pvs = NULL
+    .pv = thread->pv,
+    .secondary_pvs = thread->secondary_pvs
   };
 
   bool incomplete = false;
@@ -1183,26 +1194,32 @@ void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
 
 void *uo_engine_thread_run_principal_variation_search(void *arg)
 {
+  // TODO: Handle the case where root position is already a checkmate or a stalemate
+
   uo_engine_thread *thread = arg;
   uo_position *position = &thread->position;
   uo_search_params *params = &engine.search_params;
 
   uo_atomic_unlock(&thread->busy);
 
+  // Initialize search info
   thread->info = (uo_search_info){
     .depth = 1,
     .multipv = engine_options.multipv,
     .nodes = 0,
-    .pv = engine.pv,
-    .secondary_pvs = engine.secondary_pvs
+    .pv = thread->pv,
+    .secondary_pvs = thread->secondary_pvs
   };
 
-  uo_move *line = thread->info.pv;
+  uo_move *line = thread->pv;
 
+  // Start timer
   uo_time_now(&thread->info.time_start);
-  uo_engine_thread_load_position(thread);
-  uo_engine_run_thread(uo_engine_thread_start_timer, thread);
 
+  // Load position
+  uo_engine_thread_load_position(thread);
+
+  // Initialize aspiration window
   int16_t alpha = params->alpha;
   int16_t beta = params->beta;
   size_t aspiration_fail_count = 0;
@@ -1211,11 +1228,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   uo_move bestmove = 0;
   bool incomplete = false;
 
+  // Check for ponder hit
   if (engine.ponder.key)
   {
     value = engine.ponder.value;
 
-    if (position->stack[-1].key == engine.ponder.key)
+    // If opponent played the expected move, initialize pv and use more narrow aspiration window
+    if (position->stack[-1].key == engine.ponder.key && engine.pv[2])
     {
       int16_t window = 400;
       bool ponder_hit = position->stack[-1].move == engine.ponder.move;
@@ -1225,17 +1244,17 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         // Ponder hit
         assert(engine.pv[1] == engine.ponder.move);
 
-        // Use a smaller aspiration window
+        // Use a more narrow aspiration window
         window = 100;
 
         // Copy principal variation from previous search
         size_t i = 0;
         while (engine.pv[i + 2])
         {
-          engine.pv[i] = engine.pv[i + 2];
+          line[i] = engine.pv[i] = engine.pv[i + 2];
           ++i;
         }
-        engine.pv[i] = 0;
+        line[i] = engine.pv[i] = 0;
       }
 
       alpha = value > -uo_score_checkmate + window ? value - window : -uo_score_checkmate;
@@ -1243,10 +1262,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
   }
 
+  // Tablebase probe
   bool is_tb_position = false;
   int tb_wdl;
 
-  // Tablebase probe
   if (engine.tb.enabled)
   {
     // Do not probe if castling can interfere with the table base result
@@ -1276,39 +1295,46 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         else
         {
           thread->info.value = uo_score_draw;
-          thread->info.pv[0] = position->movelist.head[0];
+          line[0] = engine.pv[0] = position->movelist.head[0];
+          line[1] = engine.pv[1] = 0;
           goto search_completed;
         }
       }
     }
   }
 
+  // Perform search for depth 1
   do
   {
     value = uo_search_principal_variation(thread, 1, alpha, beta, line, &incomplete);
-  } while (!incomplete && !uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count));
+  } while (!uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count));
 
-  bestmove = thread->info.pv[0];
+  // We should always have a best move if search was successful
+  bestmove = line[0];
+  assert(bestmove);
 
-  if (value <= -uo_score_checkmate + 1)
+  // Save pv
+  uo_pv_copy(engine.pv, line);
+  bestmove = line[0];
+
+  // Save ponder move
+  uo_position_make_move(position, bestmove);
+  engine.ponder.key = position->key;
+  engine.ponder.value = thread->info.value = value;
+  engine.ponder.move = line[1];
+  uo_position_unmake_move(position);
+
+  // Stop search if mate in one
+  if (value <= -uo_score_checkmate + 1 || value == uo_score_checkmate)
   {
     thread->info.value = value;
     goto search_completed;
   }
 
-  if (bestmove)
-  {
-    uo_position_make_move(position, bestmove);
-    engine.ponder.key = position->key;
-    engine.ponder.value = thread->info.value = value;
-    engine.ponder.move = thread->info.pv[1];
-    uo_position_unmake_move(position);
-  }
-  else
-  {
-    engine.ponder.key = 0;
-  }
+  // Start thread for managing time
+  uo_engine_run_thread(uo_engine_thread_start_timer, thread);
 
+  // Initialize Lazy SMP variables
   size_t lazy_smp_count = 0;
   size_t lazy_smp_max_count = uo_min(UO_PARALLEL_MAX_COUNT, engine.thread_count - 1 - UO_LAZY_SMP_FREE_THREAD_COUNT);
   uo_move *lazy_smp_lines = uo_allocate_line(lazy_smp_max_count * UO_MAX_PLY);
@@ -1324,19 +1350,29 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   lazy_smp_params.line[0] = 0;
 
+  // Iterative deepening loop
   for (size_t depth = 2; depth <= params->depth; ++depth)
   {
+    // Stop search if not possible to improve
+    if (value <= -uo_score_checkmate + (int16_t)depth - 1 || value >= uo_score_checkmate - (int16_t)depth - 2)
+    {
+      goto search_completed;
+    }
+
+    // Update serch depth info
     thread->info.depth = lazy_smp_params.depth = depth;
 
+    // Report searcg info
     if (thread->info.nodes)
     {
       uo_search_print_info(thread);
+      thread->info.nodes = 0;
     }
 
-    thread->info.nodes = 0;
-
-    while (true)
+    // Aspiration search loop
+    do
     {
+      // Start parallel search on Lazy SMP threads if depth is sufficient and there are available threads
       bool can_delegate = (depth >= UO_LAZY_SMP_MIN_DEPTH) && (lazy_smp_count < lazy_smp_max_count);
 
       while (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
@@ -1346,48 +1382,40 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         lazy_smp_params.line[0] = 0;
       }
 
-      incomplete = false;
+      // Start search on main search thread
       value = uo_search_principal_variation(thread, depth, alpha, beta, line, &incomplete);
 
+      // Wait for parallel searches to finish
       if (lazy_smp_count > 0)
       {
         lazy_smp_count = 0;
         uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
       }
 
+      // In case search was not finished, use results from previous search
       if (incomplete)
       {
-        engine.ponder.key = 0;
-        engine.pv[0] = bestmove;
-        engine.pv[1] = 0;
+        uo_pv_copy(line, engine.pv);
         goto search_completed;
       }
 
-      if (value <= -uo_score_checkmate + (int16_t)depth)
-      {
-        goto search_completed;
-      }
-
+      // Check if search returned a value that is within aspiration window
       if (uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
       {
-        bestmove = thread->info.pv[0];
+        // We should always have a best move if search was successful
+        bestmove = line[0];
+        assert(bestmove);
 
-        if (bestmove)
-        {
-          uo_position_make_move(position, bestmove);
-          engine.ponder.key = position->key;
-          engine.ponder.value = thread->info.value = value;
-          engine.ponder.move = thread->info.pv[1];
-          uo_position_unmake_move(position);
-        }
-        else
-        {
-          engine.ponder.key = 0;
-        }
-
-        break;
+        uo_pv_copy(engine.pv, line);
+        uo_position_make_move(position, bestmove);
+        engine.ponder.key = position->key;
+        engine.ponder.value = thread->info.value = value;
+        engine.ponder.move = line[1];
+        uo_position_unmake_move(position);
       }
-    }
+
+      // Repeat search on same depth while aspiration search is unsuccessful
+    } while (aspiration_fail_count);
   }
 
 search_completed:
@@ -1417,7 +1445,9 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   thread->info = (uo_search_info){
     .depth = 0,
     .multipv = engine_options.multipv,
-    .nodes = 0
+    .nodes = 0,
+    .pv = thread->pv,
+    .secondary_pvs = thread->secondary_pvs
   };
 
   uo_time_now(&thread->info.time_start);
