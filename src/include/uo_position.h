@@ -59,6 +59,7 @@ extern "C"
     uint64_t key;
     uo_move move;
     uo_bitboard checks;
+    int16_t static_eval;
     uo_position_flags flags;
     uint8_t move_count;
     uint8_t tactical_move_count;
@@ -281,7 +282,7 @@ extern "C"
     int rule50 = uo_position_flags_rule50(position->flags);
     relevant_history_count = rule50 > relevant_history_count ? relevant_history_count : rule50;
 
-    if (relevant_history_count > 0)
+    if (relevant_history_count > 4)
     {
       memmove(position->history, position->stack - relevant_history_count, relevant_history_count * sizeof * position->stack);
     }
@@ -542,7 +543,7 @@ extern "C"
   {
     return !uo_position_is_check(position)
       && uo_position_previous_move(position) != 0
-      && uo_andn(position->P | position->K, position->own);
+      && uo_popcnt(position->own | position->enemy) > 6;
   }
 
   // see: https://www.chessprogramming.org/SEE_-_The_Swap_Algorithm

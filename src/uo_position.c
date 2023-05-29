@@ -752,7 +752,7 @@ uo_position *uo_position_from_fen(uo_position *position, const char *fen)
   flags = uo_position_flags_update_rule50(flags, rule50);
   position->root_ply += (fullmove - 1) << 1;
   position->ply = 0;
-  position->stack = position->history;
+  position->stack = position->history + 4; /* enable lookbehind two moves past root position */
   position->flags = flags;
   uo_position_reset_root(position);
 
@@ -2481,7 +2481,7 @@ uo_position *uo_position_randomize(uo_position *position, const char *pieces /* 
   flags = uo_position_flags_update_rule50(flags, rule50);
   position->root_ply += (fullmove - 1) << 1;
   position->ply = 0;
-  position->stack = position->history;
+  position->stack = position->history + 4; /* enable lookbehind two moves past root position */
   position->flags = flags;
   position->key = uo_position_calculate_key(position);
   uo_position_reset_root(position);

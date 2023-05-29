@@ -180,7 +180,7 @@ extern "C"
       {
         if (position->ply || book_entry->bestmove)
         {
-          int16_t value = uo_score_adjust_for_mate_from_ttable(position, book_entry->value);
+          int16_t value = uo_score_adjust_from_ttable(position, book_entry->value);
           abtentry->bestmove = book_entry->bestmove;
           abtentry->depth = book_entry->depth;
           return true;
@@ -192,7 +192,7 @@ extern "C"
 
     if (!found) return false;
 
-    int16_t value = uo_score_adjust_for_mate_from_ttable(position, abtentry->data.value);
+    int16_t value = uo_score_adjust_from_ttable(position, abtentry->data.value);
     abtentry->bestmove = abtentry->data.bestmove;
 
     if (abtentry->data.depth < abtentry->depth)
@@ -235,7 +235,7 @@ extern "C"
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
-      abtentry->data.value = uo_score_adjust_for_mate_to_ttable(position, abtentry->value);
+      abtentry->data.value = uo_score_adjust_to_ttable(position, abtentry->value);
       abtentry->data.type =
         abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
         abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
