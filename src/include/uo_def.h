@@ -36,6 +36,10 @@ extern "C"
 #define uo_score_tb_win 10000
 #define uo_score_tb_win_threshold (uo_score_tb_win - UO_MAX_PLY)
 
+#define uo_score_type__exact 3
+#define uo_score_type__upper_bound 8
+#define uo_score_type__lower_bound 4
+
 #define uo_color(color) ((color) & 1)
 #define uo_color_own 0
 #define uo_color_enemy 1

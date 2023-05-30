@@ -28,14 +28,14 @@ extern "C"
         int16_t value;
         uint8_t depth;
         uint8_t type;
-        uint8_t expiry_ply;
+        uint8_t root_ply;
       };
     };
   } uo_tentry;
 
-#define uo_tentry_type__exact 3
-#define uo_tentry_type__upper_bound 8
-#define uo_tentry_type__lower_bound 4
+#define uo_score_type__exact 3
+#define uo_score_type__upper_bound 8
+#define uo_score_type__lower_bound 4
 
 #define uo_ttable_max_probe 4
 #define uo_ttable_expiry_ply 1
@@ -118,7 +118,6 @@ extern "C"
     }
 
     // 3. Loop backwards and remove consecutive expired entries
-    uint8_t root_ply = position->root_ply;
 
     i = (i - 1) & mask;
     entry = ttable->entries + i;
@@ -128,7 +127,7 @@ extern "C"
 
     int count_removed = 0;
 
-    while (entry->key && entry->expiry_ply < root_ply)
+    while (entry->key && entry->root_ply + uo_ttable_expiry_ply < position->root_ply)
     {
       entry->key = 0;
       entry->data = 0;
@@ -200,15 +199,13 @@ extern "C"
       }
 
       entry->data = data->data;
-      entry->expiry_ply = position->root_ply + uo_ttable_expiry_ply;
+      entry->root_ply = position->root_ply;
 
       uo_atomic_unlock(lock);
       return;
     }
 
     // 3. No exact match was found, return first vacant slot or replace first expired entry or else replace `uo_ttable_max_probe` th entry
-
-    uint8_t root_ply = position->root_ply;
 
     i = hash;
     entry = ttable->entries + i;
@@ -223,7 +220,7 @@ extern "C"
         bool is_vacant = !entry->key;
 
         entry->data = data->data;
-        entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
+        entry->root_ply = position->root_ply;
         entry->key = key;
 
         if (is_vacant) uo_atomic_increment(&ttable->count);
@@ -232,7 +229,7 @@ extern "C"
         return;
       }
 
-      if (entry->expiry_ply < root_ply)
+      if (entry->root_ply + uo_ttable_expiry_ply < position->root_ply)
       {
         uo_atomic_flag *lock = &ttable->locks[i & ttable->lock_mask];
         uo_atomic_lock(lock);
@@ -240,7 +237,7 @@ extern "C"
         bool is_vacant = !entry->key;
 
         entry->data = data->data;
-        entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
+        entry->root_ply = position->root_ply;
         entry->key = key;
 
         if (is_vacant) uo_atomic_increment(&ttable->count);
@@ -259,7 +256,7 @@ extern "C"
     bool is_vacant = !entry->key;
 
     entry->data = data->data;
-    entry->expiry_ply = root_ply + uo_ttable_expiry_ply;
+    entry->root_ply = position->root_ply;
     entry->key = key;
 
     if (is_vacant) uo_atomic_increment(&ttable->count);

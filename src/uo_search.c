@@ -597,7 +597,7 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
 {
   uo_position_make_move(position, bestmove);
   uo_abtentry entry = { -uo_score_checkmate, uo_score_checkmate, depth };
-  if (uo_engine_lookup_entry(position, &entry) && entry.bestmove && entry.data.type == uo_tentry_type__exact)
+  if (uo_engine_lookup_entry(position, &entry) && entry.bestmove && entry.data.type == uo_score_type__exact)
   {
     line[0] = entry.bestmove;
     line[1] = 0;
@@ -644,7 +644,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_move_history *stack = position->stack;
 
   // Step 2. Check for draw by 50 move rule
-  if (uo_position_is_rule50_draw(position))
+  if (rule50 >= 100)
   {
     ++info->nodes;
 
@@ -662,21 +662,18 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   // Step 3. Check for draw by threefold repetition.
   //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
-  if (uo_position_repetition_count(position) == 1 + is_root)
+  if (stack->repetitions == 1 + is_root)
   {
     ++info->nodes;
     return uo_score_draw;
   }
 
   // Step 4. Mate distance pruning
-  if (position->ply)
+  if (!is_root)
   {
     alpha = uo_max(-score_checkmate, alpha);
     beta = uo_min(score_checkmate, beta);
-    if (alpha >= beta)
-    {
-      return alpha;
-    }
+    if (alpha >= beta) return alpha;
   }
 
   // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found

@@ -169,7 +169,12 @@ extern "C"
     int16_t value;
   } uo_abtentry;
 
-  // https://groups.google.com/g/rec.games.chess.computer/c/p8GbiiLjp0o/m/hKkpT8qfrhQJ
+  // Retrieves an entry from the transposition table or from the opening book.
+  // Returns true if an entry was found and the score represents valid score for the position when searched
+  // on given depth and alpha/beta values.
+  // Returns false if no entry was found or the score is not valid.
+  // If an entry was found, the abtentry.data contains the values which were stored in the transposition table
+  // even in the case that the score is not valid given search depth and alpha/beta values.
   static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
   {
     if (engine.book)
@@ -181,6 +186,7 @@ extern "C"
         if (position->ply || book_entry->bestmove)
         {
           int16_t value = uo_score_adjust_from_ttable(position, book_entry->value);
+          abtentry->value = value;
           abtentry->bestmove = book_entry->bestmove;
           abtentry->depth = book_entry->depth;
           return true;
@@ -192,7 +198,7 @@ extern "C"
 
     if (!found) return false;
 
-    int16_t value = uo_score_adjust_from_ttable(position, abtentry->data.value);
+    int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);
     abtentry->bestmove = abtentry->data.bestmove;
 
     if (abtentry->data.depth < abtentry->depth)
@@ -200,7 +206,7 @@ extern "C"
       return false;
     }
 
-    if (abtentry->data.type == uo_tentry_type__exact && (position->ply || abtentry->bestmove))
+    if (abtentry->data.type == uo_score_type__exact && (position->ply || abtentry->bestmove))
     {
       abtentry->value = value;
       return true;
@@ -209,7 +215,7 @@ extern "C"
     int16_t alpha = abtentry->alpha;
     int16_t beta = abtentry->beta;
 
-    if (abtentry->data.type == uo_tentry_type__lower_bound)
+    if (abtentry->data.type == uo_score_type__lower_bound)
     {
       alpha = uo_max(alpha, value);
     }
@@ -227,19 +233,20 @@ extern "C"
     return false;
   }
 
+  // Stores an entry to the transposition table.
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
 
     if (abtentry->data.depth < abtentry->depth
-      || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_tentry_type__exact))
+      || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_score_type__exact))
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
       abtentry->data.value = uo_score_adjust_to_ttable(position, abtentry->value);
       abtentry->data.type =
-        abtentry->value >= abtentry->beta ? uo_tentry_type__lower_bound :
-        abtentry->value <= abtentry->alpha ? uo_tentry_type__upper_bound :
-        uo_tentry_type__exact;
+        abtentry->value >= abtentry->beta ? uo_score_type__lower_bound :
+        abtentry->value <= abtentry->alpha ? uo_score_type__upper_bound :
+        uo_score_type__exact;
 
       uo_ttable_set(&engine.ttable, position, &abtentry->data);
     }
