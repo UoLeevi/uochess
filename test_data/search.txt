@@ -10,5 +10,10 @@ cp [300,500]
 
 ucinewgame
 position fen r6r/pRk1b1pp/3ppq2/N1p5/8/5P1P/2P2PP1/3Q1RK1 b - - 0 18
-go depth 6
+go depth 8
 cp [600,1000]
+
+ucinewgame
+position fen rq2r1k1/1p5p/p2p1pp1/5pb1/2PQ1P2/1P4P1/PB5P/1R3RK1 b - - 0 24
+go depth 6
+cp [300,600]

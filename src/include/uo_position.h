@@ -468,9 +468,35 @@ extern "C"
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
   }
 
-  static inline bool uo_position_is_check(const uo_position *position)
+  static inline bool uo_position_is_check(uo_position *position)
   {
-    assert(position->stack->checks != uo_move_history__checks_unknown);
+    if (position->stack->checks == uo_move_history__checks_unknown)
+    {
+      uo_bitboard mask_own = position->own;
+      uo_bitboard mask_enemy = position->enemy;
+      uo_bitboard occupied = mask_own | mask_enemy;
+      uo_bitboard empty = ~occupied;
+
+      uo_bitboard own_K = mask_own & position->K;
+      uo_square square_own_K = uo_tzcnt(own_K);
+
+      uo_bitboard enemy_P = mask_enemy & position->P;
+      uo_bitboard enemy_N = mask_enemy & position->N;
+      uo_bitboard enemy_B = mask_enemy & position->B;
+      uo_bitboard enemy_R = mask_enemy & position->R;
+      uo_bitboard enemy_Q = mask_enemy & position->Q;
+      uo_bitboard enemy_K = mask_enemy & position->K;
+      uo_bitboard enemy_BQ = enemy_B | enemy_Q;
+      uo_bitboard enemy_RQ = enemy_R | enemy_Q;
+
+      uo_bitboard checks = (enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied))
+        | (enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied))
+        | (enemy_N & uo_bitboard_attacks_N(square_own_K))
+        | (enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own));
+
+      position->stack->checks = checks ? checks : uo_move_history__checks_none;
+    }
+
     return position->stack->checks != uo_move_history__checks_none;
   }
 
@@ -1080,7 +1106,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif
