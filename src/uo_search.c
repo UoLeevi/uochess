@@ -245,11 +245,14 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
 
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth, bool *incomplete)
 {
+  // Step 1. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
-
-  // Step 1. Adjust checkmate score
   int16_t score_checkmate = uo_score_checkmate - position->ply;
+  int16_t score_tb_win = uo_score_tb_win - position->ply;
+  bool is_check = uo_position_is_check(position);
+  size_t rule50 = uo_position_flags_rule50(position->flags);
+  uo_move_history *stack = position->stack;
 
   // Step 2. Update searched node count and selective search depth information
   ++info->nodes;
@@ -259,15 +262,12 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   if (depth > 0)
   {
     // Step 3. Check for draw by 50 move rule
-    if (uo_position_is_rule50_draw(position))
+    if (rule50 >= 100)
     {
-      ++info->nodes;
-
-      bool is_check = uo_position_is_check(position);
       if (is_check)
       {
-        size_t move_count = position->stack->moves_generated
-          ? position->stack->move_count
+        size_t move_count = stack->moves_generated
+          ? stack->move_count
           : uo_position_generate_moves(position);
 
         if (move_count == 0) return -score_checkmate;
@@ -277,14 +277,18 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
 
     // Step 4. Check for draw by threefold repetition.
-    //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
-    if (uo_position_repetition_count(position) == (position->ply ? 1 : 2))
+    //         To minimize search tree, let's return draw score for the first repetition already.
+    if (stack->repetitions) return uo_score_draw;
+
+    // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found
+    uo_abtentry entry = { alpha, beta, 0 };
+    if (uo_engine_lookup_entry(position, &entry))
     {
-      ++info->nodes;
-      return uo_score_draw;
+      // Unless draw by 50 move rule is a possibility, let's return transposition table score
+      if (rule50 < 90) return entry.value;
     }
 
-    // Step 5. If search is stopped, return unknown value
+    // Step 6. If search is stopped, return unknown value
     if (uo_engine_thread_is_stopped(thread))
     {
       *incomplete = true;
@@ -292,25 +296,16 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
   }
 
-  // Step 6. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position))
-  {
-    return uo_position_evaluate(position);
-  }
+  // Step 7. If maximum search depth is reached return static evaluation
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate(position);
 
-  // Step 7. Generate legal moves
+  // Step 8. Generate legal moves
   size_t move_count = position->stack->moves_generated
     ? position->stack->move_count - position->stack->skipped_move_count
     : uo_position_generate_moves(position);
 
-  // Step 8. Determine if position is check
-  bool is_check = uo_position_is_check(position);
-
   // Step 9. If there are no legal moves, return draw or checkmate
-  if (move_count == 0)
-  {
-    return is_check ? -score_checkmate : 0;
-  }
+  if (move_count == 0) return is_check ? -score_checkmate : 0;
 
   // Step 10. If position is check, perform quiesence search for all moves
   if (is_check)
@@ -354,10 +349,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   int16_t value = uo_position_evaluate(position);
 
   // Step 12. Cutoff if static evaluation is higher or equal to beta.
-  if (value >= beta)
-  {
-    return beta;
-  }
+  if (value >= beta) return beta;
 
   // Step 13. Delta pruning
   if (position->Q)
@@ -397,11 +389,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
         if (value > alpha)
         {
-          if (value >= beta)
-          {
-            return value;
-          }
-
+          if (value >= beta) return value;
           alpha = value;
         }
       }
@@ -547,10 +535,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
 
     // Unless draw by 50 move rule is a possibility, let's return transposition table score
-    if (uo_position_flags_rule50(position->flags) < 90)
-    {
-      return entry.value;
-    }
+    if (rule50 < 90) return entry.value;
   }
 
   // Step 6. If search is stopped, return unknown value
@@ -561,21 +546,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 7. If specified search depth is reached, perform quiescence search and return evaluation if search was completed
-  if (depth == 0)
-  {
-    int16_t value = uo_search_quiesce(thread, alpha, beta, 0, incomplete);
-    if (*incomplete) return uo_score_unknown;
-    return value;
-  }
+  if (depth == 0) return uo_search_quiesce(thread, alpha, beta, 0, incomplete);
 
   // Step 8. Increment searched node count
   ++thread->info.nodes;
 
   // Step 9. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position))
-  {
-    return uo_position_evaluate(position);
-  }
+  if (uo_position_is_max_depth_reached(position)) uo_position_evaluate(position);
 
   entry.value = -score_checkmate;
 
@@ -640,10 +617,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     : uo_position_generate_moves(position);
 
   // Step 14. If there are no legal moves, return draw or checkmate
-  if (move_count == 0)
-  {
-    return is_check ? -score_checkmate : 0;
-  }
+  if (move_count == 0) return is_check ? -score_checkmate : 0;
 
   // Step 15. Allocate principal variation line on the stack in case it is needed
   uo_move *line = pline ? uo_allocate_line(depth) : NULL;
@@ -691,7 +665,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 19. Perform full alpha-beta search for the first move
-  entry.bestmove = move = position->movelist.head[0];
+  move = position->movelist.head[0];
   entry.depth = depth;
 
   // On main thread, root node, let's report current move on higher depths
@@ -700,9 +674,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_search_print_currmove(thread, move, 1);
   }
 
-  uo_position_update_butterfly_heuristic(position, entry.bestmove);
+  uo_position_update_butterfly_heuristic(position, move);
 
-  uo_position_make_move(position, entry.bestmove);
+  uo_position_make_move(position, move);
   int16_t node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, !cut, incomplete);
   uo_position_unmake_move(position);
 
@@ -711,6 +685,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (node_value >= entry.value)
   {
     entry.value = node_value;
+    entry.bestmove = move;
 
     if (entry.value > alpha)
     {
@@ -737,8 +712,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     .depth = depth - 1,
     .line = pline ? uo_allocate_line(depth) : NULL
   };
-
-  params.line[0] = 0;
 
   // Step 21. Search rest of the moves with zero window and reduced depth unless they fail-high
   for (size_t i = 1; i < move_count; ++i)
@@ -774,10 +747,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
       uo_position_update_next_move_checks(position, checks);
 
-      if (checks)
-      {
-        depth_reduction = 0;
-      }
+      if (checks) depth_reduction = 0;
     }
 
     // Step 21.2 Perform zero window search for reduced depth
@@ -793,7 +763,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
 
     // Step 21.3 If move failed high, perform full re-search
-    if (pline && node_value > alpha)
+    if (pline && node_value > alpha && node_value <= beta)
     {
       bool can_delegate = is_root_node && (depth >= UO_PARALLEL_MIN_DEPTH) && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
 
