@@ -258,46 +258,42 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   ++info->nodes;
   info->seldepth = uo_max(info->seldepth, position->ply);
 
-  // Next couple steps can be skipped on the first quiscence search node
-  if (depth > 0)
+  // Step 3. Check for draw by 50 move rule
+  if (rule50 >= 100)
   {
-    // Step 3. Check for draw by 50 move rule
-    if (rule50 >= 100)
+    if (is_check)
     {
-      if (is_check)
-      {
-        size_t move_count = stack->moves_generated
-          ? stack->move_count
-          : uo_position_generate_moves(position);
+      size_t move_count = stack->moves_generated
+        ? stack->move_count
+        : uo_position_generate_moves(position);
 
-        if (move_count == 0) return -score_checkmate;
-      }
-
-      return uo_score_draw;
+      if (move_count == 0) return -score_checkmate;
     }
 
-    // Step 4. Check for draw by threefold repetition.
-    //         To minimize search tree, let's return draw score for the first repetition already.
-    if (stack->repetitions) return uo_score_draw;
-
-    // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found
-    uo_abtentry entry = { alpha, beta, 0 };
-    if (uo_engine_lookup_entry(position, &entry))
-    {
-      // Unless draw by 50 move rule is a possibility, let's return transposition table score
-      if (rule50 < 90) return entry.value;
-    }
-
-    // Step 6. If search is stopped, return unknown value
-    if (uo_engine_thread_is_stopped(thread))
-    {
-      *incomplete = true;
-      return uo_score_unknown;
-    }
-
-    // Step 7. If maximum search depth is reached return static evaluation
-    if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate(position);
+    return uo_score_draw;
   }
+
+  // Step 4. Check for draw by threefold repetition.
+  //         To minimize search tree, let's return draw score for the first repetition already.
+  if (stack->repetitions) return uo_score_draw;
+
+  // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found
+  uo_abtentry entry = { alpha, beta, 0 };
+  if (uo_engine_lookup_entry(position, &entry))
+  {
+    // Unless draw by 50 move rule is a possibility, let's return transposition table score
+    if (rule50 < 90) return entry.value;
+  }
+
+  // Step 6. If search is stopped, return unknown value
+  if (uo_engine_thread_is_stopped(thread))
+  {
+    *incomplete = true;
+    return uo_score_unknown;
+  }
+
+  // Step 7. If maximum search depth is reached return static evaluation
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate(position);
 
   // Step 8. Generate legal moves
   size_t move_count = stack->moves_generated
@@ -469,7 +465,10 @@ static inline void uo_pv_copy(uo_move *line_dst, uo_move *line_src)
 
 static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t depth, int16_t alpha, int16_t beta, uo_move *pline, bool cut, bool *incomplete)
 {
-  // Step 1. Initialize variables
+  // Step 1. If specified search depth is reached, perform quiescence search and return evaluation if search was completed
+  if (depth == 0) return uo_search_quiesce(thread, alpha, beta, 0, incomplete);
+
+  // Step 2. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
   int16_t score_checkmate = uo_score_checkmate - position->ply;
@@ -480,7 +479,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   size_t rule50 = uo_position_flags_rule50(position->flags);
   uo_move_history *stack = position->stack;
 
-  // Step 2. Check for draw by 50 move rule
+  // Step 3. Check for draw by 50 move rule
   if (rule50 >= 100)
   {
     ++info->nodes;
@@ -497,7 +496,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return uo_score_draw;
   }
 
-  // Step 3. Check for draw by threefold repetition.
+  // Step 4. Check for draw by threefold repetition.
   //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
   if (stack->repetitions == 1 + is_root_node)
   {
@@ -505,7 +504,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return uo_score_draw;
   }
 
-  // Step 4. Mate distance pruning
+  // Step 5. Mate distance pruning
   if (!is_root_node)
   {
     alpha = uo_max(-score_checkmate, alpha);
@@ -513,7 +512,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (alpha >= beta) return alpha;
   }
 
-  // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found
+  // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { alpha, beta, depth };
   if (uo_engine_lookup_entry(position, &entry))
   {
@@ -537,22 +536,22 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     if (rule50 < 90) return entry.value;
   }
 
-  // Step 6. If search is stopped, return unknown value
+  // Step 7. If search is stopped, return unknown value
   if (!is_root_node && uo_engine_thread_is_stopped(thread))
   {
     *incomplete = true;
     return uo_score_unknown;
   }
 
-  // Step 7. Increment searched node count
+  // Step 8. Increment searched node count
   ++thread->info.nodes;
 
-  // Step 8. If maximum search depth is reached return static evaluation
+  // Step 9. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position)) uo_position_evaluate(position);
 
   entry.value = -score_checkmate;
 
-  // Step 9. Tablebase probe
+  // Step 10. Tablebase probe
   // Do not probe on root node or if search depth is too shallow
   // Do not probe if 50 move rule, castling or en passant can interfere with the table base result
   if (engine.tb.enabled
@@ -585,7 +584,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
   }
 
-  // Step 10. Static evaluation and calculation of improvement margin
+  // Step 11. Static evaluation and calculation of improvement margin
   int16_t static_eval = stack->static_eval
     = is_check ? uo_score_unknown
     : is_root_node ? uo_position_evaluate(position)
@@ -599,7 +598,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   bool is_improving = improvement_margin > 0;
 
-  // Step 11. Futility pruning
+  // Step 12. Futility pruning
   if (!pline
     && !is_check
     && depth < 9
@@ -609,9 +608,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   {
     return static_eval;
   }
-
-  // Step 12. If specified search depth is reached, perform quiescence search and return evaluation if search was completed
-  if (depth == 0) return uo_search_quiesce(thread, alpha, beta, 0, incomplete);
 
   // Step 13. Generate legal moves
   size_t move_count = stack->moves_generated
