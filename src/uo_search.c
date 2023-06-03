@@ -512,7 +512,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (uo_engine_lookup_entry(position, &entry))
   {
     // Let's update principal variation line if transposition table score is better than current best score but not better than beta
-    if (pline && entry.value > alpha && entry.value < beta && entry.bestmove)
+    if (pline
+      && entry.value > alpha
+      && entry.value < beta
+      && entry.bestmove)
     {
       if (depth)
       {
@@ -665,7 +668,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   entry.depth = depth;
 
   // On main thread, root node, let's report current move on higher depths
-  if (is_main_thread && is_root_node && depth >= 7)
+  if (is_main_thread && is_root_node && depth >= 9)
   {
     uo_search_print_currmove(thread, move, 1);
   }
@@ -718,7 +721,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_move move = params.move = position->movelist.head[i];
 
     // On main thread, root node, let's report current move on higher depths
-    if (is_main_thread && is_root_node && depth >= 7)
+    if (is_main_thread && is_root_node && depth >= 9)
     {
       uo_search_print_currmove(thread, move, i + 1);
     }

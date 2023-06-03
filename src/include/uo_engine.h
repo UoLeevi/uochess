@@ -175,22 +175,21 @@ extern "C"
   // Returns false if no entry was found or the score is not valid.
   // If an entry was found, the abtentry.data contains the values which were stored in the transposition table
   // even in the case that the score is not valid given search depth and alpha/beta values.
-  static inline bool uo_engine_lookup_entry(const uo_position *position, uo_abtentry *abtentry)
+  static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry)
   {
     if (engine.book)
     {
       const uo_book_entry *book_entry = uo_book_get(engine.book, position);
 
-      if (book_entry)
+      if (book_entry
+        && book_entry->bestmove
+        && uo_position_is_legal_move(position, book_entry->bestmove))
       {
-        if (position->ply || book_entry->bestmove)
-        {
-          int16_t value = uo_score_adjust_from_ttable(position, book_entry->value);
-          abtentry->value = value;
-          abtentry->bestmove = book_entry->bestmove;
-          abtentry->depth = book_entry->depth;
-          return true;
-        }
+        int16_t value = uo_score_adjust_from_ttable(position, book_entry->value);
+        abtentry->value = value;
+        abtentry->bestmove = book_entry->bestmove;
+        abtentry->depth = book_entry->depth;
+        return true;
       }
     }
 
@@ -198,8 +197,18 @@ extern "C"
 
     if (!found) return false;
 
-    int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);
+    // If best move is set, let's still verify that it is a legal move
+    if (abtentry->data.bestmove
+      && !uo_position_is_legal_move(position, abtentry->data.bestmove))
+    {
+      abtentry->data.data = 0;
+      return false;
+    }
+
     abtentry->bestmove = abtentry->data.bestmove;
+
+    int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);
+
 
     if (abtentry->data.depth < abtentry->depth)
     {
@@ -236,7 +245,6 @@ extern "C"
   // Stores an entry to the transposition table.
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
-
     if (abtentry->data.depth < abtentry->depth
       || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_score_type__exact))
     {

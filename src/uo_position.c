@@ -1236,28 +1236,6 @@ void uo_position_unmake_null_move(uo_position *position)
   assert(uo_position_is_ok(position));
 }
 
-bool uo_position_is_legal_move(uo_position *position, uo_move move)
-{
-  uo_piece *board = position->board;
-  uo_square square_from = uo_move_square_from(move);
-  uo_piece piece = board[square_from];
-
-  if (piece <= 1) return false;
-  if (uo_color(piece) != uo_color_own) return false;
-
-  size_t move_count = uo_position_generate_moves(position);
-
-  for (size_t i = 0; i < move_count; ++i)
-  {
-    if (move == position->movelist.head[i])
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 static inline void uo_movegenlist_init(uo_movegenlist *movegenlist, uo_move *root, size_t tactical_move_count_guess)
 {
   movegenlist->moves.tactical.head = movegenlist->moves.tactical.root = root;
