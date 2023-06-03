@@ -442,14 +442,9 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
 static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line, size_t move_count)
 {
   if (!pline) return;
-
   pline[0] = bestmove;
   pline[move_count + 1] = 0;
-
-  if (move_count)
-  {
-    memcpy(pline + 1, line, move_count * sizeof * line);
-  }
+  if (move_count) memcpy(pline + 1, line, move_count * sizeof * line);
 }
 
 static inline void uo_pv_copy(uo_move *line_dst, uo_move *line_src)
@@ -497,7 +492,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 4. Check for draw by threefold repetition.
-  //         To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
+  // To minimize search tree, let's return draw score for the first repetition already. Exception is the search root position.
   if (stack->repetitions == 1 + is_root_node)
   {
     ++info->nodes;
@@ -602,7 +597,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (!pline
     && !is_check
     && depth < 9
-    && static_eval >= beta
     && static_eval - uo_score_P * (depth - is_improving) >= beta
     && static_eval < uo_score_tb_win_threshold)
   {

@@ -275,25 +275,43 @@ extern "C"
 
   static inline void uo_position_reset_root(uo_position *position)
   {
+    // Reset stack of captures
     position->piece_captured = position->captures;
+
+    // Reset move list stack
     position->movelist.head = position->movelist.moves;
 
-    size_t relevant_history_count = position->stack - position->history;
+    // To maintain the current move history on the stack, it is important to keep the move history up to the last irreversible move.
+    // However, since we need to reference the static evaluation of the past two moves, we should ensure that at least four plies are retained.
     int rule50 = uo_position_flags_rule50(position->flags);
-    relevant_history_count = rule50 > relevant_history_count ? relevant_history_count : rule50;
+    size_t relevant_history_count = uo_min(uo_max(rule50, 4), position->stack - position->history);
 
-    if (relevant_history_count > 4)
+    // Get the stack pointer to the beginning of the relevant history
+    uo_move_history *stack = &position->history[relevant_history_count];
+
+    if (stack != position->stack)
     {
-      memmove(position->history, position->stack - relevant_history_count, relevant_history_count * sizeof * position->stack);
+      // Copy the relevant history to the beginning of the history stack
+      memmove(position->history, position->stack - relevant_history_count, relevant_history_count * sizeof * stack);
+
+      // Save the current checks
+      uo_bitboard checks = position->stack->checks;
+
+      // Clear the stack
+      memset(stack, 0, (position->stack - stack) * sizeof * stack);
+
+      // Set the stack pointer to the beginning of the relevant history
+      position->stack = stack;
+
+      // Restore the current checks and other fields on the stack
+      stack->checks = checks;
     }
 
-    uo_bitboard checks = position->stack->checks;
-    position->stack = position->history + relevant_history_count;
-    memset(position->stack, 0, (sizeof position->history / sizeof * position->history - relevant_history_count) * sizeof * position->stack);
+    // Reset the position key and flags on the stack
+    stack->key = position->key;
+    stack->flags = position->flags;
 
-    position->stack->checks = checks;
-    position->stack->key = position->key;
-    position->stack->flags = position->flags;
+    // Reset the ply counter
     position->root_ply += position->ply;
     position->ply = 0;
   }
