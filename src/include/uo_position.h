@@ -813,6 +813,7 @@ extern "C"
     return false;
   }
 
+  // TODO: Write tests for this function
   static inline bool uo_position_is_legal_move(uo_position *position, uo_move move)
   {
     uo_piece *board = position->board;
@@ -822,15 +823,376 @@ extern "C"
     if (piece <= 1) return false;
     if (uo_color(piece) != uo_color_own) return false;
 
-    size_t move_count = position->stack->moves_generated
-      ? position->stack->move_count
-      : uo_position_generate_moves(position);
-
-    for (size_t i = 0; i < move_count; ++i)
+    if (position->stack->moves_generated)
     {
-      if (move == position->movelist.head[i])
+      size_t move_count = position->stack->move_count;
+
+      for (size_t i = 0; i < move_count; ++i)
       {
-        return true;
+        if (move == position->movelist.head[i])
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+    else
+    {
+      uo_move_history *stack = position->stack;
+      uo_square square_to = uo_move_square_to(move);
+      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+      uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+
+      uo_bitboard mask_own = position->own;
+      uo_bitboard mask_enemy = position->enemy;
+      uo_bitboard occupied = mask_own | mask_enemy;
+      uo_bitboard empty = ~occupied;
+
+      uo_bitboard own_K = mask_own & position->K;
+      uo_bitboard enemy_P = mask_enemy & position->P;
+      uo_bitboard enemy_N = mask_enemy & position->N;
+      uo_bitboard enemy_B = mask_enemy & position->B;
+      uo_bitboard enemy_R = mask_enemy & position->R;
+      uo_bitboard enemy_Q = mask_enemy & position->Q;
+      uo_bitboard enemy_K = mask_enemy & position->K;
+      uo_bitboard enemy_BQ = enemy_B | enemy_Q;
+      uo_bitboard enemy_RQ = enemy_R | enemy_Q;
+
+      uo_bitboard attacks_enemy_P = uo_bitboard_attacks_enemy_P(enemy_P);
+
+      uo_square square_own_K = uo_tzcnt(own_K);
+
+      if (stack->checks == uo_move_history__checks_unknown)
+      {
+        uo_bitboard checks = (enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied))
+          | (enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied))
+          | (enemy_N & uo_bitboard_attacks_N(square_own_K))
+          | (enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own));
+
+        stack->checks = checks ? checks : uo_move_history__checks_none;
+      }
+
+      uo_bitboard moves_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);
+      moves_K = uo_andn(attacks_enemy_P, moves_K);
+
+      if (piece == uo_piece__K)
+      {
+        if (moves_K & bitboard_to)
+        {
+          uo_bitboard occupied_after_move_by_K = uo_andn(own_K, occupied);
+          uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(square_to, occupied_after_move_by_K);
+          uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(square_to, occupied_after_move_by_K);
+          uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(square_to);
+          uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(square_to);
+          uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_K;
+
+          return !enemy_checks;
+        }
+        else if (uo_position_is_check(position))
+        {
+          return false;
+        }
+
+        // Castling moves
+
+        if (square_to == uo_square__g1
+          && uo_position_flags_castling_OO(position->flags)
+          && !(occupied & (uo_square_bitboard(uo_square__f1) | uo_square_bitboard(uo_square__g1))))
+        {
+          // Kingside castling
+          uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__f1, occupied);
+          uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__f1, occupied);
+          uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__f1);
+          uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__f1, uo_color_own);
+          uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__f1);
+          uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
+
+          if (!enemy_checks)
+          {
+            uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__g1, occupied);
+            uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__g1, occupied);
+            uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__g1);
+            uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__g1, uo_color_own);
+            uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__g1);
+            uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
+
+            return !enemy_checks;
+          }
+
+          return true;
+        }
+
+        if (square_to == uo_square__c1
+          && uo_position_flags_castling_OOO(position->flags)
+          && !(occupied & (uo_square_bitboard(uo_square__d1) | uo_square_bitboard(uo_square__c1) | uo_square_bitboard(uo_square__b1))))
+        {
+          // Queenside castling
+          uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__d1, occupied);
+          uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__d1, occupied);
+          uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__d1);
+          uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__d1, uo_color_own);
+          uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__d1);
+          uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
+
+          if (!enemy_checks)
+          {
+            uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(uo_square__c1, occupied);
+            uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(uo_square__c1, occupied);
+            uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(uo_square__c1);
+            uo_bitboard enemy_checks_P = enemy_P & uo_bitboard_attacks_P(uo_square__c1, uo_color_own);
+            uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(uo_square__c1);
+            uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_P | enemy_checks_K;
+
+            return !enemy_checks;
+          }
+
+          return true;
+        }
+
+        return false;
+      }
+
+      if (!position->pins.updated)
+      {
+        position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
+        position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+        position->pins.updated = true;
+      }
+
+      uo_bitboard pins_to_own_K_by_BQ = position->pins.by_BQ;
+      uo_bitboard pins_to_own_K_by_RQ = position->pins.by_RQ;
+      uo_bitboard pins_to_own_K = position->pins.by_BQ | position->pins.by_RQ;
+
+
+      if (uo_position_is_check(position))
+      { // Position is a check
+
+        uo_bitboard enemy_checks = position->stack->checks;
+
+        // Double check, only king moves are legal
+        if (uo_popcnt(enemy_checks) == 2) return false;
+
+        uo_square square_enemy_checker = uo_tzcnt(enemy_checks);
+
+        // Let's first consider captures
+
+        uo_bitboard attack_checker_diagonals = uo_bitboard_attacks_B(square_enemy_checker, occupied);
+        uo_bitboard attack_checker_lines = uo_bitboard_attacks_R(square_enemy_checker, occupied);
+
+        switch (piece)
+        {
+          case uo_piece__P: {
+            // Captures by pawns
+            uo_bitboard attack_checker_P = uo_andn(pins_to_own_K, bitboard_from & uo_bitboard_attacks_P(square_enemy_checker, uo_black));
+            if (attack_checker_P & bitboard_to) return true;
+
+            // Let's also check for en passant captures
+            uo_bitboard checks_by_P = enemy_checks & enemy_P;
+            uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
+
+            if (checks_by_P && enpassant_file == uo_square_file(square_to))
+            {
+              uo_bitboard non_pinned_P = uo_andn(pins_to_own_K, bitboard_from);
+
+              if (enpassant_file > 1 && (non_pinned_P & (checks_by_P >> 1)))
+              {
+                return true;
+              }
+
+              if (enpassant_file < 8 && (non_pinned_P & (checks_by_P << 1)))
+              {
+                return true;
+              }
+            }
+
+            break;
+          }
+          case uo_piece__N: {
+            // Captures by knights
+            uo_bitboard capture_N = uo_bitboard_attacks_N(square_own_K) & attack_checker_diagonals;
+            if (capture_N & bitboard_to) return true;
+            break;
+          }
+          case uo_piece__B: {
+            // Captures by bishops
+            uo_bitboard attack_checker_B = uo_andn(pins_to_own_K, bitboard_from & attack_checker_diagonals);
+            if (attack_checker_B & bitboard_to) return true;
+            break;
+          }
+          case uo_piece__R: {
+            // Captures by rooks
+            uo_bitboard attack_checker_R = uo_andn(pins_to_own_K, bitboard_from & attack_checker_lines);
+            if (attack_checker_R & bitboard_to) return true;
+            break;
+          }
+          case uo_piece__Q: {
+            // Captures by queens
+            uo_bitboard attack_checker_Q = uo_andn(pins_to_own_K, bitboard_from & (attack_checker_diagonals | attack_checker_lines));
+            if (attack_checker_Q & bitboard_to) return true;
+            break;
+          }
+        }
+
+        // All possible captures considered. Next let's consider blocking moves
+
+        uint8_t file_enemy_checker = uo_square_file(square_enemy_checker);
+        uint8_t rank_enemy_checker = uo_square_rank(square_enemy_checker);
+
+        uo_square squares_between[6];
+        size_t i = uo_squares_between(square_own_K, square_enemy_checker, squares_between);
+
+        // TODO: replace with checkmask
+        while (i--)
+        {
+          uo_square square_between = squares_between[i];
+          if (square_between != square_to) continue;
+
+          uo_bitboard bitboard_square_between = uo_square_bitboard(square_between);
+
+          uo_bitboard block_diagonals = uo_bitboard_moves_B(square_between, mask_enemy, mask_own);
+          uo_bitboard block_lines = uo_bitboard_moves_R(square_between, mask_enemy, mask_own);
+
+          switch (piece)
+          {
+            case uo_piece__P: {
+              uo_bitboard block_P = bitboard_from & uo_square_bitboard(square_between - 8);
+
+              if ((bitboard_square_between & uo_bitboard_rank_fourth) && (uo_bitboard_double_push_P(uo_square_bitboard(square_between - 16), empty)))
+              {
+                block_P |= bitboard_from & uo_square_bitboard(square_between - 16);
+              }
+
+              block_P = uo_andn(pins_to_own_K, block_P);
+              return block_P != 0;
+            }
+
+            case uo_piece__N: {
+              uo_bitboard block_N = uo_andn(pins_to_own_K, bitboard_from & uo_bitboard_moves_N(square_between, mask_enemy, mask_own));
+              return block_N != 0;
+            }
+
+            case uo_piece__B: {
+              uo_bitboard block_B = uo_andn(pins_to_own_K, bitboard_from & block_diagonals);
+              return block_B != 0;
+            }
+
+            case uo_piece__R: {
+              uo_bitboard block_R = uo_andn(pins_to_own_K, bitboard_from & block_lines);
+              return block_R != 0;
+            }
+
+            case uo_piece__Q: {
+              uo_bitboard block_Q = uo_andn(pins_to_own_K, bitboard_from & (block_diagonals | block_lines));
+              return block_Q != 0;
+            }
+          }
+
+          return false;
+        }
+      }
+
+      if (pins_to_own_K & bitboard_from)
+      { // Piece is pinned to the king
+        switch (piece)
+        {
+          case uo_piece__P: {
+            // Moves for pinned pawns
+            uo_bitboard pinned_file_P = bitboard_from & pins_to_own_K_by_RQ & uo_square_bitboard_file[square_own_K];
+
+            // Single pawn push
+            uo_bitboard pinned_single_push_P = uo_bitboard_single_push_P(pinned_file_P, empty);
+            if (pinned_single_push_P & bitboard_to) return true;
+
+            // Double pawn push
+            uo_bitboard pinned_double_push_P = uo_bitboard_double_push_P(pinned_file_P, empty);
+            if (pinned_double_push_P & bitboard_to) return true;
+
+            // Captures by pinned pawns
+            uo_bitboard pinned_diag_P = bitboard_from & pins_to_own_K_by_BQ;
+
+            // Captures to right
+            uo_bitboard pinned_captures_right_P = uo_bitboard_captures_right_P(pinned_diag_P, mask_enemy) & pins_to_own_K_by_BQ;
+            if (pinned_captures_right_P & bitboard_to) return true;
+
+            // Captures to left
+            uo_bitboard pinned_captures_left_P = uo_bitboard_captures_left_P(pinned_diag_P, mask_enemy) & pins_to_own_K_by_BQ;
+            if (pinned_captures_left_P & bitboard_to) return true;
+
+            uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
+            if (!enpassant_file) return false;
+
+            uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+
+            if ((bitboard_enpassant_file & bitboard_to)
+              && (bitboard_enpassant_file & bitboard_from) == 0
+              && (uo_bitboard_rank_fifth & bitboard_from)
+              && (bitboard_to & pins_to_own_K_by_BQ))
+            {
+              return true;
+            }
+
+            return false;
+          }
+
+          case uo_piece__N:
+            return false;
+
+          case uo_piece__B:
+            return (uo_bitboard_moves_B(square_from, mask_own, mask_enemy) & pins_to_own_K_by_BQ & bitboard_to) != 0;
+
+          case uo_piece__R:
+            return (uo_bitboard_moves_R(square_from, mask_own, mask_enemy) & pins_to_own_K_by_RQ & bitboard_to) != 0;
+
+          case uo_piece__Q:
+            return ((uo_bitboard_moves_B(square_from, mask_own, mask_enemy) & pins_to_own_K_by_BQ)
+              | (uo_bitboard_moves_R(square_from, mask_own, mask_enemy) & pins_to_own_K_by_RQ) & bitboard_to) != 0;
+        }
+      }
+
+      // Position is not a check and piece is not pinned to the king
+      switch (piece)
+      {
+        case uo_piece__P: {
+          if (uo_bitboard_single_push_P(bitboard_from, empty) & bitboard_to) return true;
+          if (uo_bitboard_double_push_P(bitboard_from, empty) & bitboard_to) return true;
+          if (uo_bitboard_captures_right_P(bitboard_from, mask_enemy) & bitboard_to) return true;
+          if (uo_bitboard_captures_left_P(bitboard_from, mask_enemy) & bitboard_to) return true;
+
+          uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
+          if (!enpassant_file) return false;
+
+          uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+
+          if ((bitboard_enpassant_file & bitboard_to)
+            && (bitboard_enpassant_file & bitboard_from) == 0
+            && (uo_bitboard_rank_fifth & bitboard_from))
+          {
+            return true;
+          }
+
+          return false;
+        }
+
+        case uo_piece__N: {
+          uo_bitboard moves_N = uo_bitboard_moves_N(square_from, mask_own, mask_enemy);
+          return (moves_N & bitboard_to) != 0;
+        }
+
+        case uo_piece__B: {
+          uo_bitboard moves_B = uo_bitboard_moves_B(square_from, mask_own, mask_enemy);
+          return (moves_B & bitboard_to) != 0;
+        }
+
+        case uo_piece__R: {
+          uo_bitboard moves_R = uo_bitboard_moves_R(square_from, mask_own, mask_enemy);
+          return (moves_R & bitboard_to) != 0;
+        }
+
+        case uo_piece__Q: {
+          uo_bitboard moves_Q = uo_bitboard_moves_Q(square_from, mask_own, mask_enemy);
+          return (moves_Q & bitboard_to) != 0;
+        }
       }
     }
 
@@ -1146,7 +1508,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

@@ -1462,7 +1462,6 @@ size_t uo_position_generate_moves(uo_position *position)
     uo_square squares_between[6];
     size_t i = uo_squares_between(square_own_K, square_enemy_checker, squares_between);
 
-
     // TODO: replace with checkmask
     while (i--)
     {
@@ -1886,7 +1885,7 @@ size_t uo_position_generate_moves(uo_position *position)
       square_to = uo_tzcnt(enpassant) + 8;
       uo_bitboard bitboard_to = uo_square_bitboard(square_to);
 
-      if (bitboard_to & position->pins.by_BQ)
+      if (bitboard_to & pins_to_own_K_by_BQ)
       {
         if (enpassant_file > 1 && (pinned_diag_P & (enpassant >> 1)))
         {
