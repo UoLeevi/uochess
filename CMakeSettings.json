@@ -37,7 +37,6 @@
       "configurationType": "Debug",
       "buildRoot": "${projectDir}/out/build/${name}",
       "installRoot": "${projectDir}/out/install/${name}",
-      "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "variables": [
@@ -52,11 +51,7 @@
           "type": "FILEPATH"
         }
       ],
-      "environments": [
-        {
-          "UO_OPT_THREADS": "1"
-        }
-      ],
+      "environments": [ { "UO_OPT_THREADS": "1" } ],
       "inheritEnvironments": []
     },
     {

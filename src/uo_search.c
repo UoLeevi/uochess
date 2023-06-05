@@ -243,6 +243,8 @@ static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *threa
   return false;
 }
 
+// The quiescence search is a used to evaluate the board position when the game is not in non-quiet state,
+// i.e., there are pieces that can be captured.
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth, bool *incomplete)
 {
   // Step 1. Initialize variables
@@ -273,8 +275,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return uo_score_draw;
   }
 
-  // Step 4. Check for draw by threefold repetition.
-  //         To minimize search tree, let's return draw score for the first repetition already.
+  // Step 4. Return draw score for the first repetition already.
   if (stack->repetitions) return uo_score_draw;
 
   // Step 5. Lookup position from transposition table and return if exact score for equal or higher depth is found
