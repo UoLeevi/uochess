@@ -329,11 +329,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
         if (value > alpha)
         {
-          if (value >= beta)
-          {
-            return value;
-          }
-
+          if (value >= beta) return value;
           alpha = value;
         }
       }
@@ -574,11 +570,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         : wdl < engine.tb.score_wdl_draw ? -score_tb_win
         : uo_score_draw;
 
-      if (entry.value >= beta)
-      {
-        return entry.value;
-      }
-
+      if (entry.value >= beta) return entry.value;
       alpha = uo_max(alpha, entry.value);
     }
   }
