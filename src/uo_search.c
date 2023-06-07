@@ -810,11 +810,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         if (is_root_node && is_main_thread)
         {
           thread->info.bestmove_change_depth = depth_lmr;
-
-          if (depth_lmr > 8)
-          {
-            uo_search_print_info(thread);
-          }
+          if (depth_lmr > 10) uo_search_print_info(thread);
         }
       }
     }
@@ -872,11 +868,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             if (is_root_node && is_main_thread)
             {
               thread->info.bestmove_change_depth = depth_lmr;
-
-              if (depth_lmr > 8)
-              {
-                uo_search_print_info(thread);
-              }
+              if (depth_lmr > 10) uo_search_print_info(thread);
             }
           }
         }
@@ -928,11 +920,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           if (is_root_node && is_main_thread)
           {
             thread->info.bestmove_change_depth = depth_lmr;
-
-            if (depth_lmr > 8)
-            {
-              uo_search_print_info(thread);
-            }
+            if (depth_lmr > 10) uo_search_print_info(thread);
           }
         }
       }
