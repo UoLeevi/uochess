@@ -11,6 +11,8 @@ extern "C"
 #include "uo_util.h"
 #include "uo_def.h"
 
+#include <math.h>
+
   static inline bool uo_score_is_checkmate(int16_t score)
   {
     return score > uo_score_mate_in_threshold || score < -uo_score_mate_in_threshold;
@@ -18,32 +20,22 @@ extern "C"
 
   static inline int16_t uo_score_adjust_to_ttable(const uo_position *position, int16_t score)
   {
-    if (score > uo_score_tb_win_threshold)
-    {
-      return score + position->ply;
-    }
-    else if (score < -uo_score_tb_win_threshold)
-    {
-      return score - position->ply;
-    }
-
-    return score;
+    return score > uo_score_tb_win_threshold ? score + position->ply
+      : score < -uo_score_tb_win_threshold ? score - position->ply
+      : score;
   }
 
   static inline int16_t uo_score_adjust_from_ttable(const uo_position *position, int16_t score)
   {
-    if (score > uo_score_tb_win_threshold)
-    {
-      return score - position->ply;
-    }
-    else if (score < -uo_score_tb_win_threshold)
-    {
-      return score + position->ply;
-    }
-
-    return score;
+    return score > uo_score_tb_win_threshold ? score - position->ply
+      : score < -uo_score_tb_win_threshold ? score + position->ply
+      : score;
   }
 
+  static inline int16_t uo_score_mul_ln(int16_t score, int factor)
+  {
+    return (float)score * logf(1.0f + (float)factor);
+  }
 
   // side to move
 #define uo_score_tempo 25
@@ -53,10 +45,10 @@ extern "C"
 
 #define uo_score_mobility_P 5
 #define uo_score_mobility_N 10
-#define uo_score_mobility_B 5
-#define uo_score_mobility_R 3
-#define uo_score_mobility_Q 3
-#define uo_score_mobility_K 2
+#define uo_score_mobility_B 6
+#define uo_score_mobility_R 4
+#define uo_score_mobility_Q 4
+#define uo_score_mobility_K 3
 
 #define uo_score_N_square_attackable_by_P -10
 #define uo_score_B_square_attackable_by_P -5
@@ -181,18 +173,27 @@ extern "C"
     // pawns
 
     score += uo_score_P * (int16_t)uo_popcnt(own_P);
-    score += uo_score_mobility_P * (int16_t)uo_popcnt(pushes_own_P);
-    score += uo_score_mobility_P * (int16_t)uo_popcnt(attacks_left_own_P & mask_enemy);
-    score += uo_score_mobility_P * (int16_t)uo_popcnt(attacks_right_own_P & mask_enemy);
     score -= uo_score_P * (int16_t)uo_popcnt(enemy_P);
-    score -= uo_score_mobility_P * (int16_t)uo_popcnt(pushes_enemy_P);
-    score -= uo_score_mobility_P * (int16_t)uo_popcnt(attacks_left_enemy_P & mask_own);
-    score -= uo_score_mobility_P * (int16_t)uo_popcnt(attacks_right_enemy_P & mask_own);
 
-    score += uo_score_space_P * (int16_t)uo_popcnt(attacks_left_own_P & uo_bitboard_half_enemy);
-    score += uo_score_space_P * (int16_t)uo_popcnt(attacks_right_own_P & uo_bitboard_half_enemy);
-    score -= uo_score_space_P * (int16_t)uo_popcnt(attacks_left_enemy_P & uo_bitboard_half_own);
-    score -= uo_score_space_P * (int16_t)uo_popcnt(attacks_right_enemy_P & uo_bitboard_half_own);
+    int mobility_own_P = uo_popcnt(pushes_own_P) +
+      uo_popcnt(attacks_left_own_P & mask_enemy) +
+      uo_popcnt(attacks_right_own_P & mask_enemy);
+    score += uo_score_mul_ln(uo_score_mobility_P, mobility_own_P * mobility_own_P);
+
+    int mobility_enemy_P = uo_popcnt(pushes_enemy_P) +
+      uo_popcnt(attacks_left_enemy_P & mask_own) +
+      uo_popcnt(attacks_right_enemy_P & mask_own);
+    score -= uo_score_mul_ln(uo_score_mobility_P, mobility_enemy_P * mobility_enemy_P);
+
+
+    int space_own_P = uo_popcnt(attacks_left_own_P & uo_bitboard_half_enemy) +
+      uo_popcnt(attacks_left_own_P & uo_bitboard_half_enemy);
+    score += uo_score_mul_ln(uo_score_space_P, space_own_P * space_own_P);
+
+    int space_enemy_P = uo_popcnt(attacks_left_enemy_P & uo_bitboard_half_own) +
+      uo_popcnt(attacks_right_enemy_P & uo_bitboard_half_own);
+    score -= uo_score_mul_ln(uo_score_space_P, space_enemy_P * space_enemy_P);
+
 
     uo_bitboard attacks_lower_value_own = attacks_own_P;
     uo_bitboard attacks_lower_value_enemy = attacks_enemy_P;
@@ -207,9 +208,11 @@ extern "C"
       uo_square square_own_N = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_N = uo_bitboard_attacks_N(square_own_N);
       attacks_lower_value_own |= attacks_own_N;
-      uo_bitboard mobility_own_N = uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_N);
+
+      int mobility_own_N = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_N));
+      score += uo_score_mul_ln(uo_score_mobility_N, mobility_own_N * mobility_own_N);
+
       score += uo_score_N + uo_score_extra_piece;
-      score += uo_score_mobility_N * (int16_t)uo_popcnt(mobility_own_N);
       score += uo_score_space_N * (int16_t)uo_popcnt(attacks_own_N & uo_bitboard_half_enemy);
 
       score_mg += mg_table_N[square_own_N];
@@ -225,14 +228,16 @@ extern "C"
       uo_square square_enemy_N = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_enemy_N = uo_bitboard_attacks_N(square_enemy_N);
       attacks_lower_value_enemy |= attacks_enemy_N;
-      uo_bitboard mobility_enemy_N = uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_N);
+
+      int mobility_enemy_N = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_N));
+      score -= uo_score_mul_ln(uo_score_mobility_N, mobility_enemy_N * mobility_enemy_N);
+
       score -= uo_score_N + uo_score_extra_piece;
-      score -= uo_score_mobility_N * (int16_t)uo_popcnt(mobility_enemy_N);
       score -= uo_score_space_N * (int16_t)uo_popcnt(attacks_enemy_N & uo_bitboard_half_own);
 
       score_mg -= mg_table_N[square_enemy_N ^ 56];
       score_eg -= eg_table_N[square_enemy_N ^ 56];
-      
+
       if (attacks_enemy_N & next_to_own_K) ++count_attacker_to_own_K;
       if (attacks_enemy_N & next_to_enemy_K) ++count_defender_of_enemy_K;
     }
@@ -245,9 +250,11 @@ extern "C"
       uo_square square_own_B = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_B = uo_bitboard_attacks_B(square_own_B, occupied);
       attacks_lower_value_own |= attacks_own_B;
-      uo_bitboard mobility_own_B = uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_B);
+
+      int mobility_own_B = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_B));
+      score += uo_score_mul_ln(uo_score_mobility_B, mobility_own_B * mobility_own_B);
+
       score += uo_score_B + uo_score_extra_piece;
-      score += uo_score_mobility_B * (int16_t)uo_popcnt(mobility_own_B);
       score += uo_score_space_B * (int16_t)uo_popcnt(attacks_own_B & uo_bitboard_half_enemy);
 
       score_mg += mg_table_B[square_own_B];
@@ -263,14 +270,16 @@ extern "C"
       uo_square square_enemy_B = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_enemy_B = uo_bitboard_attacks_B(square_enemy_B, occupied);
       attacks_lower_value_enemy |= attacks_enemy_B;
-      uo_bitboard mobility_enemy_B = uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_B);
+
+      int mobility_enemy_B = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_B));
+      score -= uo_score_mul_ln(uo_score_mobility_B, mobility_enemy_B * mobility_enemy_B);
+
       score -= uo_score_B + uo_score_extra_piece;
-      score -= uo_score_mobility_B * (int16_t)uo_popcnt(mobility_enemy_B);
       score -= uo_score_space_B * (int16_t)uo_popcnt(attacks_enemy_B & uo_bitboard_half_own);
 
       score_mg -= mg_table_B[square_enemy_B ^ 56];
       score_eg -= eg_table_B[square_enemy_B ^ 56];
-      
+
       if (attacks_enemy_B & next_to_own_K) ++count_attacker_to_own_K;
       if (attacks_enemy_B & next_to_enemy_K) ++count_defender_of_enemy_K;
     }
@@ -283,9 +292,11 @@ extern "C"
       uo_square square_own_R = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_R = uo_bitboard_attacks_R(square_own_R, occupied);
       attacks_lower_value_own |= attacks_own_R;
-      uo_bitboard mobility_own_R = uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_R);
+
+      int mobility_own_R = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_R));
+      score += uo_score_mul_ln(uo_score_mobility_R, mobility_own_R * mobility_own_R);
+
       score += uo_score_R + uo_score_extra_piece;
-      score += uo_score_mobility_R * (int16_t)uo_popcnt(mobility_own_R);
       score += uo_score_space_R * (int16_t)uo_popcnt(attacks_own_R & uo_bitboard_half_enemy);
 
       score_mg += mg_table_R[square_own_R];
@@ -304,9 +315,11 @@ extern "C"
       uo_square square_enemy_R = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_enemy_R = uo_bitboard_attacks_R(square_enemy_R, occupied);
       attacks_lower_value_enemy |= attacks_enemy_R;
-      uo_bitboard mobility_enemy_R = uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_R);
+
+      int mobility_enemy_R = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_R));
+      score -= uo_score_mul_ln(uo_score_mobility_R, mobility_enemy_R * mobility_enemy_R);
+
       score -= uo_score_R + uo_score_extra_piece;
-      score -= uo_score_mobility_R * (int16_t)uo_popcnt(mobility_enemy_R);
       score -= uo_score_space_R * (int16_t)uo_popcnt(attacks_enemy_R & uo_bitboard_half_own);
 
       score_mg -= mg_table_R[square_enemy_R ^ 56];
@@ -327,9 +340,11 @@ extern "C"
       uo_square square_own_Q = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_Q = uo_bitboard_attacks_Q(square_own_Q, occupied);
       attacks_lower_value_own |= attacks_own_Q;
-      uo_bitboard mobility_own_Q = uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_Q);
+
+      int mobility_own_Q = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_Q));
+      score += uo_score_mul_ln(uo_score_mobility_Q, mobility_own_Q * mobility_own_Q);
+
       score += uo_score_Q + uo_score_extra_piece;
-      score += uo_score_mobility_Q * (int16_t)uo_popcnt(mobility_own_Q);
       score += uo_score_space_Q * (int16_t)uo_popcnt(attacks_own_Q & uo_bitboard_half_enemy);
 
       score_mg += mg_table_Q[square_own_Q];
@@ -345,9 +360,11 @@ extern "C"
       uo_square square_enemy_Q = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_enemy_Q = uo_bitboard_attacks_Q(square_enemy_Q, occupied);
       attacks_lower_value_enemy |= attacks_enemy_Q;
-      uo_bitboard mobility_enemy_Q = uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_Q);
+
+      int mobility_enemy_Q = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_Q));
+      score -= uo_score_mul_ln(uo_score_mobility_Q, mobility_enemy_Q * mobility_enemy_Q);
+
       score -= uo_score_Q + uo_score_extra_piece;
-      score -= uo_score_mobility_Q * (int16_t)uo_popcnt(mobility_enemy_Q);
       score -= uo_score_space_Q * (int16_t)uo_popcnt(attacks_enemy_Q & uo_bitboard_half_own);
 
       score_mg -= mg_table_Q[square_enemy_Q ^ 56];
