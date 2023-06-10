@@ -426,7 +426,10 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
 {
   uo_position_make_move(position, bestmove);
   uo_abtentry entry = { -uo_score_checkmate, uo_score_checkmate, depth };
-  if (uo_engine_lookup_entry(position, &entry) && entry.bestmove && entry.data.type == uo_score_type__exact)
+
+  if (uo_engine_lookup_entry(position, &entry)
+    && entry.bestmove
+    && entry.data.type == uo_score_type__exact)
   {
     line[0] = entry.bestmove;
     line[1] = 0;
@@ -636,7 +639,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_position_sort_moves(&thread->position, move, thread->move_cache);
 
   // Step 18. Multi-Cut pruning
-  if (cut && depth > UO_MULTICUT_DEPTH_REDUCTION)
+  if (!pline
+    && !is_check
+    && cut
+    && depth > UO_MULTICUT_DEPTH_REDUCTION)
   {
     size_t cutoff_counter = UO_MULTICUT_CUTOFF_COUNT;
     size_t move_count_mc = uo_min(move_count, UO_MULTICUT_MOVE_COUNT);
@@ -758,11 +764,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
 
     // Step 21.3 If move failed high, perform full re-search
-    if (pline && node_value > alpha && node_value <= beta)
+    if (pline
+      && node_value > alpha
+      && node_value <= beta)
     {
-      bool can_delegate = is_parallel_search_root && (move_count - i > UO_PARALLEL_MIN_MOVE_COUNT) && (parallel_search_count < UO_PARALLEL_MAX_COUNT);
-
-      if (can_delegate && uo_search_try_delegate_parallel_search(&params))
+      if (is_parallel_search_root
+        && move_count - i > UO_PARALLEL_MIN_MOVE_COUNT
+        && parallel_search_count < UO_PARALLEL_MAX_COUNT
+        && uo_search_try_delegate_parallel_search(&params))
       {
         params.line = uo_allocate_line(depth);
         params.line[0] = 0;

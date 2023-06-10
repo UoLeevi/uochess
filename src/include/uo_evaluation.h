@@ -43,8 +43,6 @@ extern "C"
 #define uo_score_tempo 25
 
   // mobility
-#define uo_score_square_access 5
-
 #define uo_score_mobility_P 5
 #define uo_score_mobility_N 10
 #define uo_score_mobility_B 6
