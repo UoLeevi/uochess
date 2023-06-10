@@ -233,7 +233,9 @@ bool uo_test__eval(uo_test_info *info)
       int cp;
       if (eval && sscanf(eval, "Evaluation: %d", &cp) == 1)
       {
-        if (cp<cp_lower_bound || cp>cp_upper_bound)
+        if (uo_color(info->position.flags) == uo_black) cp = -cp;
+
+        if (cp < cp_lower_bound || cp > cp_upper_bound)
         {
           sprintf(info->message, "Static evaluation %d for fen '%s' is not between [%d,%d].", cp, info->fen, cp_lower_bound, cp_upper_bound);
           return false;
