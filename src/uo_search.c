@@ -189,14 +189,22 @@ typedef uint8_t uo_search_quiesce_flags;
 
 static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engine_thread *thread, uint8_t depth)
 {
+  if (depth == 0)
+  {
+    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__any_see;
+  }
+
   if (depth <= 1)
   {
     return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_see;
   }
-  else
+
+  if (depth <= 3)
   {
-    return uo_search_quiesce_flags__positive_see;
+    return uo_search_quiesce_flags__non_negative_see;
   }
+
+  return uo_search_quiesce_flags__positive_see;
 }
 
 static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
@@ -471,6 +479,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   bool is_check = uo_position_is_check(position);
   bool is_root_node = !position->ply;
   bool is_main_thread = thread->owner == NULL;
+  bool is_zw_search = beta - alpha == 1;
   size_t rule50 = uo_position_flags_rule50(position->flags);
   uo_move_history *stack = position->stack;
 
@@ -639,26 +648,43 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_position_sort_moves(&thread->position, move, thread->move_cache);
 
   // Step 18. Multi-Cut pruning
-  if (!pline
+  if (cut
+    && is_zw_search
     && !is_check
-    && cut
-    && depth > UO_MULTICUT_DEPTH_REDUCTION)
+    && depth > UO_MULTICUT_DEPTH_REDUCTION
+    && entry.data.type == uo_score_type__lower_bound)
   {
-    size_t cutoff_counter = UO_MULTICUT_CUTOFF_COUNT;
+    size_t cutoff_counter = 0;
     size_t move_count_mc = uo_min(move_count, UO_MULTICUT_MOVE_COUNT);
     size_t depth_mc = depth - UO_MULTICUT_DEPTH_REDUCTION;
+    uo_square *cut_move_squares = uo_alloca(UO_MULTICUT_CUTOFF_COUNT);
 
     for (size_t i = 0; i < move_count_mc; ++i)
     {
       uo_move move = position->movelist.head[i];
+      uo_square square_from = uo_move_square_from(move);
+
+      // Require that beta cut-offs are not caused by the same piece
+      for (size_t j = 0; j < cutoff_counter; ++j)
+      {
+        if (cut_move_squares[j] == square_from)
+        {
+          move_count_mc = uo_min(move_count, move_count_mc + 1);
+          goto next_move_mc;
+        }
+      };
+
       uo_position_make_move(position, move);
       int16_t node_value = -uo_search_principal_variation(thread, depth_mc - 1, -beta, -beta + 1, line, false, incomplete);
       uo_position_unmake_move(position);
 
-      if (node_value >= beta && cutoff_counter-- == 0)
+      if (node_value >= beta)
       {
-        return beta; // mc-prune
+        if (++cutoff_counter == UO_MULTICUT_CUTOFF_COUNT) return beta; // mc-prune
+        cut_move_squares[cutoff_counter - 1] = square_from;
       }
+
+    next_move_mc:;
     }
   }
 
@@ -675,7 +701,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_position_update_butterfly_heuristic(position, move);
 
   uo_position_make_move(position, move);
-  int16_t node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, !cut, incomplete);
+  int16_t node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false, incomplete);
   uo_position_unmake_move(position);
 
   if (*incomplete) return uo_score_unknown;
@@ -729,14 +755,16 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
 
     size_t depth_reduction =
+      // no reduction inside zero window search
+      is_zw_search
       // no reduction for shallow depth
-      depth <= 3
+      || depth <= 3
       // no reduction on the first three moves
       || i < 3
       // no reduction if there are very few legal moves
       || move_count < 8
       // no reduction if position is check
-      || uo_position_is_check(position)
+      || is_check
       // no reduction on promotions or captures
       || uo_move_is_tactical(move)
       ? 0 // no reduction
@@ -764,7 +792,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     }
 
     // Step 21.3 If move failed high, perform full re-search
-    if (pline
+    if (!is_zw_search
       && node_value > alpha
       && node_value <= beta)
     {
@@ -781,7 +809,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
 
       depth_lmr = depth;
-      node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, !cut, incomplete);
+      node_value = -uo_search_principal_variation(thread, depth - 1, -beta, -alpha, line, false, incomplete);
 
       if (*incomplete)
       {

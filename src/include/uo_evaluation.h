@@ -44,7 +44,7 @@ extern "C"
 
   // mobility
 #define uo_score_mobility_P 5
-#define uo_score_mobility_N 10
+#define uo_score_mobility_N 7
 #define uo_score_mobility_B 6
 #define uo_score_mobility_R 4
 #define uo_score_mobility_Q 4
