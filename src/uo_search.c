@@ -755,10 +755,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // see: https://en.wikipedia.org/wiki/Late_move_reductions
 
     size_t depth_reduction =
-      // no reduction inside zero window search
-      is_zw_search
       // no reduction for shallow depth
-      || depth <= 3
+      depth <= 3
       // no reduction on the first three moves
       || i < 3
       // no reduction if there are very few legal moves
@@ -767,8 +765,12 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       || is_check
       // no reduction on promotions or captures
       || uo_move_is_tactical(move)
+      // no reduction on killer moves
+      || uo_position_is_killer_move(position, move)
+      // no reduction on king moves
+      || uo_position_move_piece(position, move) == uo_piece__K
       ? 0 // no reduction
-      : uo_max(1, depth / 3); // default reduction is one third of depth
+      : uo_max(1, depth / 4); // default reduction is one fourth of depth
 
     if (depth_reduction)
     {

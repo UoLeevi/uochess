@@ -523,6 +523,12 @@ extern "C"
     return position->stack->checks != uo_move_history__checks_none ? position->stack->checks : 0;
   }
 
+  static inline uo_piece uo_position_move_piece(const uo_position *position, uo_move move)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    return position->board[square_from];
+  }
+
   static inline uo_bitboard uo_position_attacks_own_NBRQ(const uo_position *position)
   {
     uo_bitboard attacks = 0;
@@ -1482,7 +1488,7 @@ extern "C"
     {
       position->stack->search.killers[1] = position->stack->search.killers[0];
       position->stack->search.killers[0] = move;
-    }
+  }
   }
 
   static inline void uo_position_update_history_heuristic(uo_position *position, uo_move move, size_t depth)
@@ -1508,7 +1514,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif
