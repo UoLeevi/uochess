@@ -1505,7 +1505,7 @@ extern "C"
 
   uo_move uo_position_parse_move(const uo_position *position, char str[5]);
 
-  uo_move uo_position_parse_pgn_move(uo_position *position, char *png);
+  uo_move uo_position_parse_pgn_move(uo_position *position, char *pgn);
 
   size_t uo_position_print_move(const uo_position *position, uo_move move, char str[6]);
 
