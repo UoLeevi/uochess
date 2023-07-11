@@ -79,6 +79,7 @@ extern "C"
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
+    uint8_t nmp_min_ply;
     uo_move_cache move_cache[0x1000];
     uo_move pv[UO_MAX_PLY];
     uo_move **secondary_pvs;
