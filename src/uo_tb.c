@@ -733,11 +733,11 @@ int uo_tb_root_probe(uo_position *position, int *success)
 
     int value = 0;
 
-    if (checks && dtz > 0)
-    {
-      value = 1;
-    }
-    else
+    //if (checks && dtz > 0)
+    //{
+    //  value = 1;
+    //}
+    //else
     {
       uo_position_update_next_move_checks(position, checks);
       uo_position_make_move(position, move);
@@ -799,12 +799,12 @@ int uo_tb_root_probe(uo_position *position, int *success)
 
     int max = best;
 
-    // If the current phase has not seen repetitions, then try all moves
-    // that stay safely within the 50-move budget, if there are any.
-    if (!position->stack->repetitions && best + rule50 <= 99)
-    {
-      max = 99 - rule50;
-    }
+    //// If the current phase has not seen repetitions, then try all moves
+    //// that stay safely within the 50-move budget, if there are any.
+    //if (!position->stack->repetitions && best + rule50 <= 99)
+    //{
+    //  max = 99 - rule50;
+    //}
 
     for (size_t i = 0; i < move_count; ++i)
     {

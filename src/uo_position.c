@@ -308,6 +308,7 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   ++position->ply;
   ++position->stack;
   position->stack->moves_generated = false;
+  position->stack->static_eval = uo_score_unknown;
 
   uo_position_flip_board(position);
   uo_position_update_repetitions(position);
@@ -759,6 +760,7 @@ uo_position *uo_position_from_fen(uo_position *position, const char *fen)
   position->stack[-3].static_eval = uo_score_unknown;
   position->stack[-2].static_eval = uo_score_unknown;
   position->stack[-1].static_eval = uo_score_unknown;
+  position->stack[0].static_eval = uo_score_unknown;
 
   position->flags = flags;
   uo_position_reset_root(position);
@@ -2472,6 +2474,7 @@ uo_position *uo_position_randomize(uo_position *position, const char *pieces /* 
   position->stack[-3].static_eval = uo_score_unknown;
   position->stack[-2].static_eval = uo_score_unknown;
   position->stack[-1].static_eval = uo_score_unknown;
+  position->stack[0].static_eval = uo_score_unknown;
 
   position->flags = flags;
   position->key = uo_position_calculate_key(position);

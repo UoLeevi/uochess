@@ -27,6 +27,9 @@ extern "C"
 // Search depth reduction for mc-prune searches.
 #define UO_MULTICUT_DEPTH_REDUCTION 2
 
+// Examine check moves in quiescence search until depth
+#define UO_QS_CHECKS_DEPTH 2
+
 #define UO_TTABLE_LOCK_BITS 10 
 
 #define uo_score_draw 0

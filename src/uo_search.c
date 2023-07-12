@@ -226,78 +226,6 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   return depth_extension;
 }
 
-typedef uint8_t uo_search_quiesce_flags;
-
-#define uo_search_quiesce_flags__checks ((uint8_t)1)
-#define uo_search_quiesce_flags__positive_see ((uint8_t)2)
-#define uo_search_quiesce_flags__non_negative_see ((uint8_t)6)
-#define uo_search_quiesce_flags__any_see ((uint8_t)14)
-#define uo_search_quiesce_flags__all_moves ((uint8_t)-1)
-
-static inline uo_search_quiesce_flags uo_search_quiesce_determine_flags(uo_engine_thread *thread, uint8_t depth)
-{
-  if (depth == 0)
-  {
-    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__any_see;
-  }
-
-  if (depth <= 1)
-  {
-    return uo_search_quiesce_flags__checks | uo_search_quiesce_flags__non_negative_see;
-  }
-
-  if (depth <= 3)
-  {
-    return uo_search_quiesce_flags__non_negative_see;
-  }
-
-  return uo_search_quiesce_flags__positive_see;
-}
-
-static inline bool uo_search_quiesce_should_examine_move(uo_engine_thread *thread, uo_move move, uo_search_quiesce_flags flags)
-{
-  uo_position *position = &thread->position;
-
-  if (uo_move_is_capture(move))
-  {
-    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__any_see)
-    {
-      return true;
-    }
-
-    int16_t see = uo_position_move_see(position, move, thread->move_cache);
-
-    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__positive_see && see > 0)
-    {
-      return true;
-    }
-
-    if ((flags & uo_search_quiesce_flags__any_see) == uo_search_quiesce_flags__non_negative_see && see >= 0)
-    {
-      return true;
-    }
-  }
-
-  if ((flags & uo_search_quiesce_flags__checks) == uo_search_quiesce_flags__checks)
-  {
-    uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
-    if (checks)
-    {
-      uo_position_update_next_move_checks(position, checks);
-      return true;
-    }
-  }
-
-  uo_move_type move_promo_type = uo_move_get_type(move) & uo_move_type__promo_Q;
-  if (move_promo_type == uo_move_type__promo_Q
-    || move_promo_type == uo_move_type__promo_N)
-  {
-    return true;
-  }
-
-  return false;
-}
-
 // The quiescence search is a used to evaluate the board position when the game is not in non-quiet state,
 // i.e., there are pieces that can be captured.
 static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_t beta, uint8_t depth, bool *incomplete)
@@ -394,51 +322,68 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 11. Position is not check. Initialize score to static evaluation. "Stand pat"
-  int16_t value = stack->static_eval = stack[-1].move == 0
-    ? -stack[-1].static_eval
+  int16_t value = stack->static_eval
+    = stack[-1].move == 0 ? -stack[-1].static_eval
+    : stack->static_eval != uo_score_unknown ? stack->static_eval
     : uo_position_evaluate(position);
+
+  assert(stack->static_eval != uo_score_unknown);
 
   // Step 12. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta) return beta;
 
-  //// Step 13. Delta pruning
-  //if (position->Q
-  //  && alpha > value + uo_score_Q)
-  //{
-  //  return alpha;
-  //}
-
-  // Step 14. Update alpha
+  // Step 13. Update alpha
   alpha = uo_max(alpha, value);
 
-  // Step 15. Determine which moves should be searched
-  uo_search_quiesce_flags flags = uo_search_quiesce_determine_flags(thread, depth);
-
-  // Step 16. Sort tactical moves
+  // Step 14. Sort tactical moves
   uo_position_sort_tactical_moves(&thread->position, thread->move_cache);
 
-  // Step 17. Search interesting tactical moves and checks
+  // Step 15. Search tactical moves which have potential to raise alpha and checks depending on depth
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
 
-    if (uo_search_quiesce_should_examine_move(thread, move, flags))
+    // Step 15.1. Search moves that give a check on first depths of quiescence search 
+    uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
+    if (!checks || depth >= UO_QS_CHECKS_DEPTH)
     {
-      uo_position_make_move(position, move);
-      int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1, incomplete);
-      uo_position_unmake_move(position);
+      // Step 15.2. Skip non-tactical moves
+      uo_move_type move_promo_type = uo_move_get_type(move) & uo_move_type__promo_Q;
 
-      if (*incomplete) return uo_score_unknown;
-
-      if (node_value > value)
+      if (move_promo_type != uo_move_type__promo_Q
+        && move_promo_type != uo_move_type__promo_N
+        && !uo_move_is_capture(move))
       {
-        value = node_value;
+        continue;
+      }
 
-        if (value > alpha)
-        {
-          if (value >= beta) return value;
-          alpha = value;
-        }
+      // Step 15.3. Futility pruning for captures
+      if (!move_promo_type) // Captures
+      {
+        // Static exchange evaluation
+        int16_t see = uo_position_move_see(position, move, thread->move_cache);
+
+        // Step 15.4. If move has low chance of raising alpha, do not search the move
+        int16_t futility_margin = (checks ? 2 : 1) * uo_score_P;
+        if (stack->static_eval + see + futility_margin < alpha) continue;
+      }
+    }
+
+    uo_position_update_next_move_checks(position, checks);
+    uo_position_make_move(position, move);
+    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1, incomplete);
+    uo_position_unmake_move(position);
+
+    if (*incomplete) return uo_score_unknown;
+
+    if (node_value > value)
+    {
+      value = node_value;
+
+      if (value > alpha)
+      {
+        if (value >= beta) return value;
+        alpha = value;
       }
     }
   }
@@ -1038,13 +983,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     return uo_score_draw;
   }
 
-  //// Step 5. Mate distance pruning
-  //if (!is_root_node)
-  //{
-  //  alpha = uo_max(-score_checkmate, alpha);
-  //  beta = uo_min(score_checkmate + 1, beta);
-  //  if (alpha >= beta) return alpha;
-  //}
+  // Step 5. Mate distance pruning
+  if (!is_root_node)
+  {
+    alpha = uo_max(-score_checkmate, alpha);
+    beta = uo_min(score_checkmate + 1, beta);
+    if (alpha >= beta) return alpha;
+  }
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { alpha, beta, depth };
@@ -1098,14 +1043,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   {
     size_t piece_count = uo_popcnt(position->own | position->enemy);
     size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
-  
+
     // Do not probe if too many pieces are on the board
     if (piece_count <= probe_limit)
     {
       int success;
       int wdl = uo_tb_probe_wdl(position, &success);
       assert(success);
-  
+
       ++info->tbhits;
 
       entry.value = wdl > engine.tb.score_wdl_draw ? score_tb_win
@@ -1124,22 +1069,14 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     : stack[-1].move == 0 ? -stack[-1].static_eval
     : uo_position_evaluate(position);
 
+  assert(is_check || static_eval != uo_score_unknown);
+
   int16_t improvement_margin
     = stack[-2].static_eval != uo_score_unknown ? static_eval - stack[-2].static_eval
     : stack[-4].static_eval != uo_score_unknown ? static_eval - stack[-4].static_eval
     : uo_score_P;
 
   bool is_improving = improvement_margin > 0;
-
-  //// Step 12. Futility pruning
-  //if (!pline
-  //  && !is_check
-  //  && depth < 9
-  //  && static_eval - uo_score_P * (depth - is_improving) >= beta
-  //  && static_eval < uo_score_tb_win_threshold)
-  //{
-  //  return static_eval;
-  //}
 
   // Step 13. Generate legal moves
   size_t move_count = stack->moves_generated
@@ -1166,13 +1103,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   {
     // depth * 3/4 - 1
     size_t depth_nmp = 3 * depth / 4 - 1;
-  
+
     uo_position_make_null_move(position);
     int16_t null_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, line, false, incomplete);
     uo_position_unmake_null_move(position);
-  
+
     if (*incomplete) return uo_score_unknown;
-  
+
     null_value = uo_min(null_value, uo_score_tb_win_threshold - 1);
     if (null_value >= beta)
     {
@@ -1200,12 +1137,12 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     size_t move_count_mc = uo_min(move_count, UO_MULTICUT_MOVE_COUNT);
     size_t depth_mc = depth - UO_MULTICUT_DEPTH_REDUCTION;
     uo_square *cut_move_squares = uo_alloca(UO_MULTICUT_CUTOFF_COUNT);
-  
+
     for (size_t i = 0; i < move_count_mc; ++i)
     {
       uo_move move = position->movelist.head[i];
       uo_square square_from = uo_move_square_from(move);
-  
+
       // Require that beta cut-offs are not caused by the same piece
       for (size_t j = 0; j < cutoff_counter; ++j)
       {
@@ -1215,17 +1152,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           goto next_move_mc;
         }
       };
-  
+
       uo_position_make_move(position, move);
       int16_t node_value = -uo_search_principal_variation(thread, depth_mc - 1, -beta, -beta + 1, line, false, incomplete);
       uo_position_unmake_move(position);
-  
+
       if (node_value >= beta)
       {
         if (++cutoff_counter == UO_MULTICUT_CUTOFF_COUNT) return beta; // mc-prune
         cut_move_squares[cutoff_counter - 1] = square_from;
       }
-  
+
     next_move_mc:;
     }
   }
@@ -1290,6 +1227,40 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   for (size_t i = 1; i < move_count; ++i)
   {
     uo_move move = params.move = position->movelist.head[i];
+
+    //// Step 21.1. Determine if move gives a check 
+    //uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
+
+    //// Step 21.2. Futility pruning
+    //if (!is_check
+    //  && !checks
+    //  && depth < 9
+    //  && static_eval < uo_score_tb_win_threshold)
+    //{
+    //  // Step 21.2. Static exchange evaluation of a move
+    //  int16_t see = uo_position_move_see(position, move, thread->move_cache);
+    //  uo_move_type move_promo_type = uo_move_get_type(move) & uo_move_type__promo_Q;
+
+    //  // Step 21.3. For queen and knight promotions, add piece value to see
+    //  switch (move_promo_type)
+    //  {
+    //    case uo_move_type__promo_Q:
+    //      see += uo_score_Q - uo_score_P;
+    //      break;
+
+    //    case uo_move_type__promo_N:
+    //      see += uo_score_N - uo_score_P;
+    //      break;
+    //  }
+
+    //  // Step 21.4. If move has low chance of raising alpha, do not search the move
+    //  int16_t futility_margin = uo_score_P * 3 * depth;
+    //  futility_margin += (position->Q & position->enemy) ? uo_score_Q : uo_score_R;
+
+    //  if (static_eval + see + futility_margin < alpha) continue;
+    //}
+
+    //uo_position_update_next_move_checks(position, checks);
 
     // On main thread, root node, let's report current move on higher depths
     if (is_main_thread && is_root_node && depth >= 9)
