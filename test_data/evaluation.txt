@@ -9,6 +9,6 @@ eval
 cp [100,300]
 
 ucinewgame
-position fen rnbqkbnr/8/pppppppp/8/1P1P4/2N2NP1/P1P1PPBP/1RBQK2R w kKQ - 0 1
+position fen rnbqkbnr/8/pppppppp/8/1P1P4/2N2NP1/P1P1PPBP/1RBQK2R w KQk - 0 1
 eval
 cp [100,300]

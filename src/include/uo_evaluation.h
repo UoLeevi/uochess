@@ -44,7 +44,7 @@ extern "C"
 
   // mobility
 #define uo_score_mobility_P 5
-#define uo_score_mobility_N 7
+#define uo_score_mobility_N 8
 #define uo_score_mobility_B 6
 #define uo_score_mobility_R 4
 #define uo_score_mobility_Q 4
@@ -85,11 +85,17 @@ extern "C"
 #define uo_score_defender_to_K 10
 
   // king safety and castling
-#define uo_score_casting_right 10
+#define uo_score_casting_right 20
 #define uo_score_king_in_the_center -40
 #define uo_score_castled_king 50
-#define uo_score_king_cover_pawn 50
+#define uo_score_king_cover_pawn 30
 #define uo_score_king_next_to_open_file -90
+
+  // piece square table weight
+static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
+{
+  return score / 2;
+}
 
   extern const int16_t mg_table_P[64];
   extern const int16_t eg_table_P[64];
@@ -208,8 +214,8 @@ extern "C"
 
       score += uo_score_N + uo_score_extra_piece;
 
-      score_mg += mg_table_N[square_own_N];
-      score_eg += eg_table_N[square_own_N];
+      score_mg += uo_score_adjust_piece_square_table_score(mg_table_N[square_own_N]);
+      score_eg += uo_score_adjust_piece_square_table_score(eg_table_N[square_own_N]);
 
       if (attacks_own_N & next_to_enemy_K) ++count_attacker_to_enemy_K;
       if (attacks_own_N & next_to_own_K) ++count_defender_of_own_K;
@@ -227,8 +233,8 @@ extern "C"
 
       score -= uo_score_N + uo_score_extra_piece;
 
-      score_mg -= mg_table_N[square_enemy_N ^ 56];
-      score_eg -= eg_table_N[square_enemy_N ^ 56];
+      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_N[square_enemy_N ^ 56]);
+      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_N[square_enemy_N ^ 56]);
 
       if (attacks_enemy_N & next_to_own_K) ++count_attacker_to_own_K;
       if (attacks_enemy_N & next_to_enemy_K) ++count_defender_of_enemy_K;
@@ -251,8 +257,8 @@ extern "C"
 
       score += uo_score_B + uo_score_extra_piece;
 
-      score_mg += mg_table_B[square_own_B];
-      score_eg += eg_table_B[square_own_B];
+      score_mg += uo_score_adjust_piece_square_table_score(mg_table_B[square_own_B]);
+      score_eg += uo_score_adjust_piece_square_table_score(eg_table_B[square_own_B]);
 
       if (attacks_own_B & next_to_enemy_K) ++count_attacker_to_enemy_K;
       if (attacks_own_B & next_to_own_K) ++count_defender_of_own_K;
@@ -270,8 +276,8 @@ extern "C"
 
       score -= uo_score_B + uo_score_extra_piece;
 
-      score_mg -= mg_table_B[square_enemy_B ^ 56];
-      score_eg -= eg_table_B[square_enemy_B ^ 56];
+      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_B[square_enemy_B ^ 56]);
+      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_B[square_enemy_B ^ 56]);
 
       if (attacks_enemy_B & next_to_own_K) ++count_attacker_to_own_K;
       if (attacks_enemy_B & next_to_enemy_K) ++count_defender_of_enemy_K;
@@ -293,8 +299,8 @@ extern "C"
 
       score += uo_score_R + uo_score_extra_piece;
 
-      score_mg += mg_table_R[square_own_R];
-      score_eg += eg_table_R[square_own_R];
+      score_mg += uo_score_adjust_piece_square_table_score(mg_table_R[square_own_R]);
+      score_eg += uo_score_adjust_piece_square_table_score(eg_table_R[square_own_R]);
 
       // connected rooks
       if (attacks_own_R & own_R) score += uo_score_connected_rooks / 2;
@@ -315,8 +321,8 @@ extern "C"
 
       score -= uo_score_R + uo_score_extra_piece;
 
-      score_mg -= mg_table_R[square_enemy_R ^ 56];
-      score_eg -= eg_table_R[square_enemy_R ^ 56];
+      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_R[square_enemy_R ^ 56]);
+      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_R[square_enemy_R ^ 56]);
 
       // connected rooks
       if (attacks_enemy_R & enemy_R) score -= uo_score_connected_rooks / 2;
@@ -341,8 +347,8 @@ extern "C"
 
       score += uo_score_Q + uo_score_extra_piece;
 
-      score_mg += mg_table_Q[square_own_Q];
-      score_eg += eg_table_Q[square_own_Q];
+      score_mg += uo_score_adjust_piece_square_table_score(mg_table_Q[square_own_Q]);
+      score_eg += uo_score_adjust_piece_square_table_score(eg_table_Q[square_own_Q]);
 
       if (attacks_own_Q & next_to_enemy_K) ++count_attacker_to_enemy_K;
       if (attacks_own_Q & next_to_own_K) ++count_defender_of_own_K;
@@ -360,8 +366,8 @@ extern "C"
 
       score -= uo_score_Q + uo_score_extra_piece;
 
-      score_mg -= mg_table_Q[square_enemy_Q ^ 56];
-      score_eg -= eg_table_Q[square_enemy_Q ^ 56];
+      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_Q[square_enemy_Q ^ 56]);
+      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_Q[square_enemy_Q ^ 56]);
 
       if (attacks_enemy_Q & next_to_own_K) ++count_attacker_to_own_K;
       if (attacks_enemy_Q & next_to_enemy_K) ++count_defender_of_enemy_K;
@@ -371,19 +377,19 @@ extern "C"
 
     // king
 
-    score_mg += mg_table_K[square_own_K];
-    score_eg += eg_table_K[square_own_K];
+    score_mg += uo_score_adjust_piece_square_table_score(mg_table_K[square_own_K]);
+    score_eg += uo_score_adjust_piece_square_table_score(eg_table_K[square_own_K]);
 
-    score_mg -= mg_table_K[square_enemy_K ^ 56];
-    score_eg -= eg_table_K[square_enemy_K ^ 56];
+    score_mg -= uo_score_adjust_piece_square_table_score(mg_table_K[square_enemy_K ^ 56]);
+    score_eg -= uo_score_adjust_piece_square_table_score(eg_table_K[square_enemy_K ^ 56]);
 
     score += uo_score_mobility_K * (int16_t)uo_popcnt(uo_andn(attacks_enemy_K | attacks_lower_value_enemy, attacks_own_K));
     score += uo_score_K_square_attackable_by_P * (int16_t)uo_popcnt(own_K & potential_attacks_enemy_P);
     score -= uo_score_mobility_K * (int16_t)uo_popcnt(uo_andn(attacks_own_K | attacks_lower_value_own, attacks_enemy_K));
     score -= uo_score_K_square_attackable_by_P * (int16_t)uo_popcnt(enemy_K & potential_attacks_own_P);
 
-    score += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
-    score -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
+    score_mg += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
+    score_mg -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
 
     // doupled pawns
     score += uo_score_doubled_P * (((int16_t)uo_popcnt(own_P) - (int16_t)uo_popcnt(uo_bitboard_files(own_P) & uo_bitboard_rank_first))

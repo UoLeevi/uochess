@@ -27,7 +27,6 @@ typedef struct uo_test_info
   char buffer[0x1000];
 } uo_test_info;
 
-uo_strmap *test_command_map__go = NULL;
 uo_strmap *test_command_map = NULL;
 
 typedef bool (*uo_test_command)(uo_test_info *info);
@@ -237,6 +236,9 @@ bool uo_test__eval(uo_test_info *info)
 
         if (cp < cp_lower_bound || cp > cp_upper_bound)
         {
+          int16_t static_eval = uo_position_evaluate(&info->position);
+          assert(static_eval == cp);
+
           sprintf(info->message, "Static evaluation %d for fen '%s' is not between [%d,%d].", cp, info->fen, cp_lower_bound, cp_upper_bound);
           return false;
         }
@@ -244,6 +246,62 @@ bool uo_test__eval(uo_test_info *info)
       else
       {
         sprintf(info->message, "Unable to parse static evaluation for fen '%s'.", info->fen);
+        return false;
+      }
+    }
+    else
+    {
+      sprintf(info->message, "Error parsing command '%s'", info->ptr);
+      return false;
+    }
+
+    continue;
+  }
+
+  return info->passed;
+}
+
+bool uo_test__test_see(uo_test_info *info)
+{
+  sprintf(info->buffer, "see\n");
+  uo_process_write_stdin(info->engine_process, info->buffer, 0);
+
+  uo_position *position = &info->position;
+
+  size_t move_count = uo_position_generate_moves(position);
+
+  while ((info->ptr = uo_file_mmap_readline(info->file_mmap)))
+  {
+    if (strlen(info->ptr) == 0) break;
+    if (info->ptr[0] == '#') continue;
+
+    uo_move move = uo_position_parse_move(position, info->ptr);
+    if (!move)
+    {
+      sprintf(info->message, "Error while parsing move '%s'", info->ptr);
+      return false;
+    }
+
+    int see_expected;
+
+    if (sscanf(info->ptr, "%*s %d", &see_expected) == 1)
+    {
+      int16_t see = uo_position_move_see(position, move, NULL);
+      if (see != see_expected)
+      {
+        sprintf(info->message, "Static exchange evaluation %d for fen '%s' was not matching expected value: %d.", see, info->fen, see_expected);
+        return false;
+      }
+
+      if (uo_position_move_see_gt(position, move, see, NULL) != false)
+      {
+        sprintf(info->message, "Static exchange evaluation for fen '%s' was not evaluated correctly.", info->fen);
+        return false;
+      }
+
+      if (uo_position_move_see_gt(position, move, see - 1, NULL) != true)
+      {
+        sprintf(info->message, "Static exchange evaluation for fen '%s' was not evaluated correctly.", info->fen);
         return false;
       }
     }
@@ -503,8 +561,40 @@ bool uo_test__go_depth(uo_test_info *info)
   return info->passed;
 }
 
+bool uo_test__test(uo_test_info *info)
+{
+  static uo_strmap *test_command_map__test = NULL;
+
+  if (!test_command_map__test)
+  {
+    test_command_map__test = uo_strmap_create();
+
+    // Register all 'test xxxx' test commands here
+    uo_strmap_add(test_command_map__test, "see", uo_test__test_see);
+  }
+
+  char *command_str = buf;
+  if (sscanf(info->ptr, "test %s", command_str) != 1)
+  {
+    sprintf(info->message, "Unknown command '%s'", info->ptr);
+    return false;
+  }
+
+  uo_test_command test_command = uo_strmap_get(test_command_map__test, command_str);
+
+  if (!test_command)
+  {
+    sprintf(info->message, "Unknown command '%s'", command_str);
+    return false;
+  }
+
+  return test_command(info);
+}
+
 bool uo_test__go(uo_test_info *info)
 {
+  static uo_strmap *test_command_map__go = NULL;
+
   if (!test_command_map__go)
   {
     test_command_map__go = uo_strmap_create();
@@ -551,6 +641,7 @@ bool uo_test(char *test_data_dir, char *test_name)
     uo_strmap_add(test_command_map, "go", uo_test__go);
     uo_strmap_add(test_command_map, "moveorder", uo_test__moveorder);
     uo_strmap_add(test_command_map, "eval", uo_test__eval);
+    uo_strmap_add(test_command_map, "test", uo_test__test);
 
   }
 
