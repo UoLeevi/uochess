@@ -964,7 +964,7 @@ int uo_tb_root_probe_dtz(uo_position *position, int *success)
   // If losing, let's do nothing
   else // dtz < 0
   {
-    // If winning let's filter out all moves which do not preserve the win 
+    return dtz;
   }
 
   uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);
