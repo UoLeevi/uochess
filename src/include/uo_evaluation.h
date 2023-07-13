@@ -59,7 +59,7 @@ extern "C"
 #define uo_score_extra_piece 80
 
   // pawns
-#define uo_score_doubled_P -15
+#define uo_score_doubled_P -25
 #define uo_score_blocked_P -30
 
 #define uo_score_passed_pawn 20
@@ -434,8 +434,8 @@ static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
     score_mg += (uo_score_castled_king * (square_own_K == uo_square__b1))
       - (uo_score_castled_king * (square_enemy_K == uo_square__b8));
 
-    score_mg += (uo_bitboard_files(attacks_own_K) & uo_bitboard_rank_first) ? uo_score_king_next_to_open_file : 0;
-    score_mg -= (uo_bitboard_files(attacks_enemy_K) & uo_bitboard_rank_first) ? uo_score_king_next_to_open_file : 0;
+    score_mg += uo_popcnt(uo_bitboard_files(attacks_own_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
+    score_mg -= uo_popcnt(uo_bitboard_files(attacks_enemy_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
 
     score += (count_attacker_to_enemy_K * uo_score_attacker_to_K - count_defender_of_enemy_K * uo_score_defender_to_K) * uo_max(0, 1 + count_attacker_to_enemy_K - count_defender_of_enemy_K);
     score -= (count_attacker_to_own_K * uo_score_attacker_to_K - count_defender_of_own_K * uo_score_defender_to_K) * uo_max(0, 1 + count_attacker_to_own_K - count_defender_of_own_K);

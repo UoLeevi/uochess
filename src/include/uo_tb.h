@@ -29,8 +29,7 @@ extern "C"
 
   int uo_tb_probe_wdl(uo_position *position, int *success);
   int uo_tb_probe_dtz(uo_position *position, int *success);
-  int uo_tb_root_probe(uo_position *position, int *success);
-  //int uo_tb_root_probe_wdl(uo_position *position, int16_t *value);
+  int uo_tb_root_probe_dtz(uo_position *position, int *success);
 
 #ifdef __cplusplus
 }

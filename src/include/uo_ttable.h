@@ -18,7 +18,7 @@ extern "C"
 
   typedef struct uo_tentry
   {
-    uint32_t key;
+    uint64_t key;
     union
     {
       uint64_t data;
@@ -87,7 +87,7 @@ extern "C"
   {
     uint64_t mask = ttable->hash_mask;
     uint64_t hash = position->key & mask;
-    uint32_t key = (uint32_t)position->key;
+    uint64_t key = position->key;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
 
@@ -172,7 +172,7 @@ extern "C"
   {
     uint64_t mask = ttable->hash_mask;
     uint64_t hash = position->key & mask;
-    uint32_t key = (uint32_t)position->key;
+    uint64_t key = position->key;
     uint64_t i = hash;
     uo_tentry *entry = ttable->entries + i;
 

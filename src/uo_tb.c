@@ -709,15 +709,169 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
   return best;
 }
 
+//// Use the DTZ tables to filter out moves that don't preserve the win or draw.
+//// If the position is lost, but DTZ is fairly high, only keep moves that
+//// maximise DTZ.
+////
+//// If *success != 0, the probe was successful.
+//int uo_tb_root_probe(uo_position *position, int *success)
+//{
+//  int dtz = uo_tb_probe_dtz(position, success);
+//
+//  if (!*success) return 0;
+//
+//  // Generate legal moves
+//  size_t move_count = position->stack->moves_generated
+//    ? position->stack->move_count
+//    : uo_position_generate_moves(position);
+//
+//  // Probe each move
+//  for (size_t i = 0; i < move_count; ++i)
+//  {
+//    uo_move move = position->movelist.head[i];
+//    uo_bitboard checks = uo_position_move_checks(position, move, NULL);
+//
+//    int value = 0;
+//
+//    //if (checks && dtz > 0)
+//    //{
+//    //  value = 1;
+//    //}
+//    //else
+//    {
+//      uo_position_update_next_move_checks(position, checks);
+//      uo_position_make_move(position, move);
+//
+//      if (uo_position_flags_rule50(position->flags) != 0)
+//      {
+//        value = -uo_tb_probe_dtz(position, success);
+//
+//        if (value > 0)
+//        {
+//          value++;
+//        }
+//        else if (value < 0)
+//        {
+//          value--;
+//        }
+//      }
+//      else
+//      {
+//        value = -uo_tb_probe_wdl(position, success);
+//        value = wdl_to_dtz[value + 2];
+//      }
+//
+//      uo_position_unmake_move(position);
+//    }
+//
+//    if (!*success) return 0;
+//
+//    position->movelist.move_scores[i] = value;
+//  }
+//
+//  // Obtain 50-move counter for the root position.
+//  int rule50 = uo_position_flags_rule50(position->flags);
+//
+//  // Use 50-move counter to determine whether the root position is
+//  // won, lost or drawn.
+//  int wdl = 0;
+//  if (dtz > 0)
+//  {
+//    wdl = (dtz + rule50 <= 100) ? 2 : 1;
+//  }
+//  else if (dtz < 0)
+//  {
+//    wdl = (-dtz + rule50 <= 100) ? -2 : -1;
+//  }
+//
+//  // Now be a bit smart about filtering out moves.
+//  if (dtz > 0)
+//  { // Winning (or 50-move rule draw)
+//    int best = 0xffff;
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      int value = position->movelist.move_scores[i];
+//      if (value > 0 && value < best)
+//      {
+//        best = value;
+//      }
+//    }
+//
+//    int max = best;
+//
+//    //// If the current phase has not seen repetitions, then try all moves
+//    //// that stay safely within the 50-move budget, if there are any.
+//    //if (!position->stack->repetitions && best + rule50 <= 99)
+//    //{
+//    //  max = 99 - rule50;
+//    //}
+//
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      int value = position->movelist.move_scores[i];
+//      if (value < 0 || value > max)
+//      {
+//        position->movelist.move_scores[i] = uo_move_score_skip;
+//      }
+//    }
+//  }
+//  else if (dtz < 0)
+//  { // Losing
+//    int best = 0;
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      int value = position->movelist.move_scores[i];
+//      if (value < best)
+//      {
+//        best = value;
+//      }
+//    }
+//
+//    // Try all moves, unless we approach or have a 50-move rule draw.
+//    if (-best * 2 + rule50 < 100)
+//    {
+//      uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);
+//      uo_position_sort_skipped_moves(position, position->movelist.head, 0, move_count - 1);
+//      position->stack->moves_sorted = true;
+//
+//      return wdl;
+//    }
+//
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      if (position->movelist.move_scores[i] != best)
+//      {
+//        position->movelist.move_scores[i] = uo_move_score_skip;
+//      }
+//    }
+//  }
+//  else
+//  { // Drawing
+//    // Try all moves that preserve the draw.
+//    for (size_t i = 0; i < move_count; ++i)
+//    {
+//      if (position->movelist.move_scores[i] != 0)
+//      {
+//        position->movelist.move_scores[i] = uo_move_score_skip;
+//      }
+//    }
+//  }
+//
+//  uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);
+//  uo_position_sort_skipped_moves(position, position->movelist.head, 0, move_count - 1);
+//  position->stack->moves_sorted = true;
+//
+//  return wdl;
+//}
+
 // Use the DTZ tables to filter out moves that don't preserve the win or draw.
 // If the position is lost, but DTZ is fairly high, only keep moves that
 // maximise DTZ.
 //
 // If *success != 0, the probe was successful.
-int uo_tb_root_probe(uo_position *position, int *success)
+int uo_tb_root_probe_dtz(uo_position *position, int *success)
 {
   int dtz = uo_tb_probe_dtz(position, success);
-
   if (!*success) return 0;
 
   // Generate legal moves
@@ -725,144 +879,101 @@ int uo_tb_root_probe(uo_position *position, int *success)
     ? position->stack->move_count
     : uo_position_generate_moves(position);
 
-  // Probe each move
-  for (size_t i = 0; i < move_count; ++i)
+  int16_t *move_scores = position->movelist.move_scores;
+  uo_move bestmove = 0;
+
+  // If drawing, let's filter out losing moves
+  if (dtz == 0)
   {
-    uo_move move = position->movelist.head[i];
-    uo_bitboard checks = uo_position_move_checks(position, move, NULL);
-
-    int value = 0;
-
-    //if (checks && dtz > 0)
-    //{
-    //  value = 1;
-    //}
-    //else
+    for (size_t i = 0; i < move_count; ++i)
     {
-      uo_position_update_next_move_checks(position, checks);
+      uo_move move = position->movelist.head[i];
+
       uo_position_make_move(position, move);
-
-      if (uo_position_flags_rule50(position->flags) != 0)
-      {
-        value = -uo_tb_probe_dtz(position, success);
-
-        if (value > 0)
-        {
-          value++;
-        }
-        else if (value < 0)
-        {
-          value--;
-        }
-      }
-      else
-      {
-        value = -uo_tb_probe_wdl(position, success);
-        value = wdl_to_dtz[value + 2];
-      }
-
+      int wdl_move = -uo_tb_probe_wdl(position, success);
       uo_position_unmake_move(position);
+
+      if (!*success) return 0;
+      move_scores[i] = wdl_move < 0 ? uo_move_score_skip : wdl_move;
     }
-
-    if (!*success) return 0;
-
-    position->movelist.move_scores[i] = value;
   }
 
-  // Obtain 50-move counter for the root position.
-  int rule50 = uo_position_flags_rule50(position->flags);
-
-  // Use 50-move counter to determine whether the root position is
-  // won, lost or drawn.
-  int wdl = 0;
-  if (dtz > 0)
+  // If winning let's filter out all moves which do not preserve the win 
+  else if (dtz > 0)
   {
-    wdl = (dtz + rule50 <= 100) ? 2 : 1;
+    for (size_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+
+      bool is_pawn_move = uo_position_move_piece(position, move) == uo_piece__P;
+      bool is_capture = uo_move_is_capture(move);
+
+      uo_position_make_move(position, move);
+      int dtz_move = -uo_tb_probe_dtz(position, success);
+      uo_position_unmake_move(position);
+
+      if (!*success) return 0;
+
+      if (dtz_move < 0)
+      {
+        // Filter out losing moves
+        move_scores[i] = uo_move_score_skip;
+        continue;
+      }
+
+      if (dtz_move > dtz
+        && !is_pawn_move
+        && !is_capture)
+      {
+        // Filter out moves which seem not to make progress
+        move_scores[i] = uo_move_score_skip;
+        continue;
+      }
+
+      if (dtz_move == 0)
+      {
+        if (!uo_position_is_check(position))
+        {
+          move_scores[i] = uo_move_score_skip;
+          continue;
+        }
+
+        if (uo_position_generate_moves(position) > 0)
+        {
+          move_scores[i] = uo_move_score_skip;
+          continue;
+        }
+
+        // Move is checkmate. No need to look for other moves.
+        move_scores[i] = 2000;
+
+        ++i;
+        for (; i < move_count; ++i)
+        {
+          move_scores[i] = uo_move_score_skip;
+        }
+
+        break;
+      }
+
+      // Move is making progress. Let's score it.
+      move_scores[i] = is_capture * 1000 + is_pawn_move * 100 - dtz_move;
+    }
   }
-  else if (dtz < 0)
+
+  // If losing, let's do nothing
+  else // dtz < 0
   {
-    wdl = (-dtz + rule50 <= 100) ? -2 : -1;
-  }
-
-  // Now be a bit smart about filtering out moves.
-  if (dtz > 0)
-  { // Winning (or 50-move rule draw)
-    int best = 0xffff;
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      int value = position->movelist.move_scores[i];
-      if (value > 0 && value < best)
-      {
-        best = value;
-      }
-    }
-
-    int max = best;
-
-    //// If the current phase has not seen repetitions, then try all moves
-    //// that stay safely within the 50-move budget, if there are any.
-    //if (!position->stack->repetitions && best + rule50 <= 99)
-    //{
-    //  max = 99 - rule50;
-    //}
-
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      int value = position->movelist.move_scores[i];
-      if (value < 0 || value > max)
-      {
-        position->movelist.move_scores[i] = uo_move_score_skip;
-      }
-    }
-  }
-  else if (dtz < 0)
-  { // Losing
-    int best = 0;
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      int value = position->movelist.move_scores[i];
-      if (value < best)
-      {
-        best = value;
-      }
-    }
-
-    // Try all moves, unless we approach or have a 50-move rule draw.
-    if (-best * 2 + rule50 < 100)
-    {
-      uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);
-      uo_position_sort_skipped_moves(position, position->movelist.head, 0, move_count - 1);
-      position->stack->moves_sorted = true;
-
-      return wdl;
-    }
-
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      if (position->movelist.move_scores[i] != best)
-      {
-        position->movelist.move_scores[i] = uo_move_score_skip;
-      }
-    }
-  }
-  else
-  { // Drawing
-    // Try all moves that preserve the draw.
-    for (size_t i = 0; i < move_count; ++i)
-    {
-      if (position->movelist.move_scores[i] != 0)
-      {
-        position->movelist.move_scores[i] = uo_move_score_skip;
-      }
-    }
+    // If winning let's filter out all moves which do not preserve the win 
   }
 
   uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);
   uo_position_sort_skipped_moves(position, position->movelist.head, 0, move_count - 1);
   position->stack->moves_sorted = true;
 
-  return wdl;
+  return dtz;
 }
+
 
 bool uo_tb_init(uo_tb *tb)
 {

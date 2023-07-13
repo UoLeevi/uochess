@@ -202,7 +202,7 @@ extern "C"
     if (abtentry->data.bestmove
       && !uo_position_is_legal_move(position, abtentry->data.bestmove))
     {
-      assert((uo_position_generate_moves(position), !uo_position_is_legal_move(position, abtentry->data.bestmove)));
+      assert((uo_position_generate_moves(position), uo_position_is_legal_move(position, abtentry->data.bestmove)));
       abtentry->data.data = 0;
       return false;
     }

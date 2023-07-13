@@ -1533,50 +1533,14 @@ extern "C"
   static inline int uo_position_partition_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
     int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
-    int mid = (lo + hi) >> 1;
+    int16_t pivot_score = move_scores[hi];
     uo_move temp_move;
     int16_t temp_score;
 
-    if (move_scores[mid] > move_scores[lo])
+    for (int j = lo; j <= hi - 1; j++)
     {
-      temp_move = movelist[mid];
-      movelist[mid] = movelist[lo];
-      movelist[lo] = temp_move;
-
-      temp_score = move_scores[mid];
-      move_scores[mid] = move_scores[lo];
-      move_scores[lo] = temp_score;
-    }
-
-    if (move_scores[hi] > move_scores[lo])
-    {
-      temp_move = movelist[hi];
-      movelist[hi] = movelist[lo];
-      movelist[lo] = temp_move;
-
-      temp_score = move_scores[hi];
-      move_scores[hi] = move_scores[lo];
-      move_scores[lo] = temp_score;
-    }
-
-    if (move_scores[mid] > move_scores[hi])
-    {
-      temp_move = movelist[mid];
-      movelist[mid] = movelist[hi];
-      movelist[hi] = temp_move;
-
-      temp_score = move_scores[mid];
-      move_scores[mid] = move_scores[hi];
-      move_scores[hi] = temp_score;
-    }
-
-    int8_t pivot = move_scores[hi];
-
-    for (int j = lo; j < hi - 1; ++j)
-    {
-      if (move_scores[j] > pivot)
+      if (move_scores[j] >= pivot_score)
       {
-
         temp_move = movelist[lo];
         movelist[lo] = movelist[j];
         movelist[j] = temp_move;
@@ -1584,7 +1548,6 @@ extern "C"
         temp_score = move_scores[lo];
         move_scores[lo] = move_scores[j];
         move_scores[j] = temp_score;
-
         ++lo;
       }
     }
@@ -1631,12 +1594,7 @@ extern "C"
 
   static inline void uo_position_quicksort_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
-    if (lo >= hi)
-    {
-      return;
-    }
-
-    hi = uo_position_partition_moves(position, movelist, lo, hi);
+    if (lo >= hi) return;
     int p = uo_position_partition_moves(position, movelist, lo, hi);
     uo_position_quicksort_moves(position, movelist, lo, p - 1);
     uo_position_quicksort_moves(position, movelist, p + 1, hi);
@@ -1772,7 +1730,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

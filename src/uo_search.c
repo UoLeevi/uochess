@@ -191,9 +191,7 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
 
   size_t depth_reduction =
     // no reduction for shallow depth
-    depth <= 3
-    // no reduction on the first three moves
-    || move_num < 3
+    depth <= 4
     // no reduction if there are very few legal moves
     || stack->move_count < 8
     // no reduction if position is check
@@ -205,7 +203,7 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
     // no reduction on king moves
     || uo_position_move_piece(position, move) == uo_piece__K
     ? 0 // no reduction
-    : uo_max(1, depth / 4); // default reduction is one fourth of depth
+    : uo_min(2, depth / 4); // default reduction is one fourth of depth but maximum of two
 
   return depth_reduction;
 }
@@ -572,8 +570,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       ++info->tbhits;
 
-      entry.value = wdl > engine.tb.score_wdl_draw ? score_tb_win
-        : wdl < engine.tb.score_wdl_draw ? -score_tb_win
+      entry.value = wdl > engine.tb.score_wdl_draw ? score_tb_win - 101
+        : wdl < engine.tb.score_wdl_draw ? -score_tb_win + 101
         : uo_score_draw;
 
       if (entry.value >= beta) return entry.value;
@@ -1186,7 +1184,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   // Tablebase probe
   bool is_tb_position = false;
-  int tb_wdl;
+  int dtz;
 
   if (engine.tb.enabled)
   {
@@ -1202,26 +1200,27 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         is_tb_position = true;
 
         int success;
-        tb_wdl = uo_tb_root_probe(position, &success);
+        dtz = uo_tb_root_probe_dtz(position, &success);
+
         ++thread->info.tbhits;
         assert(success);
 
-        if (tb_wdl > 0)
+        is_tb_position = true;
+
+        if (dtz > 0)
         {
           alpha = uo_max(0, alpha);
           beta = uo_score_checkmate;
         }
-        else if (tb_wdl < 0)
+        else if (dtz < 0)
         {
           beta = uo_min(0, beta);
           alpha = -uo_score_checkmate;
         }
         else
         {
-          thread->info.value = uo_score_draw;
-          line[0] = engine.pv[0] = position->movelist.head[0];
-          line[1] = engine.pv[1] = 0;
-          goto search_completed;
+          alpha = uo_max(0, alpha);
+          beta = uo_min(0, beta);
         }
       }
     }
@@ -1357,7 +1356,6 @@ search_completed:
 
   return NULL;
 }
-
 
 void *uo_engine_thread_run_quiescence_search(void *arg)
 {
