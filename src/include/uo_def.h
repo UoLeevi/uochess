@@ -18,6 +18,9 @@ extern "C"
 #define UO_LAZY_SMP_MIN_DEPTH 6
 #define UO_LAZY_SMP_FREE_THREAD_COUNT 1
 
+  // Search extension depth threshold
+#define UO_EXTENSION_DEPTH 4
+
 // Insertion sort move count threshold
 #define UO_INSERTION_SORT_MOVE_COUNT 4
 

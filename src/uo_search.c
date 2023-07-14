@@ -214,9 +214,41 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   bool is_check = uo_position_is_check(position);
   uo_move_history *stack = position->stack;
 
-  if (position->ply >= thread->info.depth * 2) return 0;
+  // Let's not do extensions on already higher depths
+  if (depth > UO_EXTENSION_DEPTH
+    || position->ply >= thread->info.depth * 2)
+  {
+    return 0;
+  }
 
   size_t depth_extension = 0;
+
+  //uo_square square_from = uo_move_square_from(move);
+  //uo_square square_to = uo_move_square_to(move);
+  //const uo_piece *board = position->board;
+  //uo_piece piece = board[square_from];
+
+  //// Passed pawn near promotion
+  //if (piece == uo_piece__P)
+  //{
+  //  if (square_to >= uo_square__a7)
+  //  {
+  //    depth_extension += 1;
+  //  }
+  //  else if (square_to >= uo_square__a6)
+  //  {
+  //    // Check whether it is a passed pawn
+  //    uo_bitboard enemy_P = position->P & position->enemy;
+  //    uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square_to + 2);
+  //    uint8_t file = uo_square_file(square_to);
+  //    uo_bitboard mask = uo_square_bitboard_file[square_to] | uo_square_bitboard_adjecent_files[square_to];
+
+  //    if (!(enemy_P_above & mask))
+  //    {
+  //      depth_extension += 1;
+  //    }
+  //  }
+  //}
 
   // Check extension
   uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
@@ -294,7 +326,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     int16_t value = -score_checkmate;
 
     // Step 10.2. Sort moves
-    uo_position_sort_moves(&thread->position, 0, thread->move_cache);
+    uo_position_sort_moves(&thread->position, entry.data.bestmove, thread->move_cache);
 
     // Step 10.3. Search each move
     for (size_t i = 0; i < move_count; ++i)
@@ -454,7 +486,6 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
 
 static inline void uo_position_update_pv(uo_position *position, uo_move *pline, uo_move bestmove, uo_move *line)
 {
-  if (!pline) return;
   pline[0] = bestmove;
 
   size_t i = 0;
@@ -533,27 +564,20 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_abtentry entry = { alpha, beta, depth };
   if (uo_engine_lookup_entry(position, &entry))
   {
-    // Let's update principal variation line if transposition table score is better than current best score but not better than beta
-    if (pline
-      && entry.value > alpha
-      && entry.value < beta
-      && entry.bestmove)
-    {
-      if (depth)
-      {
-        uo_move *line = uo_allocate_line(depth);
-        line[0] = 0;
-        uo_position_extend_pv(position, entry.bestmove, line, depth - 1);
-        uo_position_update_pv(position, pline, entry.bestmove, line);
-      }
-      else
-      {
-        uo_position_update_pv(position, pline, entry.bestmove, NULL);
-      }
-    }
-
     // Unless draw by 50 move rule is a possibility, let's return transposition table score
-    if (rule50 < 90) return entry.value;
+    if (rule50 < 90)
+    {
+      // Let's update principal variation line if transposition table score is better than current best score but not better than beta
+      if (pline
+        && entry.value > alpha
+        && entry.value < beta
+        && entry.bestmove)
+      {
+        uo_position_extend_pv(position, entry.bestmove, pline, depth);
+      }
+
+      return entry.value;
+    }
   }
 
   // Step 7. If search is stopped, return unknown value
@@ -630,6 +654,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   // Step 16. Null move pruning
   if (!is_check
+    //&& !is_zw_search
     && depth > 3
     && position->ply > 1 + thread->nmp_min_ply
     && uo_position_is_null_move_allowed(position)

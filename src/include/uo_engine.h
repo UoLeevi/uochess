@@ -203,7 +203,6 @@ extern "C"
 
     int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);
 
-
     if (abtentry->data.depth < abtentry->depth)
     {
       return false;
