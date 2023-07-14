@@ -198,15 +198,7 @@ extern "C"
 
     if (!found) return false;
 
-    // If best move is set, let's still verify that it is a legal move
-    if (abtentry->data.bestmove
-      && !uo_position_is_legal_move(position, abtentry->data.bestmove))
-    {
-      assert((uo_position_generate_moves(position), uo_position_is_legal_move(position, abtentry->data.bestmove)));
-      abtentry->data.data = 0;
-      return false;
-    }
-
+    assert(!abtentry->data.bestmove || uo_position_is_legal_move(position, abtentry->data.bestmove));
     abtentry->bestmove = abtentry->data.bestmove;
 
     int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);

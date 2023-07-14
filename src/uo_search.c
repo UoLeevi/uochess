@@ -628,33 +628,33 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   uo_move *line = uo_allocate_line(depth);
   line[0] = 0;
 
-  //// Step 16. Null move pruning
-  //if (!is_check
-  //  && depth > 3
-  //  && position->ply > 1 + thread->nmp_min_ply
-  //  && uo_position_is_null_move_allowed(position)
-  //  && static_eval >= beta)
-  //{
-  //  // depth * 3/4 - 1
-  //  size_t depth_nmp = depth * 3 / 4 - 1;
+  // Step 16. Null move pruning
+  if (!is_check
+    && depth > 3
+    && position->ply > 1 + thread->nmp_min_ply
+    && uo_position_is_null_move_allowed(position)
+    && static_eval >= beta)
+  {
+    // depth * 3/4 - 1
+    size_t depth_nmp = depth * 3 / 4 - 1;
 
-  //  uo_position_make_null_move(position);
-  //  int16_t null_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, line, false, incomplete);
-  //  uo_position_unmake_null_move(position);
+    uo_position_make_null_move(position);
+    int16_t null_value = -uo_search_principal_variation(thread, depth_nmp, -beta, -beta + 1, NULL, false, incomplete);
+    uo_position_unmake_null_move(position);
 
-  //  if (*incomplete) return uo_score_unknown;
+    if (*incomplete) return uo_score_unknown;
 
-  //  null_value = uo_min(null_value, uo_score_tb_win_threshold - 1);
-  //  if (null_value >= beta)
-  //  {
-  //    // 16.1. Verification
-  //    thread->nmp_min_ply = position->ply + depth_nmp * 3 * 4;
-  //    int16_t value = uo_search_principal_variation(thread, depth_nmp, beta - 1, beta, line, false, incomplete);
-  //    thread->nmp_min_ply = 0;
+    null_value = uo_min(null_value, uo_score_tb_win_threshold - 1);
+    if (null_value >= beta)
+    {
+      // 16.1. Verification
+      thread->nmp_min_ply = position->ply + depth_nmp * 3 * 4;
+      int16_t value = uo_search_principal_variation(thread, depth_nmp, beta - 1, beta, pline, false, incomplete);
+      thread->nmp_min_ply = 0;
 
-  //    if (value >= beta) return null_value;
-  //  }
-  //}
+      if (value >= beta) return null_value;
+    }
+  }
 
   // Step 17. Sort moves and place pv move or transposition table move as first
   uo_move move = pline && pline[0] ? pline[0] : entry.data.bestmove;
@@ -690,7 +690,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   //    };
 
   //    uo_position_make_move(position, move);
-  //    int16_t node_value = -uo_search_principal_variation(thread, depth_mc, -beta, -beta + 1, line, false, incomplete);
+  //    int16_t node_value = -uo_search_principal_variation(thread, depth_mc, -beta, -beta + 1, NULL, false, incomplete);
   //    uo_position_unmake_move(position);
 
   //    if (node_value >= beta)
