@@ -36,8 +36,83 @@ extern "C"
   // log(1 + factor): 0, 0.69, 1.10, 1.39, 1.61, 1.79, 1.96, 2.08, 2.20, 2.30, 2.40
   static inline int16_t uo_score_mul_ln(int16_t score, int factor)
   {
-    return (float)score * logf(1.0f + (float)factor);
+    float ln;
+
+    switch (factor)
+    {
+      case 0: ln = 0; break;
+      case 1: ln = 0.693; break;
+      case 2: ln = 1.099; break;
+      case 3: ln = 1.386; break;
+      case 4: ln = 1.609; break;
+      case 5: ln = 1.792; break;
+      case 6: ln = 1.946; break;
+      case 7: ln = 2.079; break;
+      case 8: ln = 2.197; break;
+      case 9: ln = 2.303; break;
+      case 10: ln = 2.398; break;
+      case 11: ln = 2.485; break;
+      case 12: ln = 2.565; break;
+      case 13: ln = 2.639; break;
+      case 14: ln = 2.708; break;
+      case 15: ln = 2.773; break;
+      case 16: ln = 2.833; break;
+      case 17: ln = 2.89; break;
+      case 18: ln = 2.944; break;
+      case 19: ln = 2.996; break;
+      case 20: ln = 3.045; break;
+      case 21: ln = 3.091; break;
+      case 22: ln = 3.135; break;
+      case 23: ln = 3.178; break;
+      case 24: ln = 3.219; break;
+      case 25: ln = 3.258; break;
+      case 26: ln = 3.296; break;
+      case 27: ln = 3.332; break;
+      case 28: ln = 3.367; break;
+      case 29: ln = 3.401; break;
+      case 30: ln = 3.434; break;
+      case 31: ln = 3.466; break;
+      case 32: ln = 3.497; break;
+      case 33: ln = 3.526; break;
+      case 34: ln = 3.555; break;
+      case 35: ln = 3.584; break;
+      case 36: ln = 3.611; break;
+      case 37: ln = 3.638; break;
+      case 38: ln = 3.664; break;
+      case 39: ln = 3.689; break;
+      case 40: ln = 3.714; break;
+      case 41: ln = 3.738; break;
+      case 42: ln = 3.761; break;
+      case 43: ln = 3.784; break;
+      case 44: ln = 3.807; break;
+      case 45: ln = 3.829; break;
+      case 46: ln = 3.85; break;
+      case 47: ln = 3.871; break;
+      case 48: ln = 3.892; break;
+      case 49: ln = 3.912; break;
+      case 50: ln = 3.932; break;
+      case 51: ln = 3.951; break;
+      case 52: ln = 3.97; break;
+      case 53: ln = 3.989; break;
+      case 54: ln = 4.007; break;
+      case 55: ln = 4.025; break;
+      case 56: ln = 4.043; break;
+      case 57: ln = 4.06; break;
+      case 58: ln = 4.078; break;
+      case 59: ln = 4.094; break;
+      case 60: ln = 4.111; break;
+      case 61: ln = 4.127; break;
+      case 62: ln = 4.143; break;
+      case 63: ln = 4.159; break;
+    }
+
+    return (float)score * ln;
   }
+
+  //static inline int16_t uo_score_mul_ln(int16_t score, int factor)
+  //{
+  //  return (float)score * logf(1.0f + (float)factor);
+  //}
 
   // side to move
 #define uo_score_tempo 25
@@ -57,6 +132,7 @@ extern "C"
 #define uo_score_K_square_attackable_by_P -70
 
 #define uo_score_extra_piece 80
+#define uo_score_extra_pawn 40
 
   // pawns
 #define uo_score_doubled_P -25
@@ -92,10 +168,10 @@ extern "C"
 #define uo_score_king_next_to_open_file -90
 
   // piece square table weight
-static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
-{
-  return score / 2;
-}
+  static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
+  {
+    return score / 2;
+  }
 
   extern const int16_t mg_table_P[64];
   extern const int16_t eg_table_P[64];
@@ -171,8 +247,10 @@ static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
 
     // pawns
 
-    score += uo_score_P * (int16_t)uo_popcnt(own_P);
-    score -= uo_score_P * (int16_t)uo_popcnt(enemy_P);
+    int count_own_P = uo_popcnt(own_P);
+    score += (uo_score_P + uo_score_extra_pawn) * count_own_P;
+    int count_enemy_P = uo_popcnt(enemy_P);
+    score -= (uo_score_P + uo_score_extra_pawn) * count_enemy_P;
 
     int mobility_own_P = uo_popcnt(pushes_own_P) +
       uo_popcnt(attacks_left_own_P & mask_enemy) +
@@ -449,7 +527,7 @@ static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
   }
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

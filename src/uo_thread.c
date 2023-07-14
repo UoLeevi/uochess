@@ -52,11 +52,18 @@ uo_thread *uo_thread_create(uo_thread_function function, void *arg)
 void *uo_thread_join(uo_thread *thread)
 {
   WaitForSingleObject(thread->handle, INFINITE);
+  CloseHandle(thread->handle);
   void *thread_return = thread->data;
   free(thread);
   return thread_return;
 }
 
+
+void *uo_thread_terminate(uo_thread *thread)
+{
+  TerminateThread(thread->handle, 0);
+  return uo_thread_join(thread);
+}
 
 // mutex
 
@@ -198,7 +205,16 @@ uo_thread *uo_thread_create(uo_thread_function function, void *arg)
 
 void *uo_thread_join(uo_thread *thread)
 {
-  pthread_join(&thread->pthread, thread_return);
+  void *thread_return;
+  pthread_join(&thread->pthread, &thread_return);
+  free(thread);
+  return thread_return;
+}
+
+void *uo_thread_terminate(uo_thread *thread)
+{
+  pthread_cancel(&thread->pthread);
+  return uo_thread_join(thread);
 }
 
 // mutex

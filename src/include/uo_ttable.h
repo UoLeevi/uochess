@@ -37,8 +37,8 @@ extern "C"
 #define uo_score_type__upper_bound 8
 #define uo_score_type__lower_bound 4
 
-#define uo_ttable_max_probe 4
-#define uo_ttable_expiry_ply 3
+#define uo_ttable_max_probe 5
+#define uo_ttable_expiry_ply 4
 
   typedef struct uo_ttable
   {

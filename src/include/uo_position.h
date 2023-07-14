@@ -1563,6 +1563,30 @@ extern "C"
     return lo;
   }
 
+  static inline void uo_position_insertion_sort_moves(uo_position *position, uo_move *movelist, int lo, int hi)
+  {
+    int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
+    uo_move temp_move;
+    int16_t temp_score;
+
+    for (int i = lo + 1; i <= hi; i++)
+    {
+      temp_move = movelist[i];
+      temp_score = move_scores[i];
+
+      int j = i - 1;
+
+      while (j >= lo && move_scores[j] < temp_score)
+      {
+        movelist[j + 1] = movelist[j];
+        j--;
+      }
+
+      movelist[j + 1] = temp_move;
+      move_scores[j + 1] = temp_score;
+    }
+  }
+
   static inline size_t uo_position_sort_skipped_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
     int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
@@ -1595,6 +1619,13 @@ extern "C"
   static inline void uo_position_quicksort_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
     if (lo >= hi) return;
+
+    if (hi - lo <= UO_INSERTION_SORT_MOVE_COUNT + 1)
+    {
+      uo_position_insertion_sort_moves(position, movelist, lo, hi);
+      return;
+    }
+
     int p = uo_position_partition_moves(position, movelist, lo, hi);
     uo_position_quicksort_moves(position, movelist, lo, p - 1);
     uo_position_quicksort_moves(position, movelist, p + 1, hi);
@@ -1639,22 +1670,25 @@ extern "C"
 
   static inline void uo_position_sort_moves(uo_position *position, uo_move bestmove, uo_move_cache *move_cache)
   {
-    if (position->stack->moves_sorted) return;
-
     uo_move *movelist = position->movelist.head;
     size_t move_count = position->stack->move_count;
-    uo_position_sort_tactical_moves(position, move_cache);
-    uo_position_sort_non_tactical_moves(position, move_cache);
-    move_count -= uo_position_sort_skipped_moves(position, movelist, 0, move_count - 1);
+
+    if (!position->stack->moves_sorted)
+    {
+      uo_position_sort_tactical_moves(position, move_cache);
+      uo_position_sort_non_tactical_moves(position, move_cache);
+      move_count -= uo_position_sort_skipped_moves(position, movelist, 0, move_count - 1);
+      position->stack->moves_sorted = true;
+    }
 
     // set bestmove as first and shift other moves by one position
     if (bestmove && movelist[0] != bestmove)
     {
-      for (size_t i = 1; i < move_count; ++i)
+      for (int i = 1; i < move_count; ++i)
       {
         if (movelist[i] == bestmove)
         {
-          while (--i)
+          while (--i >= 0)
           {
             movelist[i + 1] = movelist[i];
           }
@@ -1664,8 +1698,6 @@ extern "C"
         }
       }
     }
-
-    position->stack->moves_sorted = true;
   }
 
   static inline bool uo_position_is_quiescent(uo_position *position)

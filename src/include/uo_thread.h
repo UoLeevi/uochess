@@ -19,6 +19,8 @@ extern "C"
 
   void *uo_thread_join(uo_thread *thread);
 
+  void *uo_thread_terminate(uo_thread *thread);
+
 
   // mutex
 

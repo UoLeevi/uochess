@@ -335,13 +335,59 @@ void uo_engine_init()
     }
   }
 
-
   // load startpos
   uo_position_from_fen(&engine.position, uo_fen_startpos);
 }
 
 void uo_engine_reconfigure()
 {
+  // threads
+  if (engine_options.threads + 1 != engine.thread_count)
+  {
+    // free previous threads
+    for (size_t i = 0; i < engine.thread_count; ++i)
+    {
+      uo_engine_thread *thread = engine.threads + i;
+      uo_thread_terminate(thread->thread);
+      uo_semaphore_destroy(thread->semaphore);
+    }
+
+    // threads
+    engine.thread_count = engine_options.threads + 1; // one additional thread for timer
+    free(engine.threads);
+    engine.threads = calloc(engine.thread_count, sizeof(uo_engine_thread));
+
+    // thread_queue
+    engine.thread_queue.head = 0;
+    engine.thread_queue.tail = 0;
+    uo_atomic_flag_init(&engine.thread_queue.busy);
+    uo_atomic_init(&engine.thread_queue.count, 0);
+    free(engine.thread_queue.threads);
+    engine.thread_queue.threads = malloc(engine.thread_count * sizeof(uo_engine_thread *));
+
+    for (size_t i = 0; i < engine.thread_count; ++i)
+    {
+      uo_engine_thread *thread = engine.threads + i;
+      thread->semaphore = uo_semaphore_create(0);
+      uo_atomic_flag_init(&thread->busy);
+      uo_atomic_init(&thread->cutoff, 0);
+      thread->id = i + 1;
+      thread->thread = uo_thread_create(uo_engine_thread_run, thread);
+    }
+
+    // multipv
+    if (engine_options.multipv)
+    {
+      free(engine.secondary_pvs);
+      engine.secondary_pvs = calloc(engine_options.multipv, sizeof engine.pv);
+
+      for (size_t i = 0; i < engine.thread_count; ++i)
+      {
+        engine.threads[i].info.secondary_pvs = calloc(engine_options.multipv, sizeof engine.pv);
+      }
+    }
+  }
+
   // hash table
   uo_ttable_free(&engine.ttable);
   size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;

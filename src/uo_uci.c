@@ -231,6 +231,7 @@ static void uo_uci_command__setoption(void)
     if (ptr && sscanf(ptr, "Threads value %" PRIi64, &spin) == 1 && spin >= 1 && spin <= 512)
     {
       engine_options.threads = spin;
+      if (state == uo_uci_state_idle) uo_engine_reconfigure();
     }
 
     // MultiPV

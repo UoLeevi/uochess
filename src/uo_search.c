@@ -61,12 +61,12 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
 
   if (movetime)
   {
-    const double margin_msec = 1.0;
+    const double margin_msec = engine_options.move_overhead / 2;
     double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
 
     if (time_msec + margin_msec > (double)movetime)
     {
-      if (!info->pv[0]) return;
+      if (!engine.pv[0]) return;
       uo_engine_stop_search();
     }
   }
@@ -343,7 +343,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   {
     uo_move move = position->movelist.head[i];
 
-    // Step 15.1. Search moves that give a check on first depths of quiescence search 
+    // Step 15.1. Search moves that give a check on first depths of quiescence search
     uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
     if (checks && depth < UO_QS_CHECKS_DEPTH) goto search_move;
 
@@ -390,7 +390,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   return value;
 }
 
-static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo_search_queue *queue)
+static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo_search_queue *queue, uo_search_queue_item *results)
 {
   for (size_t i = 0; i < UO_PARALLEL_MAX_COUNT; ++i)
   {
@@ -407,10 +407,20 @@ static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo
     }
   }
 
-  uo_search_queue_item result;
-  while (uo_search_queue_get_result(queue, &result))
+  if (results)
   {
-    thread->info.nodes += result.nodes;
+    while (uo_search_queue_get_result(queue, results))
+    {
+      ++results;
+    }
+  }
+  else
+  {
+    uo_search_queue_item result;
+    while (uo_search_queue_get_result(queue, &result))
+    {
+      thread->info.nodes += result.nodes;
+    }
   }
 }
 
@@ -419,11 +429,16 @@ static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_par
   return uo_search_queue_try_enqueue(&params->queue, uo_engine_thread_run_parallel_principal_variation_search, params);
 }
 
-// Maximum principal variation length is double the root search depth 
-#define uo_allocate_line(depth) uo_alloca(((depth * 2) + 2) * sizeof(uo_move))
+// Maximum principal variation length is double the root search depth
+#define uo_allocate_line(depth) uo_alloca((depth + 2) * 2 * sizeof(uo_move))
 
 static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove, uo_move *line, size_t depth)
 {
+  line[0] = bestmove;
+  line[1] = 0;
+
+  if (!depth) return;
+
   uo_position_make_move(position, bestmove);
   uo_abtentry entry = { -uo_score_checkmate, uo_score_checkmate, depth };
 
@@ -431,20 +446,26 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
     && entry.bestmove
     && entry.data.type == uo_score_type__exact)
   {
-    line[0] = entry.bestmove;
-    line[1] = 0;
-    if (depth) uo_position_extend_pv(position, entry.bestmove, line + 1, depth - 1);
+    uo_position_extend_pv(position, entry.bestmove, line + 1, depth - 1);
   }
 
   uo_position_unmake_move(position);
 }
 
-static inline void uo_pv_update(uo_move *pline, uo_move bestmove, uo_move *line, size_t move_count)
+static inline void uo_position_update_pv(uo_position *position, uo_move *pline, uo_move bestmove, uo_move *line)
 {
   if (!pline) return;
   pline[0] = bestmove;
-  pline[move_count + 1] = 0;
-  if (move_count) memcpy(pline + 1, line, move_count * sizeof * line);
+
+  size_t i = 0;
+
+  while (line[i])
+  {
+    pline[i + 1] = line[i];
+    ++i;
+  }
+
+  pline[i + 1] = 0;
 }
 
 static inline void uo_pv_copy(uo_move *line_dst, uo_move *line_src)
@@ -523,11 +544,11 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         uo_move *line = uo_allocate_line(depth);
         line[0] = 0;
         uo_position_extend_pv(position, entry.bestmove, line, depth - 1);
-        uo_pv_update(pline, entry.bestmove, line, depth);
+        uo_position_update_pv(position, pline, entry.bestmove, line);
       }
       else
       {
-        uo_pv_update(pline, entry.bestmove, NULL, 0);
+        uo_position_update_pv(position, pline, entry.bestmove, NULL);
       }
     }
 
@@ -603,13 +624,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 14. If there are no legal moves, return draw or checkmate
   if (move_count == 0) return is_check ? -score_checkmate : 0;
 
-  // Step 15. Allocate principal variation line on the stack in case it is needed
-  uo_move *line = NULL;
-  if (pline)
-  {
-    line = uo_allocate_line(depth);
-    line[0] = 0;
-  }
+  // Step 15. Allocate principal variation line on the stack
+  uo_move *line = uo_allocate_line(depth);
+  line[0] = 0;
 
   //// Step 16. Null move pruning
   //if (!is_check
@@ -641,13 +658,15 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   // Step 17. Sort moves and place pv move or transposition table move as first
   uo_move move = pline && pline[0] ? pline[0] : entry.data.bestmove;
-  uo_position_sort_moves(&thread->position, move, thread->move_cache);
+  uo_position_sort_moves(position, move, thread->move_cache);
+  assert(!move || move == position->movelist.head[0]);
+  move = position->movelist.head[0];
 
   //// Step 18. Multi-Cut pruning
   //if (cut
   //  && is_zw_search
   //  && !is_check
-  //  && depth > UO_MULTICUT_DEPTH_REDUCTION
+  //  && depth > 2 * UO_MULTICUT_DEPTH_REDUCTION
   //  && entry.data.type == uo_score_type__lower_bound)
   //{
   //  size_t cutoff_counter = 0;
@@ -671,7 +690,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   //    };
 
   //    uo_position_make_move(position, move);
-  //    int16_t node_value = -uo_search_principal_variation(thread, depth_mc - 1, -beta, -beta + 1, line, false, incomplete);
+  //    int16_t node_value = -uo_search_principal_variation(thread, depth_mc, -beta, -beta + 1, line, false, incomplete);
   //    uo_position_unmake_move(position);
 
   //    if (node_value >= beta)
@@ -685,7 +704,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   //}
 
   // Step 19. Perform full alpha-beta search for the first move
-  move = position->movelist.head[0];
   entry.depth = depth;
 
   // On main thread, root node, let's report current move on higher depths
@@ -721,7 +739,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       }
 
       alpha = entry.value;
-      uo_pv_update(pline, entry.bestmove, line, entry.depth);
+      uo_position_update_pv(position, pline, entry.bestmove, line);
     }
   }
 
@@ -753,7 +771,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //  && uo_move_is_capture(move)
     //  && !uo_move_is_promotion(move))
     //{
-    //  // Step 21.1.1. Determine if move gives a check 
+    //  // Step 21.1.1. Determine if move gives a check
     //  uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
     //  if (!checks)
     //  {
@@ -772,6 +790,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       uo_search_print_currmove(thread, move, i + 1);
     }
 
+    // Reset pv line
+    line[0] = 0;
+
     // Step 21.1 Determine search depth extension
     size_t depth_extension = uo_search_choose_next_move_depth_extension(thread, move, i, depth);
 
@@ -781,12 +802,12 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // Step 21.3 Perform zero window search for reduced depth
     size_t depth_lmr = depth - depth_reduction + depth_extension;
     uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, NULL, !cut, incomplete);
+    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, !cut, incomplete);
 
     if (*incomplete)
     {
       uo_position_unmake_move(position);
-      if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
+      if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
       return uo_score_unknown;
     }
 
@@ -813,7 +834,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       if (*incomplete)
       {
         uo_position_unmake_move(position);
-        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
+        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
         return uo_score_unknown;
       }
     }
@@ -835,13 +856,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         if (entry.value >= beta)
         {
           uo_position_update_killers(position, move);
-          if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
+          if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
           return uo_engine_store_entry(position, &entry);
         }
 
         alpha = entry.value;
         params.beta = -alpha;
-        uo_pv_update(pline, entry.bestmove, line, depth_lmr);
+        uo_position_update_pv(position, pline, entry.bestmove, line);
 
         if (is_root_node && is_main_thread)
         {
@@ -862,7 +883,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
         if (result.incomplete)
         {
-          if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
+          if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
           return uo_score_unknown;
         }
 
@@ -893,13 +914,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             if (entry.value >= beta)
             {
               uo_position_update_killers(position, move);
-              uo_search_cutoff_parallel_search(thread, &params.queue);
+              uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
               return uo_engine_store_entry(position, &entry);
             }
 
             alpha = entry.value;
             params.beta = -alpha;
-            uo_pv_update(pline, entry.bestmove, result.line, entry.depth);
+            uo_position_update_pv(position, pline, entry.bestmove, result.line);
 
             if (is_root_node && is_main_thread)
             {
@@ -923,7 +944,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       if (result.incomplete)
       {
-        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue);
+        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
         return uo_score_unknown;
       }
 
@@ -945,13 +966,13 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           if (entry.value >= beta)
           {
             uo_position_update_killers(position, move);
-            uo_search_cutoff_parallel_search(thread, &params.queue);
+            uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
             return uo_engine_store_entry(position, &entry);
           }
 
           alpha = entry.value;
           params.beta = -alpha;
-          uo_pv_update(pline, entry.bestmove, result.line, entry.depth);
+          uo_position_update_pv(position, pline, entry.bestmove, result.line);
 
           if (is_root_node && is_main_thread)
           {
@@ -1132,6 +1153,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   };
 
   uo_move *line = thread->pv;
+  line[0] = 0;
 
   // Start timer
   uo_time_now(&thread->info.time_start);
@@ -1146,6 +1168,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   int16_t value;
   uo_move bestmove = 0;
+  size_t nodes_prev = 0;
   bool incomplete = false;
 
   // Check for ponder hit
@@ -1260,18 +1283,24 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   // Initialize Lazy SMP variables
   size_t lazy_smp_count = 0;
   size_t lazy_smp_max_count = uo_min(UO_PARALLEL_MAX_COUNT, engine.thread_count - 1 - UO_LAZY_SMP_FREE_THREAD_COUNT);
-  uo_move *lazy_smp_lines = uo_allocate_line(lazy_smp_max_count * UO_MAX_PLY);
-  lazy_smp_lines[0] = 0;
+  uo_search_queue_item *lazy_smp_results = uo_alloca((lazy_smp_max_count + 1) * sizeof * lazy_smp_results);
+  uo_move **lazy_smp_lines = uo_alloca((lazy_smp_max_count + 1) * sizeof * lazy_smp_lines);
+
+  for (size_t i = 0; i < lazy_smp_max_count; ++i)
+  {
+    lazy_smp_lines[i] = uo_allocate_line(UO_MAX_PLY);
+    lazy_smp_lines[i][0] = 0;
+  }
+  lazy_smp_lines[lazy_smp_max_count] = uo_allocate_line(1);
+
 
   uo_parallel_search_params lazy_smp_params = {
     .thread = thread,
     .queue = {.init = 0 },
     .alpha = alpha,
     .beta = beta,
-    .line = lazy_smp_lines
+    .line = lazy_smp_lines[0]
   };
-
-  lazy_smp_params.line[0] = 0;
 
   // Iterative deepening loop
   for (size_t depth = 2; depth <= params->depth; ++depth)
@@ -1285,10 +1314,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     // Update serch depth info
     thread->info.depth = lazy_smp_params.depth = depth;
 
-    // Report searcg info
+    // Report search info
     if (thread->info.nodes)
     {
       uo_search_print_info(thread);
+      nodes_prev = thread->info.nodes;
       thread->info.nodes = 0;
     }
 
@@ -1301,7 +1331,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       while (can_delegate && uo_search_try_delegate_parallel_search(&lazy_smp_params))
       {
         can_delegate = ++lazy_smp_count < lazy_smp_max_count;
-        lazy_smp_params.line = lazy_smp_lines + lazy_smp_count;
+        lazy_smp_params.line = lazy_smp_lines[lazy_smp_count];
         lazy_smp_params.line[0] = 0;
       }
 
@@ -1311,14 +1341,46 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       // Wait for parallel searches to finish
       if (lazy_smp_count > 0)
       {
+        uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue, lazy_smp_results);
+
+        for (size_t i = 0; i < lazy_smp_count; ++i)
+        {
+          uo_search_queue_item *result = lazy_smp_results + i;
+          thread->info.nodes += result->nodes;
+
+          if (result->incomplete
+            || value >= result->value
+            || !result->line[0])
+          {
+            continue;
+          }
+
+          value = result->value;
+          uo_pv_copy(line, result->line);
+        }
+
         lazy_smp_count = 0;
-        uo_search_cutoff_parallel_search(thread, &lazy_smp_params.queue);
       }
 
-      // In case search was not finished, use results from previous search
+      // Search was incomplete. Decide whether to use results from partial search.
       if (incomplete)
       {
-        uo_pv_copy(line, engine.pv);
+        if (line[0]
+          && line[1]
+          && thread->info.nodes > nodes_prev)
+        {
+          bestmove = line[0];
+          uo_pv_copy(engine.pv, line);
+          uo_position_make_move(position, bestmove);
+          engine.ponder.key = position->key;
+          engine.ponder.move = line[1];
+          uo_position_unmake_move(position);
+        }
+        else
+        {
+          uo_pv_copy(line, engine.pv);
+        }
+
         goto search_completed;
       }
 
