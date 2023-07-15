@@ -58,6 +58,8 @@ extern "C"
     uint8_t tbhits;
     bool completed;
     int16_t value;
+    bool is_tb_position;
+    int16_t dtz;
     uint8_t bestmove_change_depth;
     uo_move *pv;
     uo_move **secondary_pvs;

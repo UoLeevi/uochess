@@ -368,7 +368,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   alpha = uo_max(alpha, value);
 
   // Step 14. Sort tactical moves
-  uo_position_sort_tactical_moves(&thread->position, thread->move_cache);
+  uo_position_sort_tactical_moves(position, thread->move_cache);
 
   // Step 15. Search tactical moves which have potential to raise alpha and checks depending on depth
   for (size_t i = 0; i < move_count; ++i)
@@ -562,7 +562,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { alpha, beta, depth };
-  if (uo_engine_lookup_entry(position, &entry))
+  if (!info->is_tb_position
+    && uo_engine_lookup_entry(position, &entry))
   {
     // Unless draw by 50 move rule is a possibility, let's return transposition table score
     if (rule50 < 90)
@@ -1177,11 +1178,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     .secondary_pvs = thread->secondary_pvs
   };
 
+  uo_search_info *info = &thread->info;
+
   uo_move *line = thread->pv;
   line[0] = 0;
 
   // Start timer
-  uo_time_now(&thread->info.time_start);
+  uo_time_now(&info->time_start);
 
   // Load position
   uo_engine_thread_load_position(thread);
@@ -1231,9 +1234,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
 
   // Tablebase probe
-  bool is_tb_position = false;
-  int dtz;
-
   if (engine.tb.enabled)
   {
     // Do not probe if castling can interfere with the table base result
@@ -1245,18 +1245,23 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       // Do not probe if too many pieces are on the board
       if (piece_count <= probe_limit)
       {
-        is_tb_position = true;
-
         int success;
-        dtz = uo_tb_root_probe_dtz(position, &success);
+        int dtz = info->dtz = uo_tb_root_probe_dtz(position, &success);
 
         ++thread->info.tbhits;
         assert(success);
 
-        is_tb_position = true;
+        info->is_tb_position = true;
 
         if (dtz > 0)
         {
+          uo_move tb_move = position->movelist.head[0];
+          if (tb_move != line[0])
+          {
+            line[0] = tb_move;
+            line[1] = 0;
+          }
+
           alpha = uo_max(0, alpha);
           beta = uo_score_checkmate;
         }
