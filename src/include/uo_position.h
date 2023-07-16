@@ -1467,6 +1467,33 @@ extern "C"
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
   }
 
+  static inline bool uo_position_is_skipped_move(const uo_position *position, uo_move move)
+  {
+    const uo_move_history *stack = position->stack;
+    assert(stack->moves_generated);
+    assert(stack->moves_sorted);
+
+    size_t skipped_move_count = stack->skipped_move_count;
+    size_t non_skipped_move_count = stack->move_count - skipped_move_count;
+
+    if (skipped_move_count < non_skipped_move_count)
+    {
+      for (size_t i = 0; i < skipped_move_count; ++i)
+      {
+        if (move == position->movelist.head[i]) return true;
+      }
+
+      return false;
+    }
+
+    for (size_t i = 0; i < non_skipped_move_count; ++i)
+    {
+      if (move == position->movelist.head[i]) return false;
+    }
+
+    return true;
+  }
+
   static inline size_t uo_position_move_history_heuristic_index(const uo_position *position, uo_move move)
   {
     uo_square square_from = uo_move_square_from(move);
@@ -1579,6 +1606,7 @@ extern "C"
       while (j >= lo && move_scores[j] < temp_score)
       {
         movelist[j + 1] = movelist[j];
+        move_scores[j + 1] = move_scores[j];
         j--;
       }
 
