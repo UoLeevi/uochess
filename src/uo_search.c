@@ -751,7 +751,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   entry.depth = depth;
 
   // On main thread, root node, let's report current move on higher depths
-  if (is_main_thread && is_root_node && depth >= 9)
+  if (is_main_thread
+    && is_root_node &&
+    uo_time_elapsed_msec(&thread->info.time_start) > 3000)
   {
     uo_search_print_currmove(thread, move, 1);
   }
@@ -829,7 +831,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     //}
 
     // On main thread, root node, let's report current move on higher depths
-    if (is_main_thread && is_root_node && depth >= 9)
+    if (is_main_thread
+      && is_root_node
+      && uo_time_elapsed_msec(&thread->info.time_start) > 3000)
     {
       uo_search_print_currmove(thread, move, i + 1);
     }
@@ -911,7 +915,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         if (is_root_node && is_main_thread)
         {
           thread->info.bestmove_change_depth = depth_lmr;
-          if (depth_lmr > 10) uo_search_print_info(thread);
+          if (uo_time_elapsed_msec(&thread->info.time_start) > 3000) uo_search_print_info(thread);
         }
       }
     }
@@ -969,7 +973,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
             if (is_root_node && is_main_thread)
             {
               thread->info.bestmove_change_depth = depth_lmr;
-              if (depth_lmr > 10) uo_search_print_info(thread);
+              if (uo_time_elapsed_msec(&thread->info.time_start) > 3000) uo_search_print_info(thread);
             }
           }
         }
@@ -1021,7 +1025,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
           if (is_root_node && is_main_thread)
           {
             thread->info.bestmove_change_depth = depth_lmr;
-            if (depth_lmr > 10) uo_search_print_info(thread);
+            if (uo_time_elapsed_msec(&thread->info.time_start) > 3000) uo_search_print_info(thread);
           }
         }
       }
@@ -1059,7 +1063,7 @@ void *uo_engine_thread_start_timer(void *arg)
 static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, int16_t *beta, size_t *fail_count)
 {
   const int16_t aspiration_window_fail_threshold = 2;
-  const int16_t aspiration_window_minimum = 200;
+  const int16_t aspiration_window_minimum = uo_score_P / 3;
   const float aspiration_window_factor = 1.5;
   const int16_t aspiration_window_mate = (uo_score_checkmate - 1) / aspiration_window_factor;
 
@@ -1226,7 +1230,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     // If opponent played the expected move, initialize pv and use more narrow aspiration window
     if (position->stack[-1].key == engine.ponder.key && engine.pv[2])
     {
-      int16_t window = 400;
+      int16_t window = uo_score_P;
       bool ponder_hit = position->stack[-1].move == engine.ponder.move;
 
       if (ponder_hit)
@@ -1235,7 +1239,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         assert(engine.pv[1] == engine.ponder.move);
 
         // Use a more narrow aspiration window
-        window = 100;
+        window = uo_score_P / 3;
 
         // Copy principal variation from previous search
         size_t i = 0;
@@ -1247,8 +1251,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         line[i] = engine.pv[i] = 0;
       }
 
-      alpha = value > -uo_score_checkmate + window ? value - window : -uo_score_checkmate;
-      beta = value < uo_score_checkmate - window ? value - window : uo_score_checkmate;
+      alpha = value > -uo_score_tb_win_threshold + window ? value - window : -uo_score_checkmate;
+      beta = value < uo_score_tb_win_threshold - window ? value + window : uo_score_checkmate;
+
+      alpha = uo_min(alpha, beta - window);
+      beta = uo_max(beta, alpha + window);
     }
   }
 
