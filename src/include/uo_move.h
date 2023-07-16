@@ -64,6 +64,13 @@ extern "C"
     return move & 0x8000;
   }
 
+  static inline bool uo_move_is_promotion_Q_or_N(uo_move move)
+  {
+    uo_move promotion_type = uo_move_type__promo_Q & move;
+    return promotion_type == uo_move_type__promo_Q
+      || promotion_type == uo_move_type__promo_N;
+  }
+
   // promotion or capture
   static inline bool uo_move_is_tactical(uo_move move)
   {

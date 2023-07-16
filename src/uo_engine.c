@@ -147,21 +147,27 @@ bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *re
   int count = uo_atomic_decrement(&queue->count);
   if (count == -1)
   {
-    int pending_count = uo_atomic_load(&queue->pending_count);
-    if (pending_count == 0)
+    do
     {
-      uo_atomic_increment(&queue->count);
-      return false;
-    }
+      int pending_count = uo_atomic_load(&queue->pending_count);
+      if (pending_count == 0)
+      {
+        count = uo_atomic_load(&queue->count);
+        if (count > -1) break;
 
-    uo_atomic_wait_until_lt(&queue->pending_count, pending_count);
+        uo_atomic_increment(&queue->count);
+        return false;
+      }
 
-    int count = uo_atomic_load(&queue->count);
-    if (count == -1)
-    {
-      uo_atomic_increment(&queue->count);
-      return false;
-    }
+      uo_atomic_wait_until_lt(&queue->pending_count, pending_count);
+
+      int count = uo_atomic_load(&queue->count);
+      if (count == -1)
+      {
+        uo_atomic_increment(&queue->count);
+        return false;
+      }
+    } while (false);
   }
 
   uo_atomic_lock(&queue->busy);

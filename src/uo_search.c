@@ -47,16 +47,17 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
     // Time per move on average
     int64_t avg_time_per_move = params->time_own / moves_left + params->time_inc_own;
 
-    // Default time to spend is average time per move plus half the difference to opponent's clock
-    movetime = avg_time_per_move + time_diff / 2;
+    // Default time to spend is average time per move plus half the difference to opponent's clock,
+    // but at minimum half the time per move
+    movetime = uo_max(avg_time_per_move / 2, avg_time_per_move + time_diff / 2);
 
     // If best move is not chaning when doing iterative deepening, let's reduce thinking time
     int64_t bestmove_age_reduction = movetime / uo_max(16, info->depth);
     int64_t bestmove_age = info->depth - info->bestmove_change_depth;
-    movetime = uo_max(movetime - bestmove_age_reduction * bestmove_age, 1);
+    movetime = uo_max(1, movetime - bestmove_age_reduction * bestmove_age);
 
     // The minimum time that should be left on the clock is one second
-    movetime = uo_min(movetime, params->time_own - 1000);
+    movetime = uo_max(1, uo_min(movetime, (int64_t)params->time_own - 1000));
   }
 
   if (movetime)
@@ -94,7 +95,7 @@ static void uo_search_print_info(uo_engine_thread *thread)
   uo_position *position = &thread->position;
 
   double time_msec = uo_time_elapsed_msec(&info->time_start);
-  uint64_t nps = info->nodes / time_msec * 1000.0;
+  uint64_t nps = (double)thread->info.nodes / time_msec * 1000.0;
 
   size_t tentry_count = uo_atomic_load(&engine.ttable.count);
   uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
@@ -145,7 +146,7 @@ static void uo_search_print_info(uo_engine_thread *thread)
     }
 
     printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
-      info->nodes, nps, hashfull, info->tbhits, time_msec);
+      info->nodes, nps, hashfull, (int)info->tbhits, time_msec);
 
     size_t i = 0;
     uo_move move = info->pv[0];
@@ -198,37 +199,54 @@ static void uo_search_print_currmove(uo_engine_thread *thread, uo_move currmove,
 // see: https://en.wikipedia.org/wiki/Late_move_reductions
 static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
 {
-  return 0;
-
   // Step 1. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
   uo_move_history *stack = position->stack;
 
+  // Step 2. Limit search depth reductions to prevent missing threats
+  int net_reductions = info->depth - depth - position->ply;
+  if (net_reductions > info->depth / 2) return 0;
+
+  // Step 3. Determine depth reduction
+
   size_t depth_reduction =
     // no reduction for shallow depth
     depth <= 4
+    // no reduction for first moves
+    || move_num < 8
     // no reduction if there are very few legal moves
     || stack->move_count < 8
     // no reduction if position is check
     || uo_position_is_check(position)
-    // no reduction on promotions or captures
-    || uo_move_is_tactical(move)
+    // no reduction on queen or knight promotions
+    || uo_move_is_promotion_Q_or_N(move)
+    // no reduction on captures with high enough SEE
+    || uo_move_is_capture(move) && uo_position_move_see_gt(position, move, -uo_score_P / 2, thread->move_cache)
     // no reduction on killer moves
     || uo_position_is_killer_move(position, move)
     // no reduction on king moves
     || uo_position_move_piece(position, move) == uo_piece__K
     ? 0 // no reduction
-    : uo_min(2, depth / 4); // default reduction is one fourth of depth but maximum of two
+    : 1; // default reduction is one ply
 
   return depth_reduction;
 }
 
 static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
 {
+  // Step 1. Initialize variables
+  uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
-  bool is_check = uo_position_is_check(position);
   uo_move_history *stack = position->stack;
+
+  // Step 2. Limit search depth extensions to prevent search explosion
+  int net_extensions = position->ply + depth - info->depth;
+  if (net_extensions > info->depth) return 0;
+
+  // Step 3. Determine depth extension
+
+  bool is_check = uo_position_is_check(position);
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
   const uo_piece *board = position->board;
@@ -236,37 +254,38 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
 
   size_t depth_extension = 0;
 
-  if (depth < 6)
+  // Passed pawn near promotion extension
+  if (piece == uo_piece__P && depth < 6)
   {
-    // Passed pawn near promotion
-    if (piece == uo_piece__P)
+    if (square_to >= uo_square__a7)
     {
-      if (square_to >= uo_square__a7)
+      depth_extension += 1;
+    }
+    else if (square_to >= uo_square__a6)
+    {
+      // Check whether it is a passed pawn
+      uo_bitboard enemy_P = position->P & position->enemy;
+      uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square_to + 2);
+      uint8_t file = uo_square_file(square_to);
+      uo_bitboard mask = uo_square_bitboard_file[square_to] | uo_square_bitboard_adjecent_files[square_to];
+
+      if (!(enemy_P_above & mask))
       {
         depth_extension += 1;
       }
-      else if (square_to >= uo_square__a6)
-      {
-        // Check whether it is a passed pawn
-        uo_bitboard enemy_P = position->P & position->enemy;
-        uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square_to + 2);
-        uint8_t file = uo_square_file(square_to);
-        uo_bitboard mask = uo_square_bitboard_file[square_to] | uo_square_bitboard_adjecent_files[square_to];
-
-        if (!(enemy_P_above & mask))
-        {
-          depth_extension += 1;
-        }
-      }
     }
   }
+
+  // Single-response extension
+  if (stack->move_count == 1) depth_extension += 1;
 
   // Check extension
   uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
   uo_position_update_next_move_checks(position, checks);
   if (checks) depth_extension += 1;
 
-  return depth_extension;
+  // Let's extend by at most two plies
+  return uo_min(depth_extension, 2);
 }
 
 // The quiescence search is a used to evaluate the board position when the game is not in non-quiet state,
@@ -1534,7 +1553,7 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   int16_t value = uo_search_quiesce(thread, alpha, beta, 0, &incomplete);
 
   double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
-  uint64_t nps = thread->info.nodes / time_msec * 1000.0;
+  uint64_t nps = (double)thread->info.nodes / time_msec * 1000.0;
 
   size_t tentry_count = uo_atomic_load(&engine.ttable.count);
   uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
@@ -1567,7 +1586,7 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   }
 
   printf("nodes %" PRIu64 " nps %" PRIu64 " hashfull %" PRIu64 " tbhits %d time %.0f",
-    thread->info.nodes, nps, hashfull, thread->info.tbhits, time_msec);
+    thread->info.nodes, nps, hashfull, (int)thread->info.tbhits, time_msec);
 
   printf("\n");
 
