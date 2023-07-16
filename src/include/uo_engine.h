@@ -186,7 +186,7 @@ extern "C"
         && book_entry->bestmove
         && uo_position_is_legal_move(position, book_entry->bestmove))
       {
-        int16_t value = uo_score_adjust_from_ttable(position, book_entry->value);
+        int16_t value = uo_score_adjust_from_ttable(position->ply, book_entry->value);
         abtentry->value = value;
         abtentry->bestmove = book_entry->bestmove;
         abtentry->depth = book_entry->depth;
@@ -201,7 +201,7 @@ extern "C"
     assert(!abtentry->data.bestmove || uo_position_is_legal_move(position, abtentry->data.bestmove));
     abtentry->bestmove = abtentry->data.bestmove;
 
-    int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position, abtentry->data.value);
+    int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
 
     if (abtentry->data.depth < abtentry->depth)
     {
@@ -243,7 +243,7 @@ extern "C"
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
-      abtentry->data.value = uo_score_adjust_to_ttable(position, abtentry->value);
+      abtentry->data.value = uo_score_adjust_to_ttable(position->ply, abtentry->value);
       abtentry->data.type =
         abtentry->value >= abtentry->beta ? uo_score_type__lower_bound :
         abtentry->value <= abtentry->alpha ? uo_score_type__upper_bound :

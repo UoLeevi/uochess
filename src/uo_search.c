@@ -109,6 +109,22 @@ static void uo_search_print_info(uo_engine_thread *thread)
 
     int16_t score = info->value;
 
+    if (info->is_tb_position)
+    {
+      if (info->dtz > 0)
+      {
+        score = uo_max(uo_score_tb_win_threshold, score);
+      }
+      else if (info->dtz < 0)
+      {
+        score = uo_min(-uo_score_tb_win_threshold, score);
+      }
+      else
+      {
+        score = 0;
+      }
+    }
+
     if (score == -uo_score_checkmate)
     {
       printf("score mate 0\nbestmove (none)\n");
@@ -304,7 +320,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 7. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate(position);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
 
   // Step 8. Generate legal moves
   size_t move_count = stack->moves_generated
@@ -349,11 +365,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 11. Position is not check. Initialize score to static evaluation. "Stand pat"
-  int16_t value = stack->static_eval
-    = stack[-1].move == 0 ? -stack[-1].static_eval
-    : stack->static_eval != uo_score_unknown ? stack->static_eval
-    : uo_position_evaluate(position);
-
+  int16_t value = uo_position_evaluate_and_cache(position, thread->move_cache);
   assert(stack->static_eval != uo_score_unknown);
 
   // Step 12. Cutoff if static evaluation is higher or equal to beta.
@@ -598,7 +610,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   ++thread->info.nodes;
 
   // Step 9. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) uo_position_evaluate(position);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
 
   entry.value = -score_checkmate;
 
@@ -608,7 +620,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (engine.tb.enabled
     && !is_root_node
     && depth >= engine.tb.probe_depth
-    && position->flags <= 1)
+    && rule50 < 50
+    && uo_position_flags_castling(position->flags) == 0
+    && uo_position_flags_enpassant_file(position->flags) == 0)
   {
     size_t piece_count = uo_popcnt(position->own | position->enemy);
     size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
@@ -632,17 +646,15 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 11. Static evaluation and calculation of improvement margin
-  int16_t static_eval = stack->static_eval
-    = is_check ? uo_score_unknown
-    : is_root_node ? uo_position_evaluate(position)
-    : stack[-1].move == 0 ? -stack[-1].static_eval
-    : uo_position_evaluate(position);
+  int16_t static_eval = is_check
+    ? uo_score_unknown
+    : uo_position_evaluate_and_cache(position, thread->move_cache);
 
   assert(is_check || static_eval != uo_score_unknown);
 
   int16_t improvement_margin
-    = stack[-2].static_eval != uo_score_unknown ? static_eval - stack[-2].static_eval
-    : stack[-4].static_eval != uo_score_unknown ? static_eval - stack[-4].static_eval
+    = stack[-2].checks == uo_move_history__checks_none ? static_eval - stack[-2].static_eval
+    : stack[-4].checks == uo_move_history__checks_none ? static_eval - stack[-4].static_eval
     : uo_score_P;
 
   bool is_improving = improvement_margin > 0;
@@ -1447,11 +1459,11 @@ search_completed:
   {
     if (info->dtz > 0)
     {
-      value = uo_max(uo_score_tb_win - info->dtz, value);
+      value = uo_max(uo_score_tb_win_threshold, value);
     }
     else if (info->dtz < 0)
     {
-      value = uo_min(-uo_score_tb_win - info->dtz, value);
+      value = uo_min(-uo_score_tb_win_threshold, value);
     }
     else
     {
