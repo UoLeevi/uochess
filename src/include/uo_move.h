@@ -49,6 +49,11 @@ extern "C"
     return move >> 12;
   }
 
+  static inline bool uo_move_is_quiet(uo_move move)
+  {
+    return uo_move_get_type(move) == uo_move_type__quiet;
+  }
+
   static inline bool uo_move_is_capture(uo_move move)
   {
     return move & 0x4000;
@@ -66,7 +71,7 @@ extern "C"
 
   static inline bool uo_move_is_promotion_Q_or_N(uo_move move)
   {
-    uo_move promotion_type = uo_move_type__promo_Q & move;
+    uo_move promotion_type = uo_move_type__promo_Q & uo_move_get_type(move);
     return promotion_type == uo_move_type__promo_Q
       || promotion_type == uo_move_type__promo_N;
   }

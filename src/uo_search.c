@@ -210,7 +210,7 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
 
   // Step 3. Determine depth reduction
 
-  size_t depth_reduction =
+  if (
     // no reduction for shallow depth
     depth <= 4
     // no reduction for first moves
@@ -226,11 +226,12 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
     // no reduction on killer moves
     || uo_position_is_killer_move(position, move)
     // no reduction on king moves
-    || uo_position_move_piece(position, move) == uo_piece__K
-    ? 0 // no reduction
-    : 1; // default reduction is one ply
+    || uo_position_move_piece(position, move) == uo_piece__K)
+  {
+    return 0;
+  }
 
-  return depth_reduction;
+  return uo_move_is_quiet(move) ? 2 : 1;
 }
 
 static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
@@ -406,10 +407,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     if (checks && depth < UO_QS_CHECKS_DEPTH) goto search_move;
 
     // Step 15.2. Search queen and knight promotions
-    uo_move_type move_promo_type = uo_move_get_type(move) & uo_move_type__promo_Q;
-    if (move_promo_type == uo_move_type__promo_Q
-      || move_promo_type == uo_move_type__promo_N)
-      goto search_move;
+    if (uo_move_is_promotion_Q_or_N(move)) goto search_move;
 
     // Step 15.3. Futility pruning for captures
     if (uo_move_is_capture(move))
