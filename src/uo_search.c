@@ -246,7 +246,6 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   if (net_extensions > info->depth) return 0;
 
   // Step 3. Determine depth extension
-
   bool is_check = uo_position_is_check(position);
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
@@ -284,6 +283,18 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
   uo_position_update_next_move_checks(position, checks);
   if (checks) depth_extension += 1;
+
+  //// Mate threat extension
+  //if (stack->eval_info.is_valid && stack[-2].eval_info.is_valid)
+  //{
+  //  int16_t mate_threat_own = uo_evaluate_mate_threat(&stack->eval_info, uo_color_own);
+  //  int16_t mate_threat_own_prev = uo_evaluate_mate_threat(&stack[-2].eval_info, uo_color_own);
+  //  if (mate_threat_own > 0 && mate_threat_own >= mate_threat_own_prev) depth_extension += 1;
+
+  //  int16_t mate_threat_enemy = uo_evaluate_mate_threat(&stack->eval_info, uo_color_enemy);
+  //  int16_t mate_threat_enemy_prev = uo_evaluate_mate_threat(&stack[-2].eval_info, uo_color_enemy);
+  //  if (mate_threat_enemy > 0 && mate_threat_enemy >= mate_threat_enemy_prev) depth_extension += 1;
+  //}
 
   // Let's extend by at most two plies
   return uo_min(depth_extension, 2);
@@ -340,7 +351,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 7. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
 
   // Step 8. Generate legal moves
   size_t move_count = stack->moves_generated
@@ -385,7 +396,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 11. Position is not check. Initialize score to static evaluation. "Stand pat"
-  int16_t value = uo_position_evaluate_and_cache(position, thread->move_cache);
+  uo_evaluation_info eval_info;
+  int16_t value = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
   assert(stack->static_eval != uo_score_unknown);
 
   // Step 12. Cutoff if static evaluation is higher or equal to beta.
@@ -486,7 +498,7 @@ static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_par
 }
 
 // Maximum principal variation length is double the root search depth
-#define uo_allocate_line(depth) uo_alloca((depth + 2) * 2 * sizeof(uo_move))
+#define uo_allocate_line(depth) uo_alloca(uo_max((depth + 2) * 2, UO_PV_ALLOC_MIN_LENGTH) * sizeof(uo_move))
 
 static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove, uo_move *line, size_t depth)
 {
@@ -627,7 +639,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   ++thread->info.nodes;
 
   // Step 9. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
 
   entry.value = -score_checkmate;
 
@@ -673,9 +685,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 11. Static evaluation and calculation of improvement margin
-  int16_t static_eval = is_check
-    ? uo_score_unknown
-    : uo_position_evaluate_and_cache(position, thread->move_cache);
+  uo_evaluation_info eval_info;
+  int16_t static_eval = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
 
   assert(is_check || static_eval != uo_score_unknown);
 

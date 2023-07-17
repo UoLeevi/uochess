@@ -33,6 +33,9 @@ extern "C"
 // Examine check moves in quiescence search until depth
 #define UO_QS_CHECKS_DEPTH 2
 
+// Principal variation minimum allocated length
+#define UO_PV_ALLOC_MIN_LENGTH 6
+
 #define UO_TTABLE_LOCK_BITS 10 
 
 #define uo_score_draw 0

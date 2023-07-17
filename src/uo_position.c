@@ -309,6 +309,7 @@ static inline void uo_position_do_switch_turn(uo_position *position, uo_position
   ++position->stack;
   position->stack->moves_generated = false;
   position->stack->moves_sorted = false;
+  position->stack->eval_info.is_valid = false;
   position->stack->static_eval = uo_score_unknown;
 
   uo_position_flip_board(position);

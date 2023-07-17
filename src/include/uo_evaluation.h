@@ -159,8 +159,13 @@ extern "C"
 #define uo_score_rook_stuck_in_corner -40
 
   // attacks near king
-#define uo_score_attacker_to_K 15
-#define uo_score_defender_to_K 10
+  // see: https://www.chessprogramming.org/King_Safety#Attack_Units
+#define uo_attack_unit_N 2
+#define uo_attack_unit_B 2
+#define uo_attack_unit_R 3
+#define uo_attack_unit_Q 5
+#define uo_attack_unit_supported_contact_R 2
+#define uo_attack_unit_supported_contact_Q 6
 
   // king safety and castling
 #define uo_score_casting_right 20
@@ -169,11 +174,31 @@ extern "C"
 #define uo_score_king_cover_pawn 30
 #define uo_score_king_next_to_open_file -90
 
+  typedef struct uo_evaluation_info
+  {
+    bool is_valid;
+    // TODO: fill in useful information produced by evaluation to be used elsewhere
+  } uo_evaluation_info;
+
   // piece square table weight
   static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
   {
     return score / 2;
   }
+
+  static inline int16_t uo_evaluate_mate_threat(uo_evaluation_info *info, uint8_t color)
+  {
+    if (color == uo_color_own)
+    {
+      return 0;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  extern const int16_t score_attacks_to_K[100];
 
   extern const int16_t mg_table_P[64];
   extern const int16_t eg_table_P[64];

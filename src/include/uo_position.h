@@ -50,6 +50,7 @@ extern "C"
     int16_t see_ubound;
     int16_t see_lbound;
     int16_t static_eval;
+    uo_evaluation_info eval_info;
 
     struct
     {
@@ -58,6 +59,7 @@ extern "C"
       bool see_ubound;
       bool see_lbound;
       bool static_eval;
+      bool eval_info;
     } is_cached;
   } uo_move_cache;
 
@@ -74,6 +76,7 @@ extern "C"
     bool moves_generated;
     bool moves_sorted;
     uint8_t repetitions;
+    uo_evaluation_info eval_info;
     struct
     {
       uo_move killers[2];
@@ -349,7 +352,7 @@ extern "C"
     return (uint32_t)100 * (uint32_t)position->material / (uint32_t)uo_score_material_max;
   }
 
-  static inline int16_t uo_position_evaluate(const uo_position *position)
+  static inline int16_t uo_position_evaluate(const uo_position *position, uo_evaluation_info *info)
   {
     int16_t score = uo_score_tempo;
 
@@ -380,10 +383,13 @@ extern "C"
 
     uo_square square_own_K = uo_tzcnt(own_K);
     uo_bitboard attacks_own_K = uo_bitboard_attacks_K(square_own_K);
-    uo_bitboard next_to_own_K = attacks_own_K | own_K;
+    uo_bitboard zone_own_K = attacks_own_K | own_K | attacks_own_K << 8;
+    int attack_units_own = 0;
+
     uo_square square_enemy_K = uo_tzcnt(enemy_K);
     uo_bitboard attacks_enemy_K = uo_bitboard_attacks_K(square_enemy_K);
-    uo_bitboard next_to_enemy_K = attacks_enemy_K | enemy_K;
+    uo_bitboard zone_enemy_K = attacks_enemy_K | enemy_K | attacks_enemy_K >> 8;
+    int attack_units_enemy = 0;
 
     uo_bitboard pushes_own_P = uo_bitboard_single_push_P(own_P, empty) | uo_bitboard_double_push_P(own_P, empty);
     uo_bitboard pushes_enemy_P = uo_bitboard_single_push_enemy_P(enemy_P, empty) | uo_bitboard_double_push_enemy_P(enemy_P, empty);
@@ -391,6 +397,7 @@ extern "C"
     uo_bitboard attacks_left_own_P = uo_bitboard_attacks_left_P(own_P);
     uo_bitboard attacks_right_own_P = uo_bitboard_attacks_right_P(own_P);
     uo_bitboard attacks_own_P = attacks_left_own_P | attacks_right_own_P;
+
     uo_bitboard attacks_left_enemy_P = uo_bitboard_attacks_left_enemy_P(enemy_P);
     uo_bitboard attacks_right_enemy_P = uo_bitboard_attacks_right_enemy_P(enemy_P);
     uo_bitboard attacks_enemy_P = attacks_left_enemy_P | attacks_right_enemy_P;
@@ -402,11 +409,6 @@ extern "C"
     int16_t castling_right_own_OOO = uo_position_flags_castling_OOO(position->flags);
     int16_t castling_right_enemy_OO = uo_position_flags_castling_enemy_OO(position->flags);
     int16_t castling_right_enemy_OOO = uo_position_flags_castling_enemy_OOO(position->flags);
-
-    int count_attacker_to_own_K = 0;
-    int count_defender_of_own_K = 0;
-    int count_attacker_to_enemy_K = 0;
-    int count_defender_of_enemy_K = 0;
 
     // pawns
 
@@ -441,6 +443,9 @@ extern "C"
     uo_bitboard attacks_lower_value_own = attacks_own_P;
     uo_bitboard attacks_lower_value_enemy = attacks_enemy_P;
 
+    uo_bitboard supported_contact_check_by_R = 0;
+    uo_bitboard supported_contact_check_by_Q = 0;
+
     uo_bitboard temp;
 
     // knights
@@ -461,9 +466,9 @@ extern "C"
       score_mg += uo_score_adjust_piece_square_table_score(mg_table_N[square_own_N]);
       score_eg += uo_score_adjust_piece_square_table_score(eg_table_N[square_own_N]);
 
-      if (attacks_own_N & next_to_enemy_K) ++count_attacker_to_enemy_K;
-      if (attacks_own_N & next_to_own_K) ++count_defender_of_own_K;
+      attack_units_own += uo_popcnt(attacks_own_N & zone_enemy_K) * uo_attack_unit_N;
     }
+
     temp = enemy_N;
     score -= uo_score_N_square_attackable_by_P * (int16_t)uo_popcnt(enemy_N & potential_attacks_own_P);
     while (temp)
@@ -481,8 +486,7 @@ extern "C"
       score_mg -= uo_score_adjust_piece_square_table_score(mg_table_N[square_enemy_N ^ 56]);
       score_eg -= uo_score_adjust_piece_square_table_score(eg_table_N[square_enemy_N ^ 56]);
 
-      if (attacks_enemy_N & next_to_own_K) ++count_attacker_to_own_K;
-      if (attacks_enemy_N & next_to_enemy_K) ++count_defender_of_enemy_K;
+      attack_units_enemy += uo_popcnt(attacks_enemy_N & zone_own_K) * uo_attack_unit_N;
     }
     attacks_lower_value_own |= attacks_total_own_N;
     attacks_lower_value_enemy |= attacks_total_enemy_N;
@@ -506,8 +510,7 @@ extern "C"
       score_mg += uo_score_adjust_piece_square_table_score(mg_table_B[square_own_B]);
       score_eg += uo_score_adjust_piece_square_table_score(eg_table_B[square_own_B]);
 
-      if (attacks_own_B & next_to_enemy_K) ++count_attacker_to_enemy_K;
-      if (attacks_own_B & next_to_own_K) ++count_defender_of_own_K;
+      attack_units_own += uo_popcnt(attacks_own_B & zone_enemy_K) * uo_attack_unit_B;
     }
     temp = enemy_B;
     score -= uo_score_B_square_attackable_by_P * (int16_t)uo_popcnt(enemy_B & potential_attacks_own_P);
@@ -525,9 +528,8 @@ extern "C"
 
       score_mg -= uo_score_adjust_piece_square_table_score(mg_table_B[square_enemy_B ^ 56]);
       score_eg -= uo_score_adjust_piece_square_table_score(eg_table_B[square_enemy_B ^ 56]);
-
-      if (attacks_enemy_B & next_to_own_K) ++count_attacker_to_own_K;
-      if (attacks_enemy_B & next_to_enemy_K) ++count_defender_of_enemy_K;
+      
+      attack_units_enemy += uo_popcnt(attacks_enemy_B & zone_own_K) * uo_attack_unit_B;
     }
     attacks_lower_value_own |= attacks_total_own_B;
     attacks_lower_value_enemy |= attacks_total_enemy_B;
@@ -539,6 +541,7 @@ extern "C"
     {
       uo_square square_own_R = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_R = uo_bitboard_attacks_R(square_own_R, occupied);
+
       attacks_total_own_R |= attacks_own_R;
 
       int mobility_own_R = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_R));
@@ -553,8 +556,7 @@ extern "C"
       // connected rooks
       if (attacks_own_R & own_R) score += uo_score_connected_rooks / 2;
 
-      if (attacks_own_R & next_to_enemy_K) ++count_attacker_to_enemy_K;
-      if (attacks_own_R & next_to_own_K) ++count_defender_of_own_K;
+      attack_units_own += uo_popcnt(attacks_own_R & zone_enemy_K) * uo_attack_unit_R;
     }
     temp = enemy_R;
     score -= uo_score_R_square_attackable_by_P * (int16_t)uo_popcnt(enemy_R & potential_attacks_own_P);
@@ -576,8 +578,7 @@ extern "C"
       // connected rooks
       if (attacks_enemy_R & enemy_R) score -= uo_score_connected_rooks / 2;
 
-      if (attacks_enemy_R & next_to_own_K) ++count_attacker_to_own_K;
-      if (attacks_enemy_R & next_to_enemy_K) ++count_defender_of_enemy_K;
+      attack_units_enemy += uo_popcnt(attacks_enemy_R & zone_own_K) * uo_attack_unit_R;
     }
     attacks_lower_value_own |= attacks_total_own_R;
     attacks_lower_value_enemy |= attacks_total_enemy_R;
@@ -589,6 +590,7 @@ extern "C"
     {
       uo_square square_own_Q = uo_bitboard_next_square(&temp);
       uo_bitboard attacks_own_Q = uo_bitboard_attacks_Q(square_own_Q, occupied);
+
       attacks_total_own_Q |= attacks_own_Q;
 
       int mobility_own_Q = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_Q));
@@ -600,8 +602,7 @@ extern "C"
       score_mg += uo_score_adjust_piece_square_table_score(mg_table_Q[square_own_Q]);
       score_eg += uo_score_adjust_piece_square_table_score(eg_table_Q[square_own_Q]);
 
-      if (attacks_own_Q & next_to_enemy_K) ++count_attacker_to_enemy_K;
-      if (attacks_own_Q & next_to_own_K) ++count_defender_of_own_K;
+      attack_units_own += uo_popcnt(attacks_own_Q & zone_enemy_K) * uo_attack_unit_Q;
     }
     temp = enemy_Q;
     score -= uo_score_Q_square_attackable_by_P * (int16_t)uo_popcnt(enemy_Q & potential_attacks_own_P);
@@ -620,13 +621,26 @@ extern "C"
       score_mg -= uo_score_adjust_piece_square_table_score(mg_table_Q[square_enemy_Q ^ 56]);
       score_eg -= uo_score_adjust_piece_square_table_score(eg_table_Q[square_enemy_Q ^ 56]);
 
-      if (attacks_enemy_Q & next_to_own_K) ++count_attacker_to_own_K;
-      if (attacks_enemy_Q & next_to_enemy_K) ++count_defender_of_enemy_K;
+      attack_units_enemy += uo_popcnt(attacks_enemy_Q & zone_own_K) * uo_attack_unit_Q;
     }
     attacks_lower_value_own |= attacks_total_own_Q;
     attacks_lower_value_enemy |= attacks_total_enemy_Q;
+    
+    // king safety
 
-    // king
+    uo_bitboard undefended_zone_own_K = uo_andn(attacks_lower_value_own, zone_own_K);
+    uo_bitboard undefended_zone_enemy_K = uo_andn(attacks_lower_value_enemy, zone_enemy_K);
+
+    supported_contact_check_by_R |= own_R & (attacks_lower_value_own | attacks_own_K) & (attacks_enemy_K & uo_bitboard_attacks_R(square_enemy_K, 0));
+    attack_units_own += uo_popcnt(supported_contact_check_by_R & undefended_zone_enemy_K) * uo_attack_unit_supported_contact_R;
+    supported_contact_check_by_Q |= own_Q & (attacks_lower_value_own | attacks_own_K) & attacks_enemy_K;
+    attack_units_own += uo_popcnt(supported_contact_check_by_Q & undefended_zone_enemy_K) * uo_attack_unit_supported_contact_Q;
+
+    assert(attack_units_own < 100);
+    score += score_attacks_to_K[attack_units_own];
+
+    assert(attack_units_enemy < 100);
+    score -= score_attacks_to_K[attack_units_enemy];
 
     score_mg += uo_score_adjust_piece_square_table_score(mg_table_K[square_own_K]);
     score_eg += uo_score_adjust_piece_square_table_score(eg_table_K[square_own_K]);
@@ -693,44 +707,91 @@ extern "C"
     score_mg += uo_popcnt(uo_bitboard_files(attacks_own_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
     score_mg -= uo_popcnt(uo_bitboard_files(attacks_enemy_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
 
-    score += (count_attacker_to_enemy_K * uo_score_attacker_to_K - count_defender_of_enemy_K * uo_score_defender_to_K) * uo_max(0, 1 + count_attacker_to_enemy_K - count_defender_of_enemy_K);
-    score -= (count_attacker_to_own_K * uo_score_attacker_to_K - count_defender_of_own_K * uo_score_defender_to_K) * uo_max(0, 1 + count_attacker_to_own_K - count_defender_of_own_K);
-
     int32_t material_percentage = uo_position_material_percentage(position);
 
     score += score_mg * material_percentage / 100;
     score += score_eg * (100 - material_percentage) / 100;
 
+    if (info)
+    {
+      *info = (uo_evaluation_info){
+        .is_valid = true,
+
+      };
+    }
+
     assert(score < uo_score_tb_win_threshold && score > -uo_score_tb_win_threshold);
     return score;
   }
 
-  static inline int16_t uo_position_evaluate_and_cache(uo_position *position, uo_move_cache *move_cache)
+  static inline int16_t uo_position_evaluate_and_cache(uo_position *position, uo_evaluation_info *info, uo_move_cache *move_cache)
   {
     uo_move_history *stack = position->stack;
 
-    if (stack->static_eval != uo_score_unknown) return stack->static_eval;
+    int16_t static_eval = stack->static_eval;
+    bool is_info_ok = info == NULL;
 
-    int16_t static_eval = stack[-1].move == 0 ? -stack[-1].static_eval : uo_score_unknown;
+    if (!is_info_ok
+      && stack->eval_info.is_valid)
+    {
+      *info = stack->eval_info;
+      is_info_ok = true;
+    }
 
-    if (static_eval != uo_score_unknown)
+    if (is_info_ok
+      && static_eval != uo_score_unknown)
+    {
+      return static_eval;
+    }
+
+    static_eval = stack[-1].move == 0 ? -stack[-1].static_eval : uo_score_unknown;
+
+    if (!is_info_ok
+      && stack[-1].eval_info.is_valid)
+    {
+      *info = (uo_evaluation_info){
+        .is_valid = true,
+
+      };
+      is_info_ok = true;
+    }
+
+    if (is_info_ok
+      && static_eval != uo_score_unknown)
     {
       stack->static_eval = static_eval;
+      stack->eval_info = *info;
       return static_eval;
     }
 
     move_cache = uo_move_cache_get(move_cache, stack[-1].key, stack[-1].move);
 
-    if (move_cache && move_cache->is_cached.static_eval)
+    if (!is_info_ok
+      && move_cache
+      && move_cache->is_cached.eval_info)
+    {
+      *info = stack->eval_info = move_cache->eval_info;
+      is_info_ok = true;
+    }
+
+    if (is_info_ok
+      && move_cache
+      && move_cache->is_cached.static_eval)
     {
       static_eval = stack->static_eval = move_cache->static_eval;
       return static_eval;
     }
 
-    static_eval = stack->static_eval = uo_position_evaluate(position);
+    static_eval = stack->static_eval = uo_position_evaluate(position, info);
 
     if (move_cache)
     {
+      if (info)
+      {
+        move_cache->is_cached.eval_info = true;
+        move_cache->eval_info = *info;
+      }
+
       move_cache->is_cached.static_eval = true;
       move_cache->static_eval = static_eval;
     }
