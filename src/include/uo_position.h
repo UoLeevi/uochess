@@ -418,11 +418,13 @@ extern "C"
     int mobility_own_P = uo_popcnt(pushes_own_P) +
       uo_popcnt(attacks_left_own_P & mask_enemy) +
       uo_popcnt(attacks_right_own_P & mask_enemy);
+    score += !mobility_own_P * uo_score_zero_mobility_P;
     score += uo_score_mul_ln(uo_score_mobility_P, mobility_own_P * mobility_own_P);
 
     int mobility_enemy_P = uo_popcnt(pushes_enemy_P) +
       uo_popcnt(attacks_left_enemy_P & mask_own) +
       uo_popcnt(attacks_right_enemy_P & mask_own);
+    score -= !mobility_enemy_P * uo_score_zero_mobility_P;
     score -= uo_score_mul_ln(uo_score_mobility_P, mobility_enemy_P * mobility_enemy_P);
 
 
@@ -451,6 +453,7 @@ extern "C"
       attacks_total_own_N |= attacks_own_N;
 
       int mobility_own_N = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_N));
+      score += !mobility_own_N * uo_score_zero_mobility_N;
       score += uo_score_mul_ln(uo_score_mobility_N, mobility_own_N * mobility_own_N);
 
       score += uo_score_N + uo_score_extra_piece;
@@ -470,6 +473,7 @@ extern "C"
       attacks_total_enemy_N |= attacks_enemy_N;
 
       int mobility_enemy_N = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_N));
+      score -= !mobility_enemy_N * uo_score_zero_mobility_N;
       score -= uo_score_mul_ln(uo_score_mobility_N, mobility_enemy_N * mobility_enemy_N);
 
       score -= uo_score_N + uo_score_extra_piece;
@@ -494,6 +498,7 @@ extern "C"
       attacks_total_own_B |= attacks_own_B;
 
       int mobility_own_B = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_B));
+      score += !mobility_own_B * uo_score_zero_mobility_B;
       score += uo_score_mul_ln(uo_score_mobility_B, mobility_own_B * mobility_own_B);
 
       score += uo_score_B + uo_score_extra_piece;
@@ -513,6 +518,7 @@ extern "C"
       attacks_total_enemy_B |= attacks_enemy_B;
 
       int mobility_enemy_B = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_B));
+      score -= !mobility_enemy_B * uo_score_zero_mobility_B;
       score -= uo_score_mul_ln(uo_score_mobility_B, mobility_enemy_B * mobility_enemy_B);
 
       score -= uo_score_B + uo_score_extra_piece;
@@ -536,6 +542,7 @@ extern "C"
       attacks_total_own_R |= attacks_own_R;
 
       int mobility_own_R = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_R));
+      score += !mobility_own_R * uo_score_zero_mobility_R;
       score += uo_score_mul_ln(uo_score_mobility_R, mobility_own_R * mobility_own_R);
 
       score += uo_score_R + uo_score_extra_piece;
@@ -558,6 +565,7 @@ extern "C"
       attacks_total_enemy_R |= attacks_enemy_R;
 
       int mobility_enemy_R = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_R));
+      score -= !mobility_enemy_R * uo_score_zero_mobility_R;
       score -= uo_score_mul_ln(uo_score_mobility_R, mobility_enemy_R * mobility_enemy_R);
 
       score -= uo_score_R + uo_score_extra_piece;
@@ -584,6 +592,7 @@ extern "C"
       attacks_total_own_Q |= attacks_own_Q;
 
       int mobility_own_Q = uo_popcnt(uo_andn(mask_own | attacks_lower_value_enemy, attacks_own_Q));
+      score += !mobility_own_Q * uo_score_zero_mobility_Q;
       score += uo_score_mul_ln(uo_score_mobility_Q, mobility_own_Q * mobility_own_Q);
 
       score += uo_score_Q + uo_score_extra_piece;
@@ -603,6 +612,7 @@ extern "C"
       attacks_total_enemy_Q |= attacks_enemy_Q;
 
       int mobility_enemy_Q = uo_popcnt(uo_andn(mask_enemy | attacks_lower_value_own, attacks_enemy_Q));
+      score -= !mobility_enemy_Q * uo_score_zero_mobility_Q;
       score -= uo_score_mul_ln(uo_score_mobility_Q, mobility_enemy_Q * mobility_enemy_Q);
 
       score -= uo_score_Q + uo_score_extra_piece;
@@ -624,9 +634,14 @@ extern "C"
     score_mg -= uo_score_adjust_piece_square_table_score(mg_table_K[square_enemy_K ^ 56]);
     score_eg -= uo_score_adjust_piece_square_table_score(eg_table_K[square_enemy_K ^ 56]);
 
-    score += uo_score_mobility_K * (int16_t)uo_popcnt(uo_andn(attacks_enemy_K | attacks_lower_value_enemy, attacks_own_K));
+    int mobility_own_K = uo_popcnt(uo_andn(attacks_enemy_K | attacks_lower_value_enemy, attacks_own_K));
+    score += uo_score_zero_mobility_K * !mobility_own_K;
+    score += uo_score_mobility_K * mobility_own_K;
     score += uo_score_K_square_attackable_by_P * (int16_t)uo_popcnt(own_K & potential_attacks_enemy_P);
-    score -= uo_score_mobility_K * (int16_t)uo_popcnt(uo_andn(attacks_own_K | attacks_lower_value_own, attacks_enemy_K));
+
+    int mobility_enemy_K = uo_popcnt(uo_andn(attacks_own_K | attacks_lower_value_own, attacks_enemy_K));
+    score -= uo_score_zero_mobility_K * !mobility_enemy_K;
+    score -= uo_score_mobility_K * mobility_enemy_K;
     score -= uo_score_K_square_attackable_by_P * (int16_t)uo_popcnt(enemy_K & potential_attacks_own_P);
 
     score_mg += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
@@ -2087,21 +2102,23 @@ extern "C"
     uo_move *movelist = position->movelist.head;
     size_t move_count = position->stack->move_count;
 
-    // set bestmove as first and shift other moves by one position
-    if (move && movelist[0] != move)
-    {
-      for (int i = 1; i < move_count; ++i)
-      {
-        if (movelist[i] == move)
-        {
-          while (--i >= 0)
-          {
-            movelist[i + 1] = movelist[i];
-          }
+    // If there is no move specified or the move is already first, then return.
+    if (!move || movelist[0] == move) return;
 
-          movelist[0] = move;
-          break;
+    // Find the specified move
+    for (int i = 1; i < move_count; ++i)
+    {
+      if (movelist[i] == move)
+      {
+        // Move found. Shift preceding moves by one position.
+        while (--i >= 0)
+        {
+          movelist[i + 1] = movelist[i];
         }
+
+        // Place best move as first
+        movelist[0] = move;
+        break;
       }
     }
   }

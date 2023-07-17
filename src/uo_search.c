@@ -653,11 +653,21 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       ++info->tbhits;
 
-      entry.value = wdl > engine.tb.score_wdl_draw ? score_tb_win - 101
-        : wdl < engine.tb.score_wdl_draw ? -score_tb_win + 101
-        : uo_score_draw;
+      if (wdl > engine.tb.score_wdl_draw)
+      {
+        entry.value = score_tb_win - 101;
+        if (entry.value >= beta) return entry.value;
+      }
+      else if (wdl < -engine.tb.score_wdl_draw)
+      {
+        entry.value = -score_tb_win + 101;
+        if (entry.value <= alpha) return entry.value;
+      }
+      else
+      {
+        return uo_score_draw;
+      }
 
-      if (entry.value >= beta) return entry.value;
       alpha = uo_max(alpha, entry.value);
     }
   }

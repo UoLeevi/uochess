@@ -120,6 +120,13 @@ extern "C"
 #define uo_score_mobility_Q 4
 #define uo_score_mobility_K 3
 
+#define uo_score_zero_mobility_P -20
+#define uo_score_zero_mobility_N -30
+#define uo_score_zero_mobility_B -25
+#define uo_score_zero_mobility_R -20
+#define uo_score_zero_mobility_Q -40
+#define uo_score_zero_mobility_K -15
+
 #define uo_score_N_square_attackable_by_P -10
 #define uo_score_B_square_attackable_by_P -5
 #define uo_score_R_square_attackable_by_P -20
