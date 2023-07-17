@@ -692,20 +692,20 @@ extern "C"
     uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
     if (passed_own_P)
     {
-      score_eg += uo_score_passed_pawn * (int32_t)uo_popcnt(passed_own_P);
-      score_eg += uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
-      score_eg += uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
-      score_eg += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
+      score += uo_score_passed_pawn * (int32_t)uo_popcnt(passed_own_P);
+      score += uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
+      score += uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
+      score += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
     }
 
     // passed pawns
     uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
     if (passed_enemy_P)
     {
-      score_eg -= uo_score_passed_pawn * (int32_t)uo_popcnt(passed_enemy_P);
-      score_eg -= uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
-      score_eg -= uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
-      score_eg -= uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
+      score -= uo_score_passed_pawn * (int32_t)uo_popcnt(passed_enemy_P);
+      score -= uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
+      score -= uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
+      score -= uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
     }
 
     // castling rights
