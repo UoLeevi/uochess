@@ -674,8 +674,8 @@ static void uo_uci_command__eval(void)
   uo_evaluation_info eval_info;
   int16_t value = uo_position_evaluate(&engine.position, &eval_info);
 
-  int16_t mate_threat_own = uo_evaluate_mate_threat(&eval_info, uo_color_own);
-  int16_t mate_threat_enemy = uo_evaluate_mate_threat(&eval_info, uo_color_enemy);
+  int16_t mate_threat_own = eval_info.attack_units_enemy;
+  int16_t mate_threat_enemy = eval_info.attack_units_own;
 
   uint16_t color = uo_color(engine.position.flags) == uo_white ? 1 : -1;
 

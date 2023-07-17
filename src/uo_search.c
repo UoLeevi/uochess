@@ -206,15 +206,20 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
 
   // Step 2. Limit search depth reductions to prevent missing threats
   int net_reductions = info->depth - depth - position->ply;
-  if (net_reductions > info->depth / 2) return 0;
+  if (net_reductions > info->depth * 3 / 5) return 0;
 
   // Step 3. Determine depth reduction
+  bool is_check = uo_position_is_check(position);
+  uo_square square_from = uo_move_square_from(move);
+  uo_square square_to = uo_move_square_to(move);
+  const uo_piece *board = position->board;
+  uo_piece piece = board[square_from];
 
   if (
     // no reduction for shallow depth
     depth <= 4
-    // no reduction for first moves
-    || move_num < 8
+    // no reduction for first several moves
+    || move_num < 6
     // no reduction if there are very few legal moves
     || stack->move_count < 8
     // no reduction if position is check
@@ -222,16 +227,38 @@ static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread
     // no reduction on queen or knight promotions
     || uo_move_is_promotion_Q_or_N(move)
     // no reduction on captures with high enough SEE
-    || uo_move_is_capture(move) && uo_position_move_see_gt(position, move, -uo_score_P / 2, thread->move_cache)
+    || uo_move_is_capture(move) && uo_position_move_see_gt(position, move, -uo_score_P / 3, thread->move_cache)
     // no reduction on killer moves
     || uo_position_is_killer_move(position, move)
-    // no reduction on king moves
-    || uo_position_move_piece(position, move) == uo_piece__K)
+    // no reduction on pawn pushes near promotion
+    || piece == uo_piece__P && square_to >= uo_square__a6)
   {
     return 0;
   }
 
-  return uo_move_is_quiet(move) ? 2 : 1;
+  // No reduction for checks
+  uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
+  uo_position_update_next_move_checks(position, checks);
+  if (checks) return 0;
+
+
+  // Default reduction is one ply
+  size_t depth_reduction = 1;
+
+  // For quiet moves let's reduce more aggressively
+  if (uo_move_is_quiet(move))
+  {
+    depth_reduction += 1;
+
+    // If moving into defended square, increase reduction.
+    if (stack->eval_info.is_valid
+      && (stack->eval_info.attacks_enemy & uo_square_bitboard(square_to)))
+    {
+      depth_reduction += 1;
+    }
+  }
+
+  return depth_reduction;
 }
 
 static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
@@ -255,7 +282,8 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   size_t depth_extension = 0;
 
   // Passed pawn near promotion extension
-  if (piece == uo_piece__P && depth < 6)
+  if (piece == uo_piece__P
+    && depth < 6)
   {
     if (square_to >= uo_square__a7)
     {
@@ -283,18 +311,6 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
   uo_position_update_next_move_checks(position, checks);
   if (checks) depth_extension += 1;
-
-  //// Mate threat extension
-  //if (stack->eval_info.is_valid && stack[-2].eval_info.is_valid)
-  //{
-  //  int16_t mate_threat_own = uo_evaluate_mate_threat(&stack->eval_info, uo_color_own);
-  //  int16_t mate_threat_own_prev = uo_evaluate_mate_threat(&stack[-2].eval_info, uo_color_own);
-  //  if (mate_threat_own > 0 && mate_threat_own >= mate_threat_own_prev) depth_extension += 1;
-
-  //  int16_t mate_threat_enemy = uo_evaluate_mate_threat(&stack->eval_info, uo_color_enemy);
-  //  int16_t mate_threat_enemy_prev = uo_evaluate_mate_threat(&stack[-2].eval_info, uo_color_enemy);
-  //  if (mate_threat_enemy > 0 && mate_threat_enemy >= mate_threat_enemy_prev) depth_extension += 1;
-  //}
 
   // Let's extend by at most two plies
   return uo_min(depth_extension, 2);

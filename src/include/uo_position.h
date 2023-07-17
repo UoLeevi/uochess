@@ -417,6 +417,8 @@ extern "C"
     int count_enemy_P = uo_popcnt(enemy_P);
     score -= (uo_score_P + uo_score_extra_pawn) * count_enemy_P;
 
+    // pawn mobility
+
     int mobility_own_P = uo_popcnt(pushes_own_P) +
       uo_popcnt(attacks_left_own_P & mask_enemy) +
       uo_popcnt(attacks_right_own_P & mask_enemy);
@@ -429,6 +431,7 @@ extern "C"
     score -= !mobility_enemy_P * uo_score_zero_mobility_P;
     score -= uo_score_mul_ln(uo_score_mobility_P, mobility_enemy_P * mobility_enemy_P);
 
+    uo_bitboard temp;
 
     // bitboards marking attacked squares by pieces of the same type
     uo_bitboard attacks_total_own_N = 0;
@@ -445,8 +448,6 @@ extern "C"
 
     uo_bitboard supported_contact_check_by_R = 0;
     uo_bitboard supported_contact_check_by_Q = 0;
-
-    uo_bitboard temp;
 
     // knights
     temp = own_N;
@@ -528,7 +529,7 @@ extern "C"
 
       score_mg -= uo_score_adjust_piece_square_table_score(mg_table_B[square_enemy_B ^ 56]);
       score_eg -= uo_score_adjust_piece_square_table_score(eg_table_B[square_enemy_B ^ 56]);
-      
+
       attack_units_enemy += uo_popcnt(attacks_enemy_B & zone_own_K) * uo_attack_unit_B;
     }
     attacks_lower_value_own |= attacks_total_own_B;
@@ -625,15 +626,19 @@ extern "C"
     }
     attacks_lower_value_own |= attacks_total_own_Q;
     attacks_lower_value_enemy |= attacks_total_enemy_Q;
-    
+
+    uo_bitboard attacks_own = attacks_own_K | attacks_lower_value_own;
+    uo_bitboard attacks_enemy = attacks_enemy_K | attacks_lower_value_enemy;
+
     // king safety
 
     uo_bitboard undefended_zone_own_K = uo_andn(attacks_lower_value_own, zone_own_K);
     uo_bitboard undefended_zone_enemy_K = uo_andn(attacks_lower_value_enemy, zone_enemy_K);
 
-    supported_contact_check_by_R |= own_R & (attacks_lower_value_own | attacks_own_K) & (attacks_enemy_K & uo_bitboard_attacks_R(square_enemy_K, 0));
+    supported_contact_check_by_R |= own_R & attacks_own & (attacks_enemy_K & uo_bitboard_attacks_R(square_enemy_K, 0));
     attack_units_own += uo_popcnt(supported_contact_check_by_R & undefended_zone_enemy_K) * uo_attack_unit_supported_contact_R;
-    supported_contact_check_by_Q |= own_Q & (attacks_lower_value_own | attacks_own_K) & attacks_enemy_K;
+
+    supported_contact_check_by_Q |= own_Q & attacks_own & attacks_enemy_K;
     attack_units_own += uo_popcnt(supported_contact_check_by_Q & undefended_zone_enemy_K) * uo_attack_unit_supported_contact_Q;
 
     assert(attack_units_own < 100);
@@ -664,6 +669,24 @@ extern "C"
     // doupled pawns
     score += uo_score_doubled_P * (((int16_t)uo_popcnt(own_P) - (int16_t)uo_popcnt(uo_bitboard_files(own_P) & uo_bitboard_rank_first))
       - ((int16_t)uo_popcnt(enemy_P) - (int16_t)uo_popcnt(uo_bitboard_files(enemy_P) & uo_bitboard_rank_first)));
+
+    // isolated pawns
+    temp = own_P;
+    while (temp)
+    {
+      uo_square square_own_P = uo_bitboard_next_square(&temp);
+      bool is_isolated_P = !(uo_square_bitboard_adjecent_files[square_own_P] & own_P);
+      score += is_isolated_P * uo_score_isolated_P;
+    }
+
+    // isolated pawns
+    temp = enemy_P;
+    while (temp)
+    {
+      uo_square square_enemy_P = uo_bitboard_next_square(&temp);
+      bool is_isolated_P = !(uo_square_bitboard_adjecent_files[square_enemy_P] & enemy_P);
+      score -= is_isolated_P * uo_score_isolated_P;
+    }
 
     // passed pawns
     uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
@@ -716,7 +739,12 @@ extern "C"
     {
       *info = (uo_evaluation_info){
         .is_valid = true,
-
+        .attacks_own = attacks_own,
+        .attacks_enemy = attacks_enemy,
+        .undefended_zone_own_K = undefended_zone_own_K,
+        .undefended_zone_enemy_K = undefended_zone_enemy_K,
+        .attack_units_own = attack_units_own,
+        .attack_units_enemy = attack_units_enemy
       };
     }
 
@@ -744,16 +772,24 @@ extern "C"
       return static_eval;
     }
 
-    static_eval = stack[-1].move == 0 ? -stack[-1].static_eval : uo_score_unknown;
-
-    if (!is_info_ok
-      && stack[-1].eval_info.is_valid)
+    if (stack[-1].move == 0)
     {
-      *info = (uo_evaluation_info){
-        .is_valid = true,
+      static_eval = -stack[-1].static_eval;
 
-      };
-      is_info_ok = true;
+      if (!is_info_ok
+        && stack[-1].eval_info.is_valid)
+      {
+        *info = (uo_evaluation_info){
+          .is_valid = true,
+          .attacks_own = uo_bswap(stack[-1].eval_info.attacks_enemy),
+          .attacks_enemy = uo_bswap(stack[-1].eval_info.attacks_own),
+          .undefended_zone_own_K = uo_bswap(stack[-1].eval_info.undefended_zone_enemy_K),
+          .undefended_zone_enemy_K = uo_bswap(stack[-1].eval_info.undefended_zone_own_K),
+          .attack_units_own = stack[-1].eval_info.attack_units_enemy,
+          .attack_units_enemy = stack[-1].eval_info.attack_units_own
+        };
+        is_info_ok = true;
+      }
     }
 
     if (is_info_ok

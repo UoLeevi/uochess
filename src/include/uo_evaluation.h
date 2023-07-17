@@ -138,12 +138,13 @@ extern "C"
 
   // pawns
 #define uo_score_doubled_P -25
-#define uo_score_blocked_P -30
+#define uo_score_blocked_P -10
+#define uo_score_isolated_P -25
 
 #define uo_score_passed_pawn 20
-#define uo_score_passed_pawn_on_fifth 30
-#define uo_score_passed_pawn_on_sixth 70
-#define uo_score_passed_pawn_on_seventh 120
+#define uo_score_passed_pawn_on_fifth 35
+#define uo_score_passed_pawn_on_sixth 75
+#define uo_score_passed_pawn_on_seventh 150
 
   // piece development
 #define uo_score_rook_on_semiopen_file 15
@@ -177,25 +178,18 @@ extern "C"
   typedef struct uo_evaluation_info
   {
     bool is_valid;
-    // TODO: fill in useful information produced by evaluation to be used elsewhere
+    uo_bitboard attacks_own;
+    uo_bitboard attacks_enemy;
+    uo_bitboard undefended_zone_own_K;
+    uo_bitboard undefended_zone_enemy_K;
+    uint8_t attack_units_own;
+    uint8_t attack_units_enemy;
   } uo_evaluation_info;
 
   // piece square table weight
   static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
   {
-    return score / 2;
-  }
-
-  static inline int16_t uo_evaluate_mate_threat(uo_evaluation_info *info, uint8_t color)
-  {
-    if (color == uo_color_own)
-    {
-      return 0;
-    }
-    else
-    {
-      return 0;
-    }
+    return score / 3;
   }
 
   extern const int16_t score_attacks_to_K[100];
