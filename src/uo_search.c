@@ -196,90 +196,26 @@ static void uo_search_print_currmove(uo_engine_thread *thread, uo_move currmove,
   uo_engine_unlock_stdout();
 }
 
-// see: https://en.wikipedia.org/wiki/Late_move_reductions
-static inline size_t uo_search_choose_next_move_depth_reduction(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
+static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thread *thread, size_t move_num, size_t depth)
 {
   // Step 1. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
   uo_move_history *stack = position->stack;
-
-  // Step 2. Limit search depth reductions to prevent missing threats
-  int net_reductions = info->depth - depth - position->ply;
-  if (net_reductions > info->depth * 3 / 5) return 0;
-
-  // Step 3. Determine depth reduction
   bool is_check = uo_position_is_check(position);
+  size_t move_count = stack[-1].move_count;
+  uo_move move = stack[-1].move;
   uo_square square_from = uo_move_square_from(move);
   uo_square square_to = uo_move_square_to(move);
   const uo_piece *board = position->board;
-  uo_piece piece = board[square_from];
+  uo_piece piece = board[square_to ^ 56] ^ 1;
 
-  if (
-    // no reduction for shallow depth
-    depth <= 4
-    // no reduction for first several moves
-    || move_num < 6
-    // no reduction if there are very few legal moves
-    || stack->move_count < 8
-    // no reduction if position is check
-    || uo_position_is_check(position)
-    // no reduction on queen or knight promotions
-    || uo_move_is_promotion_Q_or_N(move)
-    // no reduction on captures with high enough SEE
-    || uo_move_is_capture(move) && uo_position_move_see_gt(position, move, -uo_score_P / 3, thread->move_cache)
-    // no reduction on killer moves
-    || uo_position_is_killer_move(position, move)
-    // no reduction on pawn pushes near promotion
-    || piece == uo_piece__P && square_to >= uo_square__a6)
-  {
-    return 0;
-  }
-
-  // No reduction for checks
-  uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
-  uo_position_update_next_move_checks(position, checks);
-  if (checks) return 0;
-
-
-  // Default reduction is one ply
-  size_t depth_reduction = 1;
-
-  // For quiet moves let's reduce more aggressively
-  if (uo_move_is_quiet(move))
-  {
-    depth_reduction += 1;
-
-    // If moving into defended square, increase reduction.
-    if (stack->eval_info.is_valid
-      && (stack->eval_info.attacks_enemy & uo_square_bitboard(square_to)))
-    {
-      depth_reduction += 1;
-    }
-  }
-
-  return depth_reduction;
-}
-
-static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread *thread, uo_move move, size_t move_num, size_t depth)
-{
-  // Step 1. Initialize variables
-  uo_search_info *info = &thread->info;
-  uo_position *position = &thread->position;
-  uo_move_history *stack = position->stack;
-
-  // Step 2. Limit search depth extensions to prevent search explosion
-  int net_extensions = position->ply + depth - info->depth;
-  if (net_extensions > info->depth) return 0;
+  // Step 2. Limit search depth extensions to prevent search explosion.
+  int net_extension_plies = position->ply + depth - info->depth;
+  int max_extension = uo_max(0, (info->depth - uo_max(0, net_extension_plies)) * 1000);
 
   // Step 3. Determine depth extension
-  bool is_check = uo_position_is_check(position);
-  uo_square square_from = uo_move_square_from(move);
-  uo_square square_to = uo_move_square_to(move);
-  const uo_piece *board = position->board;
-  uo_piece piece = board[square_from];
-
-  size_t depth_extension = 0;
+  int extension = 0;
 
   // Passed pawn near promotion extension
   if (piece == uo_piece__P
@@ -287,7 +223,7 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
   {
     if (square_to >= uo_square__a7)
     {
-      depth_extension += 1;
+      extension += 1000;
     }
     else if (square_to >= uo_square__a6)
     {
@@ -299,21 +235,56 @@ static inline size_t uo_search_choose_next_move_depth_extension(uo_engine_thread
 
       if (!(enemy_P_above & mask))
       {
-        depth_extension += 1;
+        extension += 700;
       }
     }
   }
 
   // Single-response extension
-  if (stack->move_count == 1) depth_extension += 1;
+  if (move_count == 1) extension += 1000;
 
   // Check extension
-  uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
-  uo_position_update_next_move_checks(position, checks);
-  if (checks) depth_extension += 1;
+  if (is_check) extension += 600;
 
-  // Let's extend by at most two plies
-  return uo_min(depth_extension, 2);
+  // If search extension is specified, return depth extension in plies.
+  if (extension > 0)
+  {
+    extension = uo_min(extension, max_extension);
+    return lround((double)extension / 1000.0);
+  }
+
+  // Step 4. No extension. Determine reductions. 
+
+  // Also limit reductions to avoid missing threats
+  int max_reduction = uo_min(depth * 1000 / 3, info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
+  if (max_reduction <= 0) return 0;
+
+  if (
+    // no reduction for shallow depth
+    depth <= 3
+    // no reduction for first few moves
+    || move_num <= 3
+    // no reduction if there are very few legal moves
+    || move_count < 6
+    // no reduction on queen or knight promotions
+    || uo_move_is_promotion_Q_or_N(move)
+    // no reduction on captures
+    || uo_move_is_capture(move)
+    // no reduction on killer moves
+    || uo_position_is_killer_move(position, move))
+  {
+    return 0;
+  }
+
+  // Default reduction is one fifth of the depth but capped at two plies
+  int reduction = uo_min(depth * 1000 / 5, 2000);
+
+  // Reduction based on move ordering
+  reduction += move_num * 1000 / move_count;
+
+  // Return depth reduction in plies.
+  reduction = uo_min(reduction, max_reduction);
+  return -lround((double)reduction / 1000.0);
 }
 
 // The quiescence search is a used to evaluate the board position when the game is not in non-quiet state,
@@ -770,9 +741,8 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Search extensions
-  size_t depth_extension = uo_search_choose_next_move_depth_extension(thread, move, 0, depth);
-
   uo_position_make_move(position, move);
+  size_t depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth));
   int16_t node_value = -uo_search_principal_variation(thread, depth + depth_extension - 1, -beta, -alpha, line, false, incomplete);
   uo_position_unmake_move(position);
 
@@ -827,25 +797,28 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // Reset pv line
     line[0] = 0;
 
-    // Step 21.1 Determine search depth extension
-    size_t depth_extension = uo_search_choose_next_move_depth_extension(thread, move, i, depth);
+    // Step 21.1 Determine search depth extension or reduction
 
-    // Step 21.2 Determine search depth reduction
-    size_t depth_reduction = uo_search_choose_next_move_depth_reduction(thread, move, i, depth);
+    uo_position_make_move(position, move);
+    size_t depth_extension_or_reduction = uo_search_determine_depth_reduction_or_extension(thread, i, depth);
+    int16_t node_value = alpha + 1;
+    size_t depth_lmr = depth + depth_extension_or_reduction;
+
 
     // Step 21.3 Perform zero window search for reduced depth
-    size_t depth_lmr = depth - depth_reduction + depth_extension;
-    uo_position_make_move(position, move);
-    int16_t node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, !cut, incomplete);
-
-    if (*incomplete)
+    if (is_zw_search || depth_extension_or_reduction < 0)
     {
-      uo_position_unmake_move(position);
-      if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
-      return uo_score_unknown;
+      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, !cut, incomplete);
+
+      if (*incomplete)
+      {
+        uo_position_unmake_move(position);
+        if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
+        return uo_score_unknown;
+      }
     }
 
-    // Step 21.4 If move failed high, perform full re-search
+    // Step 21.4 If reduced depth search failed high, perform full re-search
     if (!is_zw_search
       && node_value > alpha
       && node_value <= beta)
@@ -862,6 +835,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
         continue;
       }
 
+      size_t depth_extension = uo_max(0, depth_extension_or_reduction);
       depth_lmr = depth + depth_extension;
       node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha, line, false, incomplete);
 
