@@ -708,7 +708,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   bool is_expected_cut = static_eval >= beta || entry.data.type == uo_score_type__lower_bound;
 
   bool is_improving =
-      stack[-2].checks == uo_move_history__checks_none ? static_eval > stack[-2].static_eval
+    stack[-2].checks == uo_move_history__checks_none ? static_eval > stack[-2].static_eval
     : stack[-4].checks == uo_move_history__checks_none ? static_eval > stack[-4].static_eval
     : true;
 
@@ -769,8 +769,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     uo_search_print_currmove(thread, move, 1);
   }
 
-  uo_position_update_butterfly_heuristic(position, move);
-
   // Search extensions
   size_t depth_extension = uo_search_choose_next_move_depth_extension(thread, move, 0, depth);
 
@@ -787,11 +785,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     if (entry.value > alpha)
     {
-      uo_position_update_history_heuristic(position, entry.bestmove, depth);
-
       if (entry.value >= beta)
       {
-        uo_position_update_killers(position, entry.bestmove);
+        uo_position_update_cutoff_history(position, 0, depth);
         return uo_engine_store_entry(position, &entry);
       }
 
@@ -879,8 +875,6 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
     uo_position_unmake_move(position);
 
-    uo_position_update_butterfly_heuristic(position, move);
-
     if (node_value > entry.value)
     {
       entry.value = node_value;
@@ -889,11 +883,9 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
       if (entry.value > alpha)
       {
-        uo_position_update_history_heuristic(position, move, depth_lmr);
-
         if (entry.value >= beta)
         {
-          uo_position_update_killers(position, move);
+          uo_position_update_cutoff_history(position, i, depth);
           if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
           return uo_engine_store_entry(position, &entry);
         }
@@ -947,11 +939,15 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
           if (entry.value > alpha)
           {
-            uo_position_update_history_heuristic(position, move, depth_lmr);
-
             if (entry.value >= beta)
             {
-              uo_position_update_killers(position, move);
+              size_t i = 0;
+              for (; i < move_count; ++i)
+                if (move == position->movelist.head[i]) break;
+
+              assert(i < move_count);
+
+              uo_position_update_cutoff_history(position, i, depth);
               uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
               return uo_engine_store_entry(position, &entry);
             }
@@ -999,11 +995,15 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
         if (entry.value > alpha)
         {
-          uo_position_update_history_heuristic(position, move, depth_lmr);
-
           if (entry.value >= beta)
           {
-            uo_position_update_killers(position, move);
+            size_t i = 0;
+            for (; i < move_count; ++i)
+              if (move == position->movelist.head[i]) break;
+
+            assert(i < move_count);
+
+            uo_position_update_cutoff_history(position, i, depth);
             uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
             return uo_engine_store_entry(position, &entry);
           }

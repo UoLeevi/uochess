@@ -1292,10 +1292,8 @@ extern "C"
     uo_square square_to = uo_move_square_to(move);
     uo_piece piece_captured = board[square_to];
 
-    int16_t see_ubound;
-    int16_t see_lbound;
-    int16_t gain[32];
-    gain[0] = see_ubound = uo_piece_value(piece_captured);
+    // SEE cannot be higher than the value of captured piece
+    int16_t see_ubound = uo_piece_value(piece_captured);
 
     if (see_ubound <= gt)
     {
@@ -1308,27 +1306,18 @@ extern "C"
       return false;
     }
 
+    int16_t gain[32];
+    gain[0] = see_ubound;
+
     uo_square square_from = uo_move_square_from(move);
     uo_piece piece = board[square_from];
     assert(uo_color(piece) == uo_color_own);
 
-    // speculative store, if defended
+    // Speculative store, if defended
     gain[1] = uo_piece_value(piece) - gain[0];
 
-    if (gain[0] > 0 && gain[1] < 0)
-    {
-      // pruning does not influence the result
-
-      if (move_cache)
-      {
-        move_cache->is_cached.see = true;
-        move_cache->see = gain[0];
-      }
-
-      return gain[0] > gt;
-    }
-
-    see_lbound = -gain[1];
+    // SEE cannot be lower than the value of pieces after initial recapture
+    int16_t see_lbound = -gain[1];
     if (see_lbound > gt)
     {
       if (move_cache)
@@ -1339,6 +1328,8 @@ extern "C"
 
       return true;
     }
+
+    // Resolve recapture chain
 
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
@@ -1960,8 +1951,7 @@ extern "C"
 
   static inline bool uo_position_is_killer_move(const uo_position *position, uo_move move)
   {
-    uo_move *killers = position->stack->search.killers;
-
+    uo_move *killers = position->stack[-1].search.killers;
     return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
   }
 
@@ -2004,6 +1994,43 @@ extern "C"
     return index;
   }
 
+  static inline void uo_position_update_cutoff_history(uo_position *position, size_t cutoff_move_num, size_t depth)
+  {
+    // Increment butterfly heuristic counter for previously tried non-cutoff moves
+    for (size_t i = 0; i < cutoff_move_num; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+      if (uo_move_is_tactical(move)) continue;
+      size_t index = uo_position_move_history_heuristic_index(position, move);
+      ++position->bftable[index];
+    }
+
+    uo_move move = position->movelist.head[cutoff_move_num];
+    if (uo_move_is_tactical(move)) return;
+
+    // Update history heuristic score for the cutoff move
+    size_t index = uo_position_move_history_heuristic_index(position, move);
+    position->hhtable[index] += depth + 1;
+
+    // Update killer moves
+    uo_move *killers = position->stack[-1].search.killers;
+    if (killers[0] != move)
+    {
+      killers[1] = killers[0];
+      killers[0] = move;
+    }
+  }
+
+  static inline int16_t uo_position_move_relative_history_score(const uo_position *position, uo_move move)
+  {
+    // relative history heuristic
+    size_t index = uo_position_move_history_heuristic_index(position, move);
+    uint32_t hhscore = position->hhtable[index] << 4;
+    uint32_t bfscore = position->bftable[index] + 1;
+
+    return hhscore / bfscore;
+  }
+
   static inline int16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
     int16_t move_score = 0;
@@ -2012,11 +2039,8 @@ extern "C"
     move_score += is_killer_move * 1000;
 
     // relative history heuristic
-    size_t index = uo_position_move_history_heuristic_index(position, move);
-    uint32_t hhscore = position->hhtable[index] << 4;
-    uint32_t bfscore = position->bftable[index] + 1;
-
-    move_score += hhscore / bfscore;
+    int16_t rhscore = uo_position_move_relative_history_score(position, move);
+    move_score += rhscore;
 
     return move_score;
   }
@@ -2265,27 +2289,6 @@ extern "C"
     }
 
     return true;
-  }
-
-  static inline void uo_position_update_killers(uo_position *position, uo_move move)
-  {
-    if (!uo_move_is_capture(move) && position->stack->search.killers[0] != move)
-    {
-      position->stack->search.killers[1] = position->stack->search.killers[0];
-      position->stack->search.killers[0] = move;
-    }
-  }
-
-  static inline void uo_position_update_history_heuristic(uo_position *position, uo_move move, size_t depth)
-  {
-    size_t index = uo_position_move_history_heuristic_index(position, move);
-    position->hhtable[index] += 1 << depth;
-  }
-
-  static inline void uo_position_update_butterfly_heuristic(uo_position *position, uo_move move)
-  {
-    size_t index = uo_position_move_history_heuristic_index(position, move);
-    ++position->bftable[index];
   }
 
   uo_move uo_position_parse_move(const uo_position *position, char str[5]);
