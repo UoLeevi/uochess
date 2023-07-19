@@ -2150,7 +2150,10 @@ extern "C"
       uo_piece piece = board[square_from];
       uo_piece piece_captured = board[square_to];
 
-      move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / 8;
+      // MVV-LVA (Most Valuable Victim - Least Valuable Aggressor)
+      move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / (uo_score_Q / uo_score_P + 1);
+
+      // Penalty of captures which lose material
       move_score -= !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece);
     }
 
