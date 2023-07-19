@@ -2151,7 +2151,7 @@ extern "C"
       uo_piece piece_captured = board[square_to];
 
       move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / 8;
-      move_score += !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece);
+      move_score -= !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece);
     }
 
     if (move_type & uo_move_type__promo)
