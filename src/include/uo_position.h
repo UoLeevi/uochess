@@ -2063,6 +2063,11 @@ extern "C"
 
   static inline int16_t uo_position_calculate_non_tactical_move_score(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
+    const uo_piece *board = position->board;
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    uo_piece piece = board[square_from];
+
     int16_t move_score = 0;
 
     // Killer heuristic
@@ -2073,14 +2078,20 @@ extern "C"
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
 
+    // If square is controlled by enemy, let's add a penalty
+    if (position->stack->eval_info.is_valid)
+    {
+      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+      uo_bitboard attacks_enemy = position->stack->eval_info.attacks_enemy;
+      uo_bitboard attacks_own = position->stack->eval_info.attacks_own;
+      bool is_controlled_by_enemy = uo_andn(attacks_own, attacks_enemy) & bitboard_to;
+
+      move_score -= is_controlled_by_enemy * uo_piece_value(piece);
+    }
+
     // Default to piece-square table based move ordering
     if (move_score == 0)
     {
-      const uo_piece *board = position->board;
-      uo_square square_from = uo_move_square_from(move);
-      uo_square square_to = uo_move_square_to(move);
-      uo_piece piece = board[square_from];
-
       int32_t material_percentage = uo_position_material_percentage(position);
 
       move_score -= uo_score_Q;
@@ -2372,7 +2383,7 @@ extern "C"
       {
         return false;
       }
-  }
+    }
 
     return true;
   }
@@ -2388,7 +2399,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-}
+    }
 #endif
 
 #endif
