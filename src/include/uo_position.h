@@ -1286,6 +1286,14 @@ extern "C"
       if (move_cache->is_cached.see_lbound && move_cache->see_lbound > gt) return true;
       if (move_cache->is_cached.see_ubound && move_cache->see_ubound <= gt) return false;
       if (move_cache->is_cached.see) return move_cache->see > gt;
+
+      // Although static evaluation is not purely materialistic, let's still utilize it if it is available
+      if (move_cache->is_cached.static_eval
+        && position->stack->static_eval != uo_score_unknown)
+      {
+        int16_t eval_diff = -move_cache->static_eval - position->stack->static_eval;
+        return eval_diff > gt;
+      }
     }
 
     const uo_piece *board = position->board;
@@ -1304,6 +1312,22 @@ extern "C"
       }
 
       return false;
+    }
+
+    // Let's still try one more trick and use attacks bitboard from static evaluation to see if the square attacked
+    if (position->stack->eval_info.is_valid)
+    {
+      bool is_attacked = position->stack->eval_info.attacks_enemy & uo_square_bitboard(square_to);
+      if (!is_attacked)
+      {
+        if (move_cache)
+        {
+          move_cache->is_cached.see = true;
+          move_cache->see = see_ubound;
+        }
+
+        return true;
+      }
     }
 
     int16_t gain[32];
@@ -2126,7 +2150,8 @@ extern "C"
       uo_piece piece = board[square_from];
       uo_piece piece_captured = board[square_to];
 
-      move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / 2;
+      move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / 8;
+      move_score += !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece);
     }
 
     if (move_type & uo_move_type__promo)
@@ -2344,7 +2369,7 @@ extern "C"
       {
         return false;
       }
-    }
+  }
 
     return true;
   }

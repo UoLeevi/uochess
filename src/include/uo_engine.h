@@ -182,6 +182,7 @@ extern "C"
   // even in the case that the score is not valid given search depth and alpha/beta values.
   static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry)
   {
+    // Step 1. Probe opening book if enabled
     if (engine.book)
     {
       const uo_book_entry *book_entry = uo_book_get(engine.book, position);
@@ -191,33 +192,40 @@ extern "C"
         && uo_position_is_legal_move(position, book_entry->bestmove))
       {
         int16_t value = uo_score_adjust_from_ttable(position->ply, book_entry->value);
-        abtentry->value = value;
-        abtentry->bestmove = book_entry->bestmove;
-        abtentry->depth = book_entry->depth;
+        abtentry->value = abtentry->data.value = value;
+        abtentry->bestmove = abtentry->data.bestmove = book_entry->bestmove;
+        abtentry->depth = abtentry->data.depth = book_entry->depth;
+        abtentry->data.type = uo_score_type__exact;
         return true;
       }
     }
 
+    // Step 2. Probe transposition table
     bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
+    // Step 3. Return if no match was found
     if (!found) return false;
 
-    assert(!abtentry->data.bestmove || uo_position_is_legal_move(position, abtentry->data.bestmove));
     abtentry->bestmove = abtentry->data.bestmove;
+    assert(!abtentry->bestmove || uo_position_is_legal_move(position, abtentry->bestmove));
 
+    // Step 4. Adjust mate-in and table base scores by accounting plies
     int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
 
+    // Step 5. Return if transposition table entry from more shallow depth search
     if (abtentry->data.depth < abtentry->depth)
     {
       return false;
     }
 
+    // Step 6. In case the transposition table entry value is exact, return value.
     if (abtentry->data.type == uo_score_type__exact)
     {
       abtentry->value = value;
       return true;
     }
 
+    // Step 7. Beta cutoff
     if (abtentry->data.type == uo_score_type__lower_bound
       && value > abtentry->beta)
     {
@@ -231,6 +239,7 @@ extern "C"
       return true;
     }
 
+    // Return false
     return false;
   }
 
