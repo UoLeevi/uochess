@@ -120,6 +120,10 @@ extern "C"
       int argc;
       char **argv;
     } process_info;
+    struct
+    {
+      char *name;
+    } engine_info;
   } uo_engine;
 
   extern uo_engine_options engine_options;
@@ -141,13 +145,13 @@ extern "C"
 
   static inline void uo_engine_lock_stdout()
   {
-    uo_mutex_lock(engine.stdout_mutex);
+    //uo_mutex_lock(engine.stdout_mutex);
   }
 
   static inline void uo_engine_unlock_stdout()
   {
     fflush(stdout);
-    uo_mutex_unlock(engine.stdout_mutex);
+    //uo_mutex_unlock(engine.stdout_mutex);
   }
 
   static inline void uo_engine_clear_hash()
@@ -208,25 +212,20 @@ extern "C"
       return false;
     }
 
-    if (abtentry->data.type == uo_score_type__exact && (position->ply || abtentry->bestmove))
+    if (abtentry->data.type == uo_score_type__exact)
     {
       abtentry->value = value;
       return true;
     }
 
-    int16_t alpha = abtentry->alpha;
-    int16_t beta = abtentry->beta;
-
-    if (abtentry->data.type == uo_score_type__lower_bound)
+    if (abtentry->data.type == uo_score_type__lower_bound
+      && value > abtentry->beta)
     {
-      alpha = uo_max(alpha, value);
+      abtentry->value = value;
+      return true;
     }
-    else
-    {
-      beta = uo_min(beta, value);
-    }
-
-    if (alpha >= beta && (position->ply || abtentry->bestmove))
+    else if (abtentry->data.type == uo_score_type__upper_bound
+      && value < abtentry->alpha)
     {
       abtentry->value = value;
       return true;

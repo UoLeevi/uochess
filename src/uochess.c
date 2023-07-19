@@ -17,6 +17,16 @@ static void uochess_init(int argc, char **argv)
 {
   engine.process_info.argc = argc;
   engine.process_info.argv = argv;
+
+  char *filename = uo_filename_from_path(engine.process_info.argv[0]);
+  char *file_ext = uo_file_extension_from_path(filename);
+  size_t len_name = strlen(filename) - (file_ext ? strlen(file_ext) : 0);
+  char *filename_without_ext = malloc(len_name + 1);
+  memcpy(filename_without_ext, filename, len_name);
+  filename_without_ext[len_name] = '\0';
+
+  engine.engine_info.name = filename_without_ext;
+
   uo_zobrist_init();
   uo_bitboard_init();
   uo_engine_load_default_options();

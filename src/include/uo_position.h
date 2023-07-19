@@ -1951,8 +1951,14 @@ extern "C"
 
   static inline bool uo_position_is_killer_move(const uo_position *position, uo_move move)
   {
-    uo_move *killers = position->stack[-1].search.killers;
-    return !uo_move_is_capture(move) && (move == killers[0] || move == killers[1]);
+    // Use zero to indicate previous move
+    uo_move *killers = move
+      ? position->stack[-1].search.killers
+      : position->stack[-2].search.killers;
+
+    if (move == 0) move = position->stack[-1].move;
+
+    return move == killers[0] || move == killers[1];
   }
 
   static inline bool uo_position_is_skipped_move(const uo_position *position, uo_move move)
@@ -2031,16 +2037,68 @@ extern "C"
     return hhscore / bfscore;
   }
 
-  static inline int16_t uo_position_calculate_non_tactical_move_score(uo_position *position, uo_move move, uo_move_cache *move_cache)
+  static inline int16_t uo_position_calculate_non_tactical_move_score(const uo_position *position, uo_move move, uo_move_cache *move_cache)
   {
     int16_t move_score = 0;
 
+    // Killer heuristic
     bool is_killer_move = uo_position_is_killer_move(position, move);
     move_score += is_killer_move * 1000;
 
-    // relative history heuristic
+    // Relative history heuristic
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
+
+    // Default to piece-square table based move ordering
+    if (move_score == 0)
+    {
+      const uo_piece *board = position->board;
+      uo_square square_from = uo_move_square_from(move);
+      uo_square square_to = uo_move_square_to(move);
+      uo_piece piece = board[square_from];
+
+      int32_t material_percentage = uo_position_material_percentage(position);
+
+      move_score -= uo_score_Q;
+      int16_t score_mg = 0;
+      int16_t score_eg = 0;
+
+      switch (piece)
+      {
+        case uo_piece__P:
+          score_mg += mg_table_P[square_to] - mg_table_P[square_from];
+          score_eg += eg_table_P[square_to] - eg_table_P[square_from];
+          break;
+
+        case uo_piece__N:
+          score_mg += mg_table_N[square_to] - mg_table_N[square_from];
+          score_eg += eg_table_N[square_to] - eg_table_N[square_from];
+          break;
+
+        case uo_piece__B:
+          score_mg += mg_table_B[square_to] - mg_table_B[square_from];
+          score_eg += eg_table_B[square_to] - eg_table_B[square_from];
+          break;
+
+        case uo_piece__R:
+          score_mg += mg_table_R[square_to] - mg_table_R[square_from];
+          score_eg += eg_table_R[square_to] - eg_table_R[square_from];
+          break;
+
+        case uo_piece__Q:
+          score_mg += mg_table_Q[square_to] - mg_table_Q[square_from];
+          score_eg += eg_table_Q[square_to] - eg_table_Q[square_from];
+          break;
+
+        case uo_piece__K:
+          score_mg += mg_table_K[square_to] - mg_table_K[square_from];
+          score_eg += eg_table_K[square_to] - eg_table_K[square_from];
+          break;
+      }
+
+      move_score += score_mg * material_percentage / 100;
+      move_score += score_eg * (100 - material_percentage) / 100;
+    }
 
     return move_score;
   }
@@ -2081,7 +2139,7 @@ extern "C"
 
   static inline int uo_position_partition_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
-    int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
+    int16_t *move_scores = &position->movelist.move_scores[movelist - position->movelist.head];
     int16_t pivot_score = move_scores[hi];
     uo_move temp_move;
     int16_t temp_score;
@@ -2114,7 +2172,7 @@ extern "C"
 
   static inline void uo_position_insertion_sort_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
-    int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
+    int16_t *move_scores = &position->movelist.move_scores[movelist - position->movelist.head];
     uo_move temp_move;
     int16_t temp_score;
 
@@ -2139,7 +2197,7 @@ extern "C"
 
   static inline size_t uo_position_sort_skipped_moves(uo_position *position, uo_move *movelist, int lo, int hi)
   {
-    int16_t *move_scores = position->movelist.move_scores + (movelist - position->movelist.head);
+    int16_t *move_scores = &position->movelist.move_scores[movelist - position->movelist.head];
     size_t skipped_move_count = 0;
     uo_move temp_move = 0;
     uo_move *tail = position->movelist.head + position->stack->move_count;

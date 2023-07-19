@@ -360,6 +360,13 @@ static void uo_uci_command__go(void)
         continue;
       }
 
+      if (ptr && strcmp(ptr, "infinite") == 0)
+      {
+        engine.search_params.depth = UO_MAX_PLY;
+        uo_uci_read_stdin();
+        continue;
+      }
+
       if (ptr && strcmp(ptr, "depth") == 0)
       {
         uo_uci_read_stdin();
@@ -634,7 +641,7 @@ static void uo_uci_command__test(void)
 
 static void uo_uci_command_init__uci(void)
 {
-  printf("id name uochess\n");
+  printf("id name %s\n", engine.engine_info.name);
   printf("id author Leevi Uotinen\n\n");
   printf("option name Debug Log File type string default\n");
   printf("option name Threads type spin default %zu min 1 max 254\n", engine_options.threads);

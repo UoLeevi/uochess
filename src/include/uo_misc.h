@@ -17,24 +17,27 @@ extern "C"
 
   // Time functions
 
-  typedef struct timespec uo_time;
+  typedef struct uo_time
+  {
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER counter;
+  } uo_time;
 
   static inline void uo_time_now(uo_time *time)
   {
-    timespec_get(time, TIME_UTC);
+    QueryPerformanceCounter(&time->counter);
+    QueryPerformanceFrequency(&time->frequency);
   }
 
   static inline double uo_time_diff_msec(const uo_time *start, const uo_time *end)
   {
-    double time_msec = difftime(end->tv_sec, start->tv_sec) * 1000.0;
-    time_msec += (end->tv_nsec - start->tv_nsec) / 1000000.0;
-    return time_msec;
+    return (end->counter.QuadPart - start->counter.QuadPart) * 1000.0 / start->frequency.QuadPart;
   }
 
   static inline double uo_time_elapsed_msec(const uo_time *time)
   {
     uo_time time_now;
-    uo_time_now(&time_now);
+    QueryPerformanceCounter(&time_now.counter);
     return uo_time_diff_msec(time, &time_now);
   }
 
@@ -128,6 +131,25 @@ extern "C"
   void uo_process_free(uo_process *process);
   size_t uo_process_write_stdin(uo_process *process, const char *ptr, size_t len);
   size_t uo_process_read_stdout(uo_process *process, char *buffer, size_t len);
+
+
+  // File paths
+
+  static inline char *uo_filename_from_path(char *path)
+  {
+    char *slash = strrchr(path, '/');
+    char *backslash = strrchr(path, '\\');
+
+    return
+      slash > backslash ? slash + 1 :
+      backslash == NULL ? NULL :
+      backslash + 1;
+  }
+
+  static inline char *uo_file_extension_from_path(char *path)
+  {
+    return strrchr(path, '.');
+  }
 
 #ifdef __cplusplus
 }

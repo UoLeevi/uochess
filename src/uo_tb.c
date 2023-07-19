@@ -961,10 +961,32 @@ int uo_tb_root_probe_dtz(uo_position *position, int *success)
     }
   }
 
-  // If losing, let's do nothing
+  // If losing, let's delay as much as possible
   else // dtz < 0
   {
-    return dtz;
+    for (size_t i = 0; i < move_count; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+
+      bool is_pawn_move = uo_position_move_piece(position, move) == uo_piece__P;
+      bool is_capture = uo_move_is_capture(move);
+
+      uo_position_make_move(position, move);
+      int dtz_move = -uo_tb_probe_dtz(position, success);
+      uo_position_unmake_move(position);
+
+      if (!*success) return 0;
+
+      if (is_pawn_move || is_capture)
+      {
+        // Assign lower score to moves which make progress
+        move_scores[i] = -dtz_move - 100;
+        continue;
+      }
+
+      // Score moves with higher DTZ as first
+      move_scores[i] = -dtz_move;
+    }
   }
 
   uo_position_quicksort_moves(position, position->movelist.head, 0, move_count - 1);

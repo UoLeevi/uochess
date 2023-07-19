@@ -61,6 +61,7 @@ extern "C"
     bool is_tb_position;
     int16_t dtz;
     uint8_t bestmove_change_depth;
+    double movetime_remaining_msec;
     uo_move *pv;
     uo_move **secondary_pvs;
   } uo_search_info;

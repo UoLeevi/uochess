@@ -34,7 +34,7 @@ extern "C"
 #define UO_QS_CHECKS_DEPTH 2
 
 // Principal variation minimum allocated length
-#define UO_PV_ALLOC_MIN_LENGTH 6
+#define UO_PV_ALLOC_MIN_LENGTH 12
 
 #define UO_TTABLE_LOCK_BITS 10 
 
