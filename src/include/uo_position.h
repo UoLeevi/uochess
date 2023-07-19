@@ -2078,15 +2078,17 @@ extern "C"
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
 
-    // If square is controlled by enemy, let's add a penalty
+    // If square is attacked by enemy, let's add a penalty
     if (position->stack->eval_info.is_valid)
     {
-      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
       uo_bitboard attacks_enemy = position->stack->eval_info.attacks_enemy;
       uo_bitboard attacks_own = position->stack->eval_info.attacks_own;
-      bool is_controlled_by_enemy = uo_andn(attacks_own, attacks_enemy) & bitboard_to;
+      uo_bitboard attacks_estimate = piece == uo_piece__P
+        ? uo_andn(attacks_own, attacks_enemy)
+        : attacks_enemy;
 
-      move_score -= is_controlled_by_enemy * uo_piece_value(piece);
+      bool is_attacked_by_enemy = uo_square_bitboard(square_to) & attacks_estimate;
+      move_score -= is_attacked_by_enemy * uo_piece_value(piece) / 8;
     }
 
     // Default to piece-square table based move ordering
