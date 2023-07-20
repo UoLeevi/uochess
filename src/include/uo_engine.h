@@ -166,12 +166,13 @@ extern "C"
 
   typedef struct uo_abtentry
   {
-    const int16_t alpha;
-    const int16_t beta;
+    int16_t *alpha;
+    int16_t *beta;
     int8_t depth;
     uo_tdata data;
     uo_move bestmove;
     int16_t value;
+    int16_t alpha_initial;
   } uo_abtentry;
 
   // Retrieves an entry from the transposition table or from the opening book.
@@ -182,7 +183,10 @@ extern "C"
   // even in the case that the score is not valid given search depth and alpha/beta values.
   static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry)
   {
-    // Step 1. Probe opening book if enabled
+    // Step 1. Save initial alpha
+    abtentry->alpha_initial = *abtentry->alpha;
+
+    // Step 2. Probe opening book if enabled
     if (engine.book)
     {
       const uo_book_entry *book_entry = uo_book_get(engine.book, position);
@@ -200,46 +204,61 @@ extern "C"
       }
     }
 
-    // Step 2. Probe transposition table
+    // Step 3. Probe transposition table
     bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
 
-    // Step 3. Return if no match was found
+    // Step 4. Return if no match was found
     if (!found) return false;
 
     abtentry->bestmove = abtentry->data.bestmove;
     assert(!abtentry->bestmove || uo_position_is_legal_move(position, abtentry->bestmove));
 
-    // Step 4. Adjust mate-in and table base scores by accounting plies
+    // Step 5. Adjust mate-in and table base scores by accounting plies
     int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
 
-    // Step 5. Return if transposition table entry from more shallow depth search
+    // Step 6. Return if transposition table entry from more shallow depth search
     if (abtentry->data.depth < abtentry->depth)
     {
       return false;
     }
 
-    // Step 6. In case the transposition table entry value is exact, return value.
-    if (abtentry->data.type == uo_score_type__exact)
+    switch (abtentry->data.type)
     {
-      abtentry->value = value;
-      return true;
+      // Step 7. In case the transposition table entry value is exact, return value.
+      case uo_score_type__exact:
+        abtentry->value = value;
+        return true;
+
+      case uo_score_type__lower_bound:
+        // Step 8. Beta cutoff
+        if (value >= *abtentry->beta)
+        {
+          abtentry->value = value;
+          return true;
+        }
+        else
+        {
+          // Step 9. Update alpha
+          *abtentry->alpha = abtentry->alpha_initial = uo_max(value, abtentry->alpha_initial);
+          break;
+        }
+
+      case uo_score_type__upper_bound:
+        // Step 10. Beta cutoff, based on alpha value
+        if (value <= abtentry->alpha_initial)
+        {
+          abtentry->value = value;
+          return true;
+        }
+        else
+        {
+          // Step 11. Update beta
+          *abtentry->beta = uo_min(value, *abtentry->beta);
+          break;
+        }
     }
 
-    // Step 7. Beta cutoff
-    if (abtentry->data.type == uo_score_type__lower_bound
-      && value > abtentry->beta)
-    {
-      abtentry->value = value;
-      return true;
-    }
-    else if (abtentry->data.type == uo_score_type__upper_bound
-      && value < abtentry->alpha)
-    {
-      abtentry->value = value;
-      return true;
-    }
-
-    // Return false
+    // Step 12. Return false to indicate that search should be continued
     return false;
   }
 
@@ -254,8 +273,8 @@ extern "C"
       abtentry->data.bestmove = abtentry->bestmove;
       abtentry->data.value = uo_score_adjust_to_ttable(position->ply, abtentry->value);
       abtentry->data.type =
-        abtentry->value >= abtentry->beta ? uo_score_type__lower_bound :
-        abtentry->value <= abtentry->alpha ? uo_score_type__upper_bound :
+        abtentry->value >= *abtentry->beta ? uo_score_type__lower_bound :
+        abtentry->value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
         uo_score_type__exact;
 
       uo_ttable_set(&engine.ttable, position, &abtentry->data);
@@ -324,7 +343,7 @@ extern "C"
   uo_process *uo_engine_start_new_process(char *cmdline);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

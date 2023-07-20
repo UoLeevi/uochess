@@ -2040,7 +2040,7 @@ extern "C"
 
     // Update history heuristic score for the cutoff move
     size_t index = uo_position_move_history_heuristic_index(position, move);
-    position->hhtable[index] += depth + 1;
+    position->hhtable[index] += 2 << depth;
 
     // Update killer moves
     uo_move *killers = position->stack[-1].search.killers;

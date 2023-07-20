@@ -354,11 +354,10 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   if (alpha >= beta) return alpha;
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
-  uo_abtentry entry = { alpha, beta, 0 };
+  uo_abtentry entry = { &alpha, &beta, 0 };
   if (uo_engine_lookup_entry(position, &entry))
   {
-    // Unless draw by 50 move rule is a possibility, let's return transposition table score
-    if (rule50 < 90) return entry.value;
+    return entry.value;
   }
 
   // Step 7. If search is stopped, return unknown value
@@ -556,7 +555,10 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
   if (!depth) return;
 
   uo_position_make_move(position, bestmove);
-  uo_abtentry entry = { -uo_score_checkmate, uo_score_checkmate, depth };
+
+  int16_t alpha = -uo_score_checkmate;
+  int16_t beta = uo_score_checkmate;
+  uo_abtentry entry = { &alpha, &beta, depth };
 
   if (uo_engine_lookup_entry(position, &entry)
     && entry.bestmove
@@ -645,37 +647,32 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   }
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
-  uo_abtentry entry = { alpha, beta, depth };
+  uo_abtentry entry = { &alpha, &beta, depth };
   if (uo_engine_lookup_entry(position, &entry))
   {
-    do
+    // For root node, in case the position is in tablebase, let's verify that the tt move is preserving win or draw.
+    if (is_root_node
+      && info->is_tb_position
+      && entry.bestmove != pline[0]
+      && uo_position_is_skipped_move(position, entry.bestmove))
     {
-      // If draw by 50 move rule is a possibility, let's continue search
-      if (rule50 > 90) break;
+      goto continue_search;
+    }
 
-      // For root node, in case the position is in tablebase, let's verify that the tt move is preserving win or draw.
-      if (is_root_node
-        && info->is_tb_position
-        && entry.bestmove != pline[0]
-        && uo_position_is_skipped_move(position, entry.bestmove))
-      {
-        break;
-      }
+    // Let's update principal variation line if transposition table score is better than current best score but not better than beta
+    if (pline
+      && entry.bestmove
+      && entry.value > alpha
+      && entry.value < beta)
+    {
+      uo_position_extend_pv(position, entry.bestmove, pline, depth);
+    }
 
-      // Let's update principal variation line if transposition table score is better than current best score but not better than beta
-      if (pline
-        && entry.value > alpha
-        && entry.value < beta
-        && entry.bestmove)
-      {
-        uo_position_extend_pv(position, entry.bestmove, pline, depth);
-      }
-
-      // On root node, best move is required
-      if (!is_root_node || entry.bestmove) return entry.value;
-
-    } while (false);
+    // On root node, best move is required
+    if (!is_root_node || entry.bestmove) return entry.value;
   }
+
+continue_search:
 
   // Step 7. If search is stopped, return unknown value
   if (!is_root_node && uo_engine_thread_is_stopped(thread))
@@ -797,6 +794,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // On main thread, root node, let's report current move on higher depths
   if (is_main_thread
     && is_root_node
+    && depth > 8
     && uo_time_elapsed_msec(&thread->info.time_start) > 3000)
   {
     uo_search_print_currmove(thread, move, 1);
@@ -851,6 +849,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
     // On main thread, root node, let's report current move on higher depths
     if (is_main_thread
       && is_root_node
+      && depth > 8
       && uo_time_elapsed_msec(&thread->info.time_start) > 3000)
     {
       uo_search_print_currmove(thread, move, i + 1);
@@ -1234,7 +1233,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     .nodes = 0,
     .pv = thread->pv,
     .secondary_pvs = thread->secondary_pvs,
-    .movetime_remaining_msec = INFINITY
+    .movetime_remaining_msec = params->time_own ? params->time_own : INFINITY
   };
 
   uo_search_info *info = &thread->info;
@@ -1317,7 +1316,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
 
   // Tablebase probe
-  if (engine.tb.enabled)
+  if (engine.tb.enabled
+    && info->movetime_remaining_msec > UO_TB_ROOT_PROBE_LATENCY_MSEC)
   {
     // Do not probe if castling can interfere with the table base result
     if (!uo_position_flags_castling(position->flags))
@@ -1362,19 +1362,35 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
   }
 
-  // Perform search for first depth
   do
   {
+    // Perform search for first depth
     value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
-  } while (!info->is_tb_position && !uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count));
 
-  // We should always have a best move if search was successful
-  bestmove = line[0];
-  assert(bestmove);
+    // Adjust alpha-beta boundaries if value is outside aspiration window and conditionally re-search
+  } while (!uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count));
+
+  // If best move is not set, it is an indication that transposition table is not reliable.
+  if (!line[0])
+  {
+    // Clear transposition table
+    uo_engine_clear_hash();
+
+    // Perform re-search for first depth
+    value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
+    uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count);
+
+    // If still no best move. Let's just set the first move as best move before continuing search to deeper depths
+    if (!line[0])
+    {
+      line[0] = position->movelist.head[0];
+      line[1] = 0;
+    }
+  }
 
   // Save pv
-  uo_pv_copy(engine.pv, line);
   bestmove = line[0];
+  uo_pv_copy(engine.pv, line);
 
   // Save ponder move
   uo_position_make_move(position, bestmove);
@@ -1392,7 +1408,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   // Stop search if not enough time left
   if (params->time_own
-    && uo_time_elapsed_msec(&info->time_start) > params->time_own / 2)
+    && uo_time_elapsed_msec(&info->time_start) > info->movetime_remaining_msec / 2)
   {
     goto search_completed;
   }
