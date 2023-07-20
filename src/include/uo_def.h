@@ -9,7 +9,7 @@ extern "C"
 #include <inttypes.h>
 
 #define UO_MAX_PLY 128
-#define UO_BRANCING_FACTOR 35
+#define UO_BRANCING_FACTOR 60
 #define UO_PV_MAX_LENGTH 32
 
 #define UO_PARALLEL_MIN_DEPTH 9

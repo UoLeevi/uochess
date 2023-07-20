@@ -968,7 +968,8 @@ extern "C"
 
   static inline bool uo_position_is_max_depth_reached(const uo_position *position)
   {
-    return position->ply >= UO_MAX_PLY;
+    return position->ply >= UO_MAX_PLY
+      || position->movelist.head - position->movelist.moves >= UO_MAX_PLY * UO_BRANCING_FACTOR - 0x100;
   }
 
   static inline void uo_position_update_pins(uo_position *position)
