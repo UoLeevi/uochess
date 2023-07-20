@@ -243,9 +243,10 @@ extern "C"
     return false;
   }
 
-  // Stores an entry to the transposition table.
+  // Stores an entry to the transposition table and return final score.
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
+    // If existing transposition table entry was result of lower depth search. Update the entry.
     if (abtentry->data.depth < abtentry->depth
       || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_score_type__exact))
     {
@@ -258,6 +259,16 @@ extern "C"
         uo_score_type__exact;
 
       uo_ttable_set(&engine.ttable, position, &abtentry->data);
+    }
+
+    // if transposition table entry is from deeper search. Adjust value based on value bounds from previous search
+    else if (abtentry->data.type == uo_score_type__lower_bound)
+    {
+      abtentry->value = uo_max(abtentry->data.value, abtentry->value);
+    }
+    else if (abtentry->data.type == uo_score_type__upper_bound)
+    {
+      abtentry->value = uo_min(abtentry->data.value, abtentry->value);
     }
 
     return abtentry->value;

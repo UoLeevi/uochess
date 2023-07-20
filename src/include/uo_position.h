@@ -2070,6 +2070,10 @@ extern "C"
 
     int16_t move_score = 0;
 
+    //// Checks
+    //uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+    //move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
+
     // Killer heuristic
     bool is_killer_move = uo_position_is_killer_move(position, move);
     move_score += is_killer_move * 1000;
@@ -2078,18 +2082,18 @@ extern "C"
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
 
-    // If square is attacked by enemy, let's add a penalty
-    if (position->stack->eval_info.is_valid)
-    {
-      uo_bitboard attacks_enemy = position->stack->eval_info.attacks_enemy;
-      uo_bitboard attacks_own = position->stack->eval_info.attacks_own;
-      uo_bitboard attacks_estimate = piece == uo_piece__P
-        ? uo_andn(attacks_own, attacks_enemy)
-        : attacks_enemy;
+    //// If square is attacked by enemy, let's add a penalty
+    //if (position->stack->eval_info.is_valid)
+    //{
+    //  uo_bitboard attacks_enemy = position->stack->eval_info.attacks_enemy;
+    //  uo_bitboard attacks_own = position->stack->eval_info.attacks_own;
+    //  uo_bitboard attacks_estimate = piece == uo_piece__P
+    //    ? uo_andn(attacks_own, attacks_enemy)
+    //    : attacks_enemy;
 
-      bool is_attacked_by_enemy = uo_square_bitboard(square_to) & attacks_estimate;
-      move_score -= is_attacked_by_enemy * uo_piece_value(piece) / 8;
-    }
+    //  bool is_attacked_by_enemy = uo_square_bitboard(square_to) & attacks_estimate;
+    //  move_score -= is_attacked_by_enemy * uo_piece_value(piece) / 8;
+    //}
 
     // Default to piece-square table based move ordering
     if (move_score == 0)
@@ -2144,8 +2148,8 @@ extern "C"
   {
     int16_t move_score = 0;
 
-    uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
-    move_score += uo_popcnt(checks) * 100;
+    //uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+    //move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
 
     uo_square move_type = uo_move_get_type(move);
 

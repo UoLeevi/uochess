@@ -473,8 +473,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     // Step 17.4. Examine potential advanced pawn pushes
     else if (uo_position_move_piece(position, move) == uo_piece__P
-      && uo_move_square_to(move) >= uo_square__a6
-      && uo_position_move_see_gt(position, move, futility_threshold, thread->move_cache))
+      && uo_move_square_to(move) >= uo_square__a7
+      && uo_position_move_see_gt(position, move, uo_min(0, futility_threshold), thread->move_cache))
     {
       goto search_move;
     }
