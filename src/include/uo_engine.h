@@ -145,13 +145,13 @@ extern "C"
 
   static inline void uo_engine_lock_stdout()
   {
-    //uo_mutex_lock(engine.stdout_mutex);
+    uo_mutex_lock(engine.stdout_mutex);
   }
 
   static inline void uo_engine_unlock_stdout()
   {
     fflush(stdout);
-    //uo_mutex_unlock(engine.stdout_mutex);
+    uo_mutex_unlock(engine.stdout_mutex);
   }
 
   static inline void uo_engine_clear_hash()
@@ -173,6 +173,7 @@ extern "C"
     uo_move bestmove;
     int16_t value;
     int16_t alpha_initial;
+    int16_t beta_initial;
   } uo_abtentry;
 
   // Retrieves an entry from the transposition table or from the opening book.
@@ -183,8 +184,9 @@ extern "C"
   // even in the case that the score is not valid given search depth and alpha/beta values.
   static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry)
   {
-    // Step 1. Save initial alpha
+    // Step 1. Save initial alpha-beta boundaries
     abtentry->alpha_initial = *abtentry->alpha;
+    abtentry->beta_initial = *abtentry->beta;
 
     // Step 2. Probe opening book if enabled
     if (engine.book)
@@ -236,12 +238,15 @@ extern "C"
           abtentry->value = value;
           return true;
         }
-        else
+        else if (position->ply
+          && value > abtentry->alpha_initial)
         {
           // Step 9. Update alpha
-          *abtentry->alpha = abtentry->alpha_initial = uo_max(value, abtentry->alpha_initial);
-          break;
+          abtentry->alpha_initial = value;
+          *abtentry->alpha = value - 1;
         }
+
+        break;
 
       case uo_score_type__upper_bound:
         // Step 10. Beta cutoff, based on alpha value
@@ -250,12 +255,15 @@ extern "C"
           abtentry->value = value;
           return true;
         }
-        else
+        else if (position->ply
+          && value < abtentry->beta_initial)
         {
           // Step 11. Update beta
-          *abtentry->beta = uo_min(value, *abtentry->beta);
-          break;
+          abtentry->beta_initial = value;
+          *abtentry->beta = value + 1;
         }
+
+        break;
     }
 
     // Step 12. Return false to indicate that search should be continued
@@ -273,7 +281,7 @@ extern "C"
       abtentry->data.bestmove = abtentry->bestmove;
       abtentry->data.value = uo_score_adjust_to_ttable(position->ply, abtentry->value);
       abtentry->data.type =
-        abtentry->value >= *abtentry->beta ? uo_score_type__lower_bound :
+        abtentry->value >= abtentry->beta_initial ? uo_score_type__lower_bound :
         abtentry->value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
         uo_score_type__exact;
 

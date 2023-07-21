@@ -663,8 +663,8 @@ extern "C"
     score -= uo_score_mobility_K * mobility_enemy_K;
     score -= uo_score_K_square_attackable_by_P * (int16_t)uo_popcnt(enemy_K & potential_attacks_own_P);
 
-    score_mg += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
-    score_mg -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
+    score += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
+    score -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
 
     // doupled pawns
     score += uo_score_doubled_P * (((int16_t)uo_popcnt(own_P) - (int16_t)uo_popcnt(uo_bitboard_files(own_P) & uo_bitboard_rank_first))

@@ -138,11 +138,11 @@ static void uo_search_print_info(uo_engine_thread *thread)
     }
     else if (score > uo_score_mate_in_threshold)
     {
-      printf("score mate %d ", (uo_score_checkmate - score + 1) >> 1);
+      printf("score mate %d ", (uo_score_checkmate - score + 1) / 2);
     }
     else if (score < -uo_score_mate_in_threshold)
     {
-      printf("score mate %d ", -((uo_score_checkmate + score + 1) >> 1));
+      printf("score mate %d ", (-uo_score_checkmate - score) / 2);
     }
     else
     {
@@ -210,10 +210,10 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   bool is_check = uo_position_is_check(position);
   size_t move_count = stack[-1].move_count;
   uo_move move = stack[-1].move;
-  uo_square square_from = uo_move_square_from(move) ^ 56;
-  uo_square square_to = uo_move_square_to(move) ^ 56;
+  uo_square square_from = uo_move_square_from(move);
+  uo_square square_to = uo_move_square_to(move);
   const uo_piece *board = position->board;
-  uo_piece piece = board[square_to] ^ 1;
+  uo_piece piece = board[square_to ^ 56] ^ 1;
 
   // Step 2. Limit search depth extensions to prevent search explosion.
   int net_extension_plies = position->ply + depth - info->depth;
@@ -225,7 +225,7 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   // Passed pawn near promotion extension
   if (piece == uo_piece__P
     && depth < 6
-    && (square_to ^ 56) >= uo_square__a7)
+    && square_to >= uo_square__a7)
   {
     extension += 1000;
   }
@@ -264,49 +264,25 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
     return 0;
   }
 
-  // Bitboards to detetermine defended squares
-  uo_bitboard mask_own = position->enemy;
-  uo_bitboard mask_enemy = position->own;
-  uo_bitboard occupied = mask_own | mask_enemy;
-  uo_bitboard empty = ~occupied;
-
-  uo_bitboard enemy_P = mask_enemy & position->P;
-  uo_bitboard enemy_N = mask_enemy & position->N;
-  uo_bitboard enemy_B = mask_enemy & position->B;
-  uo_bitboard enemy_R = mask_enemy & position->R;
-  uo_bitboard enemy_Q = mask_enemy & position->Q;
-  uo_bitboard enemy_K = mask_enemy & position->K;
-
-  uo_bitboard attacks_left_enemy_P = uo_bitboard_attacks_left_P(enemy_P);
-  uo_bitboard attacks_right_enemy_P = uo_bitboard_attacks_right_P(enemy_P);
-  uo_bitboard attacks_enemy_P = attacks_left_enemy_P | attacks_right_enemy_P;
-
-  bool is_square_attacked_by_P = attacks_enemy_P & uo_square_bitboard(square_to);
-  bool is_square_attacked_by_N = uo_bitboard_attacks_N(square_to) & enemy_N;
-  bool is_square_attacked_by_B = uo_bitboard_attacks_B(square_to, occupied) & enemy_B;
-  bool is_square_attacked_by_R = uo_bitboard_attacks_R(square_to, occupied) & enemy_R;
-  bool is_square_attacked_by_Q = uo_bitboard_attacks_Q(square_to, occupied) & enemy_Q;
-  bool is_square_attacked_by_K = uo_bitboard_attacks_K(square_to) & enemy_K;
-
-  bool is_square_attacked =
-    is_square_attacked_by_P
-    || is_square_attacked_by_N
-    || is_square_attacked_by_B
-    || is_square_attacked_by_R
-    || is_square_attacked_by_Q
-    || is_square_attacked_by_K;
-
-  // no reduction on captures of undefended pieces
-  if (uo_move_is_capture(move) && !is_square_attacked) return 0;
+  bool is_square_attacked = stack[-1].eval_info.is_valid
+    && stack[-1].eval_info.attacks_enemy & uo_square_bitboard(square_to);
 
   // Default reduction is one fifth of the depth but capped at two plies
   int reduction = uo_min(depth * 1000 / 5, 2000);
 
-  // Reduction for stepping into defended square
-  reduction += is_square_attacked * 500;
+  if (uo_move_is_capture(move))
+  {
+    // no reduction on captures of undefended pieces
+    if (!is_square_attacked) return 0;
+  }
+  else
+  {
+    // Reduction for stepping into defended square
+    reduction += is_square_attacked * 300;
 
-  // Reduction based on move ordering
-  reduction += move_num * 1000 / move_count;
+    // Reduction based on move ordering
+    reduction += move_num * 2000 / move_count;
+  }
 
   // Return depth reduction in plies.
   reduction = uo_min(reduction, max_reduction);
@@ -350,7 +326,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   // Step 5. Mate distance pruning
   alpha = uo_max(-score_checkmate, alpha);
-  beta = uo_min(score_checkmate + 1, beta);
+  beta = uo_min(score_checkmate - 1, beta);
   if (alpha >= beta) return alpha;
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
@@ -426,18 +402,25 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 14. Cutoff if static evaluation is higher or equal to beta.
   if (value >= beta) return beta;
 
-  // Step 15. Update alpha
+  // Step 15. Delta pruning
+  bool is_promotion_possible = uo_msb(position->P & position->own) >= uo_square__a7;
+  int16_t delta = uo_score_Q
+    + is_promotion_possible * uo_score_Q
+    - uo_score_mul_ln(uo_score_P, depth * depth);
+
+  if (value + delta < alpha) return alpha;
+
+  // Step 16. Determine futility threshold for pruning unpotential moves
+  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
+  const int16_t futility_threshold = uo_max(0, alpha - static_eval) - futility_margin;
+
+  // Step 17. Update alpha
   alpha = uo_max(alpha, value);
 
-  // Step 16. Determine futility threshold.
-  // If move has low chance of raising alpha based on static exchange evaluation, do not search the move.
-  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth);
-  const int16_t futility_threshold = alpha - static_eval - futility_margin;
-
-  // Step 16. Sort tactical moves
+  // Step 18. Sort tactical moves
   uo_position_sort_tactical_moves(position, thread->move_cache);
 
-  // Step 17. Search tactical moves which have potential to raise alpha and checks depending on depth
+  // Step 19. Search tactical moves which have potential to raise alpha and checks depending on depth
   for (size_t i = 0; i < move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
@@ -448,8 +431,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     if (checks)
     {
       int16_t futility_threshold_for_check = depth < UO_QS_CHECKS_DEPTH
-        ? uo_min(0, futility_threshold - uo_score_P)
-        : futility_threshold - uo_score_P;
+        ? uo_min(0, futility_threshold)
+        : futility_threshold;
 
       if (uo_position_move_see_gt(position, move, futility_threshold_for_check, thread->move_cache))
       {
@@ -457,20 +440,20 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       }
     }
 
-    // Step 17.2. Search queen and knight promotions
+    // Step 19.2. Search queen and knight promotions
     else if (uo_move_is_promotion_Q_or_N(move))
     {
       goto search_move;
     }
 
-    // Step 17.3. Futility pruning for captures
+    // Step 19.3. Futility pruning for captures
     else if (uo_move_is_capture(move)
       && uo_position_move_see_gt(position, move, futility_threshold, thread->move_cache))
     {
       goto search_move;
     }
 
-    // Step 17.4. Examine potential advanced pawn pushes
+    // Step 19.4. Examine potential advanced pawn pushes
     else if (uo_position_move_piece(position, move) == uo_piece__P
       && uo_move_square_to(move) >= uo_square__a7
       && uo_position_move_see_gt(position, move, uo_min(0, futility_threshold), thread->move_cache))
@@ -642,7 +625,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   if (!is_root_node)
   {
     alpha = uo_max(-score_checkmate, alpha);
-    beta = uo_min(score_checkmate + 1, beta);
+    beta = uo_min(score_checkmate - 1, beta);
     if (alpha >= beta) return alpha;
   }
 
@@ -687,13 +670,12 @@ continue_search:
   // Step 9. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
 
-  entry.value = -score_checkmate;
-
   // Step 10. Tablebase probe
   // Do not probe on root node or if search depth is too shallow
   // Do not probe if 50 move rule, castling or en passant can interfere with the table base result
   if (engine.tb.enabled
     && !is_root_node
+    && !info->is_tb_position
     && depth >= engine.tb.probe_depth
     && rule50 == 0
     && uo_position_flags_castling(position->flags) == 0
@@ -711,22 +693,10 @@ continue_search:
 
       ++info->tbhits;
 
-      if (wdl > engine.tb.score_wdl_draw)
-      {
-        entry.value = score_tb_win - 101;
-        if (entry.value >= beta) return entry.value;
-      }
-      else if (wdl < -engine.tb.score_wdl_draw)
-      {
-        entry.value = -score_tb_win + 101;
-        if (entry.value <= alpha) return entry.value;
-      }
-      else
-      {
-        return uo_score_draw;
-      }
-
-      alpha = uo_max(alpha, entry.value);
+      return
+        wdl > engine.tb.score_wdl_draw ? score_tb_win - 101 :
+        wdl < -engine.tb.score_wdl_draw ? -score_tb_win + 101 :
+        wdl;
     }
   }
 
@@ -758,7 +728,7 @@ continue_search:
   if (!is_check
     && is_expected_cut
     && depth > 3
-    && position->ply > 1 + thread->nmp_min_ply
+    && position->ply >= thread->nmp_min_ply
     && uo_position_is_null_move_allowed(position))
   {
     // depth * 3/4 - 1
@@ -786,7 +756,7 @@ continue_search:
   uo_move move = pline && pline[0] ? pline[0] : entry.data.bestmove;
   uo_position_sort_moves(position, move, thread->move_cache);
   assert(!move || move == position->movelist.head[0]);
-  move = position->movelist.head[0];
+  entry.bestmove = move = position->movelist.head[0];
 
   // Step 18. Perform full alpha-beta search for the first move
   entry.depth = depth;
@@ -803,27 +773,21 @@ continue_search:
   // Search extensions
   uo_position_make_move(position, move);
   size_t depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth));
-  int16_t node_value = -uo_search_principal_variation(thread, depth + depth_extension - 1, -beta, -alpha, line, false, incomplete);
+  entry.value = -uo_search_principal_variation(thread, depth + depth_extension - 1, -beta, -alpha, line, false, incomplete);
   uo_position_unmake_move(position);
 
   if (*incomplete) return uo_score_unknown;
 
-  if (node_value >= entry.value)
+  if (entry.value > alpha)
   {
-    entry.value = node_value;
-    entry.bestmove = move;
-
-    if (entry.value > alpha)
+    if (entry.value >= beta)
     {
-      if (entry.value >= beta)
-      {
-        uo_position_update_cutoff_history(position, 0, depth);
-        return uo_engine_store_entry(position, &entry);
-      }
-
-      alpha = entry.value;
-      uo_position_update_pv(position, pline, entry.bestmove, line);
+      uo_position_update_cutoff_history(position, 0, depth);
+      return uo_engine_store_entry(position, &entry);
     }
+
+    alpha = entry.value;
+    uo_position_update_pv(position, pline, entry.bestmove, line);
   }
 
   // Step 19. Initialize parallel search parameters and result queue if applicable
@@ -1084,9 +1048,8 @@ void *uo_engine_thread_start_timer(void *arg)
 
 // Adjust aspiration window by changing alpha and beta.
 // Returns boolean indicating whether value was within aspiration window.
-static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, int16_t *beta, size_t *fail_count)
+static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, int16_t *beta)
 {
-  const int16_t aspiration_window_fail_threshold = 2;
   const int16_t aspiration_window_minimum = uo_score_P / 3;
   const float aspiration_window_factor = 1.5;
   const int16_t aspiration_window_mate = (uo_score_checkmate - 1) / aspiration_window_factor;
@@ -1099,53 +1062,12 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
     aspiration_window = aspiration_window_minimum;
   }
 
-  if (value <= *alpha)
+  if (value <= *alpha || value >= *beta)
   {
-    if (*alpha == -uo_score_checkmate)
-    {
-      return true;
-    }
-
-    if ((*fail_count)++ >= aspiration_window_fail_threshold)
-    {
-      *alpha = -uo_score_checkmate;
-      return false;
-    }
-
-    if (value < -aspiration_window_mate)
-    {
-      *alpha = -uo_score_checkmate;
-      return false;
-    }
-
-    *alpha = value - aspiration_window;
+    *alpha = -uo_score_checkmate;
+    *beta = uo_score_checkmate;
     return false;
   }
-
-  if (value >= *beta)
-  {
-    if (*beta == -uo_score_checkmate)
-    {
-      return true;
-    }
-
-    if ((*fail_count)++ >= aspiration_window_fail_threshold)
-    {
-      *beta = uo_score_checkmate;
-      return false;
-    }
-
-    if (value > aspiration_window_mate)
-    {
-      *beta = uo_score_checkmate;
-      return false;
-    }
-
-    *beta = value + aspiration_window;
-    return false;
-  }
-
-  *fail_count = 0;
 
   if (value < -aspiration_window_mate)
   {
@@ -1245,13 +1167,15 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   uo_time_now(&info->time_start);
   uo_time time_start_last_iteration = info->time_start;
 
+  // Start thread for managing time
+  uo_engine_run_thread(uo_engine_thread_start_timer, thread);
+
   // Load position
   uo_engine_thread_load_position(thread);
 
   // Initialize aspiration window
   int16_t alpha = params->alpha;
   int16_t beta = params->beta;
-  size_t aspiration_fail_count = 0;
 
   int16_t value;
   uo_move bestmove = 0;
@@ -1260,10 +1184,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   bool incomplete = false;
 
   // Check for ponder hit
-  if (engine.ponder.key && position->stack[-1].key == engine.ponder.key)
+  if (engine.ponder.key
+    && position->stack[-1].key == engine.ponder.key)
   {
     value = engine.ponder.value;
-    int16_t window = uo_score_P;
 
     // If opponent played the expected move, initialize pv and use more narrow aspiration window
     bool is_ponderhit = position->stack[-1].move == engine.ponder.move;
@@ -1273,9 +1197,6 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       // Ponder hit
       assert(engine.pv[1] == engine.ponder.move);
 
-      // Use a more narrow aspiration window
-      window = uo_score_P / 3;
-
       // Copy principal variation from previous search
       size_t i = 0;
       while (engine.pv[i + 2])
@@ -1284,10 +1205,12 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         ++i;
       }
       line[i] = engine.pv[i] = 0;
-    }
 
-    alpha = value > -uo_score_tb_win_threshold + window ? value - window : -uo_score_checkmate;
-    beta = value < uo_score_tb_win_threshold - window ? value + window : uo_score_checkmate;
+      // Use more narrow alpha-beta window
+      int16_t window = uo_score_P / 3;
+      alpha = value > -uo_score_tb_win_threshold + window ? value - window : -uo_score_checkmate;
+      beta = value < uo_score_tb_win_threshold - window ? value + window : uo_score_checkmate;
+    }
 
     // Probe transposition table
     uo_tdata tentry;
@@ -1295,22 +1218,19 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     if (found)
     {
-      // If entry type is exact, let's update initial search depth and principal variation
-      if (tentry.type == uo_score_type__exact)
+      // If entry type is exact or lower bound, let's initialize principal variation
+      if (!line[0]
+        && tentry.type != uo_score_type__upper_bound)
       {
-        info->depth = tentry.depth;
+        line[0] = tentry.bestmove;
+        line[1] = 0;
       }
 
-      // Tighten the alpha-beta boundaries
-      else if (tentry.type == uo_score_type__lower_bound)
+      // If entry type is exact and best move is known, let's update initial search depth
+      if (tentry.type == uo_score_type__exact
+        && tentry.bestmove)
       {
-        alpha = uo_max(alpha, tentry.value);
-        beta = uo_max(beta, alpha + window);
-      }
-      else // if (tentry.type == uo_score_type__upper_bound)
-      {
-        beta = uo_min(beta, tentry.value);
-        alpha = uo_min(alpha, beta - window);
+        info->depth = tentry.depth;
       }
     }
   }
@@ -1334,7 +1254,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
         ++thread->info.tbhits;
         assert(success);
 
+        // Flag position as tablebase position. This turns of tablebase probing during search.
         info->is_tb_position = true;
+
+        // Clear hash table
+        uo_engine_clear_hash();
 
         tb_move = position->movelist.head[0];
         if (tb_move != line[0])
@@ -1362,33 +1286,31 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
   }
 
-  do
+  // Perform search for first depth
+  value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
+
+  // If value is not within alpha and beta, reset alpha beta boundaries and perform re-search
+  if (!uo_search_adjust_alpha_beta(value, &alpha, &beta) || !line[0])
   {
-    // Perform search for first depth
     value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
 
-    // Adjust alpha-beta boundaries if value is outside aspiration window and conditionally re-search
-  } while (!uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count));
-
-  // If best move is not set, it is an indication that transposition table is not reliable.
-  if (!line[0])
-  {
-    // Clear transposition table
-    uo_engine_clear_hash();
-
-    // Perform re-search for first depth
-    value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
-    uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count);
-
-    // If still no best move. Let's just set the first move as best move before continuing search to deeper depths
-    if (!line[0])
+    // If there is still no exact score. Let's clear transposition table and start over
+    if (!uo_search_adjust_alpha_beta(value, &alpha, &beta) || !line[0])
     {
-      line[0] = position->movelist.head[0];
-      line[1] = 0;
+      info->depth = 1;
+      uo_engine_clear_hash();
+      value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
     }
   }
 
   // Save pv
+  assert(incomplete || line[0]);
+  if (!line[0])
+  {
+    line[0] = position->movelist.head[0];
+    line[1] = 0;
+  }
+
   bestmove = line[0];
   uo_pv_copy(engine.pv, line);
 
@@ -1407,14 +1329,11 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
 
   // Stop search if not enough time left
-  if (params->time_own
+  if (!incomplete
     && uo_time_elapsed_msec(&info->time_start) > info->movetime_remaining_msec / 2)
   {
     goto search_completed;
   }
-
-  // Start thread for managing time
-  uo_engine_run_thread(uo_engine_thread_start_timer, thread);
 
   // Initialize Lazy SMP variables
   size_t lazy_smp_count = 0;
@@ -1466,7 +1385,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
 
     // Aspiration search loop
-    do
+    bool is_depth_completed = false;
+    while (!is_depth_completed)
     {
       // Start timer for current search iteration
       uo_time_now(&time_start_last_iteration);
@@ -1531,22 +1451,19 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       }
 
       // Check if search returned a value that is within aspiration window
-      if (info->is_tb_position || uo_search_adjust_alpha_beta(value, &alpha, &beta, &aspiration_fail_count))
-      {
-        // We should always have a best move if search was successful
-        bestmove = line[0];
-        assert(bestmove);
+      is_depth_completed = uo_search_adjust_alpha_beta(value, &alpha, &beta);
+    }
 
-        uo_pv_copy(engine.pv, line);
-        uo_position_make_move(position, bestmove);
-        engine.ponder.key = position->key;
-        engine.ponder.value = thread->info.value = value;
-        engine.ponder.move = line[1];
-        uo_position_unmake_move(position);
-      }
+    // We should always have a best move if search was successful
+    bestmove = line[0];
+    assert(bestmove);
 
-      // Repeat search on same depth while aspiration search is unsuccessful
-    } while (aspiration_fail_count);
+    uo_pv_copy(engine.pv, line);
+    uo_position_make_move(position, bestmove);
+    engine.ponder.key = position->key;
+    engine.ponder.value = thread->info.value = value;
+    engine.ponder.move = line[1];
+    uo_position_unmake_move(position);
   }
 
 search_completed:

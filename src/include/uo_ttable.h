@@ -67,6 +67,8 @@ extern "C"
 
   static inline void uo_ttable_clear(uo_ttable *ttable)
   {
+    if (uo_atomic_load(&ttable->count) == 0) return;
+
     memset(ttable->entries, 0, (ttable->hash_mask + 1) * sizeof * ttable->entries);
     uo_atomic_store(&ttable->count, 0);
 
