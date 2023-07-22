@@ -698,7 +698,6 @@ extern "C"
       score += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
     }
 
-    // passed pawns
     uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
     if (passed_enemy_P)
     {
@@ -1030,6 +1029,41 @@ extern "C"
   {
     uo_square square_from = uo_move_square_from(move);
     return position->board[square_from];
+  }
+
+  static inline uo_bitboard uo_position_square_attackers(const uo_position *position, uo_square square, uo_bitboard occupied)
+  {
+    return occupied & (
+      (uo_bitboard_attacks_P(square, uo_color_own) & position->enemy & position->P)
+      | (uo_bitboard_attacks_P(square, uo_color_enemy) & position->own & position->P)
+      | (uo_bitboard_attacks_N(square) & position->N)
+      | (uo_bitboard_attacks_B(square, occupied) & (position->B | position->Q))
+      | (uo_bitboard_attacks_R(square, occupied) & (position->R | position->Q))
+      | (uo_bitboard_attacks_K(square) & position->K));
+  }
+
+  // Determine if move reveals discovered attacks after it is made.
+  static inline bool uo_position_move_discoveries(const uo_position *position, uo_move move, uo_bitboard targets)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    uo_bitboard occupied_before = position->own | position->enemy;
+    uo_bitboard occupied_after = uo_andn(uo_square_bitboard(square_from), occupied_before);
+    uo_bitboard attackers = position->own & occupied_after;
+    uo_square square_enemy_K = uo_tzcnt(position->K & position->enemy);
+    uo_bitboard attacks = 0;
+
+    while (targets & !attacks)
+    {
+      uo_square square = uo_bitboard_next_square(&targets);
+      attacks |= uo_position_square_attackers(position, square, occupied_after) & attackers;
+      if (attacks && square != square_enemy_K && (uo_position_square_attackers(position, square, occupied_before) & position->own))
+      {
+        attacks = 0;
+      }
+    }
+
+    return attacks > 0;
   }
 
   static inline uo_bitboard uo_position_attacks_own_NBRQ(const uo_position *position)
@@ -2071,9 +2105,9 @@ extern "C"
 
     int16_t move_score = 0;
 
-    //// Checks
-    //uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
-    //move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
+    // Checks
+    uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+    move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
 
     // Killer heuristic
     bool is_killer_move = uo_position_is_killer_move(position, move);
@@ -2082,19 +2116,6 @@ extern "C"
     // Relative history heuristic
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
-
-    //// If square is attacked by enemy, let's add a penalty
-    //if (position->stack->eval_info.is_valid)
-    //{
-    //  uo_bitboard attacks_enemy = position->stack->eval_info.attacks_enemy;
-    //  uo_bitboard attacks_own = position->stack->eval_info.attacks_own;
-    //  uo_bitboard attacks_estimate = piece == uo_piece__P
-    //    ? uo_andn(attacks_own, attacks_enemy)
-    //    : attacks_enemy;
-
-    //  bool is_attacked_by_enemy = uo_square_bitboard(square_to) & attacks_estimate;
-    //  move_score -= is_attacked_by_enemy * uo_piece_value(piece) / 8;
-    //}
 
     // Default to piece-square table based move ordering
     if (move_score == 0)
@@ -2149,8 +2170,9 @@ extern "C"
   {
     int16_t move_score = 0;
 
-    //uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
-    //move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
+    // Checks
+    uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
+    move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
 
     uo_square move_type = uo_move_get_type(move);
 
@@ -2406,7 +2428,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-    }
+}
 #endif
 
 #endif

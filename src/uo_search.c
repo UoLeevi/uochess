@@ -246,7 +246,7 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   // Step 4. No extension. Determine reductions.
 
   // Also limit reductions to avoid missing threats
-  int max_reduction = uo_min(depth * 1000 / 3, info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
+  int max_reduction = uo_min(depth * 1000 / 3 + 1, info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
   if (max_reduction <= 0) return 0;
 
   if (
@@ -258,31 +258,26 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
     || move_count < 6
     // no reduction on queen or knight promotions
     || uo_move_is_promotion_Q_or_N(move)
+    // no reduction on captures
+    || uo_move_is_capture(move)
     // no reduction on killer moves
     || uo_position_is_killer_move(position, 0))
   {
     return 0;
   }
 
-  bool is_square_attacked = stack[-1].eval_info.is_valid
-    && stack[-1].eval_info.attacks_enemy & uo_square_bitboard(square_to);
-
   // Default reduction is one fifth of the depth but capped at two plies
   int reduction = uo_min(depth * 1000 / 5, 2000);
 
-  if (uo_move_is_capture(move))
-  {
-    // no reduction on captures of undefended pieces
-    if (!is_square_attacked) return 0;
-  }
-  else
-  {
-    // Reduction for stepping into defended square
-    reduction += is_square_attacked * 300;
+  // Reduction for stepping into defended square
+  uo_bitboard attackers = uo_position_square_attackers(position, square_to ^ 56, position->own | position->enemy);
+  uo_bitboard attackers_own = attackers & position->enemy;
+  uo_bitboard attackers_enemy = attackers & position->own;
+  int attackers_vs_defenders = (int)uo_popcnt(attackers_enemy) - (int)uo_popcnt(attackers_own);
+  reduction += uo_max(0, attackers_vs_defenders) * 300;
 
-    // Reduction based on move ordering
-    reduction += move_num * 2000 / move_count;
-  }
+  // Reduction based on move ordering
+  reduction += move_num * 1000 / move_count;
 
   // Return depth reduction in plies.
   reduction = uo_min(reduction, max_reduction);
@@ -404,15 +399,19 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   // Step 15. Delta pruning
   bool is_promotion_possible = uo_msb(position->P & position->own) >= uo_square__a7;
-  int16_t delta = uo_score_Q
+  int16_t delta
+    // Large material gain from capture
+    = ((position->Q & position->enemy) ? uo_score_Q : uo_score_R)
+    // Promotion
     + is_promotion_possible * uo_score_Q
+    // Reduction from quiscence search depth
     - uo_score_mul_ln(uo_score_P, depth * depth);
 
   if (value + delta < alpha) return alpha;
 
   // Step 16. Determine futility threshold for pruning unpotential moves
   const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
-  const int16_t futility_threshold = uo_max(0, alpha - static_eval) - futility_margin;
+  const int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
 
   // Step 17. Update alpha
   alpha = uo_max(alpha, value);
@@ -431,7 +430,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     if (checks)
     {
       int16_t futility_threshold_for_check = depth < UO_QS_CHECKS_DEPTH
-        ? uo_min(0, futility_threshold)
+        ? uo_min(-1, futility_threshold)
         : futility_threshold;
 
       if (uo_position_move_see_gt(position, move, futility_threshold_for_check, thread->move_cache))
@@ -454,9 +453,10 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     }
 
     // Step 19.4. Examine potential advanced pawn pushes
-    else if (uo_position_move_piece(position, move) == uo_piece__P
+    else if (depth < 3 // test with limiting depth
+      && uo_position_move_piece(position, move) == uo_piece__P
       && uo_move_square_to(move) >= uo_square__a7
-      && uo_position_move_see_gt(position, move, uo_min(0, futility_threshold), thread->move_cache))
+      && uo_position_move_see_gt(position, move, uo_min(-1, futility_threshold), thread->move_cache))
     {
       goto search_move;
     }
@@ -642,11 +642,10 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       goto continue_search;
     }
 
-    // Let's update principal variation line if transposition table score is better than current best score but not better than beta
+    // Let's update principal variation line if transposition table score is better than current best score
     if (pline
       && entry.bestmove
-      && entry.value > alpha
-      && entry.value < beta)
+      && entry.value > alpha)
     {
       uo_position_extend_pv(position, entry.bestmove, pline, depth);
     }
@@ -744,7 +743,7 @@ continue_search:
     if (null_value >= beta)
     {
       // 16.1. Verification
-      thread->nmp_min_ply = position->ply + depth_nmp * 3 * 4;
+      thread->nmp_min_ply = position->ply + depth_nmp * 3 / 4;
       int16_t value = uo_search_principal_variation(thread, depth_nmp, beta - 1, beta, pline, false, incomplete);
       thread->nmp_min_ply = 0;
 
@@ -780,6 +779,8 @@ continue_search:
 
   if (entry.value > alpha)
   {
+    if (pline) uo_position_update_pv(position, pline, entry.bestmove, line);
+
     if (entry.value >= beta)
     {
       uo_position_update_cutoff_history(position, 0, depth);
@@ -787,7 +788,6 @@ continue_search:
     }
 
     alpha = entry.value;
-    uo_position_update_pv(position, pline, entry.bestmove, line);
   }
 
   // Step 19. Initialize parallel search parameters and result queue if applicable
@@ -810,6 +810,19 @@ continue_search:
   {
     uo_move move = params.move = position->movelist.head[i];
 
+    // Step 20.1 Capture pruning using SEE
+    if (!is_check
+      && uo_move_is_capture(move)
+      && !uo_move_is_enpassant(move)
+      && entry.value >= -uo_score_tb_win_threshold
+      && !uo_position_move_checks(position, move, thread->move_cache)
+      && !uo_position_move_see_gt(position, move, depth * -uo_score_P * 2, thread->move_cache)
+      && !uo_position_move_discoveries(position, move, position->enemy & (position->R | position->Q | position->K)))
+    {
+      // Prune bad capture
+      continue;
+    }
+
     // On main thread, root node, let's report current move on higher depths
     if (is_main_thread
       && is_root_node
@@ -824,15 +837,14 @@ continue_search:
 
     // Step 20.2 Determine search depth extension or reduction
     uo_position_make_move(position, move);
-    size_t depth_extension_or_reduction = uo_search_determine_depth_reduction_or_extension(thread, i, depth);
+    size_t depth_extension_or_reduction = is_check ? 0 : uo_search_determine_depth_reduction_or_extension(thread, i, depth);
     int16_t node_value = alpha + 1;
     size_t depth_lmr = depth + depth_extension_or_reduction;
-
 
     // Step 20.3 Perform zero window search for reduced depth
     if (is_zw_search || depth_extension_or_reduction < 0)
     {
-      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, line, !cut, incomplete);
+      node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -alpha - 1, -alpha, is_zw_search ? NULL : line, !cut, incomplete);
 
       if (*incomplete)
       {
@@ -881,16 +893,28 @@ continue_search:
 
       if (entry.value > alpha)
       {
+        // Update principal variation
+        if (pline) uo_position_update_pv(position, pline, entry.bestmove, line);
+
+        // Beta cutoff
         if (entry.value >= beta)
         {
           uo_position_update_cutoff_history(position, i, depth);
           if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
           return uo_engine_store_entry(position, &entry);
         }
+        // Search rest of the moves with lower depth when at least one better move was found
+        else if (depth > 3 && depth < 11
+          && beta < uo_score_tb_win_threshold
+          && alpha > -uo_score_tb_win_threshold)
+        {
+          depth -= 2;
+          params.depth = depth - 1;
+        }
 
+        // Update alpha
         alpha = entry.value;
         params.beta = -alpha;
-        uo_position_update_pv(position, pline, entry.bestmove, line);
 
         if (is_root_node && is_main_thread)
         {
@@ -937,6 +961,8 @@ continue_search:
 
           if (entry.value > alpha)
           {
+            if (pline) uo_position_update_pv(position, pline, entry.bestmove, result.line);
+
             if (entry.value >= beta)
             {
               size_t i = 0;
@@ -949,10 +975,16 @@ continue_search:
               uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
               return uo_engine_store_entry(position, &entry);
             }
+            else if (depth > 3 && depth < 11
+              && beta < uo_score_tb_win_threshold
+              && alpha > -uo_score_tb_win_threshold)
+            {
+              depth -= 2;
+              params.depth = depth - 1;
+            }
 
             alpha = entry.value;
             params.beta = -alpha;
-            uo_position_update_pv(position, pline, entry.bestmove, result.line);
 
             if (is_root_node && is_main_thread)
             {
@@ -993,6 +1025,8 @@ continue_search:
 
         if (entry.value > alpha)
         {
+          if (pline) uo_position_update_pv(position, pline, entry.bestmove, result.line);
+
           if (entry.value >= beta)
           {
             size_t i = 0;
@@ -1008,7 +1042,6 @@ continue_search:
 
           alpha = entry.value;
           params.beta = -alpha;
-          uo_position_update_pv(position, pline, entry.bestmove, result.line);
 
           if (is_root_node && is_main_thread)
           {
@@ -1188,6 +1221,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     && position->stack[-1].key == engine.ponder.key)
   {
     value = engine.ponder.value;
+    int16_t window = uo_score_P;
 
     // If opponent played the expected move, initialize pv and use more narrow aspiration window
     bool is_ponderhit = position->stack[-1].move == engine.ponder.move;
@@ -1207,10 +1241,12 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       line[i] = engine.pv[i] = 0;
 
       // Use more narrow alpha-beta window
-      int16_t window = uo_score_P / 3;
-      alpha = value > -uo_score_tb_win_threshold + window ? value - window : -uo_score_checkmate;
-      beta = value < uo_score_tb_win_threshold - window ? value + window : uo_score_checkmate;
+      window = uo_score_P / 3;
     }
+
+    // Set aspiration window
+    alpha = value > -uo_score_tb_win_threshold + window ? value - window : -uo_score_checkmate;
+    beta = value < uo_score_tb_win_threshold - window ? value + window : uo_score_checkmate;
 
     // Probe transposition table
     uo_tdata tentry;
@@ -1236,8 +1272,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
 
   // Tablebase probe
-  if (engine.tb.enabled
-    && info->movetime_remaining_msec > UO_TB_ROOT_PROBE_LATENCY_MSEC)
+  if (engine.tb.enabled)
   {
     // Do not probe if castling can interfere with the table base result
     if (!uo_position_flags_castling(position->flags))

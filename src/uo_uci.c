@@ -81,6 +81,20 @@ static void uo_uci_command__d(void)
   uo_engine_unlock_position();
 }
 
+static void uo_uci_command__debug(void)
+{
+  uo_uci_read_stdin();
+
+  if (strcmp(ptr, "on") == 0)
+  {
+    engine_options.debug = true;
+  }
+  else if (strcmp(ptr, "off") == 0)
+  {
+    engine_options.debug = false;
+  }
+}
+
 static void uo_uci_command__position_startpos(void)
 {
   uo_position_from_fen(&engine.position, uo_fen_startpos);
@@ -733,6 +747,7 @@ int uo_uci_run()
   uo_strmap_add(uci_command_map_config, "quit", uo_uci_command__quit);
   uo_strmap_add(uci_command_map_config, "setoption", uo_uci_command__setoption);
   uo_strmap_add(uci_command_map_config, "isready", uo_uci_command_config__isready);
+  uo_strmap_add(uci_command_map_config, "debug", uo_uci_command__debug);
 
   uo_strmap *uci_command_map_idle = uci_command_map_by_state[uo_uci_state_idle] = uo_strmap_create();
   uo_strmap_add(uci_command_map_idle, "quit", uo_uci_command__quit);
@@ -745,12 +760,14 @@ int uo_uci_run()
   uo_strmap_add(uci_command_map_idle, "eval", uo_uci_command__eval);
   uo_strmap_add(uci_command_map_idle, "go", uo_uci_command__go);
   uo_strmap_add(uci_command_map_idle, "test", uo_uci_command__test);
+  uo_strmap_add(uci_command_map_idle, "debug", uo_uci_command__debug);
 
   uo_strmap *uci_command_map_running = uci_command_map_by_state[uo_uci_state_running] = uo_strmap_create();
   uo_strmap_add(uci_command_map_running, "quit", uo_uci_command__quit);
   uo_strmap_add(uci_command_map_running, "stop", uo_uci_command__stop);
   uo_strmap_add(uci_command_map_running, "d", uo_uci_command__d);
   uo_strmap_add(uci_command_map_running, "isready", uo_uci_command__isready);
+  uo_strmap_add(uci_command_map_running, "debug", uo_uci_command__debug);
 
 
   printf("Uochess 0.1 by Leevi Uotinen\n");

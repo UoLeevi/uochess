@@ -27,6 +27,7 @@ extern "C"
     uint16_t multipv;
     size_t hash_size;
     size_t move_overhead;
+    bool debug;
     bool use_own_book;
     char eval_filename[0x100];
     char book_filename[0x100];
