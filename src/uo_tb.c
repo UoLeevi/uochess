@@ -430,7 +430,7 @@ static int uo_tb_probe_alpha_beta(uo_position *position, int alpha, int beta, in
     uo_move move = position->movelist.head[i];
     if (!uo_move_is_capture(move)) continue;
 
-    uo_position_make_move(position, move);
+    uo_position_make_move(position, move, 0, 0);
     value = -uo_tb_probe_alpha_beta(position, -beta, -alpha, success);
     uo_position_unmake_move(position);
 
@@ -487,7 +487,7 @@ int uo_tb_probe_wdl(uo_position *position, int *success)
     uo_move move = position->movelist.head[i];
     if (!uo_move_is_capture(move)) continue;
 
-    uo_position_make_move(position, move);
+    uo_position_make_move(position, move, 0, 0);
     int value = -uo_tb_probe_alpha_beta(position, -2, -best_cap, success);
     uo_position_unmake_move(position);
 
@@ -628,7 +628,7 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
       uo_piece piece = position->board[square_from];
       if (piece != uo_piece__P) continue;
 
-      uo_position_make_move(position, move);
+      uo_position_make_move(position, move, 0, 0);
       int value = -uo_tb_probe_wdl(position, success);
       uo_position_unmake_move(position);
 
@@ -684,7 +684,7 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
     uo_piece piece = position->board[square_from];
     if (piece == uo_piece__P) continue;
 
-    uo_position_make_move(position, move);
+    uo_position_make_move(position, move, 0, 0);
     int value = -uo_tb_probe_dtz(position, success);
     uo_position_unmake_move(position);
 
@@ -740,7 +740,7 @@ int uo_tb_probe_dtz(uo_position *position, int *success)
 //    //else
 //    {
 //      uo_position_update_next_move_checks(position, checks);
-//      uo_position_make_move(position, move);
+//      uo_position_make_move(position, move, 0, 0);
 //
 //      if (uo_position_flags_rule50(position->flags) != 0)
 //      {
@@ -889,7 +889,7 @@ int uo_tb_root_probe_dtz(uo_position *position, int *success)
     {
       uo_move move = position->movelist.head[i];
 
-      uo_position_make_move(position, move);
+      uo_position_make_move(position, move, 0, 0);
       int wdl_move = -uo_tb_probe_wdl(position, success);
       uo_position_unmake_move(position);
 
@@ -908,7 +908,7 @@ int uo_tb_root_probe_dtz(uo_position *position, int *success)
       bool is_pawn_move = uo_position_move_piece(position, move) == uo_piece__P;
       bool is_capture = uo_move_is_capture(move);
 
-      uo_position_make_move(position, move);
+      uo_position_make_move(position, move, 0, 0);
       int dtz_move = -uo_tb_probe_dtz(position, success);
       uo_position_unmake_move(position);
 
@@ -971,7 +971,7 @@ int uo_tb_root_probe_dtz(uo_position *position, int *success)
       bool is_pawn_move = uo_position_move_piece(position, move) == uo_piece__P;
       bool is_capture = uo_move_is_capture(move);
 
-      uo_position_make_move(position, move);
+      uo_position_make_move(position, move, 0, 0);
       int dtz_move = -uo_tb_probe_dtz(position, success);
       uo_position_unmake_move(position);
 

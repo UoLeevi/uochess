@@ -185,7 +185,7 @@ static void uo_uci_command__position(void)
             continue;
           }
 
-          uo_position_make_move(&engine.position, move);
+          uo_position_make_move(&engine.position, move, 0, 0);
           goto next_move;
         }
       }
@@ -345,7 +345,7 @@ static void uo_uci_command__go(void)
       {
         uo_move move = engine.position.movelist.head[i];
         uo_position_print_move(&engine.position, move, buf);
-        uo_position_make_move(&engine.position, move);
+        uo_position_make_move(&engine.position, move, 0, 0);
         size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1);
         uo_position_unmake_move(&engine.position);
         total_node_count += node_count;

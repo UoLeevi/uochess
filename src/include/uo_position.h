@@ -332,7 +332,190 @@ extern "C"
 
   void uo_position_copy(uo_position *restrict dst, const uo_position *restrict src);
 
-  void uo_position_make_move(uo_position *position, uo_move move);
+  static inline uint64_t uo_position_move_key(const uo_position *position, uo_move move, uo_position_flags *flags)
+  {
+    uo_square square_from = uo_move_square_from(move);
+    uo_square square_to = uo_move_square_to(move);
+    const uo_piece *board = position->board;
+    uo_piece piece = board[square_from];
+    uo_piece piece_captured = board[square_to];
+    uint8_t color = uo_color(position->flags);
+    uint8_t flip_if_black = color == uo_black ? 56 : 0;
+
+    uint64_t key = position->key;
+    uo_position_flags flags_next = position->flags ^ 1;
+
+    uint8_t enpassant_file = uo_position_flags_enpassant_file(flags_next);
+    flags_next = uo_position_flags_update_enpassant_file(flags_next, 0);
+
+    uint8_t rule50 = uo_position_flags_rule50(flags_next);
+    flags_next = uo_position_flags_update_rule50(flags_next, rule50 + 1);
+
+    uo_piece piece_colored = piece ^ color;
+    key ^= uo_zobkey(piece_colored, square_from ^ flip_if_black)
+      ^ uo_zobkey(piece_colored, square_to ^ flip_if_black);
+
+    switch (piece)
+    {
+      case uo_piece__P:
+        flags_next = uo_position_flags_update_rule50(flags_next, 0);
+        break;
+
+      case uo_piece__K:
+        flags_next = uo_position_flags_update_castling_own(flags_next, 0);
+        break;
+
+      case uo_piece__R:
+        switch (square_from)
+        {
+          case uo_square__a1:
+            flags_next = uo_position_flags_update_castling_Q(flags_next, false);
+            break;
+
+          case uo_square__h1:
+            flags_next = uo_position_flags_update_castling_K(flags_next, false);
+            break;
+        }
+    }
+
+    switch (uo_move_get_type(move))
+    {
+      case uo_move_type__P_double_push: {
+        // en passant file
+
+        uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+        uo_bitboard mask_enemy = position->enemy;
+        uo_bitboard enemy_P = mask_enemy & position->P;
+
+        uo_bitboard adjecent_enemy_pawn = uo_square_bitboard_adjecent_files[square_to] & uo_bitboard_rank_fourth & enemy_P;
+        if (!adjecent_enemy_pawn) break;
+
+        uo_bitboard enemy_K = mask_enemy & position->K;
+        uo_square square_enemy_K = uo_tzcnt(enemy_K);
+        uint8_t rank_enemy_K = uo_square_rank(square_enemy_K);
+
+        if (rank_enemy_K == 3 && uo_popcnt(adjecent_enemy_pawn) == 1)
+        {
+          uo_bitboard mask_own = position->own;
+          uo_bitboard own_R = mask_own & position->R;
+          uo_bitboard own_Q = mask_own & position->Q;
+          uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
+          uo_bitboard occupied = uo_andn(uo_square_bitboard_file[square_to], position->own | position->enemy);
+          uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, own_R | own_Q) & bitboard_rank_enemy_K;
+
+          if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
+          {
+            uint8_t enpassant_file = uo_square_file(square_to);
+            flags_next = uo_position_flags_update_enpassant_file(flags_next, enpassant_file + 1);
+            key ^= uo_zobrist_enpassant_file[enpassant_file];
+          }
+        }
+        else
+        {
+          uint8_t enpassant_file = uo_square_file(square_to);
+          flags_next = uo_position_flags_update_enpassant_file(flags_next, enpassant_file + 1);
+          key ^= uo_zobrist_enpassant_file[enpassant_file];
+        }
+
+        break;
+      }
+
+      case uo_move_type__enpassant: {
+        uo_piece piece_captured_colored = uo_piece__p ^ color;
+        uo_square square_piece_captured = square_to - 8;
+        key ^= uo_zobkey(piece_captured_colored, square_piece_captured ^ flip_if_black);
+        break;
+      }
+
+      case uo_move_type__OO: {
+        uo_piece piece_R_colored = uo_piece__R ^ color;
+        key ^= uo_zobkey(piece_R_colored, uo_square__h1 ^ flip_if_black)
+          ^ uo_zobkey(piece_R_colored, uo_square__f1 ^ flip_if_black);
+        break;
+      }
+
+      case uo_move_type__OOO: {
+        uo_piece piece_R_colored = uo_piece__R ^ color;
+        key ^= uo_zobkey(piece_R_colored, uo_square__a1 ^ flip_if_black)
+          ^ uo_zobkey(piece_R_colored, uo_square__d1 ^ flip_if_black);
+
+        break;
+      }
+
+      case uo_move_type__promo_N:
+      case uo_move_type__promo_Nx: {
+        uo_piece piece_promo_colored = uo_piece__N ^ color;
+        key ^= uo_zobkey(piece_colored, square_to ^ flip_if_black)
+          ^ uo_zobkey(piece_promo_colored, square_to ^ flip_if_black);
+        break;
+      }
+
+      case uo_move_type__promo_B:
+      case uo_move_type__promo_Bx: {
+        uo_piece piece_promo_colored = uo_piece__B ^ color;
+        key ^= uo_zobkey(piece_colored, square_to ^ flip_if_black)
+          ^ uo_zobkey(piece_promo_colored, square_to ^ flip_if_black);
+        break;
+      }
+
+      case uo_move_type__promo_R:
+      case uo_move_type__promo_Rx: {
+        uo_piece piece_promo_colored = uo_piece__R ^ color;
+        key ^= uo_zobkey(piece_colored, square_to ^ flip_if_black)
+          ^ uo_zobkey(piece_promo_colored, square_to ^ flip_if_black);
+        break;
+      }
+
+      case uo_move_type__promo_Q:
+      case uo_move_type__promo_Qx: {
+        uo_piece piece_promo_colored = uo_piece__Q ^ color;
+        key ^= uo_zobkey(piece_colored, square_to ^ flip_if_black)
+          ^ uo_zobkey(piece_promo_colored, square_to ^ flip_if_black);
+        break;
+      }
+    }
+
+    if (piece_captured > 1)
+    {
+      flags_next = uo_position_flags_update_rule50(flags_next, 0);
+
+      uo_piece piece_captured_colored = piece_captured ^ color;
+      key ^= uo_zobkey(piece_captured_colored, square_to ^ flip_if_black);
+
+      if (piece_captured == uo_piece__r)
+      {
+        switch (square_to)
+        {
+          case uo_square__a8:
+            flags_next = uo_position_flags_update_castling_q(flags_next, false);
+            break;
+
+          case uo_square__h8:
+            flags_next = uo_position_flags_update_castling_k(flags_next, false);
+            break;
+        }
+      }
+    }
+
+    uint8_t enpassant_file_prev = uo_position_flags_enpassant_file(position->flags);
+    if (enpassant_file_prev)
+    {
+      key ^= uo_zobrist_enpassant_file[enpassant_file_prev - 1];
+    }
+
+    flags_next = uo_position_flags_flip_castling(flags_next);
+    uint8_t castling_prev = uo_position_flags_castling(position->flags);
+    uint8_t castling_next = uo_position_flags_castling(flags_next);
+    key ^= uo_zobrist_castling[castling_prev] ^ uo_zobrist_castling[castling_next];
+
+    key ^= uo_zobrist_side_to_move;
+
+    if (flags) *flags = flags_next;
+
+    return key;
+  }
+
+  void uo_position_make_move(uo_position *position, uo_move move, uint64_t key, uo_position_flags flags);
 
   void uo_position_unmake_move(uo_position *position);
 
@@ -1051,19 +1234,25 @@ extern "C"
     uo_bitboard occupied_after = uo_andn(uo_square_bitboard(square_from), occupied_before);
     uo_bitboard attackers = position->own & occupied_after;
     uo_square square_enemy_K = uo_tzcnt(position->K & position->enemy);
-    uo_bitboard attacks = 0;
 
-    while (targets & !attacks)
+    // Loop through target squares (pieces) and check whether they are attacked after move is made
+    // but ignore those squares that were are already attacked before the move except king
+    while (targets)
     {
       uo_square square = uo_bitboard_next_square(&targets);
-      attacks |= uo_position_square_attackers(position, square, occupied_after) & attackers;
-      if (attacks && square != square_enemy_K && (uo_position_square_attackers(position, square, occupied_before) & position->own))
+      uo_bitboard attacks = uo_position_square_attackers(position, square, occupied_after) & attackers;
+
+      if (attacks
+        && square != square_enemy_K
+        && (uo_position_square_attackers(position, square, occupied_before) & position->own))
       {
         attacks = 0;
       }
+
+      if (attacks) return true;
     }
 
-    return attacks > 0;
+    return false;
   }
 
   static inline uo_bitboard uo_position_attacks_own_NBRQ(const uo_position *position)

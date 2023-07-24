@@ -142,7 +142,7 @@ uo_book *uo_book_create(const char *filepath)
 
           // Move is legal move
           entry->bestmove = move;
-          uo_position_make_move(&position, move);
+          uo_position_make_move(&position, move, 0, 0);
           entry = uo_book_set(book, position.key);
           entry->value = value;
 

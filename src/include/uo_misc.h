@@ -151,6 +151,21 @@ extern "C"
     return strrchr(path, '.');
   }
 
+  // Cache prefetch hint
+
+  static inline void uo_prefetch(void *addr)
+  {
+#   if defined(__INTEL_COMPILER)
+    __asm__("");
+#   endif
+
+#   if defined(__INTEL_COMPILER) || defined(_MSC_VER)
+    _mm_prefetch((char *)addr, _MM_HINT_T0);
+#   else
+    __builtin_prefetch(addr);
+#   endif
+  }
+
 #ifdef __cplusplus
 }
 #endif

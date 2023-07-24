@@ -177,6 +177,14 @@ extern "C"
     int16_t beta_initial;
   } uo_abtentry;
 
+  static inline void uo_engine_prefetch_entry(uint64_t key)
+  {
+    uint64_t mask = engine.ttable.hash_mask;
+    uint64_t hash = key & mask;
+    uo_tentry *entry = engine.ttable.entries + hash;
+    uo_prefetch(entry);
+  }
+
   // Retrieves an entry from the transposition table or from the opening book.
   // Returns true if an entry was found and the score represents valid score for the position when searched
   // on given depth and alpha/beta values.
@@ -352,7 +360,7 @@ extern "C"
   uo_process *uo_engine_start_new_process(char *cmdline);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif
