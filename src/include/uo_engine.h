@@ -216,7 +216,7 @@ extern "C"
     }
 
     // Step 3. Probe transposition table
-    bool found = uo_ttable_get(&engine.ttable, position, &abtentry->data);
+    bool found = uo_ttable_get(&engine.ttable, position->key, position->root_ply, &abtentry->data);
 
     // Step 4. Return if no match was found
     if (!found) return false;
@@ -294,7 +294,7 @@ extern "C"
         abtentry->value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
         uo_score_type__exact;
 
-      uo_ttable_set(&engine.ttable, position, &abtentry->data);
+      uo_ttable_set(&engine.ttable, position->key, position->root_ply, &abtentry->data);
     }
 
     // if transposition table entry is from deeper search. Adjust value based on value bounds from previous search

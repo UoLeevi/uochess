@@ -74,6 +74,7 @@ extern "C"
     uint8_t tactical_move_count;
     uint8_t skipped_move_count;
     bool moves_generated;
+    bool tactical_moves_generated;
     bool moves_sorted;
     uint8_t repetitions;
     uo_evaluation_info eval_info;
@@ -2248,23 +2249,16 @@ extern "C"
     return index;
   }
 
-  static inline void uo_position_update_cutoff_history(uo_position *position, size_t cutoff_move_num, size_t depth)
+  static inline void uo_position_update_killer_move(uo_position *position, uo_move move, size_t depth)
   {
-    // Increment butterfly heuristic counter for previously tried non-cutoff moves
-    for (size_t i = 0; i < cutoff_move_num; ++i)
-    {
-      uo_move move = position->movelist.head[i];
-      if (uo_move_is_tactical(move)) continue;
-      size_t index = uo_position_move_history_heuristic_index(position, move);
-      ++position->bftable[index];
-    }
-
-    uo_move move = position->movelist.head[cutoff_move_num];
     if (uo_move_is_tactical(move)) return;
+
+    const uint32_t history_value = depth * depth + 1;
 
     // Update history heuristic score for the cutoff move
     size_t index = uo_position_move_history_heuristic_index(position, move);
-    position->hhtable[index] += 2 << depth;
+    position->bftable[index] += history_value;
+    position->hhtable[index] += history_value;
 
     // Update killer moves
     uo_move *killers = position->stack[-1].search.killers;
@@ -2275,14 +2269,31 @@ extern "C"
     }
   }
 
+  static inline void uo_position_update_cutoff_history(uo_position *position, size_t cutoff_move_num, size_t depth)
+  {
+    const uint32_t history_value = depth * depth + 1;
+
+    // Increment butterfly heuristic counter for previously tried non-cutoff moves
+    for (size_t i = 0; i < cutoff_move_num; ++i)
+    {
+      uo_move move = position->movelist.head[i];
+      if (uo_move_is_tactical(move)) continue;
+      size_t index = uo_position_move_history_heuristic_index(position, move);
+      position->bftable[index] += history_value;
+    }
+
+    uo_move move = position->movelist.head[cutoff_move_num];
+    uo_position_update_killer_move(position, move, depth);
+  }
+
   static inline int16_t uo_position_move_relative_history_score(const uo_position *position, uo_move move)
   {
     // relative history heuristic
     size_t index = uo_position_move_history_heuristic_index(position, move);
-    uint32_t hhscore = position->hhtable[index] << 4;
+    uint32_t hhscore = position->hhtable[index];
     uint32_t bfscore = position->bftable[index] + 1;
 
-    return hhscore / bfscore;
+    return hhscore * 1000 / bfscore;
   }
 
   static inline int16_t uo_position_calculate_non_tactical_move_score(const uo_position *position, uo_move move, uo_move_cache *move_cache)
@@ -2367,11 +2378,11 @@ extern "C"
 
     if (move_type == uo_move_type__enpassant)
     {
-      move_score += 2050;
+      move_score += 1050;
     }
     else if (move_type & uo_move_type__x)
     {
-      move_score += 2000;
+      move_score += 1000;
 
       const uo_piece *board = position->board;
       uo_square square_from = uo_move_square_from(move);
@@ -2383,12 +2394,14 @@ extern "C"
       move_score += uo_piece_value(piece_captured) - uo_piece_value(piece) / (uo_score_Q / uo_score_P + 1);
 
       // Penalty of captures which lose material
-      move_score -= !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece);
+      move_score -= uo_piece_value(piece) > uo_piece_value(piece_captured)
+        ? !uo_position_move_see_gt(position, move, -1, move_cache) * uo_piece_value(piece)
+        : 0;
     }
 
     if (move_type & uo_move_type__promo)
     {
-      move_score += 2500 + move_type;
+      move_score += 1500 + move_type;
     }
 
     return move_score;
@@ -2617,7 +2630,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

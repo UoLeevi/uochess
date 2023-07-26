@@ -21,22 +21,13 @@ extern "C"
 // Insertion sort move count threshold
 #define UO_INSERTION_SORT_MOVE_COUNT 4
 
-// Number of moves to look at when checking for mc-prune.
-#define UO_MULTICUT_MOVE_COUNT 12
-
-// Number of cutoffs to cause an mc-prune, C < M.
-#define UO_MULTICUT_CUTOFF_COUNT 3
-
-// Search depth reduction for mc-prune searches.
-#define UO_MULTICUT_DEPTH_REDUCTION 3
-
 // Examine check moves in quiescence search until depth
-#define UO_QS_CHECKS_DEPTH 2
+#define UO_QS_CHECKS_DEPTH 1
 
 // Principal variation minimum allocated length
 #define UO_PV_ALLOC_MIN_LENGTH 12
 
-#define UO_TTABLE_LOCK_BITS 10 
+#define UO_TTABLE_LOCK_BITS 8 
 
 #define uo_score_draw 0
 #define uo_score_unknown INT16_MIN

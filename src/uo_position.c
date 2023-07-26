@@ -269,6 +269,7 @@ static inline void uo_position_do_switch_turn(uo_position *position, uint64_t ke
   ++position->ply;
   ++position->stack;
 
+  position->stack->move_count = 0;
   position->stack->moves_generated = false;
   position->stack->moves_sorted = false;
   position->stack->eval_info.is_valid = false;
@@ -1112,6 +1113,7 @@ static inline void uo_movegenlist_insert_tactical_move(uo_movegenlist *movegenli
 static inline size_t uo_movegenlist_count_and_pack_generated_moves(uo_movegenlist *movegenlist, uo_move_history *stack)
 {
   stack->moves_generated = true;
+  stack->tactical_moves_generated = true;
   stack->skipped_move_count = 0;
   size_t tactical_move_count = stack->tactical_move_count = movegenlist->moves.tactical.head - movegenlist->moves.tactical.root;
   size_t non_tactical_move_count = movegenlist->moves.non_tactical.head - movegenlist->moves.non_tactical.root;
@@ -1119,7 +1121,7 @@ static inline size_t uo_movegenlist_count_and_pack_generated_moves(uo_movegenlis
 
   size_t gap = movegenlist->moves.non_tactical.root - movegenlist->moves.tactical.head;
 
-  if (gap > 0)
+  if (gap > 0 && non_tactical_move_count)
   {
     size_t displaced_move_count = gap > non_tactical_move_count ? non_tactical_move_count : gap;
     memmove(movegenlist->moves.tactical.head, movegenlist->moves.non_tactical.head - displaced_move_count, displaced_move_count * sizeof(uo_move));
@@ -1833,6 +1835,230 @@ size_t uo_position_generate_moves(uo_position *position)
   }
 
   return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
+}
+
+size_t uo_position_generate_tactical_moves(uo_position *position)
+{
+  assert(uo_position_is_ok(position));
+  assert(position->stack->checks == uo_move_history__checks_none);
+
+  // Generated promotions and capture moves in MVV/LVA order
+
+  uo_move_history *stack = position->stack;
+  uo_movegenlist movegenlist;
+
+  uo_square square_from;
+  uo_square square_to;
+
+  uo_position_flags flags = position->flags;
+  uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
+  uo_bitboard bitboard_enpassant_file = enpassant_file ? uo_bitboard_file[enpassant_file - 1] : 0;
+
+  uo_piece *board = position->board;
+
+  uo_bitboard mask_own = position->own;
+  uo_bitboard mask_enemy = position->enemy;
+  uo_bitboard occupied = mask_own | mask_enemy;
+  uo_bitboard empty = ~occupied;
+
+  uo_bitboard own_P = mask_own & position->P;
+  uo_bitboard own_N = mask_own & position->N;
+  uo_bitboard own_B = mask_own & position->B;
+  uo_bitboard own_R = mask_own & position->R;
+  uo_bitboard own_Q = mask_own & position->Q;
+  uo_bitboard own_K = mask_own & position->K;
+  uo_bitboard enemy_P = mask_enemy & position->P;
+  uo_bitboard enemy_N = mask_enemy & position->N;
+  uo_bitboard enemy_B = mask_enemy & position->B;
+  uo_bitboard enemy_R = mask_enemy & position->R;
+  uo_bitboard enemy_Q = mask_enemy & position->Q;
+  uo_bitboard enemy_K = mask_enemy & position->K;
+  uo_bitboard enemy_BQ = enemy_B | enemy_Q;
+  uo_bitboard enemy_RQ = enemy_R | enemy_Q;
+
+  uo_square square_own_K = uo_tzcnt(own_K);
+
+  if (!position->pins.updated)
+  {
+    position->pins.by_BQ = uo_bitboard_pins_B(square_own_K, occupied, enemy_BQ);
+    position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
+    position->pins.updated = true;
+  }
+
+  uo_bitboard pins_to_own_K_by_BQ = position->pins.by_BQ;
+  uo_bitboard pins_to_own_K_by_RQ = position->pins.by_RQ;
+  uo_bitboard pins_to_own_K = position->pins.by_BQ | position->pins.by_RQ;
+
+  uo_bitboard attacks_own_K = uo_bitboard_attacks_K(square_own_K);
+
+  // Pawns that are pinned on a file or rank cannot capture and
+  // pawns that are pinned on diagonal can only capture the piece that is causing the pin
+  uo_bitboard pinned_diag_P = own_P & pins_to_own_K_by_BQ;
+  uo_bitboard pinned_captures_right_P = uo_bitboard_captures_right_P(pinned_diag_P, mask_enemy) & pins_to_own_K_by_BQ;
+  uo_bitboard pinned_captures_left_P = uo_bitboard_captures_left_P(pinned_diag_P, mask_enemy) & pins_to_own_K_by_BQ;
+  uo_bitboard non_pinned_P = uo_andn(pins_to_own_K, own_P);
+  uo_bitboard attacks_right_own_P = uo_bitboard_attacks_right_P(non_pinned_P);
+  uo_bitboard attacks_left_own_P = uo_bitboard_attacks_left_P(non_pinned_P);
+  attacks_left_own_P |= pinned_captures_left_P;
+  attacks_right_own_P |= pinned_captures_right_P;
+
+  // Non pinned pieces
+  uo_bitboard non_pinned_N = uo_andn(pins_to_own_K, own_N);
+  uo_bitboard non_pinned_B = uo_andn(pins_to_own_K, own_B);
+  uo_bitboard non_pinned_R = uo_andn(pins_to_own_K, own_R);
+  uo_bitboard non_pinned_Q = uo_andn(pins_to_own_K, own_Q);
+
+  // Pinned pieces
+  uo_bitboard pinned_diag_B = own_B & pins_to_own_K_by_BQ;
+  uo_bitboard pinned_diag_Q = own_Q & pins_to_own_K_by_BQ;
+  uo_bitboard pinned_line_R = own_R & pins_to_own_K_by_RQ;
+  uo_bitboard pinned_line_Q = own_Q & pins_to_own_K_by_RQ;
+
+  uo_movegenlist_init(&movegenlist, position->movelist.head, 100);
+
+
+  // Step 2. Loop through enemy pieces from highest value to lowest and generate captures
+
+  uo_bitboard attacker_own;
+  uo_bitboard temp;
+  uo_bitboard enemies[] = {
+    enemy_Q,
+    enemy_R,
+    enemy_B,
+    enemy_N
+  };
+
+  for (size_t i = 0; i < 4; ++i)
+  {
+    uo_bitboard enemy = enemies[i];
+    while (enemy)
+    {
+      uo_square square_to = uo_bitboard_next_square(&enemy);
+      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+
+      // Captures by pawn to right
+      if (bitboard_to & attacks_right_own_P)
+      {
+        square_from = square_to - 9;
+
+        if (square_to >= uo_square__a8)
+        {
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+        }
+        else
+        {
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+
+      // Captures by pawn to left
+      if (bitboard_to & attacks_left_own_P)
+      {
+        square_from = square_to - 7;
+
+        if (square_to >= uo_square__a8)
+        {
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Qx));
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Nx));
+        }
+        else
+        {
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+
+      // Captures by non pinned knight
+      attacker_own = uo_bitboard_attacks_N(square_from) & non_pinned_N;
+      while (attacker_own)
+      {
+        uo_square square_from = uo_bitboard_next_square(&attacker_own);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+      }
+
+      // Captures by non pinned bishops
+      uo_bitboard attacks_B = uo_bitboard_attacks_B(square_from, occupied);
+      attacker_own = attacks_B & non_pinned_B;
+      while (attacker_own)
+      {
+        uo_square square_from = uo_bitboard_next_square(&attacker_own);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+      }
+
+      // Captures by diagonally pinned bishops
+      if (bitboard_to & pins_to_own_K_by_BQ)
+      {
+        uo_bitboard attacker_own = attacks_B & pins_to_own_K_by_BQ & pinned_diag_B;
+        while (attacker_own)
+        {
+          uo_square square_from = uo_bitboard_next_square(&attacker_own);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+
+      // Captures by non pinned rooks
+      uo_bitboard attacks_R = uo_bitboard_attacks_R(square_from, occupied);
+      attacker_own = attacks_R & non_pinned_R;
+      while (attacker_own)
+      {
+        uo_square square_from = uo_bitboard_next_square(&attacker_own);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+      }
+
+      // Captures by vertically or horizontally pinned rooks
+      if (bitboard_to & pins_to_own_K_by_RQ)
+      {
+        uo_bitboard attacker_own = attacks_R & pins_to_own_K_by_RQ & pinned_line_R;
+        while (attacker_own)
+        {
+          uo_square square_from = uo_bitboard_next_square(&attacker_own);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+
+      // Captures by non pinned queens
+      uo_bitboard attacks_Q = attacks_B | attacks_R;
+      attacker_own = attacks_Q & non_pinned_Q;
+      while (attacker_own)
+      {
+        uo_square square_from = uo_bitboard_next_square(&attacker_own);
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+      }
+
+      // Captures by diagonally pinned queens
+      if (bitboard_to & pins_to_own_K_by_BQ)
+      {
+        uo_bitboard attacker_own = attacks_B & pins_to_own_K_by_BQ & pinned_diag_Q;
+        while (attacker_own)
+        {
+          uo_square square_from = uo_bitboard_next_square(&attacker_own);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+
+      // Captures by vertically or horizontally pinned queens
+      if (bitboard_to & pins_to_own_K_by_RQ)
+      {
+        uo_bitboard attacker_own = attacks_R & pins_to_own_K_by_RQ & pinned_line_Q;
+        while (attacker_own)
+        {
+          uo_square square_from = uo_bitboard_next_square(&attacker_own);
+          uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__x));
+        }
+      }
+    }
+  }
+
+  // TODO:
+  // -[ ] Captures by king
+  // -[ ] Capturing enemy pawns
+  // -[ ] Enpassant
+  // -[ ] Non-capture queen and knight promotions
+
+  size_t move_count = uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
+  stack->moves_generated = false;
+
+  return move_count;
 }
 
 uo_move uo_position_parse_move(const uo_position *position, char str[5])
