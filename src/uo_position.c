@@ -270,7 +270,9 @@ static inline void uo_position_do_switch_turn(uo_position *position, uint64_t ke
   ++position->stack;
 
   position->stack->move_count = 0;
+  position->stack->tactical_move_count = 0;
   position->stack->moves_generated = false;
+  position->stack->tactical_moves_generated = false;
   position->stack->moves_sorted = false;
   position->stack->eval_info.is_valid = false;
   position->stack->static_eval = uo_score_unknown;
@@ -859,7 +861,11 @@ size_t uo_position_print_diagram(uo_position *position, char diagram[663])
 void uo_position_copy(uo_position *uo_restrict dst, const uo_position *uo_restrict src)
 {
   ptrdiff_t movelist_advance = src->movelist.head - (uo_move *)src->movelist.moves;
-  size_t generated_move_count = src->stack->moves_generated ? src->stack->move_count : 0;
+  size_t generated_move_count
+    = src->stack->moves_generated ? src->stack->move_count
+    : src->stack->tactical_moves_generated ? src->stack->tactical_move_count
+    : 0;
+
   size_t size = offsetof(uo_position, movelist) + ((movelist_advance + generated_move_count) * sizeof(uo_move));
   memcpy(dst, src, size);
   dst->piece_captured = &dst->captures[src->piece_captured - (uo_piece *)src->captures];
@@ -1837,22 +1843,15 @@ size_t uo_position_generate_moves(uo_position *position)
   return uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
 }
 
-size_t uo_position_generate_tactical_moves(uo_position *position)
+size_t uo_position_generate_tactical_moves(uo_position *position, int16_t capture_value_min)
 {
   assert(uo_position_is_ok(position));
   assert(position->stack->checks == uo_move_history__checks_none);
 
-  // Generated promotions and capture moves in MVV/LVA order
+  // Generates promotions and capture moves in MVV/LVA order
 
   uo_move_history *stack = position->stack;
   uo_movegenlist movegenlist;
-
-  uo_square square_from;
-  uo_square square_to;
-
-  uo_position_flags flags = position->flags;
-  uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
-  uo_bitboard bitboard_enpassant_file = enpassant_file ? uo_bitboard_file[enpassant_file - 1] : 0;
 
   uo_piece *board = position->board;
 
@@ -1889,8 +1888,6 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
   uo_bitboard pins_to_own_K_by_RQ = position->pins.by_RQ;
   uo_bitboard pins_to_own_K = position->pins.by_BQ | position->pins.by_RQ;
 
-  uo_bitboard attacks_own_K = uo_bitboard_attacks_K(square_own_K);
-
   // Pawns that are pinned on a file or rank cannot capture and
   // pawns that are pinned on diagonal can only capture the piece that is causing the pin
   uo_bitboard pinned_diag_P = own_P & pins_to_own_K_by_BQ;
@@ -1915,20 +1912,53 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
   uo_bitboard pinned_line_Q = own_Q & pins_to_own_K_by_RQ;
 
   uo_movegenlist_init(&movegenlist, position->movelist.head, 100);
+  uo_bitboard temp;
 
+  // Step 2. Non capture queen and knight promotions
+  temp = non_pinned_P & uo_bitboard_rank_seventh;
+  while (temp)
+  {
+    uo_square square_from = uo_bitboard_next_square(&temp);
+    uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+    if (bitboard_from << 8 & empty)
+    {
+      uo_square square_to = square_from + 8;
 
-  // Step 2. Loop through enemy pieces from highest value to lowest and generate captures
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_Q));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_from, square_to, uo_move_type__promo_N));
+    }
+  }
+
+  // Step 3. Loop through enemy pieces from highest value to lowest and generate captures
 
   uo_bitboard attacker_own;
-  uo_bitboard temp;
-  uo_bitboard enemies[] = {
-    enemy_Q,
-    enemy_R,
-    enemy_B,
-    enemy_N
-  };
 
-  for (size_t i = 0; i < 4; ++i)
+  size_t piece_type_count = 1;
+  uo_bitboard enemies[5] = { enemy_Q };
+
+  if (capture_value_min > uo_score_R)
+  {
+    // Only queen captures
+  }
+  else if (capture_value_min > uo_score_N)
+  {
+    enemies[piece_type_count++] = enemy_R;
+  }
+  else if (capture_value_min > uo_score_P)
+  {
+    enemies[piece_type_count++] = enemy_R;
+    enemies[piece_type_count++] = enemy_B;
+    enemies[piece_type_count++] = enemy_N;
+  }
+  else
+  {
+    enemies[piece_type_count++] = enemy_R;
+    enemies[piece_type_count++] = enemy_B;
+    enemies[piece_type_count++] = enemy_N;
+    enemies[piece_type_count++] = enemy_P;
+  }
+
+  for (size_t i = 0; i < piece_type_count; ++i)
   {
     uo_bitboard enemy = enemies[i];
     while (enemy)
@@ -1939,7 +1969,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
       // Captures by pawn to right
       if (bitboard_to & attacks_right_own_P)
       {
-        square_from = square_to - 9;
+        uo_square square_from = square_to - 9;
 
         if (square_to >= uo_square__a8)
         {
@@ -1955,7 +1985,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
       // Captures by pawn to left
       if (bitboard_to & attacks_left_own_P)
       {
-        square_from = square_to - 7;
+        uo_square square_from = square_to - 7;
 
         if (square_to >= uo_square__a8)
         {
@@ -1969,7 +1999,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
       }
 
       // Captures by non pinned knight
-      attacker_own = uo_bitboard_attacks_N(square_from) & non_pinned_N;
+      attacker_own = uo_bitboard_attacks_N(square_to) & non_pinned_N;
       while (attacker_own)
       {
         uo_square square_from = uo_bitboard_next_square(&attacker_own);
@@ -1977,7 +2007,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
       }
 
       // Captures by non pinned bishops
-      uo_bitboard attacks_B = uo_bitboard_attacks_B(square_from, occupied);
+      uo_bitboard attacks_B = uo_bitboard_attacks_B(square_to, occupied);
       attacker_own = attacks_B & non_pinned_B;
       while (attacker_own)
       {
@@ -1997,7 +2027,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
       }
 
       // Captures by non pinned rooks
-      uo_bitboard attacks_R = uo_bitboard_attacks_R(square_from, occupied);
+      uo_bitboard attacks_R = uo_bitboard_attacks_R(square_to, occupied);
       attacker_own = attacks_R & non_pinned_R;
       while (attacker_own)
       {
@@ -2049,11 +2079,91 @@ size_t uo_position_generate_tactical_moves(uo_position *position)
     }
   }
 
-  // TODO:
-  // -[ ] Captures by king
-  // -[ ] Capturing enemy pawns
-  // -[ ] Enpassant
-  // -[ ] Non-capture queen and knight promotions
+  // Step 4. En passant captures
+  uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
+  if (enpassant_file)
+  {
+    uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+    uo_bitboard enpassant = bitboard_enpassant_file & uo_bitboard_rank_fifth;
+    uo_square square_to = uo_tzcnt(enpassant) + 8;
+
+    // Non pinned pawn en passant captures
+    if (enpassant_file > 1 && (non_pinned_P & (enpassant >> 1)))
+    {
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant));
+    }
+
+    if (enpassant_file < 8 && (non_pinned_P & (enpassant << 1)))
+    {
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant));
+    }
+
+    // Pinned pawn en passant captures
+    // TODO: en passant flag should not be set if the move would be illegal
+
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+
+    if (bitboard_to & pins_to_own_K_by_BQ)
+    {
+      if (enpassant_file > 1 && (pinned_diag_P & (enpassant >> 1)))
+      {
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 9, square_to, uo_move_type__enpassant));
+      }
+
+      if (enpassant_file < 8 && (pinned_diag_P & (enpassant << 1)))
+      {
+        uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_to - 7, square_to, uo_move_type__enpassant));
+      }
+    }
+  }
+
+  // Step 5. Captures by king
+  // Position is assumed not to be a check so we can omit captures which occur only when king is in check
+
+  uo_bitboard attacks_right_enemy_P = uo_bitboard_attacks_right_enemy_P(enemy_P);
+  uo_bitboard attacks_left_enemy_P = uo_bitboard_attacks_left_enemy_P(enemy_P);
+  uo_bitboard attacks_diag_down_own_K = uo_bitboard_attacks_P(square_own_K, uo_color_enemy);
+  uo_bitboard attacks_diag_own_K = uo_bitboard_attacks_P(square_own_K, uo_color_own) | attacks_diag_down_own_K;
+  uo_bitboard moves_own_K = uo_bitboard_moves_K(square_own_K, mask_own, mask_enemy);
+  moves_own_K = uo_andn(attacks_right_enemy_P | attacks_left_enemy_P, moves_own_K);
+
+  // King captures enemy rook, knight or pawn diagonally
+  uo_bitboard captures_diag_own_K = moves_own_K & attacks_diag_own_K & (enemy_R | enemy_N | enemy_P);
+  while (captures_diag_own_K)
+  {
+    uo_square square_to = uo_bitboard_next_square(&captures_diag_own_K);
+    uo_bitboard occupied_after_move_by_K = uo_andn(own_K, occupied);
+    uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(square_to, occupied_after_move_by_K);
+    uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(square_to, occupied_after_move_by_K);
+    uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(square_to);
+    uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(square_to);
+    uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_K;
+
+    if (!enemy_checks)
+    {
+      assert(uo_position_is_legal_move(position, uo_move_encode(square_own_K, square_to, uo_move_type__x)));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__x));
+    }
+  }
+
+  // King captures enemy bishop, knight or pawn vertically or horizontally
+  uo_bitboard captures_line_own_K = uo_andn(attacks_diag_own_K, moves_own_K) & (enemy_B | enemy_N | enemy_P);
+  while (captures_line_own_K)
+  {
+    uo_square square_to = uo_bitboard_next_square(&captures_line_own_K);
+    uo_bitboard occupied_after_move_by_K = uo_andn(own_K, occupied);
+    uo_bitboard enemy_checks_BQ = enemy_BQ & uo_bitboard_attacks_B(square_to, occupied_after_move_by_K);
+    uo_bitboard enemy_checks_RQ = enemy_RQ & uo_bitboard_attacks_R(square_to, occupied_after_move_by_K);
+    uo_bitboard enemy_checks_N = enemy_N & uo_bitboard_attacks_N(square_to);
+    uo_bitboard enemy_checks_K = enemy_K & uo_bitboard_attacks_K(square_to);
+    uo_bitboard enemy_checks = enemy_checks_N | enemy_checks_BQ | enemy_checks_RQ | enemy_checks_K;
+
+    if (!enemy_checks)
+    {
+      assert(uo_position_is_legal_move(position, uo_move_encode(square_own_K, square_to, uo_move_type__x)));
+      uo_movegenlist_insert_tactical_move(&movegenlist, uo_move_encode(square_own_K, square_to, uo_move_type__x));
+    }
+  }
 
   size_t move_count = uo_movegenlist_count_and_pack_generated_moves(&movegenlist, stack);
   stack->moves_generated = false;

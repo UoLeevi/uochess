@@ -531,6 +531,8 @@ extern "C"
 
   size_t uo_position_generate_moves(uo_position *position);
 
+  size_t uo_position_generate_tactical_moves(uo_position *position, int16_t capture_value_min);
+
   static inline uint8_t uo_position_material_percentage(const uo_position *position)
   {
     return (uint32_t)100 * (uint32_t)position->material / (uint32_t)uo_score_material_max;
@@ -2630,7 +2632,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-  }
+}
 #endif
 
 #endif

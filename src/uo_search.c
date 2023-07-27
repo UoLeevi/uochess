@@ -361,7 +361,6 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   uo_position *position = &thread->position;
   int16_t score_checkmate = uo_score_checkmate - position->ply;
   int16_t score_tb_win = uo_score_tb_win - position->ply;
-  bool is_check = uo_position_is_check(position);
   size_t rule50 = uo_position_flags_rule50(position->flags);
   uo_move_history *stack = position->stack;
 
@@ -372,7 +371,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 3. Check for draw by 50 move rule
   if (rule50 >= 100)
   {
-    if (is_check)
+    if (uo_position_is_check(position))
     {
       size_t move_count = stack->moves_generated
         ? stack->move_count
@@ -409,24 +408,24 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 8. If maximum search depth is reached return static evaluation
   if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
 
-  // Step 9. Generate legal moves
-  size_t move_count = stack->moves_generated
-    ? stack->move_count
-    : uo_position_generate_moves(position);
-
-  // Step 10. If there are no legal moves, return draw or checkmate
-  if (move_count == 0) return is_check ? -score_checkmate : 0;
-
-  // Step 11. If position is check, perform quiesence search for all moves
-  if (is_check)
+  // Step 9. If position is check, perform quiesence search for all moves
+  if (uo_position_is_check(position))
   {
-    // Step 11.1. Initialize score to be checkmate
+    // Step 9.1. Generate legal moves
+    size_t move_count = stack->moves_generated
+      ? stack->move_count
+      : uo_position_generate_moves(position);
+
+    // Step 9.2. If there are no legal moves, return checkmate
+    if (move_count == 0) return -score_checkmate;
+
+    // Step 9.3. Initialize score to be checkmate
     entry.value = -score_checkmate;
 
-    // Step 11.2. Sort moves
+    // Step 9.4. Sort moves
     uo_position_sort_moves(&thread->position, entry.data.bestmove, thread->move_cache);
 
-    // Step 11.3. Search each move
+    // Step 9.5. Search each move
     for (size_t i = 0; i < move_count; ++i)
     {
       uo_move move = position->movelist.head[i];
@@ -460,21 +459,21 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return entry.value;
   }
 
-  // Step 12. Position is not check. Initialize score to static evaluation. "Stand pat"
+  // Step 10. Position is not check. Initialize score to static evaluation. "Stand pat"
   uo_evaluation_info eval_info;
   int16_t static_eval = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
   assert(stack->static_eval != uo_score_unknown);
 
-  // Step 13. Adjust value if position was found from transposition table
+  // Step 11. Adjust value if position was found from transposition table
   entry.value =
     entry.data.type == uo_score_type__lower_bound ? uo_max(entry.data.value, static_eval) :
     entry.data.type == uo_score_type__upper_bound ? uo_min(entry.data.value, static_eval) : // <- this might be a bit dubious
     static_eval;
 
-  // Step 14. Cutoff if static evaluation is higher or equal to beta.
+  // Step 12. Cutoff if static evaluation is higher or equal to beta.
   if (entry.value >= beta) return beta;
 
-  // Step 15. Delta pruning
+  // Step 13. Delta pruning
   bool is_promotion_possible = uo_msb(position->P & position->own) >= uo_square__a7;
   int16_t delta
     // Large material gain from capture
@@ -486,64 +485,16 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   if (entry.value + delta < alpha) return alpha;
 
-  // Step 16. Determine futility threshold for pruning unpotential moves
-  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
-  const int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
-
-  // Step 17. Update alpha
+  // Step 14. Update alpha
   alpha = uo_max(alpha, entry.value);
 
-  // Step 18. Sort tactical moves
-  uo_position_sort_tactical_moves(position, thread->move_cache);
+  // Step 15. Generate tactical moves with potential to raise alpha
+  size_t tactical_move_count = uo_position_generate_tactical_moves(position, 0 /*uo_max(0, alpha - static_eval)*/);
 
-  // Step 19. Search tactical moves which have potential to raise alpha and checks depending on depth
-  for (size_t i = 0; i < move_count; ++i)
+  // Step 16. Search tactical moves
+  for (size_t i = 0; i < tactical_move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
-
-    // Step 17.1. For first couple plies, search all checks that are not immediately recapturable
-    // or if they have some possibility to raise alpha
-    uo_bitboard checks = uo_position_move_checks(position, move, thread->move_cache);
-    if (checks)
-    {
-      int16_t futility_threshold_for_check = depth < UO_QS_CHECKS_DEPTH
-        ? uo_min(-1, futility_threshold)
-        : futility_threshold;
-
-      if (uo_position_move_see_gt(position, move, futility_threshold_for_check, thread->move_cache))
-      {
-        goto search_move;
-      }
-    }
-
-    // Step 19.2. Search queen and knight promotions
-    else if (uo_move_is_promotion_Q_or_N(move))
-    {
-      goto search_move;
-    }
-
-    // Step 19.3. Futility pruning for captures
-    else if (uo_move_is_capture(move)
-      && uo_position_move_see_gt(position, move, futility_threshold, thread->move_cache))
-    {
-      goto search_move;
-    }
-
-    // Step 19.4. Examine potential advanced pawn pushes
-    else if (depth < UO_QS_CHECKS_DEPTH // test with limiting depth
-      && uo_position_move_piece(position, move) == uo_piece__P
-      && uo_move_square_to(move) >= uo_square__a7
-      && uo_position_move_see_gt(position, move, uo_min(-1, futility_threshold), thread->move_cache))
-    {
-      goto search_move;
-    }
-
-    // Do not search the move
-    continue;
-
-    // Search move
-  search_move:
-    uo_position_update_next_move_checks(position, checks);
     uo_position_flags flags;
     uint64_t key = uo_position_move_key(position, move, &flags);
     uo_engine_prefetch_entry(key);
