@@ -56,6 +56,22 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
     int64_t bestmove_age = info->depth - info->bestmove_change_depth;
     movetime = uo_max(1, movetime - bestmove_age_reduction * bestmove_age);
 
+    // If opponent did play the expected move, reduce move time a bit
+    if (engine.ponder.is_ponderhit)
+    {
+      movetime = movetime * 4 / 5;
+    }
+
+    // If current evaluation is significantly lower than previous evaluation, grant some additional search time
+    if (engine.ponder.is_continuation
+      && engine.ponder.value < uo_score_Q
+      && engine.ponder.value > -uo_score_Q
+      && engine.ponder.value > info->value
+      && engine.ponder.value - info->value > uo_score_P / 2)
+    {
+      movetime += avg_time_per_move * 2;
+    }
+
     // The minimum time that should be left on the clock is one second
     movetime = uo_max(1, uo_min(movetime, (int64_t)params->time_own - 1000));
   }
@@ -423,7 +439,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     entry.value = -score_checkmate;
 
     // Step 9.4. Sort moves
-    uo_position_sort_moves(&thread->position, entry.data.bestmove, thread->move_cache);
+    uo_position_sort_moves(&thread->position, entry.bestmove, thread->move_cache);
 
     // Step 9.5. Search each move
     for (size_t i = 0; i < move_count; ++i)
@@ -459,7 +475,9 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
     return entry.value;
   }
 
-  // Step 10. Position is not check. Initialize score to static evaluation. "Stand pat"
+  // Position is not check. Examine only tactical moves and the possible transposition table move.
+
+  // Step 10. Initialize score to static evaluation. "Stand pat"
   uo_evaluation_info eval_info;
   int16_t static_eval = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
   assert(stack->static_eval != uo_score_unknown);
@@ -485,16 +503,63 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   if (entry.value + delta < alpha) return alpha;
 
-  // Step 14. Update alpha
+  // Step 14. Determine futility threshold for pruning unpotential moves
+  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
+  const int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
+
+  // Step 15. Update alpha
   alpha = uo_max(alpha, entry.value);
 
-  // Step 15. Generate tactical moves with potential to raise alpha
-  size_t tactical_move_count = uo_position_generate_tactical_moves(position, 0 /*uo_max(0, alpha - static_eval)*/);
+  // Step 16. Search transposition table move if it is not a tactical move
+  if (entry.bestmove
+    && !uo_move_is_tactical(entry.bestmove))
+  {
+    uo_position_flags flags;
+    uint64_t key = uo_position_move_key(position, entry.bestmove, &flags);
+    uo_engine_prefetch_entry(key);
+    uo_position_make_move(position, entry.bestmove, key, flags);
+    assert(!key || key == position->key);
+    int16_t node_value = -uo_search_quiesce(thread, -beta, -alpha, depth + 1, incomplete);
+    uo_position_unmake_move(position);
 
-  // Step 16. Search tactical moves
+    if (*incomplete) return uo_score_unknown;
+
+    if (node_value > entry.value)
+    {
+      entry.value = node_value;
+
+      if (entry.value > alpha)
+      {
+        if (entry.value >= beta)
+        {
+          return entry.value;
+        }
+
+        alpha = entry.value;
+      }
+    }
+  }
+
+  // Step 17. Generate tactical moves with potential to raise alpha
+  size_t tactical_move_count = uo_position_generate_tactical_moves(position, futility_threshold);
+
+  // Step 18. Sort tactical moves
+  uo_position_sort_tactical_moves(position, thread->move_cache);
+
+  // Step 19. Search tactical moves
   for (size_t i = 0; i < tactical_move_count; ++i)
   {
     uo_move move = position->movelist.head[i];
+
+    // Step 19.1. Futility pruning for captures
+    if (uo_move_is_capture(move)
+      && !uo_move_is_promotion(move)
+      && !uo_move_is_enpassant(move)
+      && !uo_position_move_see_gt(position, move, futility_threshold, thread->move_cache))
+    {
+      continue;
+    }
+
     uo_position_flags flags;
     uint64_t key = uo_position_move_key(position, move, &flags);
     uo_engine_prefetch_entry(key);
@@ -1325,16 +1390,21 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   size_t nodes_prev = 0;
   bool incomplete = false;
 
+  // Check if new search is continuation to previous search
+  bool is_continuation = engine.ponder.is_continuation = engine.ponder.key
+    && position->stack[-1].key == engine.ponder.key;
+
+  // Check if opponent played the expected move
+  bool is_ponderhit = engine.ponder.is_ponderhit = is_continuation
+    && position->stack[-1].move == engine.ponder.move;
+
   // Check for ponder hit
-  if (engine.ponder.key
-    && position->stack[-1].key == engine.ponder.key)
+  if (is_continuation)
   {
     value = engine.ponder.value;
     int16_t window = uo_score_P;
 
     // If opponent played the expected move, initialize pv and use more narrow aspiration window
-    bool is_ponderhit = position->stack[-1].move == engine.ponder.move;
-
     if (is_ponderhit)
     {
       // Ponder hit
@@ -1460,8 +1530,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
   // Save ponder move
   engine.ponder.key = uo_position_move_key(position, bestmove, NULL);
-  engine.ponder.value = thread->info.value = value;
   engine.ponder.move = line[1];
+  thread->info.value = value;
 
   // Stop search if mate in one
   if (value <= -uo_score_checkmate + 1
@@ -1600,8 +1670,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     uo_pv_copy(engine.pv, line);
     engine.ponder.key = uo_position_move_key(position, bestmove, NULL);
-    engine.ponder.value = thread->info.value = value;
     engine.ponder.move = line[1];
+    thread->info.value = value;
   }
 
 search_completed:
@@ -1622,7 +1692,7 @@ search_completed:
       value = 0;
     }
 
-    engine.ponder.value = thread->info.value = value;
+    thread->info.value = value;
 
     if (uo_position_is_skipped_move(position, bestmove))
     {
@@ -1635,6 +1705,7 @@ search_completed:
     }
   }
 
+  engine.ponder.value = thread->info.value;
   thread->info.completed = true;
   uo_search_print_info(thread);
 

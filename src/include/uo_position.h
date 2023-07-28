@@ -115,6 +115,18 @@ extern "C"
     struct
     {
       bool updated;
+      uo_bitboard P;
+      uo_bitboard N;
+      uo_bitboard B;
+      uo_bitboard R;
+      uo_bitboard Q;
+      uo_bitboard K;
+      uo_bitboard any;
+    } attacks_enemy;
+
+    struct
+    {
+      bool updated;
       uo_bitboard by_BQ;
       uo_bitboard by_RQ;
     } pins;
@@ -1174,6 +1186,73 @@ extern "C"
     position->pins.by_RQ = uo_bitboard_pins_R(square_own_K, occupied, enemy_RQ);
   }
 
+  static inline uo_bitboard uo_position_enemy_attacks(uo_position *position)
+  {
+    if (position->attacks_enemy.updated) return position->attacks_enemy.any;
+
+    uo_bitboard mask_enemy = position->enemy;
+
+    // King attacks
+    uo_bitboard enemy_K = mask_enemy & position->K;
+    uo_square square_enemy_K = uo_tzcnt(enemy_K);
+    position->attacks_enemy.K = uo_bitboard_attacks_K(square_enemy_K);
+
+    // Pawn attacks
+    uo_bitboard enemy_P = mask_enemy & position->P;
+    position->attacks_enemy.P = uo_bitboard_attacks_enemy_P(enemy_P);
+
+    // Knight attacks
+    position->attacks_enemy.N = 0;
+    uo_bitboard enemy_N = mask_enemy & position->N;
+    while (enemy_N)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_N);
+      position->attacks_enemy.N |= uo_bitboard_attacks_N(square);
+    }
+
+    // Let's omit our king from the blocker mask to include attacks to squares where only the king is blocking
+    uo_bitboard mask_own = position->own;
+    uo_bitboard own_K = mask_own & position->K;
+    uo_bitboard occupied = uo_andn(own_K, mask_enemy | mask_own);
+
+    // Bishop attacks
+    position->attacks_enemy.B = 0;
+    uo_bitboard enemy_B = mask_enemy & position->B;
+    while (enemy_B)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_B);
+      position->attacks_enemy.B |= uo_bitboard_attacks_B(square, occupied);
+    }
+
+    // Rook attacks
+    position->attacks_enemy.R = 0;
+    uo_bitboard enemy_R = mask_enemy & position->R;
+    while (enemy_R)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_R);
+      position->attacks_enemy.R |= uo_bitboard_attacks_R(square, occupied);
+    }
+
+    // Queen attacks
+    position->attacks_enemy.Q = 0;
+    uo_bitboard enemy_Q = mask_enemy & position->Q;
+    while (enemy_Q)
+    {
+      uo_square square = uo_bitboard_next_square(&enemy_Q);
+      position->attacks_enemy.Q |= uo_bitboard_attacks_Q(square, occupied);
+    }
+
+    position->attacks_enemy.updated = true;
+
+    return position->attacks_enemy.any
+      = position->attacks_enemy.K
+      | position->attacks_enemy.Q
+      | position->attacks_enemy.R
+      | position->attacks_enemy.B
+      | position->attacks_enemy.N
+      | position->attacks_enemy.P;
+  }
+
   static inline bool uo_position_is_check(uo_position *position)
   {
     if (position->stack->checks == uo_move_history__checks_unknown)
@@ -1181,7 +1260,6 @@ extern "C"
       uo_bitboard mask_own = position->own;
       uo_bitboard mask_enemy = position->enemy;
       uo_bitboard occupied = mask_own | mask_enemy;
-      uo_bitboard empty = ~occupied;
 
       uo_bitboard own_K = mask_own & position->K;
       uo_square square_own_K = uo_tzcnt(own_K);
@@ -1195,7 +1273,8 @@ extern "C"
       uo_bitboard enemy_BQ = enemy_B | enemy_Q;
       uo_bitboard enemy_RQ = enemy_R | enemy_Q;
 
-      uo_bitboard checks = (enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied))
+      uo_bitboard checks
+        = (enemy_BQ & uo_bitboard_attacks_B(square_own_K, occupied))
         | (enemy_RQ & uo_bitboard_attacks_R(square_own_K, occupied))
         | (enemy_N & uo_bitboard_attacks_N(square_own_K))
         | (enemy_P & uo_bitboard_attacks_P(square_own_K, uo_color_own));

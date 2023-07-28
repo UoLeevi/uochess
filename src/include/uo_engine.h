@@ -111,6 +111,8 @@ extern "C"
       uint64_t key;
       int16_t value;
       uo_move move;
+      bool is_continuation;
+      bool is_ponderhit;
     } ponder;
     uo_move pv[UO_MAX_PLY];
     uo_move **secondary_pvs;
@@ -242,7 +244,7 @@ extern "C"
 
       case uo_score_type__lower_bound:
         // Step 8. Beta cutoff
-        if (value >= *abtentry->beta)
+        if (value >= abtentry->beta_initial)
         {
           abtentry->value = value;
           return true;
@@ -252,7 +254,7 @@ extern "C"
         {
           // Step 9. Update alpha
           abtentry->alpha_initial = value;
-          *abtentry->alpha = value - 1;
+          *abtentry->alpha = value; // - 1;
         }
 
         break;
@@ -269,7 +271,7 @@ extern "C"
         {
           // Step 11. Update beta
           abtentry->beta_initial = value;
-          *abtentry->beta = value + 1;
+          *abtentry->beta = value; // + 1;
         }
 
         break;
