@@ -422,7 +422,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 8. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
 
   // Step 9. If position is check, perform quiesence search for all moves
   if (uo_position_is_check(position))
@@ -478,8 +478,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Position is not check. Examine only tactical moves and the possible transposition table move.
 
   // Step 10. Initialize score to static evaluation. "Stand pat"
-  uo_evaluation_info eval_info;
-  int16_t static_eval = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
+  int16_t static_eval = uo_position_evaluate_and_cache(position, thread->move_cache);
   assert(stack->static_eval != uo_score_unknown);
 
   // Step 11. Adjust value if position was found from transposition table
@@ -775,7 +774,7 @@ continue_search:
   ++thread->info.nodes;
 
   // Step 9. If maximum search depth is reached return static evaluation
-  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, NULL, thread->move_cache);
+  if (uo_position_is_max_depth_reached(position)) return uo_position_evaluate_and_cache(position, thread->move_cache);
 
   // Step 10. Tablebase probe
   // Do not probe on root node or if search depth is too shallow
@@ -859,8 +858,7 @@ continue_search:
   if (move_count == 0) return is_check ? -score_checkmate : 0;
 
   // Step 15. Static evaluation and calculation of improvement margin
-  uo_evaluation_info eval_info;
-  int16_t static_eval = uo_position_evaluate_and_cache(position, &eval_info, thread->move_cache);
+  int16_t static_eval = uo_position_evaluate_and_cache(position, thread->move_cache);
   assert(is_check || static_eval != uo_score_unknown);
 
   bool is_improving

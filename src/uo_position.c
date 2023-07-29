@@ -264,7 +264,8 @@ static inline void uo_position_update_repetitions(uo_position *position)
 static inline void uo_position_do_switch_turn(uo_position *position, uint64_t key, uo_position_flags flags)
 {
   position->pins.updated = false;
-  position->attacks_enemy.updated = false;
+  position->attacks.own.updated = false;
+  position->attacks.enemy.updated = false;
   position->movelist.head += position->stack->move_count;
 
   ++position->ply;
@@ -275,7 +276,6 @@ static inline void uo_position_do_switch_turn(uo_position *position, uint64_t ke
   position->stack->moves_generated = false;
   position->stack->tactical_moves_generated = false;
   position->stack->moves_sorted = false;
-  position->stack->eval_info.is_valid = false;
   position->stack->static_eval = uo_score_unknown;
   position->stack->flags = position->flags = flags;
   position->stack->key = position->key = key;
@@ -294,7 +294,8 @@ static inline void uo_position_undo_switch_turn(uo_position *position)
   stack[1].checks = uo_move_history__checks_unknown;
   position->movelist.head -= stack->move_count;
   position->pins.updated = false;
-  position->attacks_enemy.updated = false;
+  position->attacks.own.updated = false;
+  position->attacks.enemy.updated = false;
   position->flags = stack->flags;
   position->key = stack->key;
 
@@ -2512,13 +2513,7 @@ uo_position *uo_position_randomize(uo_position *position, const char *pieces /* 
   occupied |= own_K;
   position->board[square_own_K] = uo_piece__K;
 
-  uo_bitboard unavailable_to_enemy_K = occupied;
-
-  unavailable_to_enemy_K |= uo_bitboard_attacks_K(square_own_K);
-  unavailable_to_enemy_K |= uo_position_attacks_own_NBRQ(position);
-  uo_bitboard own_P = position->P & position->own;
-  unavailable_to_enemy_K |= uo_bitboard_attacks_left_P(own_P);
-  unavailable_to_enemy_K |= uo_bitboard_attacks_right_P(own_P);
+  uo_bitboard unavailable_to_enemy_K = occupied | uo_position_own_attacks(position);
 
   size_t square_enemy_K = uo_rand_between_excl(0, 64);
   uo_bitboard enemy_K = uo_square_bitboard(square_enemy_K);

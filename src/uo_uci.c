@@ -692,17 +692,9 @@ static void uo_uci_command__eval(void)
   uo_engine_lock_stdout();
   uo_engine_lock_position();
 
-  uo_evaluation_info eval_info;
-  int16_t value = uo_position_evaluate(&engine.position, &eval_info);
-
-  int16_t mate_threat_own = eval_info.attack_units_enemy;
-  int16_t mate_threat_enemy = eval_info.attack_units_own;
+  int16_t value = uo_position_evaluate(&engine.position);
 
   uint16_t color = uo_color(engine.position.flags) == uo_white ? 1 : -1;
-
-  printf("Mate threats\n");
-  printf(" towards white: %d\n", color == 1 ? mate_threat_own : mate_threat_enemy);
-  printf(" towards black: %d\n", color == 1 ? mate_threat_enemy : mate_threat_own);
 
   int16_t score = color * value;
   printf("Evaluation: %d", score);

@@ -236,8 +236,7 @@ bool uo_test__eval(uo_test_info *info)
 
         if (cp < cp_lower_bound || cp > cp_upper_bound)
         {
-          uo_evaluation_info eval_info;
-          int16_t static_eval = uo_position_evaluate(&info->position, &eval_info);
+          int16_t static_eval = uo_position_evaluate(&info->position);
           assert(static_eval == cp);
 
           sprintf(info->message, "Static evaluation %d for fen '%s' is not between [%d,%d].", cp, info->fen, cp_lower_bound, cp_upper_bound);
