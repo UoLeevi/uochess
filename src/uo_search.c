@@ -107,6 +107,17 @@ bool uo_engine_thread_is_pv_ok(uo_engine_thread *thread)
   return true;
 }
 
+static void uo_search_print_info_string(uo_engine_thread *thread, const char *fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof buf, fmt, args);
+  va_end(args);
+  uo_engine_lock_stdout();
+  printf("info string %s\n", buf);
+  uo_engine_unlock_stdout();
+}
+
 static void uo_search_print_info(uo_engine_thread *thread)
 {
   uo_search_info *info = &thread->info;
@@ -307,8 +318,8 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   uo_piece piece = board[square_to ^ 56] ^ 1;
 
   // Step 2. Limit search depth extensions to prevent search explosion.
-  int net_extension_plies = position->ply + depth - info->depth;
-  int max_extension = uo_max(0, (info->depth - uo_max(0, net_extension_plies)) * 1000);
+  int net_extension_plies = (int)position->ply + (int)depth - (int)info->depth;
+  int max_extension = uo_max(0, ((int)info->depth - uo_max(0, net_extension_plies)) * 1000);
 
   // Step 3. Determine depth extension
   int extension = 0;
@@ -334,7 +345,7 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   // Step 4. No extension. Determine reductions.
 
   // Also limit reductions to avoid missing threats
-  int max_reduction = uo_min(depth * 1000 / 3 + 1, info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
+  int max_reduction = uo_min((int)depth * 1000 / 3 + 1, (int)info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
   if (max_reduction <= 0) return 0;
 
   if (
@@ -353,12 +364,12 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   // Default reduction is one fifth of the depth but capped at two plies
   int reduction = uo_min(depth * 1000 / 5, 2000);
 
-  // Reduction for stepping into defended square
-  uo_bitboard attackers = uo_position_square_attackers(position, square_to ^ 56, position->own | position->enemy);
-  uo_bitboard attackers_own = attackers & position->enemy;
-  uo_bitboard attackers_enemy = attackers & position->own;
-  int attackers_vs_defenders = (int)uo_popcnt(attackers_enemy) - (int)uo_popcnt(attackers_own);
-  reduction += uo_max(0, attackers_vs_defenders) * 300;
+  //// Reduction for stepping into defended square
+  //uo_bitboard attackers = uo_position_square_attackers(position, square_to ^ 56, position->own | position->enemy);
+  //uo_bitboard attackers_own = attackers & position->enemy;
+  //uo_bitboard attackers_enemy = attackers & position->own;
+  //int attackers_vs_defenders = (int)uo_popcnt(attackers_enemy) - (int)uo_popcnt(attackers_own);
+  //reduction += uo_max(0, attackers_vs_defenders) * 300;
 
   // Reduction based on move ordering
   reduction += move_num * 100;
@@ -1079,7 +1090,7 @@ continue_search:
           && beta < uo_score_tb_win_threshold
           && entry.value > -uo_score_tb_win_threshold)
         {
-          depth -= 2;
+          depth -= 1;
           params.depth = depth - 1;
         }
 
@@ -1150,7 +1161,7 @@ continue_search:
               && beta < uo_score_tb_win_threshold
               && entry.value > -uo_score_tb_win_threshold)
             {
-              depth -= 2;
+              depth -= 1;
               params.depth = depth - 1;
             }
 
@@ -1567,6 +1578,8 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     .line = lazy_smp_lines[0]
   };
 
+  size_t fail_count;
+
   // Iterative deepening loop
   for (size_t depth = info->depth + 1; depth <= params->depth; ++depth)
   {
@@ -1595,8 +1608,9 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
     }
 
     // Aspiration search loop
-    bool is_depth_completed = false;
-    while (!is_depth_completed)
+    fail_count = 0;
+
+    do
     {
       // Start timer for current search iteration
       uo_time_now(&time_start_last_iteration);
@@ -1659,8 +1673,25 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       }
 
       // Check if search returned a value that is within aspiration window
-      is_depth_completed = uo_search_adjust_alpha_beta(value, &alpha, &beta);
-    }
+      if (uo_search_adjust_alpha_beta(value, &alpha, &beta))
+      {
+        fail_count = 0;
+      }
+      // If search fails too many times on the same depth. Let's clear the transposition table and reduce depth.
+      else if (++fail_count > 3)
+      {
+        uo_engine_clear_hash();
+        uo_search_print_info_string(thread, "hash cleared");
+        depth /= 2;
+        fail_count = 1;
+      }
+      // Increase depth no matter if aspiration search failed;
+      else
+      {
+        ++depth;
+      }
+
+    } while (fail_count);
 
     // We should always have a best move if search was successful
     bestmove = line[0];

@@ -22,7 +22,7 @@ extern "C"
 #define UO_INSERTION_SORT_MOVE_COUNT 4
 
 // Examine check moves in quiescence search until depth
-#define UO_QS_CHECKS_DEPTH 2
+#define UO_QS_CHECKS_DEPTH 0
 
 // Principal variation minimum allocated length
 #define UO_PV_ALLOC_MIN_LENGTH 12

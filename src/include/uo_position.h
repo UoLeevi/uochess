@@ -955,6 +955,8 @@ extern "C"
 
     uo_bitboard attacks_own = uo_position_own_attacks(position);
     uo_bitboard attacks_enemy = uo_position_enemy_attacks(position);
+    uo_bitboard undefended_own = uo_andn(attacks_own, mask_own);
+    uo_bitboard undefended_enemy = uo_andn(attacks_enemy, mask_enemy);
 
     uo_square square_own_K = uo_tzcnt(own_K);
     uo_bitboard attacks_own_K = uo_bitboard_attacks_K(square_own_K);
@@ -984,6 +986,10 @@ extern "C"
     int16_t castling_right_own_OOO = uo_position_flags_castling_OOO(position->flags);
     int16_t castling_right_enemy_OO = uo_position_flags_castling_enemy_OO(position->flags);
     int16_t castling_right_enemy_OOO = uo_position_flags_castling_enemy_OOO(position->flags);
+
+    // undefended pieces
+    score += uo_popcnt(undefended_own) * uo_score_piece_undefended;
+    score -= uo_popcnt(undefended_enemy) * uo_score_piece_undefended;
 
     // pawns
 
@@ -1533,6 +1539,7 @@ extern "C"
 
     const uo_piece *board = position->board;
     uo_square square_to = uo_move_square_to(move);
+    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
     uo_piece piece_captured = board[square_to];
 
     // SEE cannot be higher than the value of captured piece
@@ -1549,11 +1556,9 @@ extern "C"
       return false;
     }
 
-    // Let's still try one more trick and use attacks bitboard to see if the square is undefended
+    // Check if the square is undefended
     if (position->attacks.enemy.updated)
     {
-      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
-
       bool is_attacked = position->attacks.enemy.any & bitboard_to;
       if (!is_attacked)
       {
@@ -1590,10 +1595,48 @@ extern "C"
       return true;
     }
 
+    // Let's see if re-recapturing the lowest value defender would not raise SEE enough
+    if (position->attacks.enemy.updated)
+    {
+      // Note: scoped only to this if block
+      int16_t see_ubound = INT16_MAX;
+
+      if (position->attacks.enemy.P & bitboard_to)
+      {
+        see_ubound = see_lbound + uo_score_P;
+      }
+      else if (position->attacks.enemy.N & bitboard_to)
+      {
+        see_ubound = see_lbound + uo_score_N;
+      }
+      else if (position->attacks.enemy.B & bitboard_to)
+      {
+        see_ubound = see_lbound + uo_score_B;
+      }
+      else if (position->attacks.enemy.R & bitboard_to)
+      {
+        see_ubound = see_lbound + uo_score_R;
+      }
+      else if (position->attacks.enemy.Q & bitboard_to)
+      {
+        see_ubound = see_lbound + uo_score_Q;
+      }
+
+      if (see_ubound <= gt)
+      {
+        if (move_cache)
+        {
+          move_cache->is_cached.see_ubound = true;
+          move_cache->see_ubound = see_ubound;
+        }
+
+        return false;
+      }
+    }
+
     // Resolve recapture chain
 
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
-    uo_bitboard bitboard_to = uo_square_bitboard(square_to);
 
     uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
     uo_bitboard mask_enemy = uo_andn(bitboard_to, position->enemy);

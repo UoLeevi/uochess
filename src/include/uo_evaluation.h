@@ -146,6 +146,9 @@ extern "C"
 #define uo_score_passed_pawn_on_sixth 75
 #define uo_score_passed_pawn_on_seventh 150
 
+  // undefended pieces
+#define uo_score_piece_undefended -15
+
   // piece development
 #define uo_score_rook_on_semiopen_file 15
 #define uo_score_rook_on_open_file 20
