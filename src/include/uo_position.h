@@ -1028,9 +1028,6 @@ extern "C"
 
       score += uo_score_N + uo_score_extra_piece;
 
-      score_mg += uo_score_adjust_piece_square_table_score(mg_table_N[square_own_N]);
-      score_eg += uo_score_adjust_piece_square_table_score(eg_table_N[square_own_N]);
-
       attack_units_own += uo_popcnt(attacks_own_N & zone_enemy_K) * uo_attack_unit_N;
     }
 
@@ -1045,9 +1042,6 @@ extern "C"
       score -= uo_score_mul_ln(uo_score_mobility_N, mobility_enemy_N * mobility_enemy_N);
 
       score -= uo_score_N + uo_score_extra_piece;
-
-      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_N[square_enemy_N ^ 56]);
-      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_N[square_enemy_N ^ 56]);
 
       attack_units_enemy += uo_popcnt(attacks_enemy_N & zone_own_K) * uo_attack_unit_N;
     }
@@ -1066,9 +1060,6 @@ extern "C"
 
       score += uo_score_B + uo_score_extra_piece;
 
-      score_mg += uo_score_adjust_piece_square_table_score(mg_table_B[square_own_B]);
-      score_eg += uo_score_adjust_piece_square_table_score(eg_table_B[square_own_B]);
-
       attack_units_own += uo_popcnt(attacks_own_B & zone_enemy_K) * uo_attack_unit_B;
     }
     temp = enemy_B;
@@ -1082,9 +1073,6 @@ extern "C"
       score -= uo_score_mul_ln(uo_score_mobility_B, mobility_enemy_B * mobility_enemy_B);
 
       score -= uo_score_B + uo_score_extra_piece;
-
-      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_B[square_enemy_B ^ 56]);
-      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_B[square_enemy_B ^ 56]);
 
       attack_units_enemy += uo_popcnt(attacks_enemy_B & zone_own_K) * uo_attack_unit_B;
     }
@@ -1102,9 +1090,6 @@ extern "C"
 
       score += uo_score_R + uo_score_extra_piece;
 
-      score_mg += uo_score_adjust_piece_square_table_score(mg_table_R[square_own_R]);
-      score_eg += uo_score_adjust_piece_square_table_score(eg_table_R[square_own_R]);
-
       attack_units_own += uo_popcnt(attacks_own_R & zone_enemy_K) * uo_attack_unit_R;
     }
     temp = enemy_R;
@@ -1118,9 +1103,6 @@ extern "C"
       score -= uo_score_mul_ln(uo_score_mobility_R, mobility_enemy_R * mobility_enemy_R);
 
       score -= uo_score_R + uo_score_extra_piece;
-
-      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_R[square_enemy_R ^ 56]);
-      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_R[square_enemy_R ^ 56]);
 
       attack_units_enemy += uo_popcnt(attacks_enemy_R & zone_own_K) * uo_attack_unit_R;
     }
@@ -1138,9 +1120,6 @@ extern "C"
 
       score += uo_score_Q + uo_score_extra_piece;
 
-      score_mg += uo_score_adjust_piece_square_table_score(mg_table_Q[square_own_Q]);
-      score_eg += uo_score_adjust_piece_square_table_score(eg_table_Q[square_own_Q]);
-
       attack_units_own += uo_popcnt(attacks_own_Q & zone_enemy_K) * uo_attack_unit_Q;
     }
     temp = enemy_Q;
@@ -1154,9 +1133,6 @@ extern "C"
       score -= uo_score_mul_ln(uo_score_mobility_Q, mobility_enemy_Q * mobility_enemy_Q);
 
       score -= uo_score_Q + uo_score_extra_piece;
-
-      score_mg -= uo_score_adjust_piece_square_table_score(mg_table_Q[square_enemy_Q ^ 56]);
-      score_eg -= uo_score_adjust_piece_square_table_score(eg_table_Q[square_enemy_Q ^ 56]);
 
       attack_units_enemy += uo_popcnt(attacks_enemy_Q & zone_own_K) * uo_attack_unit_Q;
     }
@@ -1177,12 +1153,6 @@ extern "C"
 
     assert(attack_units_enemy < 100);
     score -= score_attacks_to_K[attack_units_enemy];
-
-    score_mg += uo_score_adjust_piece_square_table_score(mg_table_K[square_own_K]);
-    score_eg += uo_score_adjust_piece_square_table_score(eg_table_K[square_own_K]);
-
-    score_mg -= uo_score_adjust_piece_square_table_score(mg_table_K[square_enemy_K ^ 56]);
-    score_eg -= uo_score_adjust_piece_square_table_score(eg_table_K[square_enemy_K ^ 56]);
 
     int mobility_own_K = uo_popcnt(uo_andn(attacks_enemy_K | attacks_enemy, attacks_own_K));
     score += uo_score_zero_mobility_K * !mobility_own_K;
@@ -2338,7 +2308,7 @@ extern "C"
 
     // Checks
     uo_bitboard checks = uo_position_move_checks(position, move, move_cache);
-    move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 1000 : 100;
+    move_score += !checks ? 0 : uo_popcnt(checks) == 2 ? 900 : 100;
 
     // Killer heuristic
     bool is_killer_move = uo_position_is_killer_move(position, move);
@@ -2347,52 +2317,6 @@ extern "C"
     // Relative history heuristic
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
-
-    // Default to piece-square table based move ordering
-    if (move_score == 0)
-    {
-      int32_t material_percentage = uo_position_material_percentage(position);
-
-      move_score -= uo_score_Q;
-      int16_t score_mg = 0;
-      int16_t score_eg = 0;
-
-      switch (piece)
-      {
-        case uo_piece__P:
-          score_mg += mg_table_P[square_to] - mg_table_P[square_from];
-          score_eg += eg_table_P[square_to] - eg_table_P[square_from];
-          break;
-
-        case uo_piece__N:
-          score_mg += mg_table_N[square_to] - mg_table_N[square_from];
-          score_eg += eg_table_N[square_to] - eg_table_N[square_from];
-          break;
-
-        case uo_piece__B:
-          score_mg += mg_table_B[square_to] - mg_table_B[square_from];
-          score_eg += eg_table_B[square_to] - eg_table_B[square_from];
-          break;
-
-        case uo_piece__R:
-          score_mg += mg_table_R[square_to] - mg_table_R[square_from];
-          score_eg += eg_table_R[square_to] - eg_table_R[square_from];
-          break;
-
-        case uo_piece__Q:
-          score_mg += mg_table_Q[square_to] - mg_table_Q[square_from];
-          score_eg += eg_table_Q[square_to] - eg_table_Q[square_from];
-          break;
-
-        case uo_piece__K:
-          score_mg += mg_table_K[square_to] - mg_table_K[square_from];
-          score_eg += eg_table_K[square_to] - eg_table_K[square_from];
-          break;
-      }
-
-      move_score += score_mg * material_percentage / 100;
-      move_score += score_eg * (100 - material_percentage) / 100;
-    }
 
     return move_score;
   }
