@@ -284,32 +284,40 @@ extern "C"
   // Stores an entry to the transposition table and return final score.
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
+    int16_t value = abtentry->value;
+    int16_t value_tt = uo_score_adjust_to_ttable(position->ply, value);
+
+    // if transposition table entry is from deeper search, adjust value based on value bounds from previous search and return.
+    if (abtentry->data.depth > abtentry->depth)
+    {
+      if (abtentry->data.type == uo_score_type__lower_bound
+        && abtentry->data.value > value_tt)
+      {
+        value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
+      }
+      else if (abtentry->data.type == uo_score_type__upper_bound
+        && abtentry->data.value < value_tt)
+      {
+        value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
+      }
+    }
+
     // If existing transposition table entry was result of lower depth search. Update the entry.
-    if (abtentry->data.depth < abtentry->depth
-      || (abtentry->data.depth == abtentry->depth && abtentry->data.type != uo_score_type__exact))
+    else if (abtentry->data.depth < abtentry->depth
+      || abtentry->data.type != uo_score_type__exact)
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
-      abtentry->data.value = uo_score_adjust_to_ttable(position->ply, abtentry->value);
+      abtentry->data.value = value_tt;
       abtentry->data.type =
-        abtentry->value >= abtentry->beta_initial ? uo_score_type__lower_bound :
-        abtentry->value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
+        value >= abtentry->beta_initial ? uo_score_type__lower_bound :
+        value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
         uo_score_type__exact;
 
       uo_ttable_set(&engine.ttable, position->key, position->root_ply, &abtentry->data);
     }
 
-    // if transposition table entry is from deeper search. Adjust value based on value bounds from previous search
-    else if (abtentry->data.type == uo_score_type__lower_bound)
-    {
-      abtentry->value = uo_max(abtentry->data.value, abtentry->value);
-    }
-    else if (abtentry->data.type == uo_score_type__upper_bound)
-    {
-      abtentry->value = uo_min(abtentry->data.value, abtentry->value);
-    }
-
-    return abtentry->value;
+    return value;
   }
 
   static inline void uo_engine_thread_lock(uo_engine_thread *thread)
@@ -362,7 +370,7 @@ extern "C"
   uo_process *uo_engine_start_new_process(char *cmdline);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

@@ -69,7 +69,7 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
       && engine.ponder.value > info->value
       && engine.ponder.value - info->value > uo_score_P / 2)
     {
-      movetime += avg_time_per_move * 2;
+      movetime += avg_time_per_move * 4;
     }
 
     // The minimum time that should be left on the clock is one second
@@ -83,7 +83,7 @@ static inline void uo_search_stop_if_movetime_over(uo_engine_thread *thread)
 
     info->movetime_remaining_msec = (double)movetime - time_msec - margin_msec;
 
-    if (info->movetime_remaining_msec < 0)
+    if (info->movetime_remaining_msec <= 0.0)
     {
       if (!engine.pv[0]) return;
       uo_engine_stop_search();
@@ -305,7 +305,7 @@ static inline void uo_search_sort_and_filter_moves(uo_engine_thread *thread, uo_
   position->stack->moves_sorted = true;
 }
 
-static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thread *thread, size_t move_num, size_t depth)
+static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thread *thread, size_t move_num, size_t depth, int16_t alpha, int16_t beta, int improvement_count)
 {
   // Step 1. Initialize variables
   uo_search_info *info = &thread->info;
@@ -345,12 +345,16 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   // Step 4. No extension. Determine reductions.
 
   // Also limit reductions to avoid missing threats
-  int max_reduction = uo_min((int)depth * 1000 / 3 + 1, (int)info->depth * 1000 * 3 / 5 - uo_max(0, -net_extension_plies * 1000));
+  int max_reduction = uo_min((int)depth * 400 + 1000, (int)info->depth * 600 - uo_max(0, -net_extension_plies * 1000));
   if (max_reduction <= 0) return 0;
 
   if (
     // no reduction for shallow depth
     depth <= 3
+    // no reduction if aspiration window is really wide
+    || alpha <= -uo_score_tb_win_threshold
+    // no reduction if looking for mate
+    || beta >= uo_score_tb_win_threshold
     // no reduction on queen or knight promotions
     || uo_move_is_promotion_Q_or_N(move)
     // no reduction on captures
@@ -362,17 +366,13 @@ static inline int uo_search_determine_depth_reduction_or_extension(uo_engine_thr
   }
 
   // Default reduction is one fifth of the depth but capped at two plies
-  int reduction = uo_min(depth * 1000 / 5, 2000);
-
-  //// Reduction for stepping into defended square
-  //uo_bitboard attackers = uo_position_square_attackers(position, square_to ^ 56, position->own | position->enemy);
-  //uo_bitboard attackers_own = attackers & position->enemy;
-  //uo_bitboard attackers_enemy = attackers & position->own;
-  //int attackers_vs_defenders = (int)uo_popcnt(attackers_enemy) - (int)uo_popcnt(attackers_own);
-  //reduction += uo_max(0, attackers_vs_defenders) * 300;
+  int reduction = depth * 200;
 
   // Reduction based on move ordering
-  reduction += move_num * 100;
+  reduction += move_num * 50;
+
+  // Reduction based on how many times alpha has been improved already
+  reduction += improvement_count * 500;
 
   // Return depth reduction in plies.
   reduction = uo_min(reduction, max_reduction);
@@ -386,10 +386,10 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   // Step 1. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
-  int16_t score_checkmate = uo_score_checkmate - position->ply;
-  int16_t score_tb_win = uo_score_tb_win - position->ply;
-  size_t rule50 = uo_position_flags_rule50(position->flags);
   uo_move_history *stack = position->stack;
+  const int16_t score_checkmate = uo_score_checkmate - position->ply;
+  const int16_t score_tb_win = uo_score_tb_win - position->ply;
+  const size_t rule50 = uo_position_flags_rule50(position->flags);
 
   // Step 2. Update searched node count and selective search depth information
   ++info->nodes;
@@ -703,16 +703,17 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
   // Step 2. Initialize variables
   uo_search_info *info = &thread->info;
   uo_position *position = &thread->position;
-  int16_t score_checkmate = uo_score_checkmate - position->ply;
-  int16_t score_tb_win = uo_score_tb_win - position->ply;
-  bool is_check = uo_position_is_check(position);
-  bool is_root_node = !position->ply;
-  bool is_main_thread = thread->owner == NULL;
-  bool is_zw_search = beta - alpha == 1;
-  bool iid = false;
-  size_t depth_initial = depth;
-  size_t rule50 = uo_position_flags_rule50(position->flags);
   uo_move_history *stack = position->stack;
+  bool iid = false;
+  int improvement_count = 0;
+  const int16_t score_checkmate = uo_score_checkmate - position->ply;
+  const int16_t score_tb_win = uo_score_tb_win - position->ply;
+  const bool is_check = uo_position_is_check(position);
+  const bool is_root_node = !position->ply;
+  const bool is_main_thread = thread->owner == NULL;
+  const bool is_zw_search = beta - alpha == 1;
+  const size_t depth_initial = depth;
+  const size_t rule50 = uo_position_flags_rule50(position->flags);
 
   // Step 3. Check for draw by 50 move rule
   if (rule50 >= 100)
@@ -840,7 +841,7 @@ continue_search:
     uo_engine_prefetch_entry(key);
     uo_position_make_move(position, entry.bestmove, key, flags);
     assert(key == position->key);
-    size_t depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth));
+    int depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth, alpha, beta, improvement_count));
     entry.value = -uo_search_principal_variation(thread, depth + depth_extension - 1, -beta, -alpha, line, false, incomplete);
     uo_position_unmake_move(position);
 
@@ -856,6 +857,7 @@ continue_search:
         return uo_engine_store_entry(position, &entry);
       }
 
+      ++improvement_count;
       alpha = entry.value;
     }
   }
@@ -934,6 +936,7 @@ continue_search:
     increase_depth_iid:
       iid = false;
       line[0] = 0;
+      improvement_count = 0;
       entry.depth = depth = depth_initial;
       alpha = entry.alpha_initial;
       uo_position_sort_move_as_first(position, entry.bestmove);
@@ -947,7 +950,7 @@ continue_search:
     uo_engine_prefetch_entry(key);
     uo_position_make_move(position, move, key, flags);
     assert(key == position->key);
-    size_t depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth));
+    int depth_extension = uo_max(0, uo_search_determine_depth_reduction_or_extension(thread, 0, depth, alpha, beta, improvement_count));
     entry.value = -uo_search_principal_variation(thread, depth + depth_extension - 1, -beta, -alpha, line, false, incomplete);
     uo_position_unmake_move(position);
 
@@ -964,6 +967,7 @@ continue_search:
         return uo_engine_store_entry(position, &entry);
       }
 
+      ++improvement_count;
       alpha = entry.value;
     }
   }
@@ -1018,7 +1022,7 @@ continue_search:
     uo_engine_prefetch_entry(key);
     uo_position_make_move(position, move, key, flags);
     assert(!key || key == position->key);
-    size_t depth_extension_or_reduction = is_check ? 0 : uo_search_determine_depth_reduction_or_extension(thread, i, depth);
+    int depth_extension_or_reduction = is_check ? 0 : uo_search_determine_depth_reduction_or_extension(thread, i, depth, alpha, beta, improvement_count);
     int16_t node_value = alpha + 1;
     size_t depth_lmr = depth + depth_extension_or_reduction;
 
@@ -1052,7 +1056,7 @@ continue_search:
         continue;
       }
 
-      size_t depth_extension = uo_max(0, depth_extension_or_reduction);
+      int depth_extension = uo_max(0, depth_extension_or_reduction);
       depth_lmr = depth + depth_extension;
       node_value = -uo_search_principal_variation(thread, depth_lmr - 1, -beta, -alpha, line, false, incomplete);
 
@@ -1085,16 +1089,9 @@ continue_search:
           if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
           return uo_engine_store_entry(position, &entry);
         }
-        // Search rest of the moves with lower depth when at least one better move was found
-        else if (depth > 3 && depth < 11
-          && beta < uo_score_tb_win_threshold
-          && entry.value > -uo_score_tb_win_threshold)
-        {
-          depth -= 1;
-          params.depth = depth - 1;
-        }
 
         // Update alpha
+        ++improvement_count;
         alpha = entry.value;
         params.beta = -alpha;
 
@@ -1157,14 +1154,8 @@ continue_search:
               uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
               return uo_engine_store_entry(position, &entry);
             }
-            else if (depth > 3 && depth < 11
-              && beta < uo_score_tb_win_threshold
-              && entry.value > -uo_score_tb_win_threshold)
-            {
-              depth -= 1;
-              params.depth = depth - 1;
-            }
 
+            ++improvement_count;
             alpha = entry.value;
             params.beta = -alpha;
 
@@ -1263,9 +1254,16 @@ void *uo_engine_thread_start_timer(void *arg)
 }
 
 // Adjust aspiration window by changing alpha and beta.
-// Returns boolean indicating whether value was within aspiration window.
-static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, int16_t *beta)
+// Returns
+//  1 on fail high
+//  0 when value is within window
+// -1 on fail low
+static inline int uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, int16_t *beta)
 {
+  const int fail_high = 1;
+  const int exact = 0;
+  const int fail_low = -1;
+
   const int16_t aspiration_window_minimum = uo_score_P / 3;
   const float aspiration_window_factor = 1.5;
   const int16_t aspiration_window_mate = (uo_score_checkmate - 1) / aspiration_window_factor;
@@ -1278,30 +1276,37 @@ static inline bool uo_search_adjust_alpha_beta(int16_t value, int16_t *alpha, in
     aspiration_window = aspiration_window_minimum;
   }
 
-  if (value <= *alpha || value >= *beta)
+  if (value <= *alpha)
   {
     *alpha = -uo_score_checkmate;
     *beta = uo_score_checkmate;
-    return false;
+    return fail_low;
+  }
+
+  if (value >= *beta)
+  {
+    *alpha = -uo_score_checkmate;
+    *beta = uo_score_checkmate;
+    return fail_high;
   }
 
   if (value < -aspiration_window_mate)
   {
     *alpha = -uo_score_checkmate;
     *beta = -aspiration_window_mate;
-    return true;
+    return exact;
   }
 
   if (value > aspiration_window_mate)
   {
     *alpha = aspiration_window_mate;
     *beta = uo_score_checkmate;
-    return true;
+    return exact;
   }
 
   *alpha = value - aspiration_window;
   *beta = value + aspiration_window;
-  return true;
+  return exact;
 }
 
 void *uo_engine_thread_run_parallel_principal_variation_search(void *arg)
@@ -1512,13 +1517,13 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   // Perform search for first depth
   value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
 
-  // If value is not within alpha and beta, reset alpha beta boundaries and perform re-search
-  if (!uo_search_adjust_alpha_beta(value, &alpha, &beta) || !line[0])
+  // If search failed low perform re-search
+  if (uo_search_adjust_alpha_beta(value, &alpha, &beta) < 0)
   {
     value = uo_search_principal_variation(thread, info->depth, alpha, beta, line, false, &incomplete);
 
-    // If there is still no exact score. Let's clear transposition table and start over
-    if (!uo_search_adjust_alpha_beta(value, &alpha, &beta) || !line[0])
+    // If search failed low again, let's clear transposition table and start over
+    if (uo_search_adjust_alpha_beta(value, &alpha, &beta) < 0)
     {
       info->depth = 1;
       uo_engine_clear_hash();
@@ -1673,22 +1678,32 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
       }
 
       // Check if search returned a value that is within aspiration window
-      if (uo_search_adjust_alpha_beta(value, &alpha, &beta))
+      switch (uo_search_adjust_alpha_beta(value, &alpha, &beta))
       {
-        fail_count = 0;
-      }
-      // If search fails too many times on the same depth. Let's clear the transposition table and reduce depth.
-      else if (++fail_count > 3)
-      {
-        uo_engine_clear_hash();
-        uo_search_print_info_string(thread, "hash cleared");
-        depth /= 2;
-        fail_count = 1;
-      }
-      // Increase depth no matter if aspiration search failed;
-      else
-      {
-        ++depth;
+        // Fail-low
+        case -1:
+          // If search fails low too many times on the same depth, let's clear the transposition table and reduce depth.
+          if (++fail_count > 3)
+          {
+            uo_engine_clear_hash();
+            uo_search_print_info_string(thread, "hash cleared");
+            depth /= 2;
+            fail_count = 1;
+          }
+          break;
+
+          // Exact
+        case 0:
+          assert(line[0]);
+          fail_count = 0;
+          break;
+
+          // Fail-high
+        case 1:
+          // Let's advance to next depth even if the search fails high
+          assert(line[0]);
+          fail_count = 0;
+          break;
       }
 
     } while (fail_count);
