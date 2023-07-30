@@ -27,18 +27,18 @@ extern "C"
 
 #define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
 
-#define uo_score_P 100
+#define uo_score_P 85
 #define uo_score_N 450
 #define uo_score_B 460
-#define uo_score_R 800
-#define uo_score_Q 1750
+#define uo_score_R 675
+#define uo_score_Q 1410
 
 #define uo_score_material_max (   \
-    16 * 100 +                    \
-    4 * 450 +                     \
-    4 * 460 +                     \
-    4 * 800 +                     \
-    2 * 1750)
+    16 * uo_score_P +             \
+    4 * uo_score_N +              \
+    4 * uo_score_B +              \
+    4 * uo_score_R +              \
+    2 * uo_score_Q)
 
   static inline char uo_piece_to_char(uo_piece piece)
   {

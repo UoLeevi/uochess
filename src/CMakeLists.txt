@@ -24,6 +24,7 @@ add_executable(uochess
   uo_engine.c
   uo_math.c
   uo_test.c
+  uo_tuning.c
   uo_book.c
   uo_tb.c)
 

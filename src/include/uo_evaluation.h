@@ -6,11 +6,18 @@ extern "C"
 {
 #endif
 
+#include "uo_bitboard.h"
 #include "uo_piece.h"
 #include "uo_util.h"
 #include "uo_def.h"
 
 #include <math.h>
+#include <stdbool.h>
+
+#define uo_score_centipawn_to_win_prob(cp) (atanf(cp / 290.680623072f) / 3.096181612f + 0.5f)
+#define uo_score_centipawn_to_q_score(cp) (atanf(cp / 111.714640912f) / 1.5620688421f)
+#define uo_score_win_prob_to_centipawn(winprob) (int16_t)(290.680623072f * tanf(3.096181612f * (win_prob - 0.5f)))
+#define uo_score_q_score_to_centipawn(q_score) (int16_t)(111.714640912f * tanf(1.5620688421f * q_score))
 
   static inline bool uo_score_is_checkmate(int16_t score)
   {
@@ -110,89 +117,58 @@ extern "C"
   }
 
   // side to move
-#define uo_score_tempo 25
+#define uo_score_tempo 45
 
   // mobility
-#define uo_score_mobility_P 5
-#define uo_score_mobility_N 8
-#define uo_score_mobility_B 6
-#define uo_score_mobility_R 4
-#define uo_score_mobility_Q 4
+#define uo_score_mobility_P 6
+#define uo_score_mobility_N 4
+#define uo_score_mobility_B 12
+#define uo_score_mobility_R 14
+#define uo_score_mobility_Q 14
 #define uo_score_mobility_K 3
 
-#define uo_score_zero_mobility_P -20
-#define uo_score_zero_mobility_N -30
+#define uo_score_zero_mobility_P -15
+#define uo_score_zero_mobility_N -25
 #define uo_score_zero_mobility_B -25
 #define uo_score_zero_mobility_R -20
 #define uo_score_zero_mobility_Q -40
-#define uo_score_zero_mobility_K -15
+#define uo_score_zero_mobility_K -55
 
-#define uo_score_N_square_attackable_by_P -10
-#define uo_score_B_square_attackable_by_P -5
-#define uo_score_R_square_attackable_by_P -20
-#define uo_score_Q_square_attackable_by_P -30
-#define uo_score_K_square_attackable_by_P -70
-
-#define uo_score_extra_piece 80
-#define uo_score_extra_pawn 40
+#define uo_score_extra_piece 0
+#define uo_score_extra_pawn 10
 
   // pawns
-#define uo_score_doubled_P -25
-#define uo_score_blocked_P -10
-#define uo_score_isolated_P -25
+#define uo_score_isolated_P -20
 
-#define uo_score_passed_pawn 20
-#define uo_score_passed_pawn_on_fifth 35
-#define uo_score_passed_pawn_on_sixth 75
-#define uo_score_passed_pawn_on_seventh 150
-
-  // undefended pieces
-#define uo_score_piece_undefended -15
+#define uo_score_passed_pawn 10
+#define uo_score_passed_pawn_on_fifth 25
+#define uo_score_passed_pawn_on_sixth 90
+#define uo_score_passed_pawn_on_seventh 170
 
   // piece development
-#define uo_score_rook_on_semiopen_file 15
-#define uo_score_rook_on_open_file 20
-#define uo_score_connected_rooks 20
-
-#define uo_score_defended_by_pawn 10
-#define uo_score_attacked_by_pawn 5
-
-#define uo_score_knight_on_outpost 30
-#define uo_score_unattackable_by_pawn 20
-
 #define uo_score_rook_stuck_in_corner -40
 
   // attacks near king
   // see: https://www.chessprogramming.org/King_Safety#Attack_Units
-#define uo_attack_unit_N 2
-#define uo_attack_unit_B 2
-#define uo_attack_unit_R 3
-#define uo_attack_unit_Q 5
+#define uo_attack_unit_N 1
+#define uo_attack_unit_B 1
+#define uo_attack_unit_R 2
+#define uo_attack_unit_Q 4
 #define uo_attack_unit_supported_contact_R 2
 #define uo_attack_unit_supported_contact_Q 6
 
   // king safety and castling
-#define uo_score_casting_right 20
-#define uo_score_king_in_the_center -40
-#define uo_score_castled_king 50
-#define uo_score_king_cover_pawn 30
-#define uo_score_king_next_to_open_file -90
+#define uo_score_casting_right 30
+#define uo_score_king_in_the_center -10
+#define uo_score_castled_king 40
+#define uo_score_king_cover_pawn 20
+#define uo_score_king_next_to_open_file -20
 
-  typedef struct uo_evaluation_info
-  {
-    bool is_valid;
-    uo_bitboard attacks_own;
-    uo_bitboard attacks_enemy;
-    uo_bitboard undefended_zone_own_K;
-    uo_bitboard undefended_zone_enemy_K;
-    uint8_t attack_units_own;
-    uint8_t attack_units_enemy;
-  } uo_evaluation_info;
 
   // piece square table weight
   static inline int16_t uo_score_adjust_piece_square_table_score(int16_t score)
   {
-    return score / 3;
+    return score * 0;
   }
 
   extern const int16_t score_attacks_to_K[100];

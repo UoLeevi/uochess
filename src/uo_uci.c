@@ -2,6 +2,7 @@
 #include "uo_misc.h"
 #include "uo_engine.h"
 #include "uo_evaluation.h"
+#include "uo_tuning.h"
 #include "uo_def.h"
 #include "uo_global.h"
 #include "uo_strmap.h"
@@ -356,7 +357,6 @@ static void uo_uci_command__go(void)
       uint64_t knps = total_node_count / time_msec;
 
       printf("\nNodes searched: %zu, time: %.03f s (%zu kN/s)\n\n", total_node_count, time_msec / 1000.0, knps);
-      fflush(stdout);
       uo_engine_unlock_position();
       uo_engine_unlock_stdout();
     }
@@ -566,7 +566,6 @@ static void uo_uci_command__test__see(void)
   }
 
   printf("\n");
-  fflush(stdout);
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();
 }
@@ -591,7 +590,6 @@ static void uo_uci_command__test__checks(void)
   }
 
   printf("\n");
-  fflush(stdout);
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();
 }
@@ -708,9 +706,92 @@ static void uo_uci_command__eval(void)
     printf(" (Position not quiescent)\n\n");
   }
 
-  fflush(stdout);
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();
+}
+
+static void uo_uci_command__gen__evaldata(void)
+{
+  uo_engine_lock_stdout();
+  uo_engine_lock_position();
+
+  char *line = strtok(NULL, "\n");
+
+  char *arg_engine_file_end;
+  char *arg_engine_file = uo_line_arg_parse(line, "engine_file", 1, &arg_engine_file_end);
+
+  char *arg_dataset_file_end;
+  char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
+
+  char *arg_positions_end;
+  char *arg_positions = uo_line_arg_parse(line, "positions", 1, &arg_positions_end);
+
+  if (arg_engine_file && arg_engine_file_end) *arg_engine_file_end = '\0';
+  if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
+  if (arg_positions && arg_positions_end) *arg_positions_end = '\0';
+
+  size_t positions = arg_positions ? strtoull(arg_positions, NULL, 10) : 0;
+
+  uo_tuning_generate_dataset(arg_dataset_file, arg_engine_file, NULL, positions);
+
+  printf("\n");
+  uo_engine_unlock_position();
+  uo_engine_unlock_stdout();
+}
+
+static void uo_uci_command__gen(void)
+{
+  uo_uci_read_stdin();
+
+  static uo_strmap *uci_command_map__gen = NULL;
+
+  if (!uci_command_map__gen)
+  {
+    uci_command_map__gen = uo_strmap_create();
+    uo_strmap_add(uci_command_map__gen, "evaldata", uo_uci_command__gen__evaldata);
+
+  }
+
+  uo_uci_command command = uo_strmap_get(uci_command_map__gen, ptr);
+  if (command) command();
+}
+
+static void uo_uci_command__tune__eval(void)
+{
+  uo_engine_lock_stdout();
+  uo_engine_lock_position();
+
+  char *line = strtok(NULL, "\n");
+
+  char *arg_dataset_file_end;
+  char *arg_dataset_file = uo_line_arg_parse(line, "dataset_file", 1, &arg_dataset_file_end);
+
+  if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
+
+  double mse;
+  uo_tuning_calculate_eval_mean_square_error(arg_dataset_file, &mse);
+
+  printf("MSE: %f\n\n", mse);
+  uo_engine_unlock_position();
+  uo_engine_unlock_stdout();
+}
+
+
+static void uo_uci_command__tune(void)
+{
+  uo_uci_read_stdin();
+
+  static uo_strmap *uci_command_map__tune = NULL;
+
+  if (!uci_command_map__tune)
+  {
+    uci_command_map__tune = uo_strmap_create();
+    uo_strmap_add(uci_command_map__tune, "eval", uo_uci_command__tune__eval);
+
+  }
+
+  uo_uci_command command = uo_strmap_get(uci_command_map__tune, ptr);
+  if (command) command();
 }
 
 static void uo_uci_command__stop(void)
@@ -753,6 +834,8 @@ int uo_uci_run()
   uo_strmap_add(uci_command_map_idle, "go", uo_uci_command__go);
   uo_strmap_add(uci_command_map_idle, "test", uo_uci_command__test);
   uo_strmap_add(uci_command_map_idle, "debug", uo_uci_command__debug);
+  uo_strmap_add(uci_command_map_idle, "gen", uo_uci_command__gen);
+  uo_strmap_add(uci_command_map_idle, "tune", uo_uci_command__tune);
 
   uo_strmap *uci_command_map_running = uci_command_map_by_state[uo_uci_state_running] = uo_strmap_create();
   uo_strmap_add(uci_command_map_running, "quit", uo_uci_command__quit);
