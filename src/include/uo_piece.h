@@ -28,7 +28,7 @@ extern "C"
 #define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
 
 #define uo_score_P 85
-#define uo_score_N 450
+#define uo_score_N 445
 #define uo_score_B 460
 #define uo_score_R 675
 #define uo_score_Q 1410

@@ -125,23 +125,27 @@ bool uo_tuning_calculate_eval_mean_square_error(char *dataset_filepath, double *
   char *line = uo_file_mmap_readline(file_mmap);
   while (line && *line)
   {
-    char *fen = line;
-    char *eval = strchr(fen, ',') + 1;
-
-    // Exclude positions where mate is detected
-    if (eval[0] == '#')
-    {
-      line = uo_file_mmap_readline(file_mmap);
-      continue;
-    }
-
-    uo_position_from_fen(&position, fen);
+    uo_position_from_fen(&position, line);
     uint8_t color = uo_color(position.flags);
 
-    char *end;
-    double cp_expected = (double)strtol(eval, &end, 10);
-    if (color == uo_black) cp_expected = -cp_expected;
-    double q_score_expected = uo_score_centipawn_to_q_score(cp_expected);
+    char *eval = strchr(line, ',') + 1;
+
+    double q_score_expected = 1.0;
+
+    // Forced mate detected
+    if (eval[0] == '#')
+    {
+      if (eval[1] == '-') q_score_expected = -q_score_expected;
+      if (color == uo_black) q_score_expected = -q_score_expected;
+    }
+    else
+    {
+      char *end;
+      double cp_expected = (double)strtol(eval, &end, 10);
+      if (color == uo_black) cp_expected = -cp_expected;
+      q_score_expected = uo_score_centipawn_to_q_score(cp_expected);
+    }
+
     double cp_actual = uo_position_evaluate(&position);
     double q_score_actual = uo_score_centipawn_to_q_score(cp_actual);
     double diff = q_score_expected - q_score_actual;

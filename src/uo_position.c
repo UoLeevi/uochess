@@ -2186,9 +2186,12 @@ size_t uo_position_print_move(const uo_position *position, uo_move move, char st
   }
 }
 
-size_t uo_position_perft(uo_position *position, size_t depth)
+size_t uo_position_perft(uo_position *position, size_t depth, bool tactical)
 {
-  size_t move_count = uo_position_generate_moves(position);
+  size_t move_count = tactical
+    ? uo_position_generate_tactical_moves(position, 0)
+    : uo_position_generate_moves(position);
+
   uint64_t key = position->key;
 
   if (depth == 1)
@@ -2215,7 +2218,7 @@ size_t uo_position_perft(uo_position *position, size_t depth)
     //printf("%s\n", buf);
     //uo_position_print_diagram(position, buf);
     //printf("%s\n", buf);
-    node_count += uo_position_perft(position, depth - 1);
+    node_count += uo_position_perft(position, depth - 1, tactical);
     uo_position_unmake_move(position);
     assert(position->key == key);
 

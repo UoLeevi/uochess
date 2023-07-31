@@ -331,6 +331,14 @@ static void uo_uci_command__go(void)
     uo_uci_read_stdin();
 
     int depth;
+    bool tactical = false;
+
+    if (ptr && strcmp(ptr, "tactical") == 0)
+    {
+      tactical = true;
+      uo_uci_read_stdin();
+    }
+
     if (sscanf(ptr, "%d", &depth) == 1 && depth > 0)
     {
       uo_engine_lock_stdout();
@@ -340,14 +348,16 @@ static void uo_uci_command__go(void)
       uo_time_now(&time_start);
 
       size_t total_node_count = 0;
-      size_t move_count = uo_position_generate_moves(&engine.position);
+      size_t move_count = tactical
+        ? uo_position_generate_tactical_moves(&engine.position, 0)
+        : uo_position_generate_moves(&engine.position);
 
       for (size_t i = 0; i < move_count; ++i)
       {
         uo_move move = engine.position.movelist.head[i];
         uo_position_print_move(&engine.position, move, buf);
         uo_position_make_move(&engine.position, move, 0, 0);
-        size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1);
+        size_t node_count = depth == 1 ? 1 : uo_position_perft(&engine.position, depth - 1, tactical);
         uo_position_unmake_move(&engine.position);
         total_node_count += node_count;
         printf("%s: %zu\n", buf, node_count);

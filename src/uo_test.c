@@ -375,7 +375,7 @@ bool uo_test__go_perft(uo_test_info *info)
         // move found
 
         uo_position_make_move(position, move, 0, 0);
-        size_t node_count = depth == 1 ? 1 : uo_position_perft(position, depth - 1);
+        size_t node_count = depth == 1 ? 1 : uo_position_perft(position, depth - 1, false);
 
         if (node_count != node_count_expected)
         {

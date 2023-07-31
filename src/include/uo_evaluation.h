@@ -117,10 +117,10 @@ extern "C"
   }
 
   // side to move
-#define uo_score_tempo 45
+#define uo_score_tempo 38
 
   // mobility
-#define uo_score_mobility_P 6
+#define uo_score_mobility_P 12
 #define uo_score_mobility_N 4
 #define uo_score_mobility_B 12
 #define uo_score_mobility_R 14
@@ -134,26 +134,25 @@ extern "C"
 #define uo_score_zero_mobility_Q -40
 #define uo_score_zero_mobility_K -55
 
-#define uo_score_extra_piece 0
+  // pawns
 #define uo_score_extra_pawn 10
 
-  // pawns
 #define uo_score_isolated_P -20
 
 #define uo_score_passed_pawn 10
-#define uo_score_passed_pawn_on_fifth 25
-#define uo_score_passed_pawn_on_sixth 90
-#define uo_score_passed_pawn_on_seventh 170
+#define uo_score_passed_pawn_on_fifth 35
+#define uo_score_passed_pawn_on_sixth 85
+#define uo_score_passed_pawn_on_seventh 160
 
   // piece development
 #define uo_score_rook_stuck_in_corner -40
 
   // attacks near king
   // see: https://www.chessprogramming.org/King_Safety#Attack_Units
-#define uo_attack_unit_N 1
-#define uo_attack_unit_B 1
+#define uo_attack_unit_N 2
+#define uo_attack_unit_B 2
 #define uo_attack_unit_R 2
-#define uo_attack_unit_Q 4
+#define uo_attack_unit_Q 3
 #define uo_attack_unit_supported_contact_R 2
 #define uo_attack_unit_supported_contact_Q 6
 
