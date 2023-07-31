@@ -111,7 +111,6 @@ extern "C"
 
   char *uo_file_mmap_readline(uo_file_mmap *file_mmap);
 
-
   // Pipes
 
   typedef struct uo_pipe uo_pipe;

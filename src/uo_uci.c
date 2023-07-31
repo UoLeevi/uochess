@@ -778,10 +778,8 @@ static void uo_uci_command__tune__eval(void)
 
   if (arg_dataset_file && arg_dataset_file_end) *arg_dataset_file_end = '\0';
 
-  double mse;
-  uo_tuning_calculate_eval_mean_square_error(arg_dataset_file, &mse);
+  uo_tuning_train_evaluation_parameters(arg_dataset_file);
 
-  printf("MSE: %f\n\n", mse);
   uo_engine_unlock_position();
   uo_engine_unlock_stdout();
 }

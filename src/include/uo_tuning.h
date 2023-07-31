@@ -16,7 +16,7 @@ extern "C"
 
   void uo_tuning_generate_dataset(char *dataset_filepath, char *engine_filepath, char *engine_option_commands, size_t position_count);
 
-  bool uo_tuning_calculate_eval_mean_square_error(char *dataset_filepath, double *mse);
+  bool uo_tuning_train_evaluation_parameters(char *dataset_filepath);
   
 #ifdef __cplusplus
 }

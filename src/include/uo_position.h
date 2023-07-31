@@ -1185,7 +1185,6 @@ extern "C"
     uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
     if (passed_own_P)
     {
-      score += uo_score_passed_pawn * (int32_t)uo_popcnt(passed_own_P);
       score += uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
       score += uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
       score += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
@@ -1194,7 +1193,6 @@ extern "C"
     uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
     if (passed_enemy_P)
     {
-      score -= uo_score_passed_pawn * (int32_t)uo_popcnt(passed_enemy_P);
       score -= uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
       score -= uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
       score -= uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
@@ -1218,9 +1216,6 @@ extern "C"
 
     score_mg += (uo_score_castled_king * (square_own_K == uo_square__b1))
       - (uo_score_castled_king * (square_enemy_K == uo_square__b8));
-
-    score_mg += uo_popcnt(uo_bitboard_files(attacks_own_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
-    score_mg -= uo_popcnt(uo_bitboard_files(attacks_enemy_K) & uo_bitboard_rank_first) * uo_score_king_next_to_open_file;
 
     int32_t material_percentage = uo_position_material_percentage(position);
 
@@ -2561,7 +2556,7 @@ extern "C"
       uo_move move = position->movelist.head[i];
 
       bool is_tactical_move = uo_move_is_promotion(move)
-        || (uo_move_is_capture(move) && uo_position_move_see(position, move, NULL) >= 0);
+        || (uo_move_is_capture(move) && uo_position_move_see_gt(position, move, -1, NULL));
 
       if (is_tactical_move)
       {

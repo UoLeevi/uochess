@@ -117,51 +117,55 @@ extern "C"
   }
 
   // side to move
-#define uo_score_tempo 38
+#define uo_score_tempo 23
 
   // mobility
 #define uo_score_mobility_P 12
-#define uo_score_mobility_N 4
-#define uo_score_mobility_B 12
-#define uo_score_mobility_R 14
-#define uo_score_mobility_Q 14
-#define uo_score_mobility_K 3
+#define uo_score_mobility_N 16
+#define uo_score_mobility_B 8
+#define uo_score_mobility_R 12
+#define uo_score_mobility_Q 9
+#define uo_score_mobility_K 1
 
-#define uo_score_zero_mobility_P -15
-#define uo_score_zero_mobility_N -25
-#define uo_score_zero_mobility_B -25
-#define uo_score_zero_mobility_R -20
-#define uo_score_zero_mobility_Q -40
-#define uo_score_zero_mobility_K -55
+#define uo_score_zero_mobility_P -19
+#define uo_score_zero_mobility_N -11
+#define uo_score_zero_mobility_B -7
+#define uo_score_zero_mobility_R -1
+#define uo_score_zero_mobility_Q -1
+#define uo_score_zero_mobility_K -63
 
   // pawns
-#define uo_score_extra_pawn 10
+#define uo_score_extra_pawn 12
 
-#define uo_score_isolated_P -20
+#define uo_score_isolated_P -15
 
-#define uo_score_passed_pawn 10
-#define uo_score_passed_pawn_on_fifth 35
-#define uo_score_passed_pawn_on_sixth 85
-#define uo_score_passed_pawn_on_seventh 160
+#define uo_score_passed_pawn_on_fifth 36
+#define uo_score_passed_pawn_on_sixth 82
+#define uo_score_passed_pawn_on_seventh 143
 
   // piece development
-#define uo_score_rook_stuck_in_corner -40
+#define uo_score_rook_stuck_in_corner -48
 
   // attacks near king
   // see: https://www.chessprogramming.org/King_Safety#Attack_Units
 #define uo_attack_unit_N 2
 #define uo_attack_unit_B 2
-#define uo_attack_unit_R 2
-#define uo_attack_unit_Q 3
+#define uo_attack_unit_R 3
+#define uo_attack_unit_Q 5
 #define uo_attack_unit_supported_contact_R 2
 #define uo_attack_unit_supported_contact_Q 6
 
   // king safety and castling
-#define uo_score_casting_right 30
-#define uo_score_king_in_the_center -10
-#define uo_score_castled_king 40
-#define uo_score_king_cover_pawn 20
-#define uo_score_king_next_to_open_file -20
+#define uo_score_casting_right 10
+#define uo_score_king_in_the_center -2
+#define uo_score_castled_king 13
+#define uo_score_king_cover_pawn 4
+
+  // end game piece values
+#define uo_score_eg_N 336
+#define uo_score_eg_B 380
+#define uo_score_eg_R 543
+#define uo_score_eg_Q 1101
 
   extern const int16_t score_attacks_to_K[100];
 
