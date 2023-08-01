@@ -123,7 +123,7 @@ extern "C"
   // mobility
 
 #define uo_score_mobility_P 11
-#define uo_score_zero_mobility_P -21
+#define uo_score_zero_mobility_P -20
 
 #define uo_score_zero_mobility_K -58
 
@@ -134,24 +134,24 @@ extern "C"
 #define score_mobility_N_3 0
 #define score_mobility_N_4 8
 #define score_mobility_N_5 15
-#define score_mobility_N_6 22
+#define score_mobility_N_6 21
 #define score_mobility_N_7 28
 #define score_mobility_N_8 28
 
   extern const int16_t score_mobility_B[14];
 #define score_mobility_B_0 -33
-#define score_mobility_B_1 -27
+#define score_mobility_B_1 -26
 #define score_mobility_B_2 -14
 #define score_mobility_B_3 -7
 #define score_mobility_B_4 -1
 #define score_mobility_B_5 3
-#define score_mobility_B_6 5
-#define score_mobility_B_7 6
+#define score_mobility_B_6 6
+#define score_mobility_B_7 7
 #define score_mobility_B_8 7
-#define score_mobility_B_9 9
-#define score_mobility_B_10 12
+#define score_mobility_B_9 8
+#define score_mobility_B_10 10
 #define score_mobility_B_11 12
-#define score_mobility_B_12 14
+#define score_mobility_B_12 16
 #define score_mobility_B_13 14
 
   extern const int16_t score_mobility_R[15];
@@ -172,12 +172,12 @@ extern "C"
 #define score_mobility_R_14 42
 
   extern const int16_t score_mobility_Q[28];
-#define score_mobility_Q_0 -1
-#define score_mobility_Q_1 5
+#define score_mobility_Q_0 0
+#define score_mobility_Q_1 6
 #define score_mobility_Q_2 6
 #define score_mobility_Q_3 7
-#define score_mobility_Q_4 11
-#define score_mobility_Q_5 15
+#define score_mobility_Q_4 12
+#define score_mobility_Q_5 16
 #define score_mobility_Q_6 20
 #define score_mobility_Q_7 24
 #define score_mobility_Q_8 27
@@ -195,21 +195,21 @@ extern "C"
 #define score_mobility_Q_20 46
 #define score_mobility_Q_21 46
 #define score_mobility_Q_22 46
-#define score_mobility_Q_23 46
-#define score_mobility_Q_24 46
-#define score_mobility_Q_25 46
-#define score_mobility_Q_26 46
-#define score_mobility_Q_27 46
+#define score_mobility_Q_23 43
+#define score_mobility_Q_24 43
+#define score_mobility_Q_25 43
+#define score_mobility_Q_26 43
+#define score_mobility_Q_27 43
 
 
   // pawns
-#define uo_score_extra_pawn 10
+#define uo_score_extra_pawn 7
 
 #define uo_score_isolated_P -14
 
-#define uo_score_passed_pawn_on_fifth 34
+#define uo_score_passed_pawn_on_fifth 35
 #define uo_score_passed_pawn_on_sixth 77
-#define uo_score_passed_pawn_on_seventh 135
+#define uo_score_passed_pawn_on_seventh 133
 
   // piece development
 #define uo_score_rook_stuck_in_corner -35
