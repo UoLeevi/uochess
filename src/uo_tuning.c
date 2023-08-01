@@ -113,18 +113,79 @@ int tuning_params[] = {
 
   // mobility
   uo_score_mobility_P,
-  uo_score_mobility_N,
-  uo_score_mobility_B,
-  uo_score_mobility_R,
-  uo_score_mobility_Q,
-  uo_score_mobility_K,
 
   uo_score_zero_mobility_P,
-  uo_score_zero_mobility_N,
-  uo_score_zero_mobility_B,
-  uo_score_zero_mobility_R,
-  uo_score_zero_mobility_Q,
   uo_score_zero_mobility_K,
+
+  score_mobility_N_0,
+  score_mobility_N_1,
+  score_mobility_N_2,
+  score_mobility_N_3,
+  score_mobility_N_4,
+  score_mobility_N_5,
+  score_mobility_N_6,
+  score_mobility_N_7,
+  score_mobility_N_8,
+
+  score_mobility_B_0,
+  score_mobility_B_1,
+  score_mobility_B_2,
+  score_mobility_B_3,
+  score_mobility_B_4,
+  score_mobility_B_5,
+  score_mobility_B_6,
+  score_mobility_B_7,
+  score_mobility_B_8,
+  score_mobility_B_9,
+  score_mobility_B_10,
+  score_mobility_B_11,
+  score_mobility_B_12,
+  score_mobility_B_13,
+
+  score_mobility_R_0,
+  score_mobility_R_1,
+  score_mobility_R_2,
+  score_mobility_R_3,
+  score_mobility_R_4,
+  score_mobility_R_5,
+  score_mobility_R_6,
+  score_mobility_R_7,
+  score_mobility_R_8,
+  score_mobility_R_9,
+  score_mobility_R_10,
+  score_mobility_R_11,
+  score_mobility_R_12,
+  score_mobility_R_13,
+  score_mobility_R_14,
+
+  score_mobility_Q_0,
+  score_mobility_Q_1,
+  score_mobility_Q_2,
+  score_mobility_Q_3,
+  score_mobility_Q_4,
+  score_mobility_Q_5,
+  score_mobility_Q_6,
+  score_mobility_Q_7,
+  score_mobility_Q_8,
+  score_mobility_Q_9,
+  score_mobility_Q_10,
+  score_mobility_Q_11,
+  score_mobility_Q_12,
+  score_mobility_Q_13,
+  score_mobility_Q_14,
+  score_mobility_Q_15,
+  score_mobility_Q_16,
+  score_mobility_Q_17,
+  score_mobility_Q_18,
+  score_mobility_Q_19,
+  score_mobility_Q_20,
+  score_mobility_Q_21,
+  score_mobility_Q_22,
+  score_mobility_Q_23,
+  score_mobility_Q_24,
+  score_mobility_Q_25,
+  score_mobility_Q_26,
+  score_mobility_Q_27,
 
   // pawns
   uo_score_extra_pawn,
@@ -139,16 +200,7 @@ int tuning_params[] = {
   uo_score_rook_stuck_in_corner,
 
   // king safety and castling
-  uo_score_casting_right,
-  uo_score_king_in_the_center,
-  uo_score_castled_king,
-  uo_score_king_cover_pawn,
-
-  // end game piee values
-  uo_score_eg_N,
-  uo_score_eg_B,
-  uo_score_eg_R,
-  uo_score_eg_Q
+  uo_score_king_cover_pawn
 };
 
 // piece values
@@ -170,66 +222,171 @@ int tuning_params[] = {
 // mobility
 #undef uo_score_mobility_P
 #define uo_score_mobility_P (tuning_params[6])
-#undef uo_score_mobility_N
-#define uo_score_mobility_N (tuning_params[7])
-#undef uo_score_mobility_B
-#define uo_score_mobility_B (tuning_params[8])
-#undef uo_score_mobility_R
-#define uo_score_mobility_R (tuning_params[9])
-#undef uo_score_mobility_Q
-#define uo_score_mobility_Q (tuning_params[10])
-#undef uo_score_mobility_K
-#define uo_score_mobility_K (tuning_params[11])
 
 #undef uo_score_zero_mobility_P
-#define uo_score_zero_mobility_P (tuning_params[12])
-#undef uo_score_zero_mobility_N
-#define uo_score_zero_mobility_N (tuning_params[13])
-#undef uo_score_zero_mobility_B
-#define uo_score_zero_mobility_B (tuning_params[14])
-#undef uo_score_zero_mobility_R
-#define uo_score_zero_mobility_R (tuning_params[15])
-#undef uo_score_zero_mobility_Q
-#define uo_score_zero_mobility_Q (tuning_params[16])
+#define uo_score_zero_mobility_P (tuning_params[7])
 #undef uo_score_zero_mobility_K
-#define uo_score_zero_mobility_K (tuning_params[17])
+#define uo_score_zero_mobility_K (tuning_params[8])
 
-  // pawns
+
+#undef score_mobility_N_0
+#define score_mobility_N_0 (tuning_params[9])
+#undef score_mobility_N_1
+#define score_mobility_N_1 (tuning_params[10])
+#undef score_mobility_N_2
+#define score_mobility_N_2 (tuning_params[11])
+#undef score_mobility_N_3
+#define score_mobility_N_3 (tuning_params[12])
+#undef score_mobility_N_4
+#define score_mobility_N_4 (tuning_params[13])
+#undef score_mobility_N_5
+#define score_mobility_N_5 (tuning_params[14])
+#undef score_mobility_N_6
+#define score_mobility_N_6 (tuning_params[15])
+#undef score_mobility_N_7
+#define score_mobility_N_7 (tuning_params[16])
+#undef score_mobility_N_8
+#define score_mobility_N_8 (tuning_params[17])
+
+#undef score_mobility_B_0
+#define score_mobility_B_0 (tuning_params[18])
+#undef score_mobility_B_1
+#define score_mobility_B_1 (tuning_params[19])
+#undef score_mobility_B_2
+#define score_mobility_B_2 (tuning_params[20])
+#undef score_mobility_B_3
+#define score_mobility_B_3 (tuning_params[21])
+#undef score_mobility_B_4
+#define score_mobility_B_4 (tuning_params[22])
+#undef score_mobility_B_5
+#define score_mobility_B_5 (tuning_params[23])
+#undef score_mobility_B_6
+#define score_mobility_B_6 (tuning_params[24])
+#undef score_mobility_B_7
+#define score_mobility_B_7 (tuning_params[25])
+#undef score_mobility_B_8
+#define score_mobility_B_8 (tuning_params[26])
+#undef score_mobility_B_9
+#define score_mobility_B_9 (tuning_params[27])
+#undef score_mobility_B_10
+#define score_mobility_B_10 (tuning_params[28])
+#undef score_mobility_B_11
+#define score_mobility_B_11 (tuning_params[29])
+#undef score_mobility_B_12
+#define score_mobility_B_12 (tuning_params[30])
+#undef score_mobility_B_13
+#define score_mobility_B_13 (tuning_params[31])
+
+#undef score_mobility_R_0
+#define score_mobility_R_0 (tuning_params[32])
+#undef score_mobility_R_1
+#define score_mobility_R_1 (tuning_params[33])
+#undef score_mobility_R_2
+#define score_mobility_R_2 (tuning_params[34])
+#undef score_mobility_R_3
+#define score_mobility_R_3 (tuning_params[35])
+#undef score_mobility_R_4
+#define score_mobility_R_4 (tuning_params[36])
+#undef score_mobility_R_5
+#define score_mobility_R_5 (tuning_params[37])
+#undef score_mobility_R_6
+#define score_mobility_R_6 (tuning_params[38])
+#undef score_mobility_R_7
+#define score_mobility_R_7 (tuning_params[39])
+#undef score_mobility_R_8
+#define score_mobility_R_8 (tuning_params[40])
+#undef score_mobility_R_9
+#define score_mobility_R_9 (tuning_params[41])
+#undef score_mobility_R_10
+#define score_mobility_R_10 (tuning_params[42])
+#undef score_mobility_R_11
+#define score_mobility_R_11 (tuning_params[43])
+#undef score_mobility_R_12
+#define score_mobility_R_12 (tuning_params[44])
+#undef score_mobility_R_13
+#define score_mobility_R_13 (tuning_params[45])
+#undef score_mobility_R_14
+#define score_mobility_R_14 (tuning_params[46])
+
+#undef score_mobility_Q_0
+#define score_mobility_Q_0 (tuning_params[47])
+#undef score_mobility_Q_1
+#define score_mobility_Q_1 (tuning_params[48])
+#undef score_mobility_Q_2
+#define score_mobility_Q_2 (tuning_params[49])
+#undef score_mobility_Q_3
+#define score_mobility_Q_3 (tuning_params[50])
+#undef score_mobility_Q_4
+#define score_mobility_Q_4 (tuning_params[51])
+#undef score_mobility_Q_5
+#define score_mobility_Q_5 (tuning_params[52])
+#undef score_mobility_Q_6
+#define score_mobility_Q_6 (tuning_params[53])
+#undef score_mobility_Q_7
+#define score_mobility_Q_7 (tuning_params[54])
+#undef score_mobility_Q_8
+#define score_mobility_Q_8 (tuning_params[55])
+#undef score_mobility_Q_9
+#define score_mobility_Q_9 (tuning_params[56])
+#undef score_mobility_Q_10
+#define score_mobility_Q_10 (tuning_params[57])
+#undef score_mobility_Q_11
+#define score_mobility_Q_11 (tuning_params[58])
+#undef score_mobility_Q_12
+#define score_mobility_Q_12 (tuning_params[59])
+#undef score_mobility_Q_13
+#define score_mobility_Q_13 (tuning_params[60])
+#undef score_mobility_Q_14
+#define score_mobility_Q_14 (tuning_params[61])
+#undef score_mobility_Q_15
+#define score_mobility_Q_15 (tuning_params[62])
+#undef score_mobility_Q_16
+#define score_mobility_Q_16 (tuning_params[63])
+#undef score_mobility_Q_17
+#define score_mobility_Q_17 (tuning_params[64])
+#undef score_mobility_Q_18
+#define score_mobility_Q_18 (tuning_params[65])
+#undef score_mobility_Q_19
+#define score_mobility_Q_19 (tuning_params[66])
+#undef score_mobility_Q_20
+#define score_mobility_Q_20 (tuning_params[67])
+#undef score_mobility_Q_21
+#define score_mobility_Q_21 (tuning_params[68])
+#undef score_mobility_Q_22
+#define score_mobility_Q_22 (tuning_params[69])
+#undef score_mobility_Q_23
+#define score_mobility_Q_23 (tuning_params[70])
+#undef score_mobility_Q_24
+#define score_mobility_Q_24 (tuning_params[71])
+#undef score_mobility_Q_25
+#define score_mobility_Q_25 (tuning_params[72])
+#undef score_mobility_Q_26
+#define score_mobility_Q_26 (tuning_params[73])
+#undef score_mobility_Q_27
+#define score_mobility_Q_27 (tuning_params[74])
+
+// pawns
 #undef uo_score_extra_pawn
-#define uo_score_extra_pawn (tuning_params[18])
+#define uo_score_extra_pawn (tuning_params[75])
 
 #undef uo_score_isolated_P
-#define uo_score_isolated_P (tuning_params[19])
+#define uo_score_isolated_P (tuning_params[76])
 
 #undef uo_score_passed_pawn_on_fifth
-#define uo_score_passed_pawn_on_fifth (tuning_params[20])
+#define uo_score_passed_pawn_on_fifth (tuning_params[77])
 #undef uo_score_passed_pawn_on_sixth
-#define uo_score_passed_pawn_on_sixth (tuning_params[21])
+#define uo_score_passed_pawn_on_sixth (tuning_params[78])
 #undef uo_score_passed_pawn_on_seventh
-#define uo_score_passed_pawn_on_seventh (tuning_params[22])
+#define uo_score_passed_pawn_on_seventh (tuning_params[79])
 
   // piece development
 #undef uo_score_rook_stuck_in_corner
-#define uo_score_rook_stuck_in_corner (tuning_params[23])
+#define uo_score_rook_stuck_in_corner (tuning_params[80])
 
   // king safety and castling
-#undef uo_score_casting_right
-#define uo_score_casting_right (tuning_params[24])
-#undef uo_score_king_in_the_center
-#define uo_score_king_in_the_center (tuning_params[25])
-#undef uo_score_castled_king
-#define uo_score_castled_king (tuning_params[26])
 #undef uo_score_king_cover_pawn
-#define uo_score_king_cover_pawn (tuning_params[27])
+#define uo_score_king_cover_pawn (tuning_params[81])
 
-#undef uo_score_eg_N
-#define uo_score_eg_N (tuning_params[28])
-#undef uo_score_eg_B
-#define uo_score_eg_B (tuning_params[29])
-#undef uo_score_eg_R
-#define uo_score_eg_R (tuning_params[30])
-#undef uo_score_eg_Q
-#define uo_score_eg_Q (tuning_params[31])
 
 #define uo_tuning_param_count (sizeof tuning_params / sizeof *tuning_params)
 
@@ -241,6 +398,108 @@ typedef struct uo_tuning_param_info
 } uo_tuning_param_info;
 
 uo_tuning_param_info tuning_param_infos[uo_tuning_param_count];
+
+static inline int16_t uo_score_mobility_N(int mobility)
+{
+  switch (mobility)
+  {
+    case 0: return score_mobility_N_0;
+    case 1: return score_mobility_N_1;
+    case 2: return score_mobility_N_2;
+    case 3: return score_mobility_N_3;
+    case 4: return score_mobility_N_4;
+    case 5: return score_mobility_N_5;
+    case 6: return score_mobility_N_6;
+    case 7: return score_mobility_N_7;
+    case 8: return score_mobility_N_8;
+  }
+
+  exit(1);
+}
+
+static inline int16_t uo_score_mobility_B(int mobility)
+{
+  switch (mobility)
+  {
+    case 0: return score_mobility_B_0;
+    case 1: return score_mobility_B_1;
+    case 2: return score_mobility_B_2;
+    case 3: return score_mobility_B_3;
+    case 4: return score_mobility_B_4;
+    case 5: return score_mobility_B_5;
+    case 6: return score_mobility_B_6;
+    case 7: return score_mobility_B_7;
+    case 8: return score_mobility_B_8;
+    case 9: return score_mobility_B_9;
+    case 10: return score_mobility_B_10;
+    case 11: return score_mobility_B_11;
+    case 12: return score_mobility_B_12;
+    case 13: return score_mobility_B_13;
+  }
+
+  exit(1);
+}
+
+static inline int16_t uo_score_mobility_R(int mobility)
+{
+  switch (mobility)
+  {
+    case 0: return score_mobility_R_0;
+    case 1: return score_mobility_R_1;
+    case 2: return score_mobility_R_2;
+    case 3: return score_mobility_R_3;
+    case 4: return score_mobility_R_4;
+    case 5: return score_mobility_R_5;
+    case 6: return score_mobility_R_6;
+    case 7: return score_mobility_R_7;
+    case 8: return score_mobility_R_8;
+    case 9: return score_mobility_R_9;
+    case 10: return score_mobility_R_10;
+    case 11: return score_mobility_R_11;
+    case 12: return score_mobility_R_12;
+    case 13: return score_mobility_R_13;
+    case 14: return score_mobility_R_14;
+  }
+
+  exit(1);
+}
+
+static inline int16_t uo_score_mobility_Q(int mobility)
+{
+  switch (mobility)
+  {
+    case 0: return score_mobility_Q_0;
+    case 1: return score_mobility_Q_1;
+    case 2: return score_mobility_Q_2;
+    case 3: return score_mobility_Q_3;
+    case 4: return score_mobility_Q_4;
+    case 5: return score_mobility_Q_5;
+    case 6: return score_mobility_Q_6;
+    case 7: return score_mobility_Q_7;
+    case 8: return score_mobility_Q_8;
+    case 9: return score_mobility_Q_9;
+    case 10: return score_mobility_Q_10;
+    case 11: return score_mobility_Q_11;
+    case 12: return score_mobility_Q_12;
+    case 13: return score_mobility_Q_13;
+    case 14: return score_mobility_Q_14;
+    case 15: return score_mobility_Q_15;
+    case 16: return score_mobility_Q_16;
+    case 17: return score_mobility_Q_17;
+    case 18: return score_mobility_Q_18;
+    case 19: return score_mobility_Q_19;
+    case 20: return score_mobility_Q_20;
+    case 21: return score_mobility_Q_21;
+    case 22: return score_mobility_Q_22;
+    case 23: return score_mobility_Q_23;
+    case 24: return score_mobility_Q_24;
+    case 25: return score_mobility_Q_25;
+    case 26: return score_mobility_Q_26;
+    case 27: return score_mobility_Q_27;
+  }
+
+  exit(1);
+}
 
 static inline int16_t uo_tuning_position_evaluate(uo_position *position)
 {
@@ -339,11 +598,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_own_N = uo_bitboard_attacks_N(square_own_N);
 
     int mobility_own_N = uo_popcnt(mask_mobility_own & attacks_own_N);
-    score += !mobility_own_N * uo_score_zero_mobility_N;
-    score += uo_score_mul_ln(uo_score_mobility_N, mobility_own_N * mobility_own_N);
+    score += uo_score_mobility_N(mobility_own_N);
 
-    score_mg += uo_score_N;
-    score_eg += uo_score_eg_N;
+    score += uo_score_N;
 
     attack_units_own += uo_popcnt(attacks_own_N & zone_enemy_K) * uo_attack_unit_N;
   }
@@ -355,11 +612,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_enemy_N = uo_bitboard_attacks_N(square_enemy_N);
 
     int mobility_enemy_N = uo_popcnt(mask_mobility_enemy & attacks_enemy_N);
-    score -= !mobility_enemy_N * uo_score_zero_mobility_N;
-    score -= uo_score_mul_ln(uo_score_mobility_N, mobility_enemy_N * mobility_enemy_N);
+    score -= uo_score_mobility_N(mobility_enemy_N);
 
-    score_mg -= uo_score_N;
-    score_eg -= uo_score_eg_N;
+    score -= uo_score_N;
 
     attack_units_enemy += uo_popcnt(attacks_enemy_N & zone_own_K) * uo_attack_unit_N;
   }
@@ -373,14 +628,13 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_own_B = uo_bitboard_attacks_B(square_own_B, occupied);
 
     int mobility_own_B = uo_popcnt(mask_mobility_own & attacks_own_B);
-    score += !mobility_own_B * uo_score_zero_mobility_B;
-    score += uo_score_mul_ln(uo_score_mobility_B, mobility_own_B * mobility_own_B);
+    score += uo_score_mobility_B(mobility_own_B);
 
-    score_mg += uo_score_B;
-    score_eg += uo_score_eg_B;
+    score += uo_score_B;
 
     attack_units_own += uo_popcnt(attacks_own_B & zone_enemy_K) * uo_attack_unit_B;
   }
+
   temp = enemy_B;
   while (temp)
   {
@@ -388,11 +642,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_enemy_B = uo_bitboard_attacks_B(square_enemy_B, occupied);
 
     int mobility_enemy_B = uo_popcnt(mask_mobility_enemy & attacks_enemy_B);
-    score -= !mobility_enemy_B * uo_score_zero_mobility_B;
-    score -= uo_score_mul_ln(uo_score_mobility_B, mobility_enemy_B * mobility_enemy_B);
+    score -= uo_score_mobility_B(mobility_enemy_B);
 
-    score_mg -= uo_score_B;
-    score_eg -= uo_score_eg_B;
+    score -= uo_score_B;
 
     attack_units_enemy += uo_popcnt(attacks_enemy_B & zone_own_K) * uo_attack_unit_B;
   }
@@ -405,14 +657,13 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_own_R = uo_bitboard_attacks_R(square_own_R, occupied);
 
     int mobility_own_R = uo_popcnt(mask_mobility_own & attacks_own_R);
-    score += !mobility_own_R * uo_score_zero_mobility_R;
-    score += uo_score_mul_ln(uo_score_mobility_R, mobility_own_R * mobility_own_R);
+    score += uo_score_mobility_R(mobility_own_R);
 
-    score_mg += uo_score_R;
-    score_eg += uo_score_eg_R;
+    score += uo_score_R;
 
     attack_units_own += uo_popcnt(attacks_own_R & zone_enemy_K) * uo_attack_unit_R;
   }
+
   temp = enemy_R;
   while (temp)
   {
@@ -420,11 +671,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_enemy_R = uo_bitboard_attacks_R(square_enemy_R, occupied);
 
     int mobility_enemy_R = uo_popcnt(mask_mobility_enemy & attacks_enemy_R);
-    score -= !mobility_enemy_R * uo_score_zero_mobility_R;
-    score -= uo_score_mul_ln(uo_score_mobility_R, mobility_enemy_R * mobility_enemy_R);
+    score -= uo_score_mobility_R(mobility_enemy_R);
 
-    score_mg -= uo_score_R;
-    score_eg -= uo_score_eg_R;
+    score -= uo_score_R;
 
     attack_units_enemy += uo_popcnt(attacks_enemy_R & zone_own_K) * uo_attack_unit_R;
   }
@@ -437,14 +686,13 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_own_Q = uo_bitboard_attacks_Q(square_own_Q, occupied);
 
     int mobility_own_Q = uo_popcnt(mask_mobility_own & attacks_own_Q);
-    score += !mobility_own_Q * uo_score_zero_mobility_Q;
-    score += uo_score_mul_ln(uo_score_mobility_Q, mobility_own_Q * mobility_own_Q);
+    score += uo_score_mobility_Q(mobility_own_Q);
 
-    score_mg += uo_score_Q;
-    score_eg += uo_score_eg_Q;
+    score += uo_score_Q;
 
     attack_units_own += uo_popcnt(attacks_own_Q & zone_enemy_K) * uo_attack_unit_Q;
   }
+
   temp = enemy_Q;
   while (temp)
   {
@@ -452,11 +700,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
     uo_bitboard attacks_enemy_Q = uo_bitboard_attacks_Q(square_enemy_Q, occupied);
 
     int mobility_enemy_Q = uo_popcnt(mask_mobility_enemy & attacks_enemy_Q);
-    score -= !mobility_enemy_Q * uo_score_zero_mobility_Q;
-    score -= uo_score_mul_ln(uo_score_mobility_Q, mobility_enemy_Q * mobility_enemy_Q);
+    score -= uo_score_mobility_Q(mobility_enemy_Q);
 
-    score_mg -= uo_score_Q;
-    score_eg -= uo_score_eg_Q;
+    score -= uo_score_Q;
 
     attack_units_enemy += uo_popcnt(attacks_enemy_Q & zone_own_K) * uo_attack_unit_Q;
   }
@@ -480,11 +726,9 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
 
   int mobility_own_K = uo_popcnt(uo_andn(attacks_enemy_K | attacks_enemy, attacks_own_K));
   score += uo_score_zero_mobility_K * !mobility_own_K;
-  score += uo_score_mobility_K * mobility_own_K;
 
   int mobility_enemy_K = uo_popcnt(uo_andn(attacks_own_K | attacks_own, attacks_enemy_K));
   score -= uo_score_zero_mobility_K * !mobility_enemy_K;
-  score -= uo_score_mobility_K * mobility_enemy_K;
 
   score += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
   score -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
@@ -651,10 +895,16 @@ bool uo_tuning_train_evaluation_parameters(char *dataset_filepath)
           tuning_param_infos[i].increment += tuning_param_infos[i].increment > 0 ? 1 : -1;
         }
       }
-      else if (tuning_param_infos[i].aimd_double && tuning_param_infos[i].increment != 1)
+      else if (tuning_param_infos[i].aimd_double
+        && tuning_param_infos[i].increment != 1
+        && tuning_param_infos[i].increment != -1)
       {
         tuning_param_infos[i].increment /= 2;
         tuning_param_infos[i].aimd_double = false;
+      }
+      else if (tuning_param_infos[i].increment == 1)
+      {
+        tuning_param_infos[i].increment = -1;
       }
       else
       {

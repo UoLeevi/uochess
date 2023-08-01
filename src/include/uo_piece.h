@@ -27,11 +27,11 @@ extern "C"
 
 #define uo_piece_type(piece) ((piece) & (uo_piece)0xE)
 
-#define uo_score_P 81
-#define uo_score_N 336
-#define uo_score_B 380
-#define uo_score_R 543
-#define uo_score_Q 1101
+#define uo_score_P 80
+#define uo_score_N 330
+#define uo_score_B 360
+#define uo_score_R 505
+#define uo_score_Q 1000
 
 #define uo_score_material_max (   \
     16 * uo_score_P +             \
