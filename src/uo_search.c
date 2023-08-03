@@ -502,7 +502,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   if (entry.value >= beta) return beta;
 
   // Step 13. Delta pruning
-  bool is_promotion_possible = uo_msb(position->P & position->own) >= uo_square__a7;
+  bool is_promotion_possible = (position->P & position->own) >= uo_square_bitboard(uo_square__a7);
   int16_t delta
     // Large material gain from capture
     = ((position->Q & position->enemy) ? uo_score_Q : uo_score_R)
@@ -513,14 +513,10 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   if (entry.value + delta < alpha) return alpha;
 
-  // Step 14. Determine futility threshold for pruning unpotential moves
-  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
-  const int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
-
-  // Step 15. Update alpha
+  // Step 14. Update alpha
   alpha = uo_max(alpha, entry.value);
 
-  // Step 16. Search transposition table move if it is not a tactical move
+  // Step 15. Search transposition table move if it is not a tactical move
   if (entry.bestmove
     && !uo_move_is_tactical(entry.bestmove))
   {
@@ -534,21 +530,15 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     if (*incomplete) return uo_score_unknown;
 
-    if (node_value > entry.value)
-    {
-      entry.value = node_value;
+    if (node_value > beta) return node_value;
 
-      if (entry.value > alpha)
-      {
-        if (entry.value >= beta)
-        {
-          return entry.value;
-        }
-
-        alpha = entry.value;
-      }
-    }
+    entry.value = uo_max(node_value, entry.value);
+    alpha = uo_max(node_value, alpha);
   }
+
+  // Step 16. Determine futility threshold for pruning unpotential moves
+  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
+  int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
 
   // Step 17. Generate tactical moves with potential to raise alpha
   size_t tactical_move_count = uo_position_generate_tactical_moves(position, futility_threshold);
@@ -580,28 +570,22 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
     if (*incomplete) return uo_score_unknown;
 
+    if (node_value >= beta) return node_value;
+
     if (node_value > entry.value)
     {
       entry.value = node_value;
       entry.bestmove = move;
 
-      if (entry.value > alpha)
+      if (node_value > alpha)
       {
-        if (entry.value >= beta)
-        {
-          return depth < UO_QS_CHECKS_DEPTH
-            ? uo_engine_store_entry(position, &entry)
-            : entry.value;
-        }
-
-        alpha = entry.value;
+        alpha = node_value;
+        futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
       }
     }
   }
 
-  return depth < UO_QS_CHECKS_DEPTH
-    ? uo_engine_store_entry(position, &entry)
-    : entry.value;
+  return entry.value;
 }
 
 static inline void uo_search_cutoff_parallel_search(uo_engine_thread *thread, uo_search_queue *queue, uo_search_queue_item *results)
@@ -1412,6 +1396,10 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   bool is_ponderhit = engine.ponder.is_ponderhit = is_continuation
     && position->stack[-1].move == engine.ponder.move;
 
+  // Check if mate sequence is detected
+  bool is_mate_found = is_continuation
+    && engine.ponder.value > uo_score_mate_in_threshold;
+
   // Check for ponder hit
   if (is_continuation)
   {
@@ -1465,51 +1453,49 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
   }
 
   // Tablebase probe
-  if (engine.tb.enabled)
+  if (engine.tb.enabled
+    // Do not probe tablebase if mate is detected
+    && !is_mate_found)
   {
-    // Do not probe if castling can interfere with the table base result
-    if (!uo_position_flags_castling(position->flags))
+    size_t piece_count = uo_popcnt(position->own | position->enemy);
+    size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
+
+    // Do not probe if too many pieces are on the board
+    if (piece_count <= probe_limit)
     {
-      size_t piece_count = uo_popcnt(position->own | position->enemy);
-      size_t probe_limit = uo_min(TBlargest, engine.tb.probe_limit);
+      int success;
+      int dtz = info->dtz = uo_tb_root_probe_dtz(position, &success);
 
-      // Do not probe if too many pieces are on the board
-      if (piece_count <= probe_limit)
+      ++thread->info.tbhits;
+      assert(success);
+
+      // Flag position as tablebase position. This turns of tablebase probing during search.
+      info->is_tb_position = true;
+
+      // Clear hash table
+      uo_engine_clear_hash();
+
+      tb_move = position->movelist.head[0];
+      if (tb_move != line[0])
       {
-        int success;
-        int dtz = info->dtz = uo_tb_root_probe_dtz(position, &success);
+        line[0] = tb_move;
+        line[1] = 0;
+      }
 
-        ++thread->info.tbhits;
-        assert(success);
-
-        // Flag position as tablebase position. This turns of tablebase probing during search.
-        info->is_tb_position = true;
-
-        // Clear hash table
-        uo_engine_clear_hash();
-
-        tb_move = position->movelist.head[0];
-        if (tb_move != line[0])
-        {
-          line[0] = tb_move;
-          line[1] = 0;
-        }
-
-        if (dtz > 0)
-        {
-          alpha = uo_max(0, alpha);
-          beta = uo_score_checkmate;
-        }
-        else if (dtz < 0)
-        {
-          beta = uo_min(0, beta);
-          alpha = -uo_score_checkmate;
-        }
-        else
-        {
-          alpha = uo_max(1, alpha);
-          beta = uo_min(-1, beta);
-        }
+      if (dtz > 0)
+      {
+        alpha = uo_max(0, alpha);
+        beta = uo_score_checkmate;
+      }
+      else if (dtz < 0)
+      {
+        beta = uo_min(0, beta);
+        alpha = -uo_score_checkmate;
+      }
+      else
+      {
+        alpha = uo_max(1, alpha);
+        beta = uo_min(-1, beta);
       }
     }
   }

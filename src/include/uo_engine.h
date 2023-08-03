@@ -226,7 +226,7 @@ extern "C"
     abtentry->bestmove = abtentry->data.bestmove;
     assert(!abtentry->bestmove || uo_position_is_legal_move(position, abtentry->bestmove));
 
-    // Step 5. Adjust mate-in and table base scores by accounting plies
+    // Step 5. Adjust mate-in and tablebase scores by accounting plies
     int16_t value = abtentry->data.value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
 
     // Step 6. Return if transposition table entry from more shallow depth search
@@ -253,8 +253,7 @@ extern "C"
           && value > abtentry->alpha_initial)
         {
           // Step 9. Update alpha
-          abtentry->alpha_initial = value;
-          *abtentry->alpha = value; // - 1;
+          *abtentry->alpha = abtentry->alpha_initial = value;
         }
 
         break;
@@ -270,8 +269,7 @@ extern "C"
           && value < abtentry->beta_initial)
         {
           // Step 11. Update beta
-          abtentry->beta_initial = value;
-          *abtentry->beta = value; // + 1;
+          *abtentry->beta = abtentry->beta_initial = value;
         }
 
         break;
@@ -285,20 +283,19 @@ extern "C"
   static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
   {
     int16_t value = abtentry->value;
-    int16_t value_tt = uo_score_adjust_to_ttable(position->ply, value);
 
     // if transposition table entry is from deeper search, adjust value based on value bounds from previous search and return.
     if (abtentry->data.depth > abtentry->depth)
     {
       if (abtentry->data.type == uo_score_type__lower_bound
-        && abtentry->data.value > value_tt)
+        && abtentry->data.value > value)
       {
-        value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
+        value = abtentry->data.value;
       }
       else if (abtentry->data.type == uo_score_type__upper_bound
-        && abtentry->data.value < value_tt)
+        && abtentry->data.value < value)
       {
-        value = uo_score_adjust_from_ttable(position->ply, abtentry->data.value);
+        value = abtentry->data.value;
       }
     }
 
@@ -308,7 +305,7 @@ extern "C"
     {
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
-      abtentry->data.value = value_tt;
+      abtentry->data.value = uo_score_adjust_to_ttable(position->ply, value);
       abtentry->data.type =
         value >= abtentry->beta_initial ? uo_score_type__lower_bound :
         value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
