@@ -988,9 +988,15 @@ extern "C"
     // pawns
 
     int count_own_P = uo_popcnt(own_P);
-    score += (uo_score_P + uo_score_extra_pawn) * count_own_P;
+    score += uo_score_P * count_own_P;
     int count_enemy_P = uo_popcnt(enemy_P);
-    score -= (uo_score_P + uo_score_extra_pawn) * count_enemy_P;
+    score -= uo_score_P * count_enemy_P;
+
+    // pawn chains
+    int count_supported_own_P = uo_popcnt(own_P & attacks_own_P);
+    score += uo_score_supported_P * count_supported_own_P;
+    int count_supported_enemy_P = uo_popcnt(enemy_P & attacks_enemy_P);
+    score -= uo_score_supported_P * count_supported_enemy_P;
 
     // pawn mobility
 
@@ -1057,6 +1063,7 @@ extern "C"
 
       attack_units_own += uo_popcnt(attacks_own_B & zone_enemy_K) * uo_attack_unit_B;
     }
+
     temp = enemy_B;
     while (temp)
     {
@@ -1085,6 +1092,7 @@ extern "C"
 
       attack_units_own += uo_popcnt(attacks_own_R & zone_enemy_K) * uo_attack_unit_R;
     }
+
     temp = enemy_R;
     while (temp)
     {
@@ -1113,6 +1121,7 @@ extern "C"
 
       attack_units_own += uo_popcnt(attacks_own_Q & zone_enemy_K) * uo_attack_unit_Q;
     }
+
     temp = enemy_Q;
     while (temp)
     {
@@ -1153,39 +1162,63 @@ extern "C"
     score += uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_own_K & own_P);
     score -= uo_score_king_cover_pawn * (int32_t)uo_popcnt(attacks_enemy_K & enemy_P);
 
-    // isolated pawns
+    // flip middle game pawn square scores if own king is on queen side and
+    // flip end game pawn square scores if enemy king is on queen side
+    uint8_t flip_if_own_K_queenside = (uo_square_file(square_own_K) < 4) * 7;
+    uint8_t flip_if_enemy_K_queenside = (uo_square_file(square_enemy_K) < 4) * 7;
+
+    // pawns
     temp = own_P;
     while (temp)
     {
       uo_square square_own_P = uo_bitboard_next_square(&temp);
+
+      // isolated pawns
       bool is_isolated_P = !(uo_square_bitboard_adjecent_files[square_own_P] & own_P);
       score += is_isolated_P * uo_score_isolated_P;
+
+      score_mg += score_mg_P[square_own_P ^ flip_if_own_K_queenside];
+      score_eg += score_eg_P[square_own_P ^ flip_if_enemy_K_queenside];
     }
 
-    // isolated pawns
     temp = enemy_P;
     while (temp)
     {
-      uo_square square_enemy_P = uo_bitboard_next_square(&temp);
-      bool is_isolated_P = !(uo_square_bitboard_adjecent_files[square_enemy_P] & enemy_P);
+      uo_square square_flipped_enemy_P = uo_bitboard_next_square(&temp) ^ 56;
+
+      // isolated pawns
+      bool is_isolated_P = !(uo_square_bitboard_adjecent_files[square_flipped_enemy_P] & enemy_P);
       score -= is_isolated_P * uo_score_isolated_P;
+
+      score_mg -= score_mg_P[square_flipped_enemy_P ^ flip_if_enemy_K_queenside];
+      score_eg -= score_eg_P[square_flipped_enemy_P ^ flip_if_own_K_queenside];
     }
 
     // passed pawns
-    uo_bitboard passed_own_P = uo_bitboard_passed_P(own_P, enemy_P);
-    if (passed_own_P)
+    temp = own_P & uo_bitboard_rank_fifth;
+    while (temp)
     {
-      score += uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_fifth);
-      score += uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_sixth);
-      score += uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_own_P & uo_bitboard_rank_seventh);
+      uo_square square_own_P = uo_bitboard_next_square(&temp);
+      score += uo_score_passed_pawn_on_fifth * uo_bitboard_is_passed_P(square_own_P, enemy_P);
+    }
+    temp = own_P & uo_bitboard_rank_sixth;
+    while (temp)
+    {
+      uo_square square_own_P = uo_bitboard_next_square(&temp);
+      score += uo_score_passed_pawn_on_sixth * uo_bitboard_is_passed_P(square_own_P, enemy_P);
     }
 
-    uo_bitboard passed_enemy_P = uo_bitboard_passed_enemy_P(enemy_P, own_P);
-    if (passed_enemy_P)
+    temp = enemy_P & uo_bitboard_rank_fourth;
+    while (temp)
     {
-      score -= uo_score_passed_pawn_on_fifth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_fourth);
-      score -= uo_score_passed_pawn_on_sixth * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_third);
-      score -= uo_score_passed_pawn_on_seventh * (int32_t)uo_popcnt(passed_enemy_P & uo_bitboard_rank_second);
+      uo_square square_enemy_P = uo_bitboard_next_square(&temp);
+      score -= uo_score_passed_pawn_on_fifth * uo_bitboard_is_passed_enemy_P(square_enemy_P, own_P);
+    }
+    temp = enemy_P & uo_bitboard_rank_third;
+    while (temp)
+    {
+      uo_square square_enemy_P = uo_bitboard_next_square(&temp);
+      score -= uo_score_passed_pawn_on_sixth * uo_bitboard_is_passed_enemy_P(square_enemy_P, own_P);
     }
 
     // castling rights

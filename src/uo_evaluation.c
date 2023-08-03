@@ -15,6 +15,26 @@ const int16_t score_attacks_to_K[100] = {
  500, 500, 500, 500, 500, 500, 500, 500, 500, 500
 };
 
+const int16_t score_mg_P[56] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  score_mg_P_a2, score_mg_P_b2, score_mg_P_c2, score_mg_P_d2, score_mg_P_e2, score_mg_P_f2, score_mg_P_g2, score_mg_P_h2,
+  score_mg_P_a3, score_mg_P_b3, score_mg_P_c3, score_mg_P_d3, score_mg_P_e3, score_mg_P_f3, score_mg_P_g3, score_mg_P_h3,
+  score_mg_P_a4, score_mg_P_b4, score_mg_P_c4, score_mg_P_d4, score_mg_P_e4, score_mg_P_f4, score_mg_P_g4, score_mg_P_h4,
+  score_mg_P_a5, score_mg_P_b5, score_mg_P_c5, score_mg_P_d5, score_mg_P_e5, score_mg_P_f5, score_mg_P_g5, score_mg_P_h5,
+  score_mg_P_a6, score_mg_P_b6, score_mg_P_c6, score_mg_P_d6, score_mg_P_e6, score_mg_P_f6, score_mg_P_g6, score_mg_P_h6,
+  score_mg_P_a7, score_mg_P_b7, score_mg_P_c7, score_mg_P_d7, score_mg_P_e7, score_mg_P_f7, score_mg_P_g7, score_mg_P_h7,
+};
+
+const int16_t score_eg_P[56] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  score_eg_P_a2, score_eg_P_b2, score_eg_P_c2, score_eg_P_d2, score_eg_P_e2, score_eg_P_f2, score_eg_P_g2, score_eg_P_h2,
+  score_eg_P_a3, score_eg_P_b3, score_eg_P_c3, score_eg_P_d3, score_eg_P_e3, score_eg_P_f3, score_eg_P_g3, score_eg_P_h3,
+  score_eg_P_a4, score_eg_P_b4, score_eg_P_c4, score_eg_P_d4, score_eg_P_e4, score_eg_P_f4, score_eg_P_g4, score_eg_P_h4,
+  score_eg_P_a5, score_eg_P_b5, score_eg_P_c5, score_eg_P_d5, score_eg_P_e5, score_eg_P_f5, score_eg_P_g5, score_eg_P_h5,
+  score_eg_P_a6, score_eg_P_b6, score_eg_P_c6, score_eg_P_d6, score_eg_P_e6, score_eg_P_f6, score_eg_P_g6, score_eg_P_h6,
+  score_eg_P_a7, score_eg_P_b7, score_eg_P_c7, score_eg_P_d7, score_eg_P_e7, score_eg_P_f7, score_eg_P_g7, score_eg_P_h7,
+};
+
 const int16_t score_mobility_N[9] = {
   score_mobility_N_0,
   score_mobility_N_1,

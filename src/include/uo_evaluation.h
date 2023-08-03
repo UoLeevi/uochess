@@ -117,102 +117,98 @@ extern "C"
   }
 
   // side to move
-#define uo_score_tempo 21
-
+#define uo_score_tempo 23
 
   // mobility
 
-#define uo_score_mobility_P 11
-#define uo_score_zero_mobility_P -20
+#define uo_score_mobility_P 18
+#define uo_score_zero_mobility_P -5
 
-#define uo_score_zero_mobility_K -58
+#define uo_score_zero_mobility_K -54
 
   extern const int16_t score_mobility_N[9];
-#define score_mobility_N_0 -47
-#define score_mobility_N_1 -28
+#define score_mobility_N_0 -44
+#define score_mobility_N_1 -25
 #define score_mobility_N_2 -12
-#define score_mobility_N_3 0
-#define score_mobility_N_4 8
-#define score_mobility_N_5 15
-#define score_mobility_N_6 21
-#define score_mobility_N_7 28
-#define score_mobility_N_8 28
+#define score_mobility_N_3  -2
+#define score_mobility_N_4   7
+#define score_mobility_N_5  14
+#define score_mobility_N_6  21
+#define score_mobility_N_7  27
+#define score_mobility_N_8  29
 
   extern const int16_t score_mobility_B[14];
-#define score_mobility_B_0 -33
-#define score_mobility_B_1 -26
+#define score_mobility_B_0 -31
+#define score_mobility_B_1 -24
 #define score_mobility_B_2 -14
-#define score_mobility_B_3 -7
-#define score_mobility_B_4 -1
-#define score_mobility_B_5 3
-#define score_mobility_B_6 6
-#define score_mobility_B_7 7
-#define score_mobility_B_8 7
-#define score_mobility_B_9 8
+#define score_mobility_B_3  -8
+#define score_mobility_B_4  -3
+#define score_mobility_B_5   1
+#define score_mobility_B_6   5
+#define score_mobility_B_7   5
+#define score_mobility_B_8   7
+#define score_mobility_B_9   7
 #define score_mobility_B_10 10
 #define score_mobility_B_11 12
-#define score_mobility_B_12 16
-#define score_mobility_B_13 14
+#define score_mobility_B_12 15
+#define score_mobility_B_13 15
 
   extern const int16_t score_mobility_R[15];
-#define score_mobility_R_0 -16
-#define score_mobility_R_1 -3
-#define score_mobility_R_2 -3
-#define score_mobility_R_3 4
-#define score_mobility_R_4 6
-#define score_mobility_R_5 14
-#define score_mobility_R_6 19
-#define score_mobility_R_7 25
-#define score_mobility_R_8 31
-#define score_mobility_R_9 36
+#define score_mobility_R_0 -19
+#define score_mobility_R_1  -2
+#define score_mobility_R_2  -1
+#define score_mobility_R_3   5
+#define score_mobility_R_4   7
+#define score_mobility_R_5  15
+#define score_mobility_R_6  19
+#define score_mobility_R_7  25
+#define score_mobility_R_8  30
+#define score_mobility_R_9  35
 #define score_mobility_R_10 38
-#define score_mobility_R_11 39
-#define score_mobility_R_12 40
-#define score_mobility_R_13 41
+#define score_mobility_R_11 40
+#define score_mobility_R_12 42
+#define score_mobility_R_13 42
 #define score_mobility_R_14 42
 
   extern const int16_t score_mobility_Q[28];
-#define score_mobility_Q_0 0
-#define score_mobility_Q_1 6
-#define score_mobility_Q_2 6
-#define score_mobility_Q_3 7
-#define score_mobility_Q_4 12
-#define score_mobility_Q_5 16
-#define score_mobility_Q_6 20
-#define score_mobility_Q_7 24
-#define score_mobility_Q_8 27
-#define score_mobility_Q_9 29
-#define score_mobility_Q_10 31
-#define score_mobility_Q_11 33
-#define score_mobility_Q_12 34
-#define score_mobility_Q_13 35
-#define score_mobility_Q_14 36
-#define score_mobility_Q_15 37
-#define score_mobility_Q_16 40
-#define score_mobility_Q_17 41
-#define score_mobility_Q_18 41
-#define score_mobility_Q_19 43
-#define score_mobility_Q_20 46
-#define score_mobility_Q_21 46
-#define score_mobility_Q_22 46
+#define score_mobility_Q_0   9
+#define score_mobility_Q_1  14
+#define score_mobility_Q_2  14
+#define score_mobility_Q_3  14
+#define score_mobility_Q_4  16
+#define score_mobility_Q_5  18
+#define score_mobility_Q_6  21
+#define score_mobility_Q_7  23
+#define score_mobility_Q_8  25
+#define score_mobility_Q_9  26
+#define score_mobility_Q_10 28
+#define score_mobility_Q_11 29
+#define score_mobility_Q_12 30
+#define score_mobility_Q_13 31
+#define score_mobility_Q_14 32
+#define score_mobility_Q_15 33
+#define score_mobility_Q_16 36
+#define score_mobility_Q_17 36
+#define score_mobility_Q_18 37
+#define score_mobility_Q_19 39
+#define score_mobility_Q_20 43
+#define score_mobility_Q_21 43
+#define score_mobility_Q_22 43
 #define score_mobility_Q_23 43
 #define score_mobility_Q_24 43
 #define score_mobility_Q_25 43
 #define score_mobility_Q_26 43
 #define score_mobility_Q_27 43
 
-
   // pawns
-#define uo_score_extra_pawn 7
+#define uo_score_supported_P 5
+#define uo_score_isolated_P -12
 
-#define uo_score_isolated_P -14
-
-#define uo_score_passed_pawn_on_fifth 35
-#define uo_score_passed_pawn_on_sixth 77
-#define uo_score_passed_pawn_on_seventh 133
+#define uo_score_passed_pawn_on_fifth 20
+#define uo_score_passed_pawn_on_sixth 67
 
   // piece development
-#define uo_score_rook_stuck_in_corner -35
+#define uo_score_rook_stuck_in_corner -34
 
   // attacks near king
   // see: https://www.chessprogramming.org/King_Safety#Attack_Units
@@ -227,9 +223,120 @@ extern "C"
 #define uo_score_casting_right 10
 #define uo_score_king_in_the_center -5
 #define uo_score_castled_king 13
-#define uo_score_king_cover_pawn 6
+#define uo_score_king_cover_pawn 8
 
   extern const int16_t score_attacks_to_K[100];
+
+  extern const int16_t score_mg_P[56];
+#define score_mg_P_a2 -16
+#define score_mg_P_b2 -24
+#define score_mg_P_c2 -17
+#define score_mg_P_d2 -22
+#define score_mg_P_e2 -16
+#define score_mg_P_f2   6
+#define score_mg_P_g2   2
+#define score_mg_P_h2 -16
+
+#define score_mg_P_a3 -26
+#define score_mg_P_b3 -12
+#define score_mg_P_c3 -15
+#define score_mg_P_d3 -19
+#define score_mg_P_e3 -10
+#define score_mg_P_f3  -5
+#define score_mg_P_g3  10
+#define score_mg_P_h3  -9
+
+#define score_mg_P_a4 -17
+#define score_mg_P_b4 -14
+#define score_mg_P_c4  -3
+#define score_mg_P_d4   0
+#define score_mg_P_e4   3
+#define score_mg_P_f4  12
+#define score_mg_P_g4  -3
+#define score_mg_P_h4 -13
+
+#define score_mg_P_a5 -28
+#define score_mg_P_b5 -13
+#define score_mg_P_c5  -4
+#define score_mg_P_d5   2
+#define score_mg_P_e5  17
+#define score_mg_P_f5  16
+#define score_mg_P_g5   6
+#define score_mg_P_h5 -12
+
+#define score_mg_P_a6 -41
+#define score_mg_P_b6 -27
+#define score_mg_P_c6 -12
+#define score_mg_P_d6  -2
+#define score_mg_P_e6  -7
+#define score_mg_P_f6  58
+#define score_mg_P_g6  35
+#define score_mg_P_h6  -2
+
+#define score_mg_P_a7  30
+#define score_mg_P_b7  37
+#define score_mg_P_c7  37
+#define score_mg_P_d7  85
+#define score_mg_P_e7 114
+#define score_mg_P_f7  98
+#define score_mg_P_g7 -13
+#define score_mg_P_h7  41
+
+  extern const int16_t score_eg_P[56];
+#define score_eg_P_a2   2
+#define score_eg_P_b2   7
+#define score_eg_P_c2  -4
+#define score_eg_P_d2   0
+#define score_eg_P_e2  34
+#define score_eg_P_f2  18
+#define score_eg_P_g2   7
+#define score_eg_P_h2   0
+
+#define score_eg_P_a3   7
+#define score_eg_P_b3   3
+#define score_eg_P_c3   4
+#define score_eg_P_d3  20
+#define score_eg_P_e3  20
+#define score_eg_P_f3  22
+#define score_eg_P_g3  17
+#define score_eg_P_h3   8
+
+#define score_eg_P_a4  23
+#define score_eg_P_b4  20
+#define score_eg_P_c4  10
+#define score_eg_P_d4   9
+#define score_eg_P_e4  10
+#define score_eg_P_f4  22
+#define score_eg_P_g4  29
+#define score_eg_P_h4  19
+
+#define score_eg_P_a5  48
+#define score_eg_P_b5  32
+#define score_eg_P_c5  22
+#define score_eg_P_d5   5
+#define score_eg_P_e5  16
+#define score_eg_P_f5  19
+#define score_eg_P_g5  35
+#define score_eg_P_h5  36
+
+#define score_eg_P_a6  80
+#define score_eg_P_b6  70
+#define score_eg_P_c6  36
+#define score_eg_P_d6  17
+#define score_eg_P_e6   3
+#define score_eg_P_f6   9
+#define score_eg_P_g6  21
+#define score_eg_P_h6  28
+
+#define score_eg_P_a7 227
+#define score_eg_P_b7 233
+#define score_eg_P_c7 228
+#define score_eg_P_d7 164
+#define score_eg_P_e7 117
+#define score_eg_P_f7 123
+#define score_eg_P_g7 139
+#define score_eg_P_h7 147
+
 
 #ifdef __cplusplus
 }
