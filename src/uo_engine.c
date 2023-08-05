@@ -305,7 +305,7 @@ void uo_engine_init()
     thread->semaphore = uo_semaphore_create(0);
     uo_atomic_flag_init(&thread->busy);
     uo_atomic_init(&thread->cutoff, 0);
-    thread->id = i + 1;
+    thread->index = i;
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 
@@ -377,7 +377,7 @@ void uo_engine_reconfigure()
       thread->semaphore = uo_semaphore_create(0);
       uo_atomic_flag_init(&thread->busy);
       uo_atomic_init(&thread->cutoff, 0);
-      thread->id = i + 1;
+      thread->index = i;
       thread->thread = uo_thread_create(uo_engine_thread_run, thread);
     }
 

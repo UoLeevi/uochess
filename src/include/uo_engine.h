@@ -70,7 +70,6 @@ extern "C"
 
   typedef struct uo_engine_thread
   {
-    uint8_t id;
     uo_thread *thread;
     uo_engine_thread *owner;
     uo_semaphore *semaphore;
@@ -78,9 +77,10 @@ extern "C"
     void *data;
     uo_position position;
     uo_search_info info;
+    int index;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
-    uint8_t nmp_min_ply;
+    int nmp_min_ply;
     uo_move_cache move_cache[0x1000];
     uo_move pv[UO_MAX_PLY];
     uo_move **secondary_pvs;

@@ -537,8 +537,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 16. Determine futility threshold for pruning unpotential moves
-  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
-  int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
+  const int16_t futility_base = static_eval + uo_score_P * 3 / 2;
+  int16_t futility_threshold = alpha < futility_base ? 0 : alpha - futility_base;
 
   // Step 17. Generate tactical moves with potential to raise alpha
   size_t tactical_move_count = uo_position_generate_tactical_moves(position, futility_threshold);
@@ -580,7 +580,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       if (node_value > alpha)
       {
         alpha = node_value;
-        futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
+        futility_threshold = alpha < futility_base ? 0 : alpha - futility_base;
       }
     }
   }
