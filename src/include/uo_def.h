@@ -24,8 +24,6 @@ extern "C"
 // Principal variation minimum allocated length
 #define UO_PV_ALLOC_MIN_LENGTH 12
 
-#define UO_TTABLE_LOCK_BITS 10 
-
 #define uo_score_draw 0
 #define uo_score_unknown INT16_MIN
 #define uo_score_checkmate INT16_MAX

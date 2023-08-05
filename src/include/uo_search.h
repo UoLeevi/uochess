@@ -25,6 +25,7 @@ extern "C"
       int16_t value;
       uint8_t depth;
       uint8_t type;
+      uint16_t root_ply;
     };
   } uo_tdata;
 

@@ -13,6 +13,7 @@ extern "C"
 
 #ifdef WIN32
 # include <Windows.h>
+# include <intrin.h>
 #endif // WIN32
 
   // Time functions
@@ -149,6 +150,10 @@ extern "C"
   {
     return strrchr(path, '.');
   }
+
+  // Memory barrier
+
+#define uo_mfence __faststorefence
 
   // Cache prefetch hint
 

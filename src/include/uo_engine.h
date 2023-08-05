@@ -70,7 +70,7 @@ extern "C"
 
   typedef struct uo_engine_thread
   {
-    uint8_t id;
+    int index;
     uo_thread *thread;
     uo_engine_thread *owner;
     uo_semaphore *semaphore;
@@ -80,7 +80,7 @@ extern "C"
     uo_search_info info;
     uo_atomic_flag busy;
     uo_atomic_int cutoff;
-    uint8_t nmp_min_ply;
+    int nmp_min_ply;
     uo_move_cache move_cache[0x1000];
     uo_move pv[UO_MAX_PLY];
     uo_move **secondary_pvs;
@@ -193,7 +193,7 @@ extern "C"
   // Returns false if no entry was found or the score is not valid.
   // If an entry was found, the abtentry.data contains the values which were stored in the transposition table
   // even in the case that the score is not valid given search depth and alpha/beta values.
-  static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry)
+  static inline bool uo_engine_lookup_entry(uo_position *position, uo_abtentry *abtentry, int thread_index)
   {
     // Step 1. Save initial alpha-beta boundaries
     abtentry->alpha_initial = *abtentry->alpha;
@@ -218,7 +218,7 @@ extern "C"
     }
 
     // Step 3. Probe transposition table
-    bool found = uo_ttable_get(&engine.ttable, position->key, position->root_ply, &abtentry->data);
+    bool found = uo_ttable_get(&engine.ttable, position->key, position->root_ply, &abtentry->data, thread_index);
 
     // Step 4. Return if no match was found
     if (!found) return false;
@@ -280,7 +280,7 @@ extern "C"
   }
 
   // Stores an entry to the transposition table and return final score.
-  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry)
+  static inline int16_t uo_engine_store_entry(const uo_position *position, uo_abtentry *abtentry, int thread_index)
   {
     int16_t value = abtentry->value;
 
@@ -303,6 +303,7 @@ extern "C"
     else if (abtentry->data.depth < abtentry->depth
       || abtentry->data.type != uo_score_type__exact)
     {
+      abtentry->data.root_ply = position->root_ply;
       abtentry->data.depth = abtentry->depth;
       abtentry->data.bestmove = abtentry->bestmove;
       abtentry->data.value = uo_score_adjust_to_ttable(position->ply, value);
@@ -311,7 +312,7 @@ extern "C"
         value <= abtentry->alpha_initial ? uo_score_type__upper_bound :
         uo_score_type__exact;
 
-      uo_ttable_set(&engine.ttable, position->key, position->root_ply, &abtentry->data);
+      uo_ttable_set(&engine.ttable, position->key, &abtentry->data, thread_index);
     }
 
     return value;

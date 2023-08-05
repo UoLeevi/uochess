@@ -5,6 +5,7 @@
 #include "uo_piece.h"
 #include "uo_def.h"
 #include "uo_util.h"
+#include "uo_misc.h"
 #include "tbcore.h"
 
 int TBlargest = 0;
@@ -237,8 +238,9 @@ static int uo_tb_probe_wdl_table(uo_position *position, int *success)
         uo_mutex_unlock(TB_mutex);
         return 0;
       }
-      //// Memory barrier to ensure entry->ready = 1 is not reordered.
+      // Memory barrier to ensure entry->ready = 1 is not reordered.
       //__asm__ __volatile__ ("" ::: "memory");
+      uo_mfence();
       ptr->ready = 1;
     }
     uo_mutex_unlock(TB_mutex);

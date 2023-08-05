@@ -302,16 +302,16 @@ void uo_engine_init()
   for (size_t i = 0; i < engine.thread_count; ++i)
   {
     uo_engine_thread *thread = engine.threads + i;
+    thread->index = i;
     thread->semaphore = uo_semaphore_create(0);
     uo_atomic_flag_init(&thread->busy);
     uo_atomic_init(&thread->cutoff, 0);
-    thread->id = i + 1;
     thread->thread = uo_thread_create(uo_engine_thread_run, thread);
   }
 
   // hash table
   size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;
-  uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
+  uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1, engine.thread_count);
 
   // opening book
   if (engine_options.use_own_book && *engine_options.book_filename)
@@ -377,7 +377,7 @@ void uo_engine_reconfigure()
       thread->semaphore = uo_semaphore_create(0);
       uo_atomic_flag_init(&thread->busy);
       uo_atomic_init(&thread->cutoff, 0);
-      thread->id = i + 1;
+      thread->index = i;
       thread->thread = uo_thread_create(uo_engine_thread_run, thread);
     }
 
@@ -397,7 +397,7 @@ void uo_engine_reconfigure()
   // hash table
   uo_ttable_free(&engine.ttable);
   size_t capacity = engine_options.hash_size * (size_t)1000000 / sizeof * engine.ttable.entries;
-  uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1);
+  uo_ttable_init(&engine.ttable, uo_msb(capacity) + 1, engine.thread_count);
 
   // opening book
   if (engine.book)

@@ -126,7 +126,7 @@ static void uo_search_print_info(uo_engine_thread *thread)
   double time_msec = uo_time_elapsed_msec(&info->time_start);
   uint64_t nps = (double)thread->info.nodes / time_msec * 1000.0;
 
-  size_t tentry_count = uo_atomic_load(&engine.ttable.count);
+  size_t tentry_count = uo_ttable_count(&engine.ttable);
   uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
 
   char move_str[6];
@@ -273,7 +273,7 @@ static inline void uo_search_sort_and_filter_moves(uo_engine_thread *thread, uo_
 
     uint64_t key = uo_position_move_key(position, move, NULL);
     uo_tdata data;
-    bool found = uo_ttable_get(&engine.ttable, key, position->root_ply, &data);
+    bool found = uo_ttable_get(&engine.ttable, key, position->root_ply, &data, thread->index);
 
     if (!found)
     {
@@ -420,7 +420,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { &alpha, &beta, 0 };
-  if (uo_engine_lookup_entry(position, &entry))
+  if (uo_engine_lookup_entry(position, &entry, thread->index))
   {
     return entry.value;
   }
@@ -475,7 +475,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
         {
           if (entry.value >= beta)
           {
-            return uo_engine_store_entry(position, &entry);
+            return uo_engine_store_entry(position, &entry, thread->index);
           }
 
           alpha = entry.value;
@@ -537,8 +537,8 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
   }
 
   // Step 16. Determine futility threshold for pruning unpotential moves
-  const int16_t futility_margin = uo_score_P - uo_score_mul_ln(uo_score_P, depth * depth);
-  int16_t futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
+  const int16_t futility_base = static_eval + uo_score_P * 3 / 2;
+  int16_t futility_threshold = alpha < futility_base ? 0 : alpha - futility_base;
 
   // Step 17. Generate tactical moves with potential to raise alpha
   size_t tactical_move_count = uo_position_generate_tactical_moves(position, futility_threshold);
@@ -580,7 +580,7 @@ static int16_t uo_search_quiesce(uo_engine_thread *thread, int16_t alpha, int16_
       if (node_value > alpha)
       {
         alpha = node_value;
-        futility_threshold = -futility_margin + (alpha < static_eval ? 0 : alpha - static_eval);
+        futility_threshold = alpha < futility_base ? 0 : alpha - futility_base;
       }
     }
   }
@@ -630,7 +630,7 @@ static inline bool uo_search_try_delegate_parallel_search(uo_parallel_search_par
 // Maximum principal variation length is double the root search depth
 #define uo_allocate_line(depth) uo_alloca(uo_max((depth + 2) * 2, UO_PV_ALLOC_MIN_LENGTH) * sizeof(uo_move))
 
-static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove, uo_move *line, size_t depth)
+static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove, uo_move *line, size_t depth, int thread_index)
 {
   line[0] = bestmove;
   line[1] = 0;
@@ -643,11 +643,11 @@ static inline void uo_position_extend_pv(uo_position *position, uo_move bestmove
   int16_t beta = uo_score_checkmate;
   uo_abtentry entry = { &alpha, &beta, depth };
 
-  if (uo_engine_lookup_entry(position, &entry)
+  if (uo_engine_lookup_entry(position, &entry, thread_index)
     && entry.bestmove
     && entry.data.type == uo_score_type__exact)
   {
-    uo_position_extend_pv(position, entry.bestmove, line + 1, depth - 1);
+    uo_position_extend_pv(position, entry.bestmove, line + 1, depth - 1, thread_index);
   }
 
   uo_position_unmake_move(position);
@@ -734,7 +734,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
 
   // Step 6. Lookup position from transposition table and return if exact score for equal or higher depth is found
   uo_abtentry entry = { &alpha, &beta, depth };
-  if (uo_engine_lookup_entry(position, &entry))
+  if (uo_engine_lookup_entry(position, &entry, thread->index))
   {
     // For root node, in case the position is in tablebase, let's verify that the tt move is preserving win or draw.
     if (is_root_node
@@ -750,7 +750,7 @@ static int16_t uo_search_principal_variation(uo_engine_thread *thread, size_t de
       && entry.bestmove
       && entry.value > alpha)
     {
-      uo_position_extend_pv(position, entry.bestmove, pline, depth);
+      uo_position_extend_pv(position, entry.bestmove, pline, depth, thread->index);
     }
 
     // On root node, best move is required
@@ -838,7 +838,7 @@ continue_search:
       if (entry.value >= beta)
       {
         uo_position_update_killer_move(position, entry.bestmove, depth);
-        return uo_engine_store_entry(position, &entry);
+        return uo_engine_store_entry(position, &entry, thread->index);
       }
 
       ++improvement_count;
@@ -948,7 +948,7 @@ continue_search:
       {
         if (iid) goto increase_depth_iid;
         uo_position_update_cutoff_history(position, 0, depth);
-        return uo_engine_store_entry(position, &entry);
+        return uo_engine_store_entry(position, &entry, thread->index);
       }
 
       ++improvement_count;
@@ -1071,7 +1071,7 @@ continue_search:
           if (iid) goto increase_depth_iid;
           uo_position_update_cutoff_history(position, i, depth);
           if (parallel_search_count > 0) uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
-          return uo_engine_store_entry(position, &entry);
+          return uo_engine_store_entry(position, &entry, thread->index);
         }
 
         // Update alpha
@@ -1136,7 +1136,7 @@ continue_search:
 
               uo_position_update_cutoff_history(position, i, depth);
               uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
-              return uo_engine_store_entry(position, &entry);
+              return uo_engine_store_entry(position, &entry, thread->index);
             }
 
             ++improvement_count;
@@ -1194,7 +1194,7 @@ continue_search:
 
             uo_position_update_cutoff_history(position, i, depth);
             uo_search_cutoff_parallel_search(thread, &params.queue, NULL);
-            return uo_engine_store_entry(position, &entry);
+            return uo_engine_store_entry(position, &entry, thread->index);
           }
 
           alpha = entry.value;
@@ -1211,7 +1211,7 @@ continue_search:
   }
 
   if (iid) goto increase_depth_iid;
-  return uo_engine_store_entry(position, &entry);
+  return uo_engine_store_entry(position, &entry, thread->index);
 }
 
 static inline void uo_engine_thread_load_position(uo_engine_thread *thread)
@@ -1431,7 +1431,7 @@ void *uo_engine_thread_run_principal_variation_search(void *arg)
 
     // Probe transposition table
     uo_tdata tentry;
-    bool found = uo_ttable_get(&engine.ttable, position->key, position->root_ply, &tentry);
+    bool found = uo_ttable_get(&engine.ttable, position->key, position->root_ply, &tentry, thread->index);
 
     if (found)
     {
@@ -1780,7 +1780,7 @@ void *uo_engine_thread_run_quiescence_search(void *arg)
   double time_msec = uo_time_elapsed_msec(&thread->info.time_start);
   uint64_t nps = (double)thread->info.nodes / time_msec * 1000.0;
 
-  size_t tentry_count = uo_atomic_load(&engine.ttable.count);
+  size_t tentry_count = uo_ttable_count(&engine.ttable);
   uint64_t hashfull = (tentry_count * 1000) / (engine.ttable.hash_mask + 1);
 
   uo_engine_lock_stdout();
