@@ -421,8 +421,8 @@ extern "C"
           uo_bitboard mask_own = position->own;
           uo_bitboard own_R = mask_own & position->R;
           uo_bitboard own_Q = mask_own & position->Q;
-          uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank[rank_enemy_K];
-          uo_bitboard occupied = uo_andn(uo_square_bitboard_file[square_to], position->own | position->enemy);
+          uo_bitboard bitboard_rank_enemy_K = uo_bitboard_rank(rank_enemy_K);
+          uo_bitboard occupied = uo_andn(uo_square_bitboard_file(square_to), position->own | position->enemy);
           uo_bitboard rank_pins_to_enemy_K = uo_bitboard_pins_R(square_enemy_K, occupied, own_R | own_Q) & bitboard_rank_enemy_K;
 
           if (!(rank_pins_to_enemy_K & adjecent_enemy_pawn))
@@ -575,6 +575,7 @@ extern "C"
 
     assert(uo_color(piece) == uo_color_own);
 
+
     uo_bitboard bitboard_from = uo_square_bitboard(square_from);
     uo_bitboard bitboard_to = uo_square_bitboard(square_to);
     uo_bitboard mask_own = uo_andn(bitboard_from, position->own);
@@ -654,8 +655,15 @@ extern "C"
         }
     }
 
-    checks |= uo_bitboard_attacks_B(square_enemy_K, occupied) & own_BQ;
-    checks |= uo_bitboard_attacks_R(square_enemy_K, occupied) & own_RQ;
+    if (own_BQ & uo_square_bitboard_diagonals[square_enemy_K])
+    {
+      checks |= uo_bitboard_attacks_B(square_enemy_K, occupied) & own_BQ;
+    }
+
+    if (own_RQ & uo_square_bitboard_lines(square_enemy_K))
+    {
+      checks |= uo_bitboard_attacks_R(square_enemy_K, occupied) & own_RQ;
+    }
 
     if (move_cache)
     {
@@ -1231,8 +1239,8 @@ extern "C"
     score_mg -= uo_score_rook_stuck_in_corner * both_rooks_undeveloped_enemy * !(castling_right_enemy_OO + castling_right_enemy_OOO);
 
     // king safety
-    score_mg += (uo_score_king_in_the_center * (0 != (own_K & (uo_bitboard_file[2] | uo_bitboard_file[3] | uo_bitboard_file[4] | uo_bitboard_file[5]))))
-      - (uo_score_king_in_the_center * (0 != (enemy_K & (uo_bitboard_file[2] | uo_bitboard_file[3] | uo_bitboard_file[4] | uo_bitboard_file[5]))));
+    score_mg += (uo_score_king_in_the_center * (0 != (own_K & (uo_bitboard_file(2) | uo_bitboard_file(3) | uo_bitboard_file(4) | uo_bitboard_file(5)))))
+      - (uo_score_king_in_the_center * (0 != (enemy_K & (uo_bitboard_file(2) | uo_bitboard_file(3) | uo_bitboard_file(4) | uo_bitboard_file(5)))));
 
     score_mg += (uo_score_castled_king * (square_own_K == uo_square__g1))
       - (uo_score_castled_king * (square_enemy_K == uo_square__g8));
@@ -2114,7 +2122,7 @@ extern "C"
         {
           case uo_piece__P: {
             // Moves for pinned pawns
-            uo_bitboard pinned_file_P = bitboard_from & pins_to_own_K_by_RQ & uo_square_bitboard_file[square_own_K];
+            uo_bitboard pinned_file_P = bitboard_from & pins_to_own_K_by_RQ & uo_square_bitboard_file(square_own_K);
 
             // Single pawn push
             uo_bitboard pinned_single_push_P = uo_bitboard_single_push_P(pinned_file_P, empty);
@@ -2138,7 +2146,7 @@ extern "C"
             uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
             if (!enpassant_file) return false;
 
-            uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+            uo_bitboard bitboard_enpassant_file = uo_bitboard_file(enpassant_file - 1);
 
             if ((bitboard_enpassant_file & bitboard_to)
               && (bitboard_enpassant_file & bitboard_from) == 0
@@ -2178,7 +2186,7 @@ extern "C"
           uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
           if (!enpassant_file) return false;
 
-          uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+          uo_bitboard bitboard_enpassant_file = uo_bitboard_file(enpassant_file - 1);
 
           if ((bitboard_enpassant_file & bitboard_to)
             && (bitboard_enpassant_file & bitboard_from) == 0

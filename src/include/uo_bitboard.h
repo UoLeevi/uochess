@@ -40,16 +40,37 @@ extern "C"
 #define uo_bitboard_rank_seventh ((uo_bitboard)0x00FF000000000000ull)
 #define uo_bitboard_rank_last    ((uo_bitboard)0xFF00000000000000ull)
 
-  extern uo_bitboard uo_bitboard_file[8];          //  |
-  extern uo_bitboard uo_bitboard_rank[8];          //  -
+#define uo_bitboard_file_a ((uo_bitboard)0x0101010101010101ull)
+#define uo_bitboard_file_b ((uo_bitboard)0x0202020202020202ull)
+#define uo_bitboard_file_c ((uo_bitboard)0x0404040404040404ull)
+#define uo_bitboard_file_d ((uo_bitboard)0x0808080808080808ull)
+#define uo_bitboard_file_e ((uo_bitboard)0x1010101010101010ull)
+#define uo_bitboard_file_f ((uo_bitboard)0x2020202020202020ull)
+#define uo_bitboard_file_g ((uo_bitboard)0x4040404040404040ull)
+#define uo_bitboard_file_h ((uo_bitboard)0x8080808080808080ull)
+
+
+#define uo_bitboard_diagonal_a1_h8 ((uo_bitboard)0x8040201008040201ull)
+#define uo_bitboard_antidiagonal_h1_a8 ((uo_bitboard)0x0102040810204080ull)
+
+#define uo_bitboard__light_squares = ((uo_bitboard)0x55AA55AA55AA55AAull);
+#define uo_bitboard__dark_squares = ((uo_bitboard)0xAA55AA55AA55AA55ull);
+
   extern uo_bitboard uo_bitboard_diagonal[15];     //  /
   extern uo_bitboard uo_bitboard_antidiagonal[15]; //  \
 
-  extern uo_bitboard uo_square_bitboard_file[64];         //  |
-  extern uo_bitboard uo_square_bitboard_rank[64];         //  -
-  extern uo_bitboard uo_square_bitboard_lines[64];        //  +
+#define uo_bitboard_file(file) (uo_bitboard_file_a << (file))
+
+#define uo_bitboard_rank(rank) (uo_bitboard_rank_first << ((rank) << 3))
+
+#define uo_square_bitboard_file(square) (uo_bitboard_file_a << uo_square_file(square))
+
+#define uo_square_bitboard_rank(square) (uo_bitboard_rank_first << (uo_square_rank(square) << 3))
+
+#define uo_square_bitboard_lines(square) (uo_square_bitboard_file(square) | uo_square_bitboard_rank(square))
+
   extern uo_bitboard uo_square_bitboard_diagonal[64];     //  /
-  extern uo_bitboard uo_square_bitboard_antidiagonal[64]; //  
+  extern uo_bitboard uo_square_bitboard_antidiagonal[64]; //
   extern uo_bitboard uo_square_bitboard_diagonals[64];    //  X
   extern uo_bitboard uo_square_bitboard_rays[64];         //  *
 
@@ -184,8 +205,7 @@ extern "C"
   {
     uo_bitboard pawn = uo_square_bitboard(square);
     uo_bitboard enemy_P_above = uo_bzlo(enemy_P, square + 2);
-    uint8_t file = uo_square_file(square);
-    uo_bitboard mask = uo_square_bitboard_file[square] | uo_square_bitboard_adjecent_files[square];
+    uo_bitboard mask = uo_square_bitboard_file(square) | uo_square_bitboard_adjecent_files[square];
 
     return !(enemy_P_above & mask);
   }
@@ -194,8 +214,7 @@ extern "C"
   {
     uo_bitboard pawn = uo_square_bitboard(square);
     uo_bitboard own_P_below = uo_bzhi(own_P, square - 2);
-    uint8_t file = uo_square_file(square);
-    uo_bitboard mask = uo_square_bitboard_file[square] | uo_square_bitboard_adjecent_files[square];
+    uo_bitboard mask = uo_square_bitboard_file(square) | uo_square_bitboard_adjecent_files[square];
 
     return !(own_P_below & mask);
   }
@@ -306,8 +325,8 @@ extern "C"
   static inline uo_bitboard uo_bitboard_pins_R(uo_square square, uo_bitboard blockers, uo_bitboard line_attackers)
   {
     uo_bitboard mask = uo_square_bitboard(square);
-    uo_bitboard bitboard_file = uo_andn(mask, uo_square_bitboard_file[square]);
-    uo_bitboard bitboard_rank = uo_andn(mask, uo_square_bitboard_rank[square]);
+    uo_bitboard bitboard_file = uo_andn(mask, uo_square_bitboard_file(square));
+    uo_bitboard bitboard_rank = uo_andn(mask, uo_square_bitboard_rank(square));
     uo_bitboard bitboard_lines = bitboard_file | bitboard_rank;
 
     line_attackers &= bitboard_lines;

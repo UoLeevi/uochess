@@ -11,25 +11,11 @@
 #include <string.h>
 #include <time.h>
 
-static const uo_bitboard uo_bitboard__a_file = (uo_bitboard)0x0101010101010101;
-static const uo_bitboard uo_bitboard__h_file = (uo_bitboard)0x8080808080808080;
-static const uo_bitboard uo_bitboard__1st_rank = (uo_bitboard)0x00000000000000FF;
-static const uo_bitboard uo_bitboard__8th_rank = (uo_bitboard)0xFF00000000000000;
-static const uo_bitboard uo_bitboard__a1_h8_diagonal = (uo_bitboard)0x8040201008040201;
-static const uo_bitboard uo_bitboard__h1_a8_antidiagonal = (uo_bitboard)0x0102040810204080;
-static const uo_bitboard uo_bitboard__light_squares = (uo_bitboard)0x55AA55AA55AA55AA;
-static const uo_bitboard uo_bitboard__dark_squares = (uo_bitboard)0xAA55AA55AA55AA55;
-
-uo_bitboard uo_bitboard_file[8];          //  |
-uo_bitboard uo_bitboard_rank[8];          //  -
 uo_bitboard uo_bitboard_diagonal[15];     //  /
 uo_bitboard uo_bitboard_antidiagonal[15]; //  \
 
-uo_bitboard uo_square_bitboard_file[64];         //  |
-uo_bitboard uo_square_bitboard_rank[64];         //  -
-uo_bitboard uo_square_bitboard_lines[64];        //  +
 uo_bitboard uo_square_bitboard_diagonal[64];     //  /
-uo_bitboard uo_square_bitboard_antidiagonal[64]; //  
+uo_bitboard uo_square_bitboard_antidiagonal[64]; //
 uo_bitboard uo_square_bitboard_diagonals[64];    //  X
 uo_bitboard uo_square_bitboard_rays[64];         //  *
 
@@ -294,10 +280,8 @@ static inline uo_bitboard uo_bitboard_permutation(uo_bitboard mask, uint8_t bits
 
 static inline uo_bitboard uo_bitboard_gen_mask_B(uo_square square)
 {
-  int rank = uo_square_rank(square);
-  int file = uo_square_file(square);
-  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank_first | uo_bitboard_rank_last);
-  uo_bitboard mask_edge_file = uo_andn(uo_bitboard_file[file], uo_bitboard_file[0] | uo_bitboard_file[7]);
+  uo_bitboard mask_edge_rank = uo_andn(uo_square_bitboard_rank(square), uo_bitboard_rank_first | uo_bitboard_rank_last);
+  uo_bitboard mask_edge_file = uo_andn(uo_square_bitboard_file(square), uo_bitboard_file_a | uo_bitboard_file_h);
   uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
   int diagonal = uo_square_diagonal[square];
   int antidiagonal = uo_square_antidiagonal[square];
@@ -309,12 +293,10 @@ static inline uo_bitboard uo_bitboard_gen_mask_B(uo_square square)
 
 static inline uo_bitboard uo_bitboard_gen_mask_R(uo_square square)
 {
-  int rank = uo_square_rank(square);
-  int file = uo_square_file(square);
-  uo_bitboard mask_edge_rank = uo_andn(uo_bitboard_rank[rank], uo_bitboard_rank_first | uo_bitboard_rank_last);
-  uo_bitboard mask_edge_file = uo_andn(uo_bitboard_file[file], uo_bitboard_file[0] | uo_bitboard_file[7]);
+  uo_bitboard mask_edge_rank = uo_andn(uo_square_bitboard_rank(square), uo_bitboard_rank_first | uo_bitboard_rank_last);
+  uo_bitboard mask_edge_file = uo_andn(uo_square_bitboard_file(square), uo_bitboard_file_a | uo_bitboard_file_h);
   uo_bitboard mask_edge = mask_edge_rank | mask_edge_file;
-  uo_bitboard mask = uo_bitboard_file[file] | uo_bitboard_rank[rank];
+  uo_bitboard mask = uo_square_bitboard_lines(square);
   mask = uo_andn(mask_edge, mask);
   mask ^= uo_square_bitboard(square);
   return mask;
@@ -484,47 +466,36 @@ void uo_bitboard_init()
     return;
   init = true;
 
-  // files and ranks
-
-  for (int i = 0; i < 8; ++i)
-  {
-    uo_bitboard_file[i] = uo_bitboard__a_file << i;
-    uo_bitboard_rank[i] = uo_bitboard__1st_rank << (i << 3);
-  }
-
   // diagonals and antidiagonals
 
-  uo_bitboard_diagonal[7] = uo_bitboard__a1_h8_diagonal;
-  uo_bitboard_antidiagonal[7] = uo_bitboard__h1_a8_antidiagonal;
+  uo_bitboard_diagonal[7] = uo_bitboard_diagonal_a1_h8;
+  uo_bitboard_antidiagonal[7] = uo_bitboard_antidiagonal_h1_a8;
 
   for (int i = 1; i < 8; ++i)
   {
-    uo_bitboard_diagonal[7 - i] = uo_bitboard__a1_h8_diagonal << (i << 3);
-    uo_bitboard_diagonal[7 + i] = uo_bitboard__a1_h8_diagonal >> (i << 3);
-    uo_bitboard_antidiagonal[7 - i] = uo_bitboard__h1_a8_antidiagonal << (i << 3);
-    uo_bitboard_antidiagonal[7 + i] = uo_bitboard__h1_a8_antidiagonal >> (i << 3);
+    uo_bitboard_diagonal[7 - i] = uo_bitboard_diagonal_a1_h8 << (i << 3);
+    uo_bitboard_diagonal[7 + i] = uo_bitboard_diagonal_a1_h8 >> (i << 3);
+    uo_bitboard_antidiagonal[7 - i] = uo_bitboard_antidiagonal_h1_a8 << (i << 3);
+    uo_bitboard_antidiagonal[7 + i] = uo_bitboard_antidiagonal_h1_a8 >> (i << 3);
   }
 
   for (uo_square i = 0; i < 64; ++i)
   {
-    uo_square_bitboard_file[i] = uo_bitboard_file[uo_square_file(i)];
-    uo_square_bitboard_rank[i] = uo_bitboard_rank[uo_square_rank(i)];
-    uo_square_bitboard_lines[i] = uo_square_bitboard_file[i] | uo_square_bitboard_rank[i];
     uo_square_bitboard_diagonal[i] = uo_bitboard_diagonal[uo_square_diagonal[i]];
     uo_square_bitboard_antidiagonal[i] = uo_bitboard_antidiagonal[uo_square_antidiagonal[i]];
     uo_square_bitboard_diagonals[i] = uo_square_bitboard_diagonal[i] | uo_square_bitboard_antidiagonal[i];
-    uo_square_bitboard_rays[i] = uo_square_bitboard_lines[i] | uo_square_bitboard_diagonals[i];
+    uo_square_bitboard_rays[i] = uo_square_bitboard_lines(i) | uo_square_bitboard_diagonals[i];
   }
 
   for (uo_square i = 0; i < 64; ++i)
   {
     uo_square_bitboard_adjecent_files[i] =
-      (uo_square_file(i) > 0 ? uo_square_bitboard_file[i - 1] : 0) |
-      (uo_square_file(i) < 7 ? uo_square_bitboard_file[i + 1] : 0);
+      (uo_square_file(i) > 0 ? uo_square_bitboard_file(i - 1) : 0) |
+      (uo_square_file(i) < 7 ? uo_square_bitboard_file(i + 1) : 0);
 
     uo_square_bitboard_adjecent_ranks[i] =
-      (uo_square_rank(i) > 0 ? uo_square_bitboard_rank[i - 1] : 0) |
-      (uo_square_rank(i) < 7 ? uo_square_bitboard_rank[i + 1] : 0);
+      (uo_square_rank(i) > 0 ? uo_square_bitboard_rank(i - 1) : 0) |
+      (uo_square_rank(i) < 7 ? uo_square_bitboard_rank(i + 1) : 0);
 
     uo_square_bitboard_adjecent_lines[i] = uo_square_bitboard_adjecent_files[i] | uo_square_bitboard_adjecent_ranks[i];
 
@@ -560,22 +531,22 @@ void uo_bitboard_init()
 
     for (int rank = uo_square_rank(i) + 1; rank < 8; ++rank)
     {
-      uo_square_bitboard_above[i] |= uo_bitboard_rank[rank];
+      uo_square_bitboard_above[i] |= uo_bitboard_rank(rank);
     }
 
     for (int rank = uo_square_rank(i) - 1; rank >= 0; --rank)
     {
-      uo_square_bitboard_below[i] |= uo_bitboard_rank[rank];
+      uo_square_bitboard_below[i] |= uo_bitboard_rank(rank);
     }
 
     for (int file = uo_square_file(i) + 1; file < 8; ++file)
     {
-      uo_square_bitboard_right[i] |= uo_bitboard_file[file];
+      uo_square_bitboard_right[i] |= uo_bitboard_file(file);
     }
 
     for (int file = uo_square_file(i) - 1; file >= 0; --file)
     {
-      uo_square_bitboard_left[i] |= uo_bitboard_file[file];
+      uo_square_bitboard_left[i] |= uo_bitboard_file(file);
     }
   }
 

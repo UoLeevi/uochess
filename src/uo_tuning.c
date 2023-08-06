@@ -1273,8 +1273,8 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
   score_mg -= uo_score_rook_stuck_in_corner * both_rooks_undeveloped_enemy * !(castling_right_enemy_OO + castling_right_enemy_OOO);
 
   // king safety
-  score_mg += (uo_score_king_in_the_center * (0 != (own_K & (uo_bitboard_file[2] | uo_bitboard_file[3] | uo_bitboard_file[4] | uo_bitboard_file[5]))))
-    - (uo_score_king_in_the_center * (0 != (enemy_K & (uo_bitboard_file[2] | uo_bitboard_file[3] | uo_bitboard_file[4] | uo_bitboard_file[5]))));
+  score_mg += (uo_score_king_in_the_center * (0 != (own_K & (uo_bitboard_file(2) | uo_bitboard_file(3) | uo_bitboard_file(4) | uo_bitboard_file(5)))))
+    - (uo_score_king_in_the_center * (0 != (enemy_K & (uo_bitboard_file(2) | uo_bitboard_file(3) | uo_bitboard_file(4) | uo_bitboard_file(5)))));
 
   score_mg += (uo_score_castled_king * (square_own_K == uo_square__g1))
     - (uo_score_castled_king * (square_enemy_K == uo_square__g8));

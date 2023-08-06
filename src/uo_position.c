@@ -1153,7 +1153,7 @@ size_t uo_position_generate_moves(uo_position *position)
 
   uo_position_flags flags = position->flags;
   uint8_t enpassant_file = uo_position_flags_enpassant_file(flags);
-  uo_bitboard bitboard_enpassant_file = enpassant_file ? uo_bitboard_file[enpassant_file - 1] : 0;
+  uo_bitboard bitboard_enpassant_file = enpassant_file ? uo_bitboard_file(enpassant_file - 1) : 0;
 
   uo_piece *board = position->board;
 
@@ -1631,7 +1631,7 @@ size_t uo_position_generate_moves(uo_position *position)
     }
 
     // Moves for pinned pawns
-    uo_bitboard pinned_file_P = own_P & pins_to_own_K_by_RQ & uo_square_bitboard_file[square_own_K];
+    uo_bitboard pinned_file_P = own_P & pins_to_own_K_by_RQ & uo_square_bitboard_file(square_own_K);
 
     // Single pawn push
     uo_bitboard pinned_single_push_P = uo_bitboard_single_push_P(pinned_file_P, empty);
@@ -2024,7 +2024,7 @@ size_t uo_position_generate_tactical_moves(uo_position *position, int16_t captur
   uint8_t enpassant_file = uo_position_flags_enpassant_file(position->flags);
   if (enpassant_file)
   {
-    uo_bitboard bitboard_enpassant_file = uo_bitboard_file[enpassant_file - 1];
+    uo_bitboard bitboard_enpassant_file = uo_bitboard_file(enpassant_file - 1);
     uo_bitboard enpassant = bitboard_enpassant_file & uo_bitboard_rank_fifth;
     uo_square square_to = uo_tzcnt(enpassant) + 8;
 
