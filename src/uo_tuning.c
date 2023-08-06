@@ -99,6 +99,12 @@ void uo_tuning_generate_dataset(char *dataset_filepath, char *engine_filepath, c
   fclose(fp);
 }
 
+#define uo_score_attacks_to_K_min_units 11
+#define uo_score_attacks_to_K_max_units 54
+#define uo_score_attacks_to_K_max_score 618
+#define uo_score_attacks_to_K_mid_units 40
+#define uo_score_attacks_to_K_mid_score 93
+
 int tuning_params[] = {
 
   //// piece values
@@ -109,6 +115,12 @@ int tuning_params[] = {
   //uo_score_Q,
 
   uo_score_king_cover_pawn,
+
+  uo_score_attacks_to_K_min_units,
+  uo_score_attacks_to_K_max_units,
+  uo_score_attacks_to_K_max_score,
+  uo_score_attacks_to_K_mid_units,
+  uo_score_attacks_to_K_mid_score
 
   //// mobility
   //uo_score_mobility_P,
@@ -196,118 +208,118 @@ int tuning_params[] = {
   //// king safety and castling
   //uo_score_king_cover_pawn,
 
-  // piece square tables for pawns
-  score_mg_P_a2,
-  score_mg_P_b2,
-  score_mg_P_c2,
-  score_mg_P_d2,
-  score_mg_P_e2,
-  score_mg_P_f2,
-  score_mg_P_g2,
-  score_mg_P_h2,
+  //// piece square tables for pawns
+  //score_mg_P_a2,
+  //score_mg_P_b2,
+  //score_mg_P_c2,
+  //score_mg_P_d2,
+  //score_mg_P_e2,
+  //score_mg_P_f2,
+  //score_mg_P_g2,
+  //score_mg_P_h2,
 
-  score_mg_P_a3,
-  score_mg_P_b3,
-  score_mg_P_c3,
-  score_mg_P_d3,
-  score_mg_P_e3,
-  score_mg_P_f3,
-  score_mg_P_g3,
-  score_mg_P_h3,
+  //score_mg_P_a3,
+  //score_mg_P_b3,
+  //score_mg_P_c3,
+  //score_mg_P_d3,
+  //score_mg_P_e3,
+  //score_mg_P_f3,
+  //score_mg_P_g3,
+  //score_mg_P_h3,
 
-  score_mg_P_a4,
-  score_mg_P_b4,
-  score_mg_P_c4,
-  score_mg_P_d4,
-  score_mg_P_e4,
-  score_mg_P_f4,
-  score_mg_P_g4,
-  score_mg_P_h4,
+  //score_mg_P_a4,
+  //score_mg_P_b4,
+  //score_mg_P_c4,
+  //score_mg_P_d4,
+  //score_mg_P_e4,
+  //score_mg_P_f4,
+  //score_mg_P_g4,
+  //score_mg_P_h4,
 
-  score_mg_P_a5,
-  score_mg_P_b5,
-  score_mg_P_c5,
-  score_mg_P_d5,
-  score_mg_P_e5,
-  score_mg_P_f5,
-  score_mg_P_g5,
-  score_mg_P_h5,
+  //score_mg_P_a5,
+  //score_mg_P_b5,
+  //score_mg_P_c5,
+  //score_mg_P_d5,
+  //score_mg_P_e5,
+  //score_mg_P_f5,
+  //score_mg_P_g5,
+  //score_mg_P_h5,
 
-  score_mg_P_a6,
-  score_mg_P_b6,
-  score_mg_P_c6,
-  score_mg_P_d6,
-  score_mg_P_e6,
-  score_mg_P_f6,
-  score_mg_P_g6,
-  score_mg_P_h6,
+  //score_mg_P_a6,
+  //score_mg_P_b6,
+  //score_mg_P_c6,
+  //score_mg_P_d6,
+  //score_mg_P_e6,
+  //score_mg_P_f6,
+  //score_mg_P_g6,
+  //score_mg_P_h6,
 
-  score_mg_P_a7,
-  score_mg_P_b7,
-  score_mg_P_c7,
-  score_mg_P_d7,
-  score_mg_P_e7,
-  score_mg_P_f7,
-  score_mg_P_g7,
-  score_mg_P_h7,
+  //score_mg_P_a7,
+  //score_mg_P_b7,
+  //score_mg_P_c7,
+  //score_mg_P_d7,
+  //score_mg_P_e7,
+  //score_mg_P_f7,
+  //score_mg_P_g7,
+  //score_mg_P_h7,
 
 
-  score_eg_P_a2,
-  score_eg_P_b2,
-  score_eg_P_c2,
-  score_eg_P_d2,
-  score_eg_P_e2,
-  score_eg_P_f2,
-  score_eg_P_g2,
-  score_eg_P_h2,
+  //score_eg_P_a2,
+  //score_eg_P_b2,
+  //score_eg_P_c2,
+  //score_eg_P_d2,
+  //score_eg_P_e2,
+  //score_eg_P_f2,
+  //score_eg_P_g2,
+  //score_eg_P_h2,
 
-  score_eg_P_a3,
-  score_eg_P_b3,
-  score_eg_P_c3,
-  score_eg_P_d3,
-  score_eg_P_e3,
-  score_eg_P_f3,
-  score_eg_P_g3,
-  score_eg_P_h3,
+  //score_eg_P_a3,
+  //score_eg_P_b3,
+  //score_eg_P_c3,
+  //score_eg_P_d3,
+  //score_eg_P_e3,
+  //score_eg_P_f3,
+  //score_eg_P_g3,
+  //score_eg_P_h3,
 
-  score_eg_P_a4,
-  score_eg_P_b4,
-  score_eg_P_c4,
-  score_eg_P_d4,
-  score_eg_P_e4,
-  score_eg_P_f4,
-  score_eg_P_g4,
-  score_eg_P_h4,
+  //score_eg_P_a4,
+  //score_eg_P_b4,
+  //score_eg_P_c4,
+  //score_eg_P_d4,
+  //score_eg_P_e4,
+  //score_eg_P_f4,
+  //score_eg_P_g4,
+  //score_eg_P_h4,
 
-  score_eg_P_a5,
-  score_eg_P_b5,
-  score_eg_P_c5,
-  score_eg_P_d5,
-  score_eg_P_e5,
-  score_eg_P_f5,
-  score_eg_P_g5,
-  score_eg_P_h5,
+  //score_eg_P_a5,
+  //score_eg_P_b5,
+  //score_eg_P_c5,
+  //score_eg_P_d5,
+  //score_eg_P_e5,
+  //score_eg_P_f5,
+  //score_eg_P_g5,
+  //score_eg_P_h5,
 
-  score_eg_P_a6,
-  score_eg_P_b6,
-  score_eg_P_c6,
-  score_eg_P_d6,
-  score_eg_P_e6,
-  score_eg_P_f6,
-  score_eg_P_g6,
-  score_eg_P_h6,
+  //score_eg_P_a6,
+  //score_eg_P_b6,
+  //score_eg_P_c6,
+  //score_eg_P_d6,
+  //score_eg_P_e6,
+  //score_eg_P_f6,
+  //score_eg_P_g6,
+  //score_eg_P_h6,
 
-  score_eg_P_a7,
-  score_eg_P_b7,
-  score_eg_P_c7,
-  score_eg_P_d7,
-  score_eg_P_e7,
-  score_eg_P_f7,
-  score_eg_P_g7,
-  score_eg_P_h7,
+  //score_eg_P_a7,
+  //score_eg_P_b7,
+  //score_eg_P_c7,
+  //score_eg_P_d7,
+  //score_eg_P_e7,
+  //score_eg_P_f7,
+  //score_eg_P_g7,
+  //score_eg_P_h7,
 
-  uo_score_passed_pawn_on_fifth,
-  uo_score_passed_pawn_on_sixth,
+  //uo_score_passed_pawn_on_fifth,
+  //uo_score_passed_pawn_on_sixth,
 
 };
 
@@ -325,6 +337,17 @@ int tuning_params[] = {
 
 #undef uo_score_king_cover_pawn
 #define uo_score_king_cover_pawn (tuning_params[0])
+
+#undef uo_score_attacks_to_K_min_units
+#define uo_score_attacks_to_K_min_units (tuning_params[1])
+#undef uo_score_attacks_to_K_max_units
+#define uo_score_attacks_to_K_max_units (tuning_params[2])
+#undef uo_score_attacks_to_K_max_score
+#define uo_score_attacks_to_K_max_score (tuning_params[3])
+#undef uo_score_attacks_to_K_mid_units
+#define uo_score_attacks_to_K_mid_units (tuning_params[4])
+#undef uo_score_attacks_to_K_mid_score
+#define uo_score_attacks_to_K_mid_score (tuning_params[5])
 
 //// mobility
 //#undef uo_score_mobility_P
@@ -487,215 +510,215 @@ int tuning_params[] = {
 //#undef uo_score_king_cover_pawn
 //#define uo_score_king_cover_pawn (tuning_params[81])
 
-// piece square tables for pawns
-#undef score_mg_P_a2
-#define score_mg_P_a2 (tuning_params[1])
-#undef score_mg_P_b2
-#define score_mg_P_b2 (tuning_params[2])
-#undef score_mg_P_c2
-#define score_mg_P_c2 (tuning_params[3])
-#undef score_mg_P_d2
-#define score_mg_P_d2 (tuning_params[4])
-#undef score_mg_P_e2
-#define score_mg_P_e2 (tuning_params[5])
-#undef score_mg_P_f2
-#define score_mg_P_f2 (tuning_params[6])
-#undef score_mg_P_g2
-#define score_mg_P_g2 (tuning_params[7])
-#undef score_mg_P_h2
-#define score_mg_P_h2 (tuning_params[8])
-
-#undef score_mg_P_a3
-#define score_mg_P_a3 (tuning_params[9])
-#undef score_mg_P_b3
-#define score_mg_P_b3 (tuning_params[10])
-#undef score_mg_P_c3
-#define score_mg_P_c3 (tuning_params[11])
-#undef score_mg_P_d3
-#define score_mg_P_d3 (tuning_params[12])
-#undef score_mg_P_e3
-#define score_mg_P_e3 (tuning_params[13])
-#undef score_mg_P_f3
-#define score_mg_P_f3 (tuning_params[14])
-#undef score_mg_P_g3
-#define score_mg_P_g3 (tuning_params[15])
-#undef score_mg_P_h3
-#define score_mg_P_h3 (tuning_params[16])
-
-#undef score_mg_P_a4
-#define score_mg_P_a4 (tuning_params[17])
-#undef score_mg_P_b4
-#define score_mg_P_b4 (tuning_params[18])
-#undef score_mg_P_c4
-#define score_mg_P_c4 (tuning_params[19])
-#undef score_mg_P_d4
-#define score_mg_P_d4 (tuning_params[20])
-#undef score_mg_P_e4
-#define score_mg_P_e4 (tuning_params[21])
-#undef score_mg_P_f4
-#define score_mg_P_f4 (tuning_params[22])
-#undef score_mg_P_g4
-#define score_mg_P_g4 (tuning_params[23])
-#undef score_mg_P_h4
-#define score_mg_P_h4 (tuning_params[24])
-
-#undef score_mg_P_a5
-#define score_mg_P_a5 (tuning_params[25])
-#undef score_mg_P_b5
-#define score_mg_P_b5 (tuning_params[26])
-#undef score_mg_P_c5
-#define score_mg_P_c5 (tuning_params[27])
-#undef score_mg_P_d5
-#define score_mg_P_d5 (tuning_params[28])
-#undef score_mg_P_e5
-#define score_mg_P_e5 (tuning_params[29])
-#undef score_mg_P_f5
-#define score_mg_P_f5 (tuning_params[30])
-#undef score_mg_P_g5
-#define score_mg_P_g5 (tuning_params[31])
-#undef score_mg_P_h5
-#define score_mg_P_h5 (tuning_params[32])
-
-#undef score_mg_P_a6
-#define score_mg_P_a6 (tuning_params[33])
-#undef score_mg_P_b6
-#define score_mg_P_b6 (tuning_params[34])
-#undef score_mg_P_c6
-#define score_mg_P_c6 (tuning_params[35])
-#undef score_mg_P_d6
-#define score_mg_P_d6 (tuning_params[36])
-#undef score_mg_P_e6
-#define score_mg_P_e6 (tuning_params[37])
-#undef score_mg_P_f6
-#define score_mg_P_f6 (tuning_params[38])
-#undef score_mg_P_g6
-#define score_mg_P_g6 (tuning_params[39])
-#undef score_mg_P_h6
-#define score_mg_P_h6 (tuning_params[40])
-
-#undef score_mg_P_a7
-#define score_mg_P_a7 (tuning_params[41])
-#undef score_mg_P_b7
-#define score_mg_P_b7 (tuning_params[42])
-#undef score_mg_P_c7
-#define score_mg_P_c7 (tuning_params[43])
-#undef score_mg_P_d7
-#define score_mg_P_d7 (tuning_params[44])
-#undef score_mg_P_e7
-#define score_mg_P_e7 (tuning_params[45])
-#undef score_mg_P_f7
-#define score_mg_P_f7 (tuning_params[46])
-#undef score_mg_P_g7
-#define score_mg_P_g7 (tuning_params[47])
-#undef score_mg_P_h7
-#define score_mg_P_h7 (tuning_params[48])
-
-#undef score_eg_P_a2
-#define score_eg_P_a2 (tuning_params[49])
-#undef score_eg_P_b2
-#define score_eg_P_b2 (tuning_params[50])
-#undef score_eg_P_c2
-#define score_eg_P_c2 (tuning_params[51])
-#undef score_eg_P_d2
-#define score_eg_P_d2 (tuning_params[52])
-#undef score_eg_P_e2
-#define score_eg_P_e2 (tuning_params[53])
-#undef score_eg_P_f2
-#define score_eg_P_f2 (tuning_params[54])
-#undef score_eg_P_g2
-#define score_eg_P_g2 (tuning_params[55])
-#undef score_eg_P_h2
-#define score_eg_P_h2 (tuning_params[56])
-
-#undef score_eg_P_a3
-#define score_eg_P_a3 (tuning_params[57])
-#undef score_eg_P_b3
-#define score_eg_P_b3 (tuning_params[58])
-#undef score_eg_P_c3
-#define score_eg_P_c3 (tuning_params[59])
-#undef score_eg_P_d3
-#define score_eg_P_d3 (tuning_params[60])
-#undef score_eg_P_e3
-#define score_eg_P_e3 (tuning_params[61])
-#undef score_eg_P_f3
-#define score_eg_P_f3 (tuning_params[62])
-#undef score_eg_P_g3
-#define score_eg_P_g3 (tuning_params[63])
-#undef score_eg_P_h3
-#define score_eg_P_h3 (tuning_params[64])
-
-#undef score_eg_P_a4
-#define score_eg_P_a4 (tuning_params[65])
-#undef score_eg_P_b4
-#define score_eg_P_b4 (tuning_params[66])
-#undef score_eg_P_c4
-#define score_eg_P_c4 (tuning_params[67])
-#undef score_eg_P_d4
-#define score_eg_P_d4 (tuning_params[68])
-#undef score_eg_P_e4
-#define score_eg_P_e4 (tuning_params[69])
-#undef score_eg_P_f4
-#define score_eg_P_f4 (tuning_params[70])
-#undef score_eg_P_g4
-#define score_eg_P_g4 (tuning_params[71])
-#undef score_eg_P_h4
-#define score_eg_P_h4 (tuning_params[72])
-
-#undef score_eg_P_a5
-#define score_eg_P_a5 (tuning_params[73])
-#undef score_eg_P_b5
-#define score_eg_P_b5 (tuning_params[74])
-#undef score_eg_P_c5
-#define score_eg_P_c5 (tuning_params[75])
-#undef score_eg_P_d5
-#define score_eg_P_d5 (tuning_params[76])
-#undef score_eg_P_e5
-#define score_eg_P_e5 (tuning_params[77])
-#undef score_eg_P_f5
-#define score_eg_P_f5 (tuning_params[78])
-#undef score_eg_P_g5
-#define score_eg_P_g5 (tuning_params[79])
-#undef score_eg_P_h5
-#define score_eg_P_h5 (tuning_params[80])
-
-#undef score_eg_P_a6
-#define score_eg_P_a6 (tuning_params[81])
-#undef score_eg_P_b6
-#define score_eg_P_b6 (tuning_params[82])
-#undef score_eg_P_c6
-#define score_eg_P_c6 (tuning_params[83])
-#undef score_eg_P_d6
-#define score_eg_P_d6 (tuning_params[84])
-#undef score_eg_P_e6
-#define score_eg_P_e6 (tuning_params[85])
-#undef score_eg_P_f6
-#define score_eg_P_f6 (tuning_params[86])
-#undef score_eg_P_g6
-#define score_eg_P_g6 (tuning_params[87])
-#undef score_eg_P_h6
-#define score_eg_P_h6 (tuning_params[88])
-
-#undef score_eg_P_a7
-#define score_eg_P_a7 (tuning_params[89])
-#undef score_eg_P_b7
-#define score_eg_P_b7 (tuning_params[90])
-#undef score_eg_P_c7
-#define score_eg_P_c7 (tuning_params[91])
-#undef score_eg_P_d7
-#define score_eg_P_d7 (tuning_params[92])
-#undef score_eg_P_e7
-#define score_eg_P_e7 (tuning_params[93])
-#undef score_eg_P_f7
-#define score_eg_P_f7 (tuning_params[94])
-#undef score_eg_P_g7
-#define score_eg_P_g7 (tuning_params[95])
-#undef score_eg_P_h7
-#define score_eg_P_h7 (tuning_params[96])
-
-#undef uo_score_passed_pawn_on_fifth
-#define uo_score_passed_pawn_on_fifth (tuning_params[97])
-#undef uo_score_passed_pawn_on_sixth
-#define uo_score_passed_pawn_on_sixth (tuning_params[98])
+//// piece square tables for pawns
+//#undef score_mg_P_a2
+//#define score_mg_P_a2 (tuning_params[1])
+//#undef score_mg_P_b2
+//#define score_mg_P_b2 (tuning_params[2])
+//#undef score_mg_P_c2
+//#define score_mg_P_c2 (tuning_params[3])
+//#undef score_mg_P_d2
+//#define score_mg_P_d2 (tuning_params[4])
+//#undef score_mg_P_e2
+//#define score_mg_P_e2 (tuning_params[5])
+//#undef score_mg_P_f2
+//#define score_mg_P_f2 (tuning_params[6])
+//#undef score_mg_P_g2
+//#define score_mg_P_g2 (tuning_params[7])
+//#undef score_mg_P_h2
+//#define score_mg_P_h2 (tuning_params[8])
+//
+//#undef score_mg_P_a3
+//#define score_mg_P_a3 (tuning_params[9])
+//#undef score_mg_P_b3
+//#define score_mg_P_b3 (tuning_params[10])
+//#undef score_mg_P_c3
+//#define score_mg_P_c3 (tuning_params[11])
+//#undef score_mg_P_d3
+//#define score_mg_P_d3 (tuning_params[12])
+//#undef score_mg_P_e3
+//#define score_mg_P_e3 (tuning_params[13])
+//#undef score_mg_P_f3
+//#define score_mg_P_f3 (tuning_params[14])
+//#undef score_mg_P_g3
+//#define score_mg_P_g3 (tuning_params[15])
+//#undef score_mg_P_h3
+//#define score_mg_P_h3 (tuning_params[16])
+//
+//#undef score_mg_P_a4
+//#define score_mg_P_a4 (tuning_params[17])
+//#undef score_mg_P_b4
+//#define score_mg_P_b4 (tuning_params[18])
+//#undef score_mg_P_c4
+//#define score_mg_P_c4 (tuning_params[19])
+//#undef score_mg_P_d4
+//#define score_mg_P_d4 (tuning_params[20])
+//#undef score_mg_P_e4
+//#define score_mg_P_e4 (tuning_params[21])
+//#undef score_mg_P_f4
+//#define score_mg_P_f4 (tuning_params[22])
+//#undef score_mg_P_g4
+//#define score_mg_P_g4 (tuning_params[23])
+//#undef score_mg_P_h4
+//#define score_mg_P_h4 (tuning_params[24])
+//
+//#undef score_mg_P_a5
+//#define score_mg_P_a5 (tuning_params[25])
+//#undef score_mg_P_b5
+//#define score_mg_P_b5 (tuning_params[26])
+//#undef score_mg_P_c5
+//#define score_mg_P_c5 (tuning_params[27])
+//#undef score_mg_P_d5
+//#define score_mg_P_d5 (tuning_params[28])
+//#undef score_mg_P_e5
+//#define score_mg_P_e5 (tuning_params[29])
+//#undef score_mg_P_f5
+//#define score_mg_P_f5 (tuning_params[30])
+//#undef score_mg_P_g5
+//#define score_mg_P_g5 (tuning_params[31])
+//#undef score_mg_P_h5
+//#define score_mg_P_h5 (tuning_params[32])
+//
+//#undef score_mg_P_a6
+//#define score_mg_P_a6 (tuning_params[33])
+//#undef score_mg_P_b6
+//#define score_mg_P_b6 (tuning_params[34])
+//#undef score_mg_P_c6
+//#define score_mg_P_c6 (tuning_params[35])
+//#undef score_mg_P_d6
+//#define score_mg_P_d6 (tuning_params[36])
+//#undef score_mg_P_e6
+//#define score_mg_P_e6 (tuning_params[37])
+//#undef score_mg_P_f6
+//#define score_mg_P_f6 (tuning_params[38])
+//#undef score_mg_P_g6
+//#define score_mg_P_g6 (tuning_params[39])
+//#undef score_mg_P_h6
+//#define score_mg_P_h6 (tuning_params[40])
+//
+//#undef score_mg_P_a7
+//#define score_mg_P_a7 (tuning_params[41])
+//#undef score_mg_P_b7
+//#define score_mg_P_b7 (tuning_params[42])
+//#undef score_mg_P_c7
+//#define score_mg_P_c7 (tuning_params[43])
+//#undef score_mg_P_d7
+//#define score_mg_P_d7 (tuning_params[44])
+//#undef score_mg_P_e7
+//#define score_mg_P_e7 (tuning_params[45])
+//#undef score_mg_P_f7
+//#define score_mg_P_f7 (tuning_params[46])
+//#undef score_mg_P_g7
+//#define score_mg_P_g7 (tuning_params[47])
+//#undef score_mg_P_h7
+//#define score_mg_P_h7 (tuning_params[48])
+//
+//#undef score_eg_P_a2
+//#define score_eg_P_a2 (tuning_params[49])
+//#undef score_eg_P_b2
+//#define score_eg_P_b2 (tuning_params[50])
+//#undef score_eg_P_c2
+//#define score_eg_P_c2 (tuning_params[51])
+//#undef score_eg_P_d2
+//#define score_eg_P_d2 (tuning_params[52])
+//#undef score_eg_P_e2
+//#define score_eg_P_e2 (tuning_params[53])
+//#undef score_eg_P_f2
+//#define score_eg_P_f2 (tuning_params[54])
+//#undef score_eg_P_g2
+//#define score_eg_P_g2 (tuning_params[55])
+//#undef score_eg_P_h2
+//#define score_eg_P_h2 (tuning_params[56])
+//
+//#undef score_eg_P_a3
+//#define score_eg_P_a3 (tuning_params[57])
+//#undef score_eg_P_b3
+//#define score_eg_P_b3 (tuning_params[58])
+//#undef score_eg_P_c3
+//#define score_eg_P_c3 (tuning_params[59])
+//#undef score_eg_P_d3
+//#define score_eg_P_d3 (tuning_params[60])
+//#undef score_eg_P_e3
+//#define score_eg_P_e3 (tuning_params[61])
+//#undef score_eg_P_f3
+//#define score_eg_P_f3 (tuning_params[62])
+//#undef score_eg_P_g3
+//#define score_eg_P_g3 (tuning_params[63])
+//#undef score_eg_P_h3
+//#define score_eg_P_h3 (tuning_params[64])
+//
+//#undef score_eg_P_a4
+//#define score_eg_P_a4 (tuning_params[65])
+//#undef score_eg_P_b4
+//#define score_eg_P_b4 (tuning_params[66])
+//#undef score_eg_P_c4
+//#define score_eg_P_c4 (tuning_params[67])
+//#undef score_eg_P_d4
+//#define score_eg_P_d4 (tuning_params[68])
+//#undef score_eg_P_e4
+//#define score_eg_P_e4 (tuning_params[69])
+//#undef score_eg_P_f4
+//#define score_eg_P_f4 (tuning_params[70])
+//#undef score_eg_P_g4
+//#define score_eg_P_g4 (tuning_params[71])
+//#undef score_eg_P_h4
+//#define score_eg_P_h4 (tuning_params[72])
+//
+//#undef score_eg_P_a5
+//#define score_eg_P_a5 (tuning_params[73])
+//#undef score_eg_P_b5
+//#define score_eg_P_b5 (tuning_params[74])
+//#undef score_eg_P_c5
+//#define score_eg_P_c5 (tuning_params[75])
+//#undef score_eg_P_d5
+//#define score_eg_P_d5 (tuning_params[76])
+//#undef score_eg_P_e5
+//#define score_eg_P_e5 (tuning_params[77])
+//#undef score_eg_P_f5
+//#define score_eg_P_f5 (tuning_params[78])
+//#undef score_eg_P_g5
+//#define score_eg_P_g5 (tuning_params[79])
+//#undef score_eg_P_h5
+//#define score_eg_P_h5 (tuning_params[80])
+//
+//#undef score_eg_P_a6
+//#define score_eg_P_a6 (tuning_params[81])
+//#undef score_eg_P_b6
+//#define score_eg_P_b6 (tuning_params[82])
+//#undef score_eg_P_c6
+//#define score_eg_P_c6 (tuning_params[83])
+//#undef score_eg_P_d6
+//#define score_eg_P_d6 (tuning_params[84])
+//#undef score_eg_P_e6
+//#define score_eg_P_e6 (tuning_params[85])
+//#undef score_eg_P_f6
+//#define score_eg_P_f6 (tuning_params[86])
+//#undef score_eg_P_g6
+//#define score_eg_P_g6 (tuning_params[87])
+//#undef score_eg_P_h6
+//#define score_eg_P_h6 (tuning_params[88])
+//
+//#undef score_eg_P_a7
+//#define score_eg_P_a7 (tuning_params[89])
+//#undef score_eg_P_b7
+//#define score_eg_P_b7 (tuning_params[90])
+//#undef score_eg_P_c7
+//#define score_eg_P_c7 (tuning_params[91])
+//#undef score_eg_P_d7
+//#define score_eg_P_d7 (tuning_params[92])
+//#undef score_eg_P_e7
+//#define score_eg_P_e7 (tuning_params[93])
+//#undef score_eg_P_f7
+//#define score_eg_P_f7 (tuning_params[94])
+//#undef score_eg_P_g7
+//#define score_eg_P_g7 (tuning_params[95])
+//#undef score_eg_P_h7
+//#define score_eg_P_h7 (tuning_params[96])
+//
+//#undef uo_score_passed_pawn_on_fifth
+//#define uo_score_passed_pawn_on_fifth (tuning_params[97])
+//#undef uo_score_passed_pawn_on_sixth
+//#define uo_score_passed_pawn_on_sixth (tuning_params[98])
 
 #define uo_tuning_param_count (sizeof tuning_params / sizeof *tuning_params)
 
@@ -934,6 +957,15 @@ static inline int16_t uo_score_eg_P(uo_square square)
   exit(1);
 }
 
+static inline int16_t uo_score_attacks_to_K(int attack_units)
+{
+  return
+    attack_units <= uo_score_attacks_to_K_min_units ? 0 :
+    attack_units >= uo_score_attacks_to_K_max_units ? uo_score_attacks_to_K_max_score :
+    attack_units <= uo_score_attacks_to_K_mid_units ? uo_score_attacks_to_K_mid_score * (attack_units - uo_score_attacks_to_K_min_units) / (uo_score_attacks_to_K_mid_units - uo_score_attacks_to_K_min_units) :
+    uo_score_attacks_to_K_mid_score + (uo_score_attacks_to_K_max_score - uo_score_attacks_to_K_mid_score) * (attack_units - uo_score_attacks_to_K_mid_units) / (uo_score_attacks_to_K_max_units - uo_score_attacks_to_K_mid_units);
+}
+
 static inline int16_t uo_tuning_position_evaluate(uo_position *position)
 {
   int16_t score = uo_score_tempo;
@@ -1158,10 +1190,10 @@ static inline int16_t uo_tuning_position_evaluate(uo_position *position)
   attack_units_own += uo_popcnt(supported_contact_check_by_Q & undefended_zone_enemy_K) * uo_attack_unit_supported_contact_Q;
 
   assert(attack_units_own < 100);
-  score += score_attacks_to_K[attack_units_own];
+  score += uo_score_attacks_to_K(attack_units_own);
 
   assert(attack_units_enemy < 100);
-  score -= score_attacks_to_K[attack_units_enemy];
+  score -= uo_score_attacks_to_K(attack_units_enemy);
 
   int mobility_own_K = uo_popcnt(uo_andn(attacks_enemy_K | attacks_enemy, attacks_own_K));
   score += uo_score_zero_mobility_K * !mobility_own_K;

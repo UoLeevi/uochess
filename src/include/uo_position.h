@@ -2334,6 +2334,39 @@ extern "C"
     int16_t rhscore = uo_position_move_relative_history_score(position, move);
     move_score += rhscore;
 
+    // Default to scoring move based on attacked and undefended squares
+    if (!move_score
+      && piece != uo_piece__K
+      && position->attacks.own.updated
+      && position->attacks.enemy.updated)
+    {
+      move_score -= uo_score_Q;
+
+      uo_bitboard bitboard_from = uo_square_bitboard(square_from);
+      uo_bitboard bitboard_to = uo_square_bitboard(square_to);
+      uo_bitboard controlled_by_enemy = uo_andn(position->attacks.own.any, position->attacks.enemy.any);
+
+      // Bonus for moving out of attack
+      move_score += ((position->attacks.enemy.any & bitboard_from) > 0) * uo_piece_value(piece) / 8;
+      move_score += ((controlled_by_enemy & bitboard_from) > 0) * uo_piece_value(piece) / 2;
+
+      switch (piece)
+      {
+        case uo_piece__P:
+          // Penalty for moving into square controlled by enemy
+          move_score -= ((controlled_by_enemy & bitboard_to) > 0) * uo_piece_value(piece) / 2;
+          break;
+
+        case uo_piece__N:
+        case uo_piece__B:
+        case uo_piece__R:
+        case uo_piece__Q:
+          // Penalty for moving into square attacked by enemy
+          move_score -= ((position->attacks.enemy.any & bitboard_to) > 0) * uo_piece_value(piece) / 8;
+          break;
+      }
+    }
+
     return move_score;
   }
 
