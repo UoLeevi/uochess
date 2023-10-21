@@ -147,7 +147,8 @@ int uo_atomic_compare_exchange(volatile uo_atomic_int *target, int expected, int
 
 int uo_atomic_load(volatile uo_atomic_int *target)
 {
-  return InterlockedCompareExchange(target, 0, 0);
+  return *target;
+  //return InterlockedCompareExchange(target, 0, 0);
 }
 
 void uo_atomic_store(volatile uo_atomic_int *target, int value)

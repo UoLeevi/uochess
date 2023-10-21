@@ -149,6 +149,7 @@ extern "C"
     size_t capacity;
     uo_atomic_int head;
     uo_atomic_int tail;
+    uo_atomic_flag busy;
   } uo_atomic_queue;
 
   static inline void uo_atomic_queue_init(uo_atomic_queue *queue, size_t capacity, void *items)
@@ -157,6 +158,7 @@ extern "C"
     queue->items = items ? items : malloc(capacity * sizeof * queue->items);
     uo_atomic_init(&queue->head, 0);
     uo_atomic_init(&queue->tail, 0);
+    uo_atomic_flag_init(&queue->busy);
   }
 
   static inline bool uo_atomic_queue_try_enqueue(uo_atomic_queue *queue, void *item)
@@ -167,11 +169,17 @@ extern "C"
     // Check if queue is full
     if (next_tail == uo_atomic_load(&queue->head)) return false;
 
+    uo_atomic_lock(&queue->busy);
+
     // If value for tail has not yet changed, store the new value
-    if (uo_atomic_compare_exchange(&queue->tail, tail, next_tail) != tail) return false;
+    if (uo_atomic_compare_exchange(&queue->tail, tail, next_tail) != tail)
+    {
+      uo_atomic_unlock(&queue->busy);
+      return false;
+    }
 
     queue->items[tail] = item;
-
+    uo_atomic_unlock(&queue->busy);
     return true;
   }
 
@@ -182,11 +190,17 @@ extern "C"
     // Check if queue is empty
     if (head == uo_atomic_load(&queue->tail)) return false;
 
+    uo_atomic_lock(&queue->busy);
+
     // If value for head has not yet changed, store the new value
-    if (uo_atomic_compare_exchange(&queue->head, head, (head + 1) % queue->capacity) != head) return false;
+    if (uo_atomic_compare_exchange(&queue->head, head, (head + 1) % queue->capacity) != head)
+    {
+      uo_atomic_unlock(&queue->busy);
+      return false;
+    }
 
     *item = queue->items[head];
-
+    uo_atomic_unlock(&queue->busy);
     return true;
   }
 
