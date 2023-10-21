@@ -57,17 +57,6 @@ extern "C"
     uo_move *line;
   } uo_search_queue_item;
 
-  typedef struct uo_search_queue {
-    uo_atomic_flag busy;
-    uo_atomic_int pending_count;
-    uo_atomic_int count;
-    int head;
-    int tail;
-    bool init;
-    uo_search_queue_item items[UO_PARALLEL_MAX_COUNT];
-    uo_engine_thread *threads[UO_PARALLEL_MAX_COUNT];
-  } uo_search_queue;
-
   typedef struct uo_engine_thread
   {
     uo_thread *thread;
@@ -86,14 +75,6 @@ extern "C"
     uo_move **secondary_pvs;
   } uo_engine_thread;
 
-  typedef struct uo_engine_thread_queue {
-    uo_atomic_int count;
-    uo_atomic_flag busy;
-    int head;
-    int tail;
-    uo_engine_thread **threads;
-  } uo_engine_thread_queue;
-
   typedef struct uo_engine
   {
     uo_tb tb;
@@ -101,7 +82,8 @@ extern "C"
     uo_book *book;
     uo_engine_thread *threads;
     size_t thread_count;
-    uo_engine_thread_queue thread_queue;
+    uo_atomic_queue thread_queue;
+    uo_atomic_queue search_queue;
     uo_mutex *stdout_mutex;
     uo_mutex *position_mutex;
     uo_position position;
@@ -344,16 +326,6 @@ extern "C"
       .beta = uo_score_checkmate
     };
   }
-
-  void uo_search_queue_init(uo_search_queue *queue);
-
-  bool uo_search_queue_try_enqueue(uo_search_queue *queue, uo_thread_function function, void *data);
-
-  void uo_search_queue_post_result(uo_search_queue *queue, uo_search_queue_item *result);
-
-  bool uo_search_queue_get_result(uo_search_queue *queue, uo_search_queue_item *result);
-
-  bool uo_search_queue_try_get_result(uo_search_queue *queue, uo_search_queue_item *result);
 
   static inline void uo_engine_stop_search()
   {

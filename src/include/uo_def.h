@@ -21,9 +21,6 @@ extern "C"
 // Insertion sort move count threshold
 #define UO_INSERTION_SORT_MOVE_COUNT 4
 
-// Principal variation minimum allocated length
-#define UO_PV_ALLOC_MIN_LENGTH 12
-
 #define UO_TTABLE_LOCK_BITS 10 
 
 #define uo_score_draw 0

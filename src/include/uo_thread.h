@@ -141,6 +141,55 @@ extern "C"
 
 # define uo_atomic_unlock uo_atomic_flag_clear
 
+  // Atomic queue
+
+  typedef struct uo_atomic_queue
+  {
+    void **items;
+    size_t capacity;
+    uo_atomic_int head;
+    uo_atomic_int tail;
+  } uo_atomic_queue;
+
+  static inline void uo_atomic_queue_init(uo_atomic_queue *queue, size_t capacity, void *items)
+  {
+    queue->capacity = capacity;
+    queue->items = items ? items : malloc(capacity * sizeof * queue->items);
+    uo_atomic_init(&queue->head, 0);
+    uo_atomic_init(&queue->tail, 0);
+  }
+
+  static inline bool uo_atomic_queue_try_enqueue(uo_atomic_queue *queue, void *item)
+  {
+    int tail = uo_atomic_load(&queue->tail);
+    int next_tail = (tail + 1) % queue->capacity;
+
+    // Check if queue is full
+    if (next_tail == uo_atomic_load(&queue->head)) return false;
+
+    // If value for tail has not yet changed, store the new value
+    if (uo_atomic_compare_exchange(&queue->tail, tail, next_tail) != tail) return false;
+
+    queue->items[tail] = item;
+
+    return true;
+  }
+
+  static inline bool uo_atomic_queue_try_dequeue(uo_atomic_queue *queue, void **item)
+  {
+    int head = uo_atomic_load(&queue->head);
+
+    // Check if queue is empty
+    if (head == uo_atomic_load(&queue->tail)) return false;
+
+    // If value for head has not yet changed, store the new value
+    if (uo_atomic_compare_exchange(&queue->head, head, (head + 1) % queue->capacity) != head) return false;
+
+    *item = queue->items[head];
+
+    return true;
+  }
+
 #ifdef __cplusplus
 }
 #endif

@@ -210,6 +210,83 @@ extern "C"
   // piece development
 #define uo_score_rook_stuck_in_corner -34
 
+  // attacked and defended pieces
+
+  extern const int16_t score_piece_attacked_by_enemy[];
+#define uo_score_P_attacked_by_enemy_P -5
+#define uo_score_P_attacked_by_enemy_N -5
+#define uo_score_P_attacked_by_enemy_B -5
+#define uo_score_P_attacked_by_enemy_R -5
+#define uo_score_P_attacked_by_enemy_Q -5
+#define uo_score_P_attacked_by_enemy_K -5
+
+#define uo_score_N_attacked_by_enemy_P -5
+#define uo_score_N_attacked_by_enemy_N -5
+#define uo_score_N_attacked_by_enemy_B -5
+#define uo_score_N_attacked_by_enemy_R -5
+#define uo_score_N_attacked_by_enemy_Q -5
+#define uo_score_N_attacked_by_enemy_K -5
+
+#define uo_score_B_attacked_by_enemy_P -5
+#define uo_score_B_attacked_by_enemy_N -5
+#define uo_score_B_attacked_by_enemy_B -5
+#define uo_score_B_attacked_by_enemy_R -5
+#define uo_score_B_attacked_by_enemy_Q -5
+#define uo_score_B_attacked_by_enemy_K -5
+
+#define uo_score_R_attacked_by_enemy_P -5
+#define uo_score_R_attacked_by_enemy_N -5
+#define uo_score_R_attacked_by_enemy_B -5
+#define uo_score_R_attacked_by_enemy_R -5
+#define uo_score_R_attacked_by_enemy_Q -5
+#define uo_score_R_attacked_by_enemy_K -5
+
+#define uo_score_Q_attacked_by_enemy_P -5
+#define uo_score_Q_attacked_by_enemy_N -5
+#define uo_score_Q_attacked_by_enemy_B -5
+#define uo_score_Q_attacked_by_enemy_R -5
+#define uo_score_Q_attacked_by_enemy_Q -5
+#define uo_score_Q_attacked_by_enemy_K -5
+
+
+
+  extern const int16_t score_piece_defended_by[];
+#define uo_score_P_defended_by_P 5
+#define uo_score_P_defended_by_N 5
+#define uo_score_P_defended_by_B 5
+#define uo_score_P_defended_by_R 5
+#define uo_score_P_defended_by_Q 5
+#define uo_score_P_defended_by_K 5
+
+#define uo_score_N_defended_by_P 5
+#define uo_score_N_defended_by_N 5
+#define uo_score_N_defended_by_B 5
+#define uo_score_N_defended_by_R 5
+#define uo_score_N_defended_by_Q 5
+#define uo_score_N_defended_by_K 5
+
+#define uo_score_B_defended_by_P 5
+#define uo_score_B_defended_by_N 5
+#define uo_score_B_defended_by_B 5
+#define uo_score_B_defended_by_R 5
+#define uo_score_B_defended_by_Q 5
+#define uo_score_B_defended_by_K 5
+
+#define uo_score_R_defended_by_P 5
+#define uo_score_R_defended_by_N 5
+#define uo_score_R_defended_by_B 5
+#define uo_score_R_defended_by_R 5
+#define uo_score_R_defended_by_Q 5
+#define uo_score_R_defended_by_K 5
+
+#define uo_score_Q_defended_by_P 5
+#define uo_score_Q_defended_by_N 5
+#define uo_score_Q_defended_by_B 5
+#define uo_score_Q_defended_by_R 5
+#define uo_score_Q_defended_by_Q 5
+#define uo_score_Q_defended_by_K 5
+
+
   // attacks near king
   // see: https://www.chessprogramming.org/King_Safety#Attack_Units
 #define uo_attack_unit_N 2

@@ -689,6 +689,40 @@ extern "C"
     return position->stack->repetitions;
   }
 
+  static inline bool uo_position_is_repetition_draw(const uo_position *position)
+  {
+    uint8_t repetition_count = uo_position_repetition_count(position);
+
+    // Case 1. No repetitions -> No draw
+    if (repetition_count == 0) return false;
+
+    // Case 2. Threefold repetition -> Draw
+    if (repetition_count >= 2) return true;
+
+    // Case 3. Position has repeated once
+    // To minimize search tree, let's return draw score for the first repetition already if the previous repetition is in current search tree.
+
+    int rule50 = uo_position_flags_rule50(position->flags);
+    int ply = position->ply;
+
+    // Case 3a. Previous repetition is after root position -> Return draw score
+    if (rule50 < ply) return true;
+
+    uo_move_history *stack = position->stack;
+
+    // Case 3b. Previous repetition is before root position -> No draw score
+    for (int i = uo_max(4ull, uo_andn(1ull, (uint64_t)ply) + 2ull); i <= rule50; i += 2)
+    {
+      if (stack[-i].key == position->key)
+      {
+        return false;
+      }
+    }
+
+    // Case 3a. Previous repetition is after root position -> Return draw score
+    return true;
+  }
+
   static inline bool uo_position_is_max_depth_reached(const uo_position *position)
   {
     return position->ply >= UO_MAX_PLY
@@ -2642,7 +2676,7 @@ extern "C"
   uo_position *uo_position_randomize(uo_position *position, const char *pieces /* e.g. KQRPPvKRRBNP */);
 
 #ifdef __cplusplus
-}
+  }
 #endif
 
 #endif

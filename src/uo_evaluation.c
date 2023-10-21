@@ -15,6 +15,22 @@ const int16_t score_attacks_to_K[100] = {
   618, 618, 618, 618, 618, 618, 618, 618, 618, 618
 };
 
+const int16_t score_piece_attacked_by_enemy[] = {
+  uo_score_P_attacked_by_enemy_P, uo_score_P_attacked_by_enemy_N, uo_score_P_attacked_by_enemy_B, uo_score_P_attacked_by_enemy_R, uo_score_P_attacked_by_enemy_Q, uo_score_P_attacked_by_enemy_K,
+  uo_score_N_attacked_by_enemy_P, uo_score_N_attacked_by_enemy_N, uo_score_N_attacked_by_enemy_B, uo_score_N_attacked_by_enemy_R, uo_score_N_attacked_by_enemy_Q, uo_score_N_attacked_by_enemy_K, 
+  uo_score_B_attacked_by_enemy_P, uo_score_B_attacked_by_enemy_N, uo_score_B_attacked_by_enemy_B, uo_score_B_attacked_by_enemy_R, uo_score_B_attacked_by_enemy_Q, uo_score_B_attacked_by_enemy_K, 
+  uo_score_R_attacked_by_enemy_P, uo_score_R_attacked_by_enemy_N, uo_score_R_attacked_by_enemy_B, uo_score_R_attacked_by_enemy_R, uo_score_R_attacked_by_enemy_Q, uo_score_R_attacked_by_enemy_K, 
+  uo_score_Q_attacked_by_enemy_P, uo_score_Q_attacked_by_enemy_N, uo_score_Q_attacked_by_enemy_B, uo_score_Q_attacked_by_enemy_R, uo_score_Q_attacked_by_enemy_Q, uo_score_Q_attacked_by_enemy_K, 
+};
+
+const int16_t score_piece_defended_by[] = {
+  uo_score_P_defended_by_P, uo_score_P_defended_by_N, uo_score_P_defended_by_B, uo_score_P_defended_by_R, uo_score_P_defended_by_Q, uo_score_P_defended_by_K,
+  uo_score_N_defended_by_P, uo_score_N_defended_by_N, uo_score_N_defended_by_B, uo_score_N_defended_by_R, uo_score_N_defended_by_Q, uo_score_N_defended_by_K,
+  uo_score_B_defended_by_P, uo_score_B_defended_by_N, uo_score_B_defended_by_B, uo_score_B_defended_by_R, uo_score_B_defended_by_Q, uo_score_B_defended_by_K,
+  uo_score_R_defended_by_P, uo_score_R_defended_by_N, uo_score_R_defended_by_B, uo_score_R_defended_by_R, uo_score_R_defended_by_Q, uo_score_R_defended_by_K,
+  uo_score_Q_defended_by_P, uo_score_Q_defended_by_N, uo_score_Q_defended_by_B, uo_score_Q_defended_by_R, uo_score_Q_defended_by_Q, uo_score_Q_defended_by_K,
+};
+
 const int16_t score_mg_P[56] = {
   0, 0, 0, 0, 0, 0, 0, 0,
   score_mg_P_a2, score_mg_P_b2, score_mg_P_c2, score_mg_P_d2, score_mg_P_e2, score_mg_P_f2, score_mg_P_g2, score_mg_P_h2,
